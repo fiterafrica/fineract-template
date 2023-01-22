@@ -18,25 +18,35 @@
  */
 package org.apache.fineract.commands.service;
 
+import static org.apache.fineract.commands.CommandConstants.ASYNC_COMMAND_PREFIX;
+
 import com.google.gson.JsonElement;
-import lombok.RequiredArgsConstructor;
+import java.security.SecureRandom;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.commands.domain.CommandSource;
 import org.apache.fineract.commands.domain.CommandSourceRepository;
 import org.apache.fineract.commands.domain.CommandWrapper;
 import org.apache.fineract.commands.exception.CommandNotAwaitingApprovalException;
 import org.apache.fineract.commands.exception.CommandNotFoundException;
+import org.apache.fineract.commands.exception.RollbackTransactionAsCommandIsNotApprovedByCheckerException;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
+import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.jobs.service.SchedulerJobRunnerReadService;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.useradministration.domain.AppUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class PortfolioCommandSourceWritePlatformServiceImpl implements PortfolioCommandSourceWritePlatformService {
 
@@ -44,7 +54,28 @@ public class PortfolioCommandSourceWritePlatformServiceImpl implements Portfolio
     private final CommandSourceRepository commandSourceRepository;
     private final FromJsonHelper fromApiJsonHelper;
     private final CommandProcessingService processAndLogCommandService;
+    private final CommandProcessingService camelCommandProcessingService;
     private final SchedulerJobRunnerReadService schedulerJobRunnerReadService;
+
+    @Value("${fineract.camel.frontend.enabled}")
+    private boolean frontendEnabled;
+
+    private static final Logger LOG = LoggerFactory.getLogger(PortfolioCommandSourceWritePlatformServiceImpl.class);
+    private static final SecureRandom random = new SecureRandom();
+
+    @Autowired
+    public PortfolioCommandSourceWritePlatformServiceImpl(final PlatformSecurityContext context,
+            final CommandSourceRepository commandSourceRepository, final FromJsonHelper fromApiJsonHelper,
+            final CommandProcessingService processAndLogCommandService,
+            @Qualifier("camelCommandProcessingService") CommandProcessingService camelCommandProcessingService,
+            final SchedulerJobRunnerReadService schedulerJobRunnerReadService) {
+        this.context = context;
+        this.commandSourceRepository = commandSourceRepository;
+        this.fromApiJsonHelper = fromApiJsonHelper;
+        this.processAndLogCommandService = processAndLogCommandService;
+        this.camelCommandProcessingService = camelCommandProcessingService;
+        this.schedulerJobRunnerReadService = schedulerJobRunnerReadService;
+    }
 
     @Override
     public CommandProcessingResult logCommandSource(final CommandWrapper wrapper) {
@@ -65,6 +96,11 @@ public class PortfolioCommandSourceWritePlatformServiceImpl implements Portfolio
         }
         validateIsUpdateAllowed();
 
+        CommandProcessingResult result = null;
+        int numberOfRetries = 0;
+        int maxNumberOfRetries = ThreadLocalContextUtil.getTenant().getConnection().getMaxRetriesOnDeadlock();
+        int maxIntervalBetweenRetries = ThreadLocalContextUtil.getTenant().getConnection().getMaxIntervalBetweenRetries();
+
         final String json = wrapper.getJson();
         final JsonElement parsedCommand = this.fromApiJsonHelper.parse(json);
         JsonCommand command = JsonCommand.from(json, parsedCommand, this.fromApiJsonHelper, wrapper.getEntityName(), wrapper.getEntityId(),
@@ -72,7 +108,46 @@ public class PortfolioCommandSourceWritePlatformServiceImpl implements Portfolio
                 wrapper.getTransactionId(), wrapper.getHref(), wrapper.getProductId(), wrapper.getCreditBureauId(),
                 wrapper.getOrganisationCreditBureauId(), wrapper.getJobName());
 
-        return this.processAndLogCommandService.executeCommand(wrapper, command, isApprovedByChecker);
+        while (numberOfRetries <= maxNumberOfRetries) {
+            try {
+                result = this.getCommandProcessingService(wrapper).executeCommand(wrapper, command, isApprovedByChecker);
+                numberOfRetries = maxNumberOfRetries + 1;
+            } catch (CannotAcquireLockException | ObjectOptimisticLockingFailureException exception) {
+                LOG.info("The following command {} has been retried  {} time(s)", command.json(), numberOfRetries);
+                /***
+                 * Fail if the transaction has been retired for maxNumberOfRetries
+                 **/
+                if (numberOfRetries >= maxNumberOfRetries) {
+                    LOG.warn("The following command {} has been retried for the max allowed attempts of {} and will be rolled back",
+                            command.json(), numberOfRetries);
+                    throw exception;
+                }
+                /***
+                 * Else sleep for a random time (between 1 to 10 seconds) and continue
+                 **/
+                try {
+                    int randomNum = random.nextInt(maxIntervalBetweenRetries + 1);
+                    Thread.sleep(1000 + (randomNum * 1000L));
+                    numberOfRetries = numberOfRetries + 1;
+                } catch (InterruptedException e) {
+                    throw exception;
+                }
+            } catch (final RollbackTransactionAsCommandIsNotApprovedByCheckerException e) {
+                numberOfRetries = maxNumberOfRetries + 1;
+                result = this.getCommandProcessingService(wrapper).logCommand(e.getCommandSourceResult());
+            }
+        }
+
+        return result;
+    }
+
+    private CommandProcessingService getCommandProcessingService(CommandWrapper wrapper) {
+        if (frontendEnabled) {
+            if (wrapper.actionName().startsWith(ASYNC_COMMAND_PREFIX)) {
+                return this.camelCommandProcessingService;
+            }
+        }
+        return this.processAndLogCommandService;
     }
 
     @Override

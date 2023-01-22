@@ -32,6 +32,7 @@ import org.apache.fineract.infrastructure.core.domain.ExternalId;
 @Getter
 public class CommandProcessingResult implements Serializable {
 
+    private String correlationId;
     private Long commandId;
     private Long officeId;
     private final Long groupId;
@@ -50,6 +51,26 @@ public class CommandProcessingResult implements Serializable {
     private Boolean rollbackTransaction;
     private final ExternalId resourceExternalId;
     private final ExternalId subResourceExternalId;
+
+    private CommandProcessingResult(final String correlationId) {
+        this.correlationId = correlationId;
+        this.resourceIdentifier = null;
+        this.resourceId = null;
+        this.officeId = null;
+        this.groupId = null;
+        this.clientId = null;
+        this.loanId = null;
+        this.savingsId = null;
+        this.transactionId = null;
+        this.changes = new HashMap<>();
+        this.productId = null;
+        this.gsimId = null;
+        this.glimId = null;
+        this.creditBureauReportData = null;
+        this.subResourceId = null;
+        this.resourceExternalId = null;
+        this.subResourceExternalId = null;
+    }
 
     public static CommandProcessingResult fromCommandProcessingResult(CommandProcessingResult commandResult) {
         return new CommandProcessingResult(commandResult.commandId, commandResult.officeId, commandResult.groupId, commandResult.clientId,
@@ -192,6 +213,10 @@ public class CommandProcessingResult implements Serializable {
         this.officeId = officeId;
     }
 
+    public static CommandProcessingResult correlationIdResult(final String correlationId) {
+        return new CommandProcessingResult(correlationId);
+    }
+
     public Map<String, Object> getChanges() {
         Map<String, Object> checkIfEmpty = null;
         if (this.changes != null && !this.changes.isEmpty()) {
@@ -203,6 +228,14 @@ public class CommandProcessingResult implements Serializable {
     public boolean hasChanges() {
         final boolean noChanges = this.changes == null || this.changes.isEmpty();
         return !noChanges;
+    }
+
+    public String getCorrelationId() {
+        return correlationId;
+    }
+
+    public void setCorrelationId(String correlationId) {
+        this.correlationId = correlationId;
     }
 
     public boolean isRollbackTransaction() {

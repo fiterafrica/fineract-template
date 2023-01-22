@@ -143,6 +143,21 @@ dependencies {
         exclude group: 'xml-apis'
     }
 
+    implementation(
+            'org.apache.camel.springboot:camel-spring-boot-starter',
+            'org.apache.camel.springboot:camel-spring-security-starter',
+            'org.apache.camel.springboot:camel-language-starter',
+            'org.apache.camel.springboot:camel-vm-starter',
+            'org.apache.camel.springboot:camel-disruptor-starter',
+            'org.apache.camel.springboot:camel-rabbitmq-starter',
+            // 'org.apache.camel.springboot:camel-aws2-sqs-starter',
+            // 'org.apache.camel.springboot:camel-websocket-starter',
+            'org.apache.camel.springboot:camel-atmosphere-websocket-starter',
+            'org.apache.camel.springboot:camel-jackson-starter',
+            // 'org.apache.camel.springboot:camel-jackson-protobuf-starter',
+            'com.jano7:executor:2.0.2'
+            )
+
     runtimeOnly('org.glassfish.jaxb:jaxb-runtime') {
         exclude group: 'com.sun.activation'
     }

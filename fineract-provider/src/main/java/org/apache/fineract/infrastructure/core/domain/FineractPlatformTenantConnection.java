@@ -54,6 +54,8 @@ public class FineractPlatformTenantConnection implements Serializable {
     private final int suspectTimeout;
     private final int timeBetweenEvictionRunsMillis;
     private final int minEvictableIdleTimeMillis;
+    private final int maxRetriesOnDeadlock;
+    private final int maxIntervalBetweenRetries;
     private final boolean testOnBorrow;
 
     public FineractPlatformTenantConnection(final Long connectionId, final String schemaName, String schemaServer,
@@ -63,7 +65,8 @@ public class FineractPlatformTenantConnection implements Serializable {
             final int abandonWhenPercentageFull, final int maxActive, final int minIdle, final int maxIdle, final int suspectTimeout,
             final int timeBetweenEvictionRunsMillis, final int minEvictableIdleTimeMillis, final boolean tesOnBorrow,
             final String readOnlySchemaServer, final String readOnlySchemaServerPort, final String readOnlySchemaName,
-            final String readOnlySchemaUsername, final String readOnlySchemaPassword, final String readOnlySchemaConnectionParameters) {
+            final String readOnlySchemaUsername, final String readOnlySchemaPassword, final int maxRetriesOnDeadlock,
+            final int maxIntervalBetweenRetries, final String readOnlySchemaConnectionParameters) {
 
         this.connectionId = connectionId;
         this.schemaName = schemaName;
@@ -91,6 +94,8 @@ public class FineractPlatformTenantConnection implements Serializable {
         this.readOnlySchemaName = readOnlySchemaName;
         this.readOnlySchemaUsername = readOnlySchemaUsername;
         this.readOnlySchemaPassword = readOnlySchemaPassword;
+        this.maxRetriesOnDeadlock = maxRetriesOnDeadlock;
+        this.maxIntervalBetweenRetries = maxIntervalBetweenRetries;
         this.readOnlySchemaConnectionParameters = readOnlySchemaConnectionParameters;
     }
 
@@ -164,6 +169,14 @@ public class FineractPlatformTenantConnection implements Serializable {
 
     public int getMinEvictableIdleTimeMillis() {
         return this.minEvictableIdleTimeMillis;
+    }
+
+    public int getMaxRetriesOnDeadlock() {
+        return this.maxRetriesOnDeadlock;
+    }
+
+    public int getMaxIntervalBetweenRetries() {
+        return this.maxIntervalBetweenRetries;
     }
 
     public boolean isTestOnBorrow() {

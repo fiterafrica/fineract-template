@@ -30,6 +30,8 @@ dependencyManagement {
         mavenBom 'io.cucumber:cucumber-bom:7.10.0'
         mavenBom 'io.netty:netty-bom:4.1.86.Final'
         mavenBom 'org.mockito:mockito-bom:4.10.0'
+        mavenBom "org.apache.camel:camel-bom:3.14.0"
+        mavenBom "org.apache.camel.springboot:camel-spring-boot-bom:3.14.0"
     }
 
     dependencies {

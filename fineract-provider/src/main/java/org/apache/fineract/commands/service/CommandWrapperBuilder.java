@@ -1526,6 +1526,15 @@ public class CommandWrapperBuilder {
         return this;
     }
 
+    public CommandWrapperBuilder asyncSavingsAccountDeposit(final Long accountId) {
+        this.actionName = "ASYNC_DEPOSIT";
+        this.entityName = "SAVINGSACCOUNT";
+        this.savingsId = accountId;
+        this.entityId = null;
+        this.href = "/savingsaccounts/" + accountId + "/transactions/async";
+        return this;
+    }
+
     public CommandWrapperBuilder gsimSavingsAccountDeposit(final Long accountId) {
         this.actionName = "DEPOSIT";
         this.entityName = "GSIMACCOUNT";
@@ -1541,6 +1550,15 @@ public class CommandWrapperBuilder {
         this.savingsId = accountId;
         this.entityId = null;
         this.href = "/savingsaccounts/" + accountId + "/transactions";
+        return this;
+    }
+
+    public CommandWrapperBuilder asyncSavingsAccountWithdrawal(final Long accountId) {
+        this.actionName = "ASYNC_WITHDRAWAL";
+        this.entityName = "SAVINGSACCOUNT";
+        this.savingsId = accountId;
+        this.entityId = null;
+        this.href = "/savingsaccounts/" + accountId + "/transactions/async";
         return this;
     }
 

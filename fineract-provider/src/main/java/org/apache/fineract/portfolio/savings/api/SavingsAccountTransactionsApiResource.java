@@ -181,6 +181,38 @@ public class SavingsAccountTransactionsApiResource {
     }
 
     @POST
+    @Path("async")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String asyncTransaction(@PathParam("savingsId") final Long savingsId, @QueryParam("command") final String commandParam,
+            final String apiRequestBodyAsJson) {
+        try {
+            final CommandWrapperBuilder builder = new CommandWrapperBuilder().withJson(apiRequestBodyAsJson);
+
+            CommandProcessingResult result = null;
+            if (is(commandParam, "deposit")) {
+                final CommandWrapper commandRequest = builder.asyncSavingsAccountDeposit(savingsId).build();
+                result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+            } else if (is(commandParam, "withdrawal")) {
+                final CommandWrapper commandRequest = builder.asyncSavingsAccountWithdrawal(savingsId).build();
+                result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+            }
+
+            if (result == null) {
+                throw new UnrecognizedQueryParamException("command", commandParam, "deposit", "withdrawal");
+            }
+            return this.toApiJsonSerializer.serialize(result);
+        } catch (ObjectOptimisticLockingFailureException lockingFailureException) {
+            throw new PlatformDataIntegrityException("error.msg.savings.concurrent.operations",
+                    "Concurrent Transactions being made on this savings account: " + lockingFailureException.getMessage(),
+                    lockingFailureException);
+        } catch (CannotAcquireLockException cannotAcquireLockException) {
+            throw new PlatformDataIntegrityException("error.msg.savings.concurrent.operations.unable.to.acquire.lock",
+                    "Unable to acquire lock for this transaction: " + cannotAcquireLockException.getMessage(), cannotAcquireLockException);
+        }
+    }
+
+    @POST
     @Path("{transactionId}")
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
