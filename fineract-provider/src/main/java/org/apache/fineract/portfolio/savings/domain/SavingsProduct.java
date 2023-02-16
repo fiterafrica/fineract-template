@@ -73,6 +73,8 @@ import javax.persistence.DiscriminatorType;
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.Inheritance;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
@@ -95,6 +97,7 @@ import org.apache.fineract.portfolio.savings.SavingsInterestCalculationDaysInYea
 import org.apache.fineract.portfolio.savings.SavingsInterestCalculationType;
 import org.apache.fineract.portfolio.savings.SavingsPeriodFrequencyType;
 import org.apache.fineract.portfolio.savings.SavingsPostingInterestPeriodType;
+import org.apache.fineract.portfolio.savings.WithdrawalFrequency;
 import org.apache.fineract.portfolio.tax.domain.TaxGroup;
 
 @Entity
@@ -229,19 +232,22 @@ public class SavingsProduct extends AbstractPersistableCustom {
     @Column(name = "allow_manually_enter_interest_rate")
     private boolean allowManuallyEnterInterestRate;
 
+    @Column(name = "withdrawal_frequency")
+    private Integer withdrawalFrequency;
+
     public static SavingsProduct createNew(final String name, final String shortName, final String description,
-            final MonetaryCurrency currency, final BigDecimal interestRate,
-            final SavingsCompoundingInterestPeriodType interestCompoundingPeriodType,
-            final SavingsPostingInterestPeriodType interestPostingPeriodType, final SavingsInterestCalculationType interestCalculationType,
-            final SavingsInterestCalculationDaysInYearType interestCalculationDaysInYearType, final BigDecimal minRequiredOpeningBalance,
-            final Integer lockinPeriodFrequency, final SavingsPeriodFrequencyType lockinPeriodFrequencyType,
-            final boolean withdrawalFeeApplicableForTransfer, final AccountingRuleType accountingRuleType, final Set<Charge> charges,
-            final boolean allowOverdraft, final BigDecimal overdraftLimit, final boolean enforceMinRequiredBalance,
-            final BigDecimal minRequiredBalance, final boolean lienAllowed, final BigDecimal maxAllowedLienLimit,
-            final BigDecimal minBalanceForInterestCalculation, final BigDecimal nominalAnnualInterestRateOverdraft,
-            final BigDecimal minOverdraftForInterestCalculation, boolean withHoldTax, TaxGroup taxGroup,
-            final Boolean isDormancyTrackingActive, final Long daysToInactive, final Long daysToDormancy, final Long daysToEscheat,
-            final Boolean isInterestPostingConfigUpdate, final Long numOfCreditTransaction, final Long numOfDebitTransaction) {
+                                           final MonetaryCurrency currency, final BigDecimal interestRate,
+                                           final SavingsCompoundingInterestPeriodType interestCompoundingPeriodType,
+                                           final SavingsPostingInterestPeriodType interestPostingPeriodType, final SavingsInterestCalculationType interestCalculationType,
+                                           final SavingsInterestCalculationDaysInYearType interestCalculationDaysInYearType, final BigDecimal minRequiredOpeningBalance,
+                                           final Integer lockinPeriodFrequency, final SavingsPeriodFrequencyType lockinPeriodFrequencyType,
+                                           final boolean withdrawalFeeApplicableForTransfer, final AccountingRuleType accountingRuleType, final Set<Charge> charges,
+                                           final boolean allowOverdraft, final BigDecimal overdraftLimit, final boolean enforceMinRequiredBalance,
+                                           final BigDecimal minRequiredBalance, final boolean lienAllowed, final BigDecimal maxAllowedLienLimit,
+                                           final BigDecimal minBalanceForInterestCalculation, final BigDecimal nominalAnnualInterestRateOverdraft,
+                                           final BigDecimal minOverdraftForInterestCalculation, boolean withHoldTax, TaxGroup taxGroup,
+                                           final Boolean isDormancyTrackingActive, final Long daysToInactive, final Long daysToDormancy, final Long daysToEscheat,
+                                           final Boolean isInterestPostingConfigUpdate, final Long numOfCreditTransaction, final Long numOfDebitTransaction, final Integer withdrawalFrequency) {
 
         return new SavingsProduct(name, shortName, description, currency, interestRate, interestCompoundingPeriodType,
                 interestPostingPeriodType, interestCalculationType, interestCalculationDaysInYearType, minRequiredOpeningBalance,
@@ -249,7 +255,7 @@ public class SavingsProduct extends AbstractPersistableCustom {
                 allowOverdraft, overdraftLimit, enforceMinRequiredBalance, minRequiredBalance, lienAllowed, maxAllowedLienLimit,
                 minBalanceForInterestCalculation, nominalAnnualInterestRateOverdraft, minOverdraftForInterestCalculation, withHoldTax,
                 taxGroup, isDormancyTrackingActive, daysToInactive, daysToDormancy, daysToEscheat, isInterestPostingConfigUpdate,
-                numOfCreditTransaction, numOfDebitTransaction, false, false);
+                numOfCreditTransaction, numOfDebitTransaction, false, false,withdrawalFrequency);
     }
 
     protected SavingsProduct() {
@@ -265,12 +271,12 @@ public class SavingsProduct extends AbstractPersistableCustom {
             final boolean withdrawalFeeApplicableForTransfer, final AccountingRuleType accountingRuleType, final Set<Charge> charges,
             final boolean allowOverdraft, final BigDecimal overdraftLimit, BigDecimal minBalanceForInterestCalculation, boolean withHoldTax,
             TaxGroup taxGroup, final Boolean isInterestPostingConfigUpdate, final Long numOfCreditTransaction,
-            final Long numOfDebitTransaction, boolean isUSDProduct, boolean allowManuallyEnterInterestRate) {
+            final Long numOfDebitTransaction, boolean isUSDProduct, boolean allowManuallyEnterInterestRate, final Integer withdrawalFrequency) {
         this(name, shortName, description, currency, interestRate, interestCompoundingPeriodType, interestPostingPeriodType,
                 interestCalculationType, interestCalculationDaysInYearType, minRequiredOpeningBalance, lockinPeriodFrequency,
                 lockinPeriodFrequencyType, withdrawalFeeApplicableForTransfer, accountingRuleType, charges, allowOverdraft, overdraftLimit,
                 false, null, false, null, minBalanceForInterestCalculation, null, null, withHoldTax, taxGroup, null, null, null, null,
-                isInterestPostingConfigUpdate, numOfCreditTransaction, numOfDebitTransaction, isUSDProduct, allowManuallyEnterInterestRate);
+                isInterestPostingConfigUpdate, numOfCreditTransaction, numOfDebitTransaction, isUSDProduct, allowManuallyEnterInterestRate,withdrawalFrequency);
     }
 
     protected SavingsProduct(final String name, final String shortName, final String description, final MonetaryCurrency currency,
@@ -285,12 +291,12 @@ public class SavingsProduct extends AbstractPersistableCustom {
             final BigDecimal minOverdraftForInterestCalculation, final boolean withHoldTax, final TaxGroup taxGroup,
             final Boolean isDormancyTrackingActive, final Long daysToInactive, final Long daysToDormancy, final Long daysToEscheat,
             final Boolean isInterestPostingConfigUpdate, final Long numOfCreditTransaction, final Long numOfDebitTransaction,
-            boolean isUSDProduct, boolean allowManuallyEnterInterestRate) {
+            boolean isUSDProduct, boolean allowManuallyEnterInterestRate, final Integer withdrawalFrequency) {
 
         this.name = name;
         this.shortName = shortName;
         this.description = description;
-
+        this.withdrawalFrequency=withdrawalFrequency;
         this.currency = currency;
         this.nominalAnnualInterestRate = interestRate;
         this.interestCompoundingPeriodType = interestCompoundingPeriodType.getValue();
@@ -862,4 +868,7 @@ public class SavingsProduct extends AbstractPersistableCustom {
         return this.isUSDProduct;
     }
 
+    public Integer getWithdrawalFrequency() {
+        return withdrawalFrequency;
+    }
 }

@@ -220,4 +220,7 @@ public class SavingsApiConstants {
     public static final String totalLiquidationAllowed = "totalLiquidationAllowed";
 
     public static final String allowManuallyEnterInterestRateParamName = "allowManuallyEnterInterestRate";
+    public static final String withdrawalFrequency = "withdrawalFrequency";
+
+    public static final String nextWithdrawalDate = "nextWithdrawalDate";
 }

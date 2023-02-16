@@ -52,6 +52,7 @@ import static org.apache.fineract.portfolio.savings.SavingsApiConstants.shortNam
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.taxGroupIdParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.withHoldTaxParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.withdrawalFeeForTransfersParamName;
+import static org.apache.fineract.portfolio.savings.SavingsApiConstants.withdrawalFrequency;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -91,7 +92,7 @@ public class SavingsProductDataValidator {
     private final FromJsonHelper fromApiJsonHelper;
     private static final Set<String> SAVINGS_PRODUCT_REQUEST_DATA_PARAMETERS = new HashSet<>(Arrays.asList(
             SavingsApiConstants.localeParamName, SavingsApiConstants.monthDayFormatParamName, nameParamName, shortNameParamName,
-            descriptionParamName, currencyCodeParamName, digitsAfterDecimalParamName, inMultiplesOfParamName,
+            descriptionParamName, currencyCodeParamName, digitsAfterDecimalParamName, inMultiplesOfParamName,withdrawalFrequency,
             nominalAnnualInterestRateParamName, interestCompoundingPeriodTypeParamName, interestPostingPeriodTypeParamName,
             interestCalculationTypeParamName, interestCalculationDaysInYearTypeParamName, minRequiredOpeningBalanceParamName,
             lockinPeriodFrequencyParamName, lockinPeriodFrequencyTypeParamName, SavingsApiConstants.withdrawalFeeAmountParamName,
@@ -236,6 +237,12 @@ public class SavingsProductDataValidator {
                 final BigDecimal annualFeeAmount = this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed(feeAmountParamName, element);
                 baseDataValidator.reset().parameter(feeAmountParamName).value(annualFeeAmount).notNull().zeroOrPositiveAmount();
             }
+        }
+
+        if (this.fromApiJsonHelper.parameterExists(withdrawalFrequency, element)) {
+            final Integer withdrawalFrequency = this.fromApiJsonHelper
+                    .extractIntegerSansLocaleNamed(SavingsApiConstants.withdrawalFeeAmountParamName, element);
+            baseDataValidator.reset().parameter(SavingsApiConstants.withdrawalFeeAmountParamName).value(withdrawalFrequency).inMinMaxRange(0, 3);
         }
 
         // dormancy

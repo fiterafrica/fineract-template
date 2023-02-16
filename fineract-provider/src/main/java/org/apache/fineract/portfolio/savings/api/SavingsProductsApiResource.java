@@ -27,9 +27,13 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -39,6 +43,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
@@ -71,6 +76,8 @@ import org.apache.fineract.portfolio.savings.SavingsInterestCalculationDaysInYea
 import org.apache.fineract.portfolio.savings.SavingsInterestCalculationType;
 import org.apache.fineract.portfolio.savings.SavingsPostingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.data.SavingsProductData;
+import org.apache.fineract.portfolio.savings.domain.SavingsWithdrawalScheduleData;
+import org.apache.fineract.portfolio.savings.service.SavingsAccountWithdrawalService;
 import org.apache.fineract.portfolio.savings.service.SavingsDropdownReadPlatformService;
 import org.apache.fineract.portfolio.savings.service.SavingsEnumerations;
 import org.apache.fineract.portfolio.savings.service.SavingsProductReadPlatformService;
@@ -103,6 +110,10 @@ public class SavingsProductsApiResource {
     private final TaxReadPlatformService taxReadPlatformService;
     private final ConfigurationDomainService configurationDomainService;
 
+    private final DefaultToApiJsonSerializer<SavingsWithdrawalScheduleData> savingsScheduleSerializer;
+
+    private final SavingsAccountWithdrawalService savingsAccountWithdrawalService;
+
     @Autowired
     public SavingsProductsApiResource(final SavingsProductReadPlatformService savingProductReadPlatformService,
             final SavingsDropdownReadPlatformService dropdownReadPlatformService,
@@ -113,7 +124,9 @@ public class SavingsProductsApiResource {
             final AccountingDropdownReadPlatformService accountingDropdownReadPlatformService,
             final ProductToGLAccountMappingReadPlatformService accountMappingReadPlatformService,
             final ChargeReadPlatformService chargeReadPlatformService, PaymentTypeReadPlatformService paymentTypeReadPlatformService,
-            final TaxReadPlatformService taxReadPlatformService, final ConfigurationDomainService configurationDomainService) {
+            final TaxReadPlatformService taxReadPlatformService, final ConfigurationDomainService configurationDomainService,
+            final DefaultToApiJsonSerializer<SavingsWithdrawalScheduleData> savingsScheduleSerializer,
+                                      final SavingsAccountWithdrawalService savingsAccountWithdrawalService                         ) {
         this.savingProductReadPlatformService = savingProductReadPlatformService;
         this.dropdownReadPlatformService = dropdownReadPlatformService;
         this.currencyReadPlatformService = currencyReadPlatformService;
@@ -127,6 +140,8 @@ public class SavingsProductsApiResource {
         this.paymentTypeReadPlatformService = paymentTypeReadPlatformService;
         this.taxReadPlatformService = taxReadPlatformService;
         this.configurationDomainService = configurationDomainService;
+        this.savingsScheduleSerializer=savingsScheduleSerializer;
+        this.savingsAccountWithdrawalService=savingsAccountWithdrawalService;
     }
 
     @POST
@@ -226,6 +241,32 @@ public class SavingsProductsApiResource {
         return this.toApiJsonSerializer.serialize(settings, savingProductData,
                 SavingsApiSetConstants.SAVINGS_PRODUCT_RESPONSE_DATA_PARAMETERS);
     }
+
+    @GET
+    @Path("{productId}/next-withdrawal-date")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    @Operation(summary = "Retrieve a Savings Product", description = "Retrieves a Savings Product\n\n" + "Example Requests:\n" + "\n"
+            + "savingsproducts/1\n" + "\n" + "savingsproducts/1?template=true\n" + "\n" + "savingsproducts/1?fields=name,description")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.GetSavingsProductsProductIdResponse.class))) })
+    public String findNextWithdrawalDate(@PathParam("productId") @Parameter(description = "productId") final Long productId,
+                                         @QueryParam("startDate") @Parameter(description = "startDate") final String startDate,
+                                         @QueryParam("locale") @Parameter(description = "locale") final String locale,
+                                         @QueryParam("dateFormat") @Parameter(description = "dateFormat") final String dateFormat,
+                              @Context final UriInfo uriInfo) {
+
+
+        final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern(dateFormat).localizedBy(new Locale(locale));
+        final LocalDate currentDate = LocalDate.parse(startDate,dateFormatter);
+        this.context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_PRODUCT_RESOURCE_NAME);
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        final SavingsWithdrawalScheduleData savingsWithdrawalScheduleData = this.savingsAccountWithdrawalService.findByWithdrawalFrequencyAndDate(productId,currentDate);
+        return this.savingsScheduleSerializer.serialize(settings, savingsWithdrawalScheduleData,
+                SavingsApiSetConstants.SAVINGS_PRODUCT_RESPONSE_DATA_PARAMETERS);
+    }
+
+
 
     @GET
     @Path("template")
