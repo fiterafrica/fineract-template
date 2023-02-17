@@ -44,6 +44,15 @@ public final class SavingsWithdrawalSchedule extends AbstractPersistableCustom {
     @Column(name = "next_withdrawal_date", nullable = false)
     private LocalDate nextWithdrawalDate;
 
+    public SavingsWithdrawalSchedule() {
+
+    }
+
+    public static SavingsWithdrawalSchedule newInstance(SavingsAccount savingsAccount, Integer withdrawalFrequency,
+            LocalDate nextWithdrawalDate) {
+        return new SavingsWithdrawalSchedule(savingsAccount, withdrawalFrequency, nextWithdrawalDate);
+    }
+
     public SavingsWithdrawalSchedule(SavingsAccount savingsAccount, Integer withdrawalFrequency, LocalDate nextWithdrawalDate) {
         this.savingsAccount = savingsAccount;
         this.withdrawalFrequency = withdrawalFrequency;
@@ -56,14 +65,6 @@ public final class SavingsWithdrawalSchedule extends AbstractPersistableCustom {
 
     public void setSavingsAccount(SavingsAccount savingsAccount) {
         this.savingsAccount = savingsAccount;
-    }
-
-    public Integer getWithdrawalFrequency() {
-        return withdrawalFrequency;
-    }
-
-    public void setWithdrawalFrequency(Integer withdrawalFrequency) {
-        this.withdrawalFrequency = withdrawalFrequency;
     }
 
     public LocalDate getNextWithdrawalDate() {

@@ -54,7 +54,7 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
             savingsWithdrawalSchedule = savingsWithdrawalScheduleOptional.get();
             savingsWithdrawalSchedule.setNextWithdrawalDate(nextWithdrawalDate);
         } else {
-            savingsWithdrawalSchedule = new SavingsWithdrawalSchedule(savingsAccount, withdrawalFrequency, nextWithdrawalDate);
+            savingsWithdrawalSchedule = SavingsWithdrawalSchedule.newInstance(savingsAccount, withdrawalFrequency, nextWithdrawalDate);
         }
 
         savingsWithdrawalScheduleRepository.saveAndFlush(savingsWithdrawalSchedule);
