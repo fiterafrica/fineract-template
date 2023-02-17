@@ -18,12 +18,10 @@
  */
 package org.apache.fineract.portfolio.savings.domain;
 
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.Optional;
-
-public interface SavingsWithdrawalScheduleRepository
-        extends JpaRepository<SavingsWithdrawalSchedule, Long> {
+public interface SavingsWithdrawalScheduleRepository extends JpaRepository<SavingsWithdrawalSchedule, Long> {
 
     Optional<SavingsWithdrawalSchedule> findBySavingsAccountId(final Long savingsAccountId);
 

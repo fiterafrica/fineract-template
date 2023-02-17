@@ -27,7 +27,6 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -126,7 +125,7 @@ public class SavingsProductsApiResource {
             final ChargeReadPlatformService chargeReadPlatformService, PaymentTypeReadPlatformService paymentTypeReadPlatformService,
             final TaxReadPlatformService taxReadPlatformService, final ConfigurationDomainService configurationDomainService,
             final DefaultToApiJsonSerializer<SavingsWithdrawalScheduleData> savingsScheduleSerializer,
-                                      final SavingsAccountWithdrawalService savingsAccountWithdrawalService                         ) {
+            final SavingsAccountWithdrawalService savingsAccountWithdrawalService) {
         this.savingProductReadPlatformService = savingProductReadPlatformService;
         this.dropdownReadPlatformService = dropdownReadPlatformService;
         this.currencyReadPlatformService = currencyReadPlatformService;
@@ -140,8 +139,8 @@ public class SavingsProductsApiResource {
         this.paymentTypeReadPlatformService = paymentTypeReadPlatformService;
         this.taxReadPlatformService = taxReadPlatformService;
         this.configurationDomainService = configurationDomainService;
-        this.savingsScheduleSerializer=savingsScheduleSerializer;
-        this.savingsAccountWithdrawalService=savingsAccountWithdrawalService;
+        this.savingsScheduleSerializer = savingsScheduleSerializer;
+        this.savingsAccountWithdrawalService = savingsAccountWithdrawalService;
     }
 
     @POST
@@ -251,22 +250,19 @@ public class SavingsProductsApiResource {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.GetSavingsProductsProductIdResponse.class))) })
     public String findNextWithdrawalDate(@PathParam("productId") @Parameter(description = "productId") final Long productId,
-                                         @QueryParam("startDate") @Parameter(description = "startDate") final String startDate,
-                                         @QueryParam("locale") @Parameter(description = "locale") final String locale,
-                                         @QueryParam("dateFormat") @Parameter(description = "dateFormat") final String dateFormat,
-                              @Context final UriInfo uriInfo) {
-
+            @QueryParam("startDate") @Parameter(description = "startDate") final String startDate,
+            @QueryParam("locale") @Parameter(description = "locale") final String locale,
+            @QueryParam("dateFormat") @Parameter(description = "dateFormat") final String dateFormat, @Context final UriInfo uriInfo) {
 
         final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern(dateFormat).localizedBy(new Locale(locale));
-        final LocalDate currentDate = LocalDate.parse(startDate,dateFormatter);
+        final LocalDate currentDate = LocalDate.parse(startDate, dateFormatter);
         this.context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_PRODUCT_RESOURCE_NAME);
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
-        final SavingsWithdrawalScheduleData savingsWithdrawalScheduleData = this.savingsAccountWithdrawalService.findByWithdrawalFrequencyAndDate(productId,currentDate);
+        final SavingsWithdrawalScheduleData savingsWithdrawalScheduleData = this.savingsAccountWithdrawalService
+                .findByWithdrawalFrequencyAndDate(productId, currentDate);
         return this.savingsScheduleSerializer.serialize(settings, savingsWithdrawalScheduleData,
                 SavingsApiSetConstants.SAVINGS_PRODUCT_RESPONSE_DATA_PARAMETERS);
     }
-
-
 
     @GET
     @Path("template")

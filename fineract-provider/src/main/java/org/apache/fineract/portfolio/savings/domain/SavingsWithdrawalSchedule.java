@@ -18,15 +18,14 @@
  */
 package org.apache.fineract.portfolio.savings.domain;
 
-import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
-
+import java.time.LocalDate;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import java.time.LocalDate;
+import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 
 /**
  * It Keeps the withdrawal dates that was generated during saving account creation

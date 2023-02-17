@@ -18,10 +18,9 @@
  */
 package org.apache.fineract.portfolio.savings.service;
 
+import java.time.LocalDate;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
 import org.apache.fineract.portfolio.savings.domain.SavingsWithdrawalScheduleData;
-
-import java.time.LocalDate;
 
 public interface SavingsAccountWithdrawalService {
 
@@ -29,6 +28,6 @@ public interface SavingsAccountWithdrawalService {
 
     boolean isTodayNextWithdrawalDate(SavingsAccount savingsAccount);
 
-    SavingsWithdrawalScheduleData  findByWithdrawalFrequencyAndDate( Long  savingsProductId, LocalDate startDate);
+    SavingsWithdrawalScheduleData findByWithdrawalFrequencyAndDate(Long savingsProductId, LocalDate startDate);
 
 }

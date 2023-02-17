@@ -18,6 +18,8 @@
  */
 package org.apache.fineract.portfolio.savings.service;
 
+import java.time.LocalDate;
+import java.util.Optional;
 import org.apache.fineract.portfolio.savings.WithdrawalFrequency;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
 import org.apache.fineract.portfolio.savings.domain.SavingsProduct;
@@ -30,9 +32,6 @@ import org.apache.fineract.portfolio.savings.exception.SavingsScheduleFoundExcep
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.util.Optional;
-
 @Service
 public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdrawalService {
 
@@ -41,7 +40,7 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
 
     @Autowired
     public SavingsAccountWithdrawalServiceImpl(SavingsWithdrawalScheduleRepository savingsWithdrawalScheduleRepository,
-                                               final SavingsProductRepository savingProductRepository) {
+            final SavingsProductRepository savingProductRepository) {
         this.savingsWithdrawalScheduleRepository = savingsWithdrawalScheduleRepository;
         this.savingProductRepository = savingProductRepository;
     }
@@ -49,7 +48,8 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
     @Override
     public void updateNextWithdrawalDate(SavingsAccount savingsAccount, Integer withdrawalFrequency, LocalDate nextWithdrawalDate) {
         SavingsWithdrawalSchedule savingsWithdrawalSchedule;
-        Optional<SavingsWithdrawalSchedule> savingsWithdrawalScheduleOptional = savingsWithdrawalScheduleRepository.findBySavingsAccountId(savingsAccount.getId());
+        Optional<SavingsWithdrawalSchedule> savingsWithdrawalScheduleOptional = savingsWithdrawalScheduleRepository
+                .findBySavingsAccountId(savingsAccount.getId());
         if (savingsWithdrawalScheduleOptional.isPresent()) {
             savingsWithdrawalSchedule = savingsWithdrawalScheduleOptional.get();
             savingsWithdrawalSchedule.setNextWithdrawalDate(nextWithdrawalDate);
@@ -61,19 +61,21 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
     }
 
     /**
-     * Determines whether the current date is a next withdrawal date for the savings account, based on the
-     * savings product's withdrawal frequency and the date of the most recent withdrawal. If the given date
-     * is not a next withdrawal date, returns false.
+     * Determines whether the current date is a next withdrawal date for the savings account, based on the savings
+     * product's withdrawal frequency and the date of the most recent withdrawal. If the given date is not a next
+     * withdrawal date, returns false.
      *
-     * @param savingsAccount the savings account on witch We want to determine this
+     * @param savingsAccount
+     *            the savings account on witch We want to determine this
      * @return true if the given date is a next withdrawal date, false otherwise
-     * @throws UnsupportedOperationException if the savings product's withdrawal frequency is not supported
+     * @throws UnsupportedOperationException
+     *             if the savings product's withdrawal frequency is not supported
      */
     @Override
     public boolean isTodayNextWithdrawalDate(SavingsAccount savingsAccount) {
 
-        SavingsProduct savingsProduct = savingProductRepository.findById(savingsAccount.getSavingsProductId()).orElseThrow(
-                () -> new SavingsProductNotFoundException(savingsAccount.getSavingsProductId()));
+        SavingsProduct savingsProduct = savingProductRepository.findById(savingsAccount.getSavingsProductId())
+                .orElseThrow(() -> new SavingsProductNotFoundException(savingsAccount.getSavingsProductId()));
         SavingsWithdrawalSchedule withdrawalSchedule = savingsWithdrawalScheduleRepository.findBySavingsAccountId(savingsAccount.getId())
                 .orElseThrow(() -> new SavingsScheduleFoundException(savingsAccount.getId()));
 
@@ -89,18 +91,18 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
             switch (withdrawalFrequency) {
                 case MONTHLY:
                     candidateNextWithdrawalDate = candidateNextWithdrawalDate.plusMonths(1);
-                    break;
+                break;
                 case QUARTERLY:
                     candidateNextWithdrawalDate = candidateNextWithdrawalDate.plusMonths(3);
-                    break;
+                break;
 
                 case BI_ANNUAL:
                     candidateNextWithdrawalDate = candidateNextWithdrawalDate.plusMonths(6);
-                    break;
+                break;
 
                 case ANNUAL:
                     candidateNextWithdrawalDate = candidateNextWithdrawalDate.plusYears(1);
-                    break;
+                break;
                 default:
                     throw new UnsupportedOperationException("Unsupported withdrawal frequency: " + withdrawalFrequency);
             }
@@ -108,8 +110,8 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
 
         // Check if the original date is before the current date and if the
         // candidate next withdrawal date is on or after the original date
-        return originalDate.isBefore(currentDate) && !candidateNextWithdrawalDate.isAfter(currentDate) &&
-                candidateNextWithdrawalDate.getDayOfMonth() == originalDayOfMonth;
+        return originalDate.isBefore(currentDate) && !candidateNextWithdrawalDate.isAfter(currentDate)
+                && candidateNextWithdrawalDate.getDayOfMonth() == originalDayOfMonth;
     }
 
     /**
@@ -117,31 +119,33 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
      * the given start date. If the start date is not a valid next withdrawal date, returns the next valid withdrawal
      * date after the start date. If the withdrawal frequency is not supported, throws an UnsupportedOperationException.
      *
-     * @param startDate the start date from which to calculate the next withdrawal date
+     * @param startDate
+     *            the start date from which to calculate the next withdrawal date
      * @return the next withdrawal date
-     * @throws UnsupportedOperationException if the savings account's withdrawal frequency is not supported
+     * @throws UnsupportedOperationException
+     *             if the savings account's withdrawal frequency is not supported
      */
     @Override
-    public SavingsWithdrawalScheduleData findByWithdrawalFrequencyAndDate(Long  savingsProductId, LocalDate startDate) {
+    public SavingsWithdrawalScheduleData findByWithdrawalFrequencyAndDate(Long savingsProductId, LocalDate startDate) {
         int originalDayOfMonth = startDate.getDayOfMonth();
         LocalDate candidateNextWithdrawalDate;
-        SavingsProduct savingsProduct = savingProductRepository.findById(savingsProductId).orElseThrow(
-                () -> new SavingsProductNotFoundException(savingsProductId));
-     WithdrawalFrequency withdrawalFrequencyEnum=WithdrawalFrequency.fromInt(savingsProduct.getWithdrawalFrequency());
+        SavingsProduct savingsProduct = savingProductRepository.findById(savingsProductId)
+                .orElseThrow(() -> new SavingsProductNotFoundException(savingsProductId));
+        WithdrawalFrequency withdrawalFrequencyEnum = WithdrawalFrequency.fromInt(savingsProduct.getWithdrawalFrequency());
         switch (withdrawalFrequencyEnum) {
             case MONTHLY:
                 candidateNextWithdrawalDate = startDate.plusMonths(1);
-                break;
+            break;
             case QUARTERLY:
                 candidateNextWithdrawalDate = startDate.plusMonths(3);
-                break;
+            break;
 
             case BI_ANNUAL:
                 candidateNextWithdrawalDate = startDate.plusMonths(6);
-                break;
+            break;
             case ANNUAL:
                 candidateNextWithdrawalDate = startDate.plusYears(1);
-                break;
+            break;
             default:
                 throw new UnsupportedOperationException("Unsupported withdrawal frequency: " + savingsProduct.getWithdrawalFrequency());
         }
@@ -153,12 +157,10 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
         // the same day of the original date in the next month as the next
         // withdrawal date.
         if (candidateDayOfMonth > originalDayOfMonth) {
-            return new SavingsWithdrawalScheduleData(null,null,candidateNextWithdrawalDate);
+            return new SavingsWithdrawalScheduleData(null, null, candidateNextWithdrawalDate);
         } else {
-            return new SavingsWithdrawalScheduleData(null,null,LocalDate.of(
-                    candidateNextWithdrawalDate.getYear(),
-                    candidateNextWithdrawalDate.getMonth(),
-                    originalDayOfMonth));
+            return new SavingsWithdrawalScheduleData(null, null,
+                    LocalDate.of(candidateNextWithdrawalDate.getYear(), candidateNextWithdrawalDate.getMonth(), originalDayOfMonth));
         }
     }
 

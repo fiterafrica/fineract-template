@@ -23,7 +23,8 @@ import org.apache.fineract.infrastructure.core.exception.AbstractPlatformResourc
 public class SavingsScheduleFoundException extends AbstractPlatformResourceNotFoundException {
 
     public SavingsScheduleFoundException(final Long savingsAccountId) {
-        super("error.msg.saving.schedule.id.invalid", "Savings schedule with savings account id  " + savingsAccountId + " does not exist", savingsAccountId);
+        super("error.msg.saving.schedule.id.invalid", "Savings schedule with savings account id  " + savingsAccountId + " does not exist",
+                savingsAccountId);
     }
 
 }

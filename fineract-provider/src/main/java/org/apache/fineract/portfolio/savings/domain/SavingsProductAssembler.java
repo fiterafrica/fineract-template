@@ -94,8 +94,7 @@ public class SavingsProductAssembler {
         final String name = command.stringValueOfParameterNamed(nameParamName);
         final String shortName = command.stringValueOfParameterNamed(shortNameParamName);
         final String description = command.stringValueOfParameterNamedAllowingNull(descriptionParamName);
-        final  Integer withdrawalFrequency = command.integerValueOfParameterNamed(SavingsApiConstants.withdrawalFrequency);
-
+        final Integer withdrawalFrequency = command.integerValueOfParameterNamed(SavingsApiConstants.withdrawalFrequency);
 
         final String currencyCode = command.stringValueOfParameterNamed(currencyCodeParamName);
         final Integer digitsAfterDecimal = command.integerValueOfParameterNamed(digitsAfterDecimalParamName);
@@ -209,7 +208,7 @@ public class SavingsProductAssembler {
                 allowOverdraft, overdraftLimit, enforceMinRequiredBalance, minRequiredBalance, lienAllowed, maxAllowedLienLimit,
                 minBalanceForInterestCalculation, nominalAnnualInterestRateOverdraft, minOverdraftForInterestCalculation, withHoldTax,
                 taxGroup, isDormancyTrackingActive, daysToInactive, daysToDormancy, daysToEscheat, isInterestPostingConfigUpdate,
-                numOfCreditTransaction, numOfDebitTransaction,withdrawalFrequency);
+                numOfCreditTransaction, numOfDebitTransaction, withdrawalFrequency);
     }
 
     public Set<Charge> assembleListOfSavingsProductCharges(final JsonCommand command, final String savingsProductCurrencyCode) {

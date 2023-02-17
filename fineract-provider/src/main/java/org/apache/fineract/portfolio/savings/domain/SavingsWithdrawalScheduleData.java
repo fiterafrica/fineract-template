@@ -18,10 +18,11 @@
  */
 package org.apache.fineract.portfolio.savings.domain;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 
+public final class SavingsWithdrawalScheduleData implements Serializable {
 
-public final class SavingsWithdrawalScheduleData {
     private final Long savingsAccountId;
 
     private final Integer withdrawalFrequency;
