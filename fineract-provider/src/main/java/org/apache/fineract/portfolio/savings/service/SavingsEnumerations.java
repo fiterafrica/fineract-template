@@ -34,6 +34,7 @@ import org.apache.fineract.portfolio.savings.SavingsInterestCalculationType;
 import org.apache.fineract.portfolio.savings.SavingsPeriodFrequencyType;
 import org.apache.fineract.portfolio.savings.SavingsPostingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.SavingsWithdrawalFeesType;
+import org.apache.fineract.portfolio.savings.WithdrawalFrequency;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountStatusEnumData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountSubStatusEnumData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionEnumData;
@@ -873,6 +874,37 @@ public final class SavingsEnumerations {
                 optionData = new EnumOptionData(DepositAccountOnHoldTransactionType.RELEASE.getValue().longValue(),
                         DepositAccountOnHoldTransactionType.RELEASE.getCode(), "release");
             break;
+
+        }
+        return optionData;
+    }
+
+
+    public static EnumOptionData withdrawalFrequency(final WithdrawalFrequency withdrawalFrequency) {
+        EnumOptionData optionData;
+        switch (withdrawalFrequency) {
+            case MONTHLY:
+                optionData = new EnumOptionData(WithdrawalFrequency.MONTHLY.getValue().longValue(),
+                        WithdrawalFrequency.MONTHLY.getCode(), "Monthly");
+                break;
+            case QUARTERLY:
+                optionData = new EnumOptionData(WithdrawalFrequency.QUARTERLY.getValue().longValue(),
+                        WithdrawalFrequency.QUARTERLY.getCode(), "Quarterly");
+                break;
+
+            case BI_ANNUAL:
+                optionData = new EnumOptionData(WithdrawalFrequency.BI_ANNUAL.getValue().longValue(),
+                        WithdrawalFrequency.BI_ANNUAL.getCode(), "Biannual");
+                break;
+
+            case ANNUAL:
+                optionData = new EnumOptionData(WithdrawalFrequency.ANNUAL.getValue().longValue(),
+                        WithdrawalFrequency.ANNUAL.getCode(), "Annual");
+                break;
+            default:
+                optionData = new EnumOptionData(WithdrawalFrequency.INVALID.getValue().longValue(),
+                        WithdrawalFrequency.INVALID.getCode(), "Invalid");
+                break;
 
         }
         return optionData;

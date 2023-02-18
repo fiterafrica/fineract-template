@@ -31,7 +31,7 @@
                 <constraints primaryKey="true"/>
             </column>
             <column name="savings_account_id" type="BIGINT">
-                <constraints nullable="false" foreignKeyName="FK_savings_account_id_withdraw_schedule_001" references="savings_account(id)"/>
+                <constraints nullable="false" />
             </column>
             <column name="withdrawal_frequency" type="BIGINT">
                 <constraints nullable="false"/>

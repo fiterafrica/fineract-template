@@ -5113,4 +5113,8 @@ public class SavingsAccount extends AbstractPersistableCustom {
     public LocalDate getUnlockDate() {
         return unlockDate;
     }
+
+    public SavingsProduct getProduct() {
+        return product;
+    }
 }

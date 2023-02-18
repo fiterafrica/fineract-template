@@ -1285,6 +1285,7 @@ public class RecurringDepositAccount extends SavingsAccount {
         this.helper = helper;
     }
 
+    @Override
     public RecurringDepositProduct getProduct() {
         return (RecurringDepositProduct) this.product;
     }

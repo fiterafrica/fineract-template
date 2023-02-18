@@ -945,6 +945,7 @@ public class FixedDepositAccount extends SavingsAccount {
         return chart;
     }
 
+    @Override
     public FixedDepositProduct getProduct() {
         return (FixedDepositProduct) this.product;
     }

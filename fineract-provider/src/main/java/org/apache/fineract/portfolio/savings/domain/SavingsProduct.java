@@ -441,7 +441,7 @@ public class SavingsProduct extends AbstractPersistableCustom {
         }
 
         if (command.isChangeInIntegerParameterNamed(withdrawalFrequencyParam, this.withdrawalFrequency)) {
-            final Integer newValue = command.integerValueOfParameterNamed(descriptionParamName);
+            final Integer newValue = command.integerValueOfParameterNamed(withdrawalFrequencyParam);
             actualChanges.put(withdrawalFrequencyParam, newValue);
             this.withdrawalFrequency = newValue;
         }

@@ -28,6 +28,7 @@ import org.apache.fineract.portfolio.savings.SavingsInterestCalculationType;
 import org.apache.fineract.portfolio.savings.SavingsPeriodFrequencyType;
 import org.apache.fineract.portfolio.savings.SavingsPostingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.SavingsWithdrawalFeesType;
+import org.apache.fineract.portfolio.savings.WithdrawalFrequency;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -39,6 +40,14 @@ public class SavingsDropdownReadPlatformServiceImpl implements SavingsDropdownRe
                 SavingsEnumerations.withdrawalFeeType(SavingsWithdrawalFeesType.PERCENT_OF_AMOUNT));
 
         return allowedOptions;
+    }
+
+    @Override
+    public Collection<EnumOptionData> retrieveWithdrawalFrequencyOptions() {
+      return  Arrays.asList(SavingsEnumerations.withdrawalFrequency(WithdrawalFrequency.MONTHLY),
+              SavingsEnumerations.withdrawalFrequency(WithdrawalFrequency.QUARTERLY),
+              SavingsEnumerations.withdrawalFrequency(WithdrawalFrequency.BI_ANNUAL),
+              SavingsEnumerations.withdrawalFrequency(WithdrawalFrequency.ANNUAL));
     }
 
     @Override

@@ -20,8 +20,11 @@ package org.apache.fineract.portfolio.savings;
 
 public enum WithdrawalFrequency {
 
-    MONTHLY(0, "withdrawal.frequency.monthly"), QUARTERLY(1, "withdrawal.frequency.quarterly"), BI_ANNUAL(2,
-            "withdrawal.frequency.biannual"), ANNUAL(3, "withdrawal.frequency.annual");
+    MONTHLY(0, "withdrawal.frequency.monthly"),
+    QUARTERLY(1, "withdrawal.frequency.quarterly"),
+    BI_ANNUAL(2, "withdrawal.frequency.biannual"),
+    ANNUAL(3, "withdrawal.frequency.annual"),
+    INVALID(404, "withdrawal.frequency.invalid");;
 
     private final Integer value;
     private final String code;
@@ -46,4 +49,11 @@ public enum WithdrawalFrequency {
         }
     }
 
+    public Integer getValue() {
+        return value;
+    }
+
+    public String getCode() {
+        return code;
+    }
 }

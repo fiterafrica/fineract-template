@@ -94,7 +94,7 @@ public class SavingsProductAssembler {
         final String name = command.stringValueOfParameterNamed(nameParamName);
         final String shortName = command.stringValueOfParameterNamed(shortNameParamName);
         final String description = command.stringValueOfParameterNamedAllowingNull(descriptionParamName);
-        final Integer withdrawalFrequency = command.integerValueOfParameterNamed(SavingsApiConstants.withdrawalFrequency);
+        final Integer withdrawalFrequency = command.integerValueOfParameterNamed(SavingsApiConstants.withdrawalFrequencyParam);
 
         final String currencyCode = command.stringValueOfParameterNamed(currencyCodeParamName);
         final Integer digitsAfterDecimal = command.integerValueOfParameterNamed(digitsAfterDecimalParamName);

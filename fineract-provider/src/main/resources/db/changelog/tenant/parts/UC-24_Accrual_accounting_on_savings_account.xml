@@ -101,7 +101,7 @@
             </sqlCheck>
         </preConditions>
         <sql>
-            INSERT INTO m_permission (grouping, code, entity_name, action_name, can_maker_checker) VALUES ('transaction_savings', 'POSTACCRUALINTEREST_SAVINGSACCOUNT', 'SAVINGSACCOUNT', 'POSTACCRUALINTEREST', '0');
+            INSERT INTO m_permission (grouping, code, entity_name, action_name, can_maker_checker) VALUES ('transaction_savings', 'POSTACCRUALINTEREST_SAVINGSACCOUNT', 'SAVINGSACCOUNT', 'POSTACCRUALINTEREST', 0);
         </sql>
     </changeSet>
     <changeSet author="bosco@fiter.io" id="add_m_permissions_POSTACCRUALINTEREST_FIXEDDEPOSITACCOUNT_2">
@@ -111,7 +111,7 @@
             </sqlCheck>
         </preConditions>
         <sql>
-            INSERT INTO m_permission (grouping, code, entity_name, action_name, can_maker_checker) VALUES ('transaction_savings', 'POSTACCRUALINTEREST_FIXEDDEPOSITACCOUNT', 'FIXEDDEPOSITACCOUNT', 'POSTACCRUALINTEREST', '0');
+            INSERT INTO m_permission (grouping, code, entity_name, action_name, can_maker_checker) VALUES ('transaction_savings', 'POSTACCRUALINTEREST_FIXEDDEPOSITACCOUNT', 'FIXEDDEPOSITACCOUNT', 'POSTACCRUALINTEREST', 0);
         </sql>
     </changeSet>
     <changeSet author="bosco@fiter.io" id="add_m_permissions_POSTACCRUALINTEREST_RECURRINGDEPOSITACCOUNT_3">
@@ -121,7 +121,7 @@
             </sqlCheck>
         </preConditions>
         <sql>
-            INSERT INTO m_permission (grouping, code, entity_name, action_name, can_maker_checker) VALUES ('transaction_savings', 'POSTACCRUALINTEREST_RECURRINGDEPOSITACCOUNT', 'RECURRINGDEPOSITACCOUNT', 'POSTACCRUALINTEREST', '0');
+            INSERT INTO m_permission (grouping, code, entity_name, action_name, can_maker_checker) VALUES ('transaction_savings', 'POSTACCRUALINTEREST_RECURRINGDEPOSITACCOUNT', 'RECURRINGDEPOSITACCOUNT', 'POSTACCRUALINTEREST', 0);
         </sql>
     </changeSet>
     <changeSet author="bosco@fiter.io" id="add_loan_term_includes_toppedup_loan_term_m_product_loan">

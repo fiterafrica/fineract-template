@@ -40,7 +40,7 @@ public class SavingsApiSetConstants extends SavingsApiConstants {
             "interestCompoundingPeriodTypeOptions", "interestPostingPeriodTypeOptions", "interestCalculationTypeOptions",
             "interestCalculationDaysInYearTypeOptions", "lockinPeriodFrequencyTypeOptions", "withdrawalFeeTypeOptions",
             nominalAnnualInterestRateOverdraftParamName, minOverdraftForInterestCalculationParamName, withHoldTaxParamName,
-            taxGroupIdParamName, isDormancyTrackingActiveParamName, daysToInactiveParamName, withdrawalFrequency, nextWithdrawalDate,
+            taxGroupIdParamName, isDormancyTrackingActiveParamName, daysToInactiveParamName, withdrawalFrequencyParam, nextWithdrawalDate,
             daysToDormancyParamName, daysToInactiveParamName, accountMappingForPaymentParamName));
 
     /**

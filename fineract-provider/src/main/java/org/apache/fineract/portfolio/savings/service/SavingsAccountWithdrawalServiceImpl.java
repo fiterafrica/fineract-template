@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License. You may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -19,7 +19,10 @@
 package org.apache.fineract.portfolio.savings.service;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Optional;
+
+import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.portfolio.savings.WithdrawalFrequency;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
 import org.apache.fineract.portfolio.savings.domain.SavingsProduct;
@@ -54,7 +57,7 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
             savingsWithdrawalSchedule = savingsWithdrawalScheduleOptional.get();
             savingsWithdrawalSchedule.setNextWithdrawalDate(nextWithdrawalDate);
         } else {
-            savingsWithdrawalSchedule = SavingsWithdrawalSchedule.newInstance(savingsAccount, withdrawalFrequency, nextWithdrawalDate);
+            savingsWithdrawalSchedule = SavingsWithdrawalSchedule.newInstance(savingsAccount, withdrawalFrequency, nextWithdrawalDate, DateUtils.getLocalDateTimeOfSystem());
         }
 
         savingsWithdrawalScheduleRepository.saveAndFlush(savingsWithdrawalSchedule);
@@ -86,7 +89,7 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
 
         // Iterate over the potential next withdrawal dates until the next
         // withdrawal date is after or equal to the current date
-        LocalDate currentDate = LocalDate.now();
+        LocalDate currentDate = LocalDate.now(ZoneId.systemDefault());
         while (candidateNextWithdrawalDate.isBefore(currentDate)) {
             switch (withdrawalFrequency) {
                 case MONTHLY:
@@ -104,13 +107,14 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
                     candidateNextWithdrawalDate = candidateNextWithdrawalDate.plusYears(1);
                 break;
                 default:
-                    throw new UnsupportedOperationException("Unsupported withdrawal frequency: " + withdrawalFrequency);
+                    throw new UnsupportedOperationException("Unsupported withdrawal frequency: " + savingsProduct.getWithdrawalFrequency());
             }
         }
 
-        // Check if the original date is before the current date and if the
+        // Check if the original date is before or equal to the current date and if the
         // candidate next withdrawal date is on or after the original date
-        return originalDate.isBefore(currentDate) && !candidateNextWithdrawalDate.isAfter(currentDate)
+        return (originalDate.isBefore(currentDate) || originalDate.compareTo(currentDate)==0)
+                && !candidateNextWithdrawalDate.isAfter(currentDate)
                 && candidateNextWithdrawalDate.getDayOfMonth() == originalDayOfMonth;
     }
 
@@ -139,7 +143,6 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
             case QUARTERLY:
                 candidateNextWithdrawalDate = startDate.plusMonths(3);
             break;
-
             case BI_ANNUAL:
                 candidateNextWithdrawalDate = startDate.plusMonths(6);
             break;
@@ -157,9 +160,9 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
         // the same day of the original date in the next month as the next
         // withdrawal date.
         if (candidateDayOfMonth > originalDayOfMonth) {
-            return new SavingsWithdrawalScheduleData(null, null, candidateNextWithdrawalDate);
+            return  SavingsWithdrawalScheduleData.newInstance(null, null, candidateNextWithdrawalDate);
         } else {
-            return new SavingsWithdrawalScheduleData(null, null,
+            return  SavingsWithdrawalScheduleData.newInstance(null, null,
                     LocalDate.of(candidateNextWithdrawalDate.getYear(), candidateNextWithdrawalDate.getMonth(), originalDayOfMonth));
         }
     }
