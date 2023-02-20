@@ -66,10 +66,13 @@
     <include file="parts/0042_create_table_savings_withdraw_schedule.xml" relativeToChangelogFile="true"/>
     <include file="parts/0043_alter_savings_product_add_withdraw_frequency.xml" relativeToChangelogFile="true"/>
     <include file="parts/0044_ADD_NEXT_WITHDRAWAL_DATE_PERMISSIONS.xml" relativeToChangelogFile="true"/>
+    <include file="parts/040_add_validation_limits.xml" relativeToChangelogFile="true"/>
+    <include file="parts/041_add_client_transaction_limit.xml" relativeToChangelogFile="true"/>
     <include file="parts/MON-140_add_allowManuallyEnterInterestRate_in_savings_product_table.xml" relativeToChangelogFile="true"/>
     <include file="parts/OXY-37_add_maxNumberOfLoanExtensionsAllowed_in_loan_product_table.xml" relativeToChangelogFile="true"/>
     <include file="parts/OXY-33-add-new-column-max-occurrence-in-charge.xml" relativeToChangelogFile="true"/>
     <include file="parts/OXY-44_add_isAccountLevelArrearsToleranceEnable_in_loan_product_table.xml" relativeToChangelogFile="true"/>
     <include file="parts/OXY-42_enforce_loan_overdue_amount_in_min_balance.xml" relativeToChangelogFile="true"/>
     <include file="parts/OXY-40-Loan-Repayment-Reminder.xml" relativeToChangelogFile="true"/>
+    <include file="parts/OXY-95-add_job_for_notifying_failed_standing_instruction.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>
