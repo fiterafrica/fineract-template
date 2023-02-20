@@ -3570,4 +3570,12 @@ public class CommandWrapperBuilder {
         this.href = "/loans/" + loanId + "?command=updateArrearsTolerance";
         return this;
     }
+
+    public CommandWrapperBuilder updateNextWithdrawalDate(Long savingsAccountId) {
+        this.actionName = "UPDATE";
+        this.entityName = "NEXTWITHDAWALDATE";
+        this.entityId = savingsAccountId;
+        this.href = "/savingsaccounts/" + savingsAccountId;
+        return this;
+    }
 }

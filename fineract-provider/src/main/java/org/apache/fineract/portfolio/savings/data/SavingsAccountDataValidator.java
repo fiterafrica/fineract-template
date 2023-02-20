@@ -616,4 +616,25 @@ public class SavingsAccountDataValidator {
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
     }
+
+    public void validateNextWithdrawalDate(String json, LocalDate minimumWithdrawalDate) {
+        if (StringUtils.isBlank(json)) {
+            throw new InvalidJsonException();
+        }
+
+        final Set<String> supportedParameters = new HashSet<>(Arrays.asList(SavingsApiConstants.nextWithdrawalDate,
+                SavingsApiConstants.localeParamName, SavingsApiConstants.dateFormatParamName));
+        final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, supportedParameters);
+        final JsonElement element = this.fromApiJsonHelper.parse(json);
+        final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
+                .resource(SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME);
+        final LocalDate nexWithdrawalFrequency = this.fromApiJsonHelper.extractLocalDateNamed(SavingsApiConstants.nextWithdrawalDate,
+                element);
+        baseDataValidator.reset().parameter(SavingsApiConstants.nextWithdrawalDate).value(nexWithdrawalFrequency).notNull()
+                .validateDateAfter(minimumWithdrawalDate);
+
+        throwExceptionIfValidationWarningsExist(dataValidationErrors);
+    }
 }

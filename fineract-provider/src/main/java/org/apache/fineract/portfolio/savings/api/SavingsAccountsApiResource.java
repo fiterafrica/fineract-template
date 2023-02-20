@@ -71,8 +71,10 @@ import org.apache.fineract.portfolio.savings.data.SavingsAccountBlockNarrationHi
 import org.apache.fineract.portfolio.savings.data.SavingsAccountChargeData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionData;
+import org.apache.fineract.portfolio.savings.domain.SavingsWithdrawalScheduleData;
 import org.apache.fineract.portfolio.savings.service.SavingsAccountChargeReadPlatformService;
 import org.apache.fineract.portfolio.savings.service.SavingsAccountReadPlatformService;
+import org.apache.fineract.portfolio.savings.service.SavingsAccountWithdrawalService;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,6 +98,10 @@ public class SavingsAccountsApiResource {
     private final BulkImportWorkbookPopulatorService bulkImportWorkbookPopulatorService;
     private final CodeValueReadPlatformService codeValueReadPlatformService;
 
+    private final DefaultToApiJsonSerializer<SavingsWithdrawalScheduleData> savingsScheduleSerializer;
+
+    private final SavingsAccountWithdrawalService savingsAccountWithdrawalService;
+
     @Autowired
     public SavingsAccountsApiResource(final SavingsAccountReadPlatformService savingsAccountReadPlatformService,
             final PlatformSecurityContext context, final DefaultToApiJsonSerializer<SavingsAccountData> toApiJsonSerializer,
@@ -104,7 +110,9 @@ public class SavingsAccountsApiResource {
             final SavingsAccountChargeReadPlatformService savingsAccountChargeReadPlatformService,
             final BulkImportWorkbookService bulkImportWorkbookService,
             final BulkImportWorkbookPopulatorService bulkImportWorkbookPopulatorService,
-            final CodeValueReadPlatformService codeValueReadPlatformService) {
+            final CodeValueReadPlatformService codeValueReadPlatformService,
+            final DefaultToApiJsonSerializer<SavingsWithdrawalScheduleData> savingsScheduleSerializer,
+            final SavingsAccountWithdrawalService savingsAccountWithdrawalService) {
         this.savingsAccountReadPlatformService = savingsAccountReadPlatformService;
         this.context = context;
         this.toApiJsonSerializer = toApiJsonSerializer;
@@ -114,6 +122,8 @@ public class SavingsAccountsApiResource {
         this.bulkImportWorkbookService = bulkImportWorkbookService;
         this.bulkImportWorkbookPopulatorService = bulkImportWorkbookPopulatorService;
         this.codeValueReadPlatformService = codeValueReadPlatformService;
+        this.savingsScheduleSerializer = savingsScheduleSerializer;
+        this.savingsAccountWithdrawalService = savingsAccountWithdrawalService;
     }
 
     @GET
@@ -611,6 +621,45 @@ public class SavingsAccountsApiResource {
         final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
 
         return this.toApiJsonSerializer.serialize(result);
+    }
+
+    @GET
+    @Path("{savingsAccountId}/nextwithdrawaldate")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    @Operation(summary = "Retrieve Next Widrawal Date", description = "Retrieve Next Widrawal Date\n\n" + "Example Requests:\n" + "\n"
+            + "savingsaccounts/1\n" + "\n" + "nextwithdrawaldate\n")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.GetSavingsProductsProductIdResponse.class))) })
+    public String findNextWithdrawalDate(
+            @PathParam("savingsAccountId") @Parameter(description = "savingsAccountId") final Long savingsAccountId,
+            @Context final UriInfo uriInfo) {
+        this.context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_PRODUCT_RESOURCE_NAME);
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        final SavingsWithdrawalScheduleData savingsWithdrawalScheduleData = this.savingsAccountWithdrawalService
+                .findNextWithdrawalDateBySavingsAccountId(savingsAccountId);
+        return this.savingsScheduleSerializer.serialize(settings, savingsWithdrawalScheduleData,
+                SavingsApiSetConstants.SAVINGS_PRODUCT_RESPONSE_DATA_PARAMETERS);
+    }
+
+    @PUT
+    @Path("{savingsAccountId}/nextwithdrawaldate")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    @Operation(summary = "Update next withdrawal date", description = "Update next withdrawal date")
+    @RequestBody(required = true, content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.PutSavingsProductsProductIdRequest.class)))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.PutSavingsProductsProductIdResponse.class))) })
+    public String update(@PathParam("savingsAccountId") @Parameter(description = "savingsAccountId") final Long savingsAccountId,
+            @Parameter(hidden = true) final String apiRequestBodyAsJson) {
+
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().updateNextWithdrawalDate(savingsAccountId)
+                .withJson(apiRequestBodyAsJson).build();
+
+        final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+
+        return this.toApiJsonSerializer.serialize(result);
+
     }
 
 }

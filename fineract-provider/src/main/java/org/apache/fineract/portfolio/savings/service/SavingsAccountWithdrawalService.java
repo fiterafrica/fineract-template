@@ -19,6 +19,8 @@
 package org.apache.fineract.portfolio.savings.service;
 
 import java.time.LocalDate;
+import org.apache.fineract.infrastructure.core.api.JsonCommand;
+import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
 import org.apache.fineract.portfolio.savings.domain.SavingsWithdrawalScheduleData;
 
@@ -30,4 +32,7 @@ public interface SavingsAccountWithdrawalService {
 
     SavingsWithdrawalScheduleData findByWithdrawalFrequencyAndDate(Long savingsProductId, LocalDate startDate);
 
+    SavingsWithdrawalScheduleData findNextWithdrawalDateBySavingsAccountId(final Long savingsAccountId);
+
+    CommandProcessingResult updateNextWithdrawalDate(Long entityId, JsonCommand command);
 }

@@ -20,20 +20,22 @@ package org.apache.fineract.portfolio.savings.domain;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 
 public final class SavingsWithdrawalScheduleData implements Serializable {
 
     private final Long savingsAccountId;
 
-    private final Integer withdrawalFrequency;
+    private final EnumOptionData withdrawalFrequency;
 
     private final LocalDate nextWithdrawalDate;
 
-
-    public static SavingsWithdrawalScheduleData newInstance(Long savingsAccountId, Integer withdrawalFrequency, LocalDate nextWithdrawalDate) {
-        return new SavingsWithdrawalScheduleData(savingsAccountId,withdrawalFrequency,nextWithdrawalDate);
+    public static SavingsWithdrawalScheduleData newInstance(Long savingsAccountId, EnumOptionData withdrawalFrequency,
+            LocalDate nextWithdrawalDate) {
+        return new SavingsWithdrawalScheduleData(savingsAccountId, withdrawalFrequency, nextWithdrawalDate);
     }
-    private SavingsWithdrawalScheduleData(Long savingsAccountId, Integer withdrawalFrequency, LocalDate nextWithdrawalDate) {
+
+    private SavingsWithdrawalScheduleData(Long savingsAccountId, EnumOptionData withdrawalFrequency, LocalDate nextWithdrawalDate) {
         this.savingsAccountId = savingsAccountId;
         this.withdrawalFrequency = withdrawalFrequency;
         this.nextWithdrawalDate = nextWithdrawalDate;
@@ -43,7 +45,7 @@ public final class SavingsWithdrawalScheduleData implements Serializable {
         return savingsAccountId;
     }
 
-    public Integer getWithdrawalFrequency() {
+    public EnumOptionData getWithdrawalFrequency() {
         return withdrawalFrequency;
     }
 

@@ -65,6 +65,7 @@
     <include file="parts/0039_add_free_withdrawal_in_recurring_details_product.xml" relativeToChangelogFile="true"/>
     <include file="parts/0042_create_table_savings_withdraw_schedule.xml" relativeToChangelogFile="true"/>
     <include file="parts/0043_alter_savings_product_add_withdraw_frequency.xml" relativeToChangelogFile="true"/>
+    <include file="parts/0044_ADD_NEXT_WITHDRAWAL_DATE_PERMISSIONS.xml" relativeToChangelogFile="true"/>
     <include file="parts/MON-140_add_allowManuallyEnterInterestRate_in_savings_product_table.xml" relativeToChangelogFile="true"/>
     <include file="parts/OXY-37_add_maxNumberOfLoanExtensionsAllowed_in_loan_product_table.xml" relativeToChangelogFile="true"/>
     <include file="parts/OXY-33-add-new-column-max-occurrence-in-charge.xml" relativeToChangelogFile="true"/>

@@ -27,6 +27,25 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.UriInfo;
 import org.apache.fineract.accounting.common.AccountingDropdownReadPlatformService;
 import org.apache.fineract.accounting.common.AccountingEnumerations;
 import org.apache.fineract.accounting.common.AccountingRuleType;
@@ -69,26 +88,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.UriInfo;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
 @Path("/savingsproducts")
 @Component
 @Scope("singleton")
@@ -117,17 +116,17 @@ public class SavingsProductsApiResource {
 
     @Autowired
     public SavingsProductsApiResource(final SavingsProductReadPlatformService savingProductReadPlatformService,
-                                      final SavingsDropdownReadPlatformService dropdownReadPlatformService,
-                                      final CurrencyReadPlatformService currencyReadPlatformService, final PlatformSecurityContext context,
-                                      final DefaultToApiJsonSerializer<SavingsProductData> toApiJsonSerializer,
-                                      final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService,
-                                      final ApiRequestParameterHelper apiRequestParameterHelper,
-                                      final AccountingDropdownReadPlatformService accountingDropdownReadPlatformService,
-                                      final ProductToGLAccountMappingReadPlatformService accountMappingReadPlatformService,
-                                      final ChargeReadPlatformService chargeReadPlatformService, PaymentTypeReadPlatformService paymentTypeReadPlatformService,
-                                      final TaxReadPlatformService taxReadPlatformService, final ConfigurationDomainService configurationDomainService,
-                                      final DefaultToApiJsonSerializer<SavingsWithdrawalScheduleData> savingsScheduleSerializer,
-                                      final SavingsAccountWithdrawalService savingsAccountWithdrawalService) {
+            final SavingsDropdownReadPlatformService dropdownReadPlatformService,
+            final CurrencyReadPlatformService currencyReadPlatformService, final PlatformSecurityContext context,
+            final DefaultToApiJsonSerializer<SavingsProductData> toApiJsonSerializer,
+            final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService,
+            final ApiRequestParameterHelper apiRequestParameterHelper,
+            final AccountingDropdownReadPlatformService accountingDropdownReadPlatformService,
+            final ProductToGLAccountMappingReadPlatformService accountMappingReadPlatformService,
+            final ChargeReadPlatformService chargeReadPlatformService, PaymentTypeReadPlatformService paymentTypeReadPlatformService,
+            final TaxReadPlatformService taxReadPlatformService, final ConfigurationDomainService configurationDomainService,
+            final DefaultToApiJsonSerializer<SavingsWithdrawalScheduleData> savingsScheduleSerializer,
+            final SavingsAccountWithdrawalService savingsAccountWithdrawalService) {
         this.savingProductReadPlatformService = savingProductReadPlatformService;
         this.dropdownReadPlatformService = dropdownReadPlatformService;
         this.currencyReadPlatformService = currencyReadPlatformService;
@@ -146,15 +145,15 @@ public class SavingsProductsApiResource {
     }
 
     @POST
-    @Consumes({MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
     @Operation(summary = "Create a Savings Product", description = "Creates a Savings Product\n\n"
             + "Mandatory Fields: name, shortName, description, currencyCode, digitsAfterDecimal,inMultiplesOf, nominalAnnualInterestRate, interestCompoundingPeriodType, interestCalculationType, interestCalculationDaysInYearType,accountingRule\n\n"
             + "Mandatory Fields for Cash based accounting (accountingRule = 2): savingsReferenceAccountId, savingsControlAccountId, interestOnSavingsAccountId, incomeFromFeeAccountId, transfersInSuspenseAccountId, incomeFromPenaltyAccountId\n\n"
             + "Optional Fields: minRequiredOpeningBalance, lockinPeriodFrequency, lockinPeriodFrequencyType, withdrawalFeeForTransfers, paymentChannelToFundSourceMappings, feeToIncomeAccountMappings, penaltyToIncomeAccountMappings, charges, allowOverdraft, overdraftLimit, minBalanceForInterestCalculation,withHoldTax,taxGroupId,accountMapping, lienAllowed, maxAllowedLienLimit")
     @RequestBody(required = true, content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.PostSavingsProductsRequest.class)))
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.PostSavingsProductsResponse.class)))})
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.PostSavingsProductsResponse.class))) })
     public String create(@Parameter(hidden = true) final String apiRequestBodyAsJson) {
 
         final CommandWrapper commandRequest = new CommandWrapperBuilder().createSavingProduct().withJson(apiRequestBodyAsJson).build();
@@ -166,14 +165,14 @@ public class SavingsProductsApiResource {
 
     @PUT
     @Path("{productId}")
-    @Consumes({MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
     @Operation(summary = "Update a Savings Product", description = "Updates a Savings Product")
     @RequestBody(required = true, content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.PutSavingsProductsProductIdRequest.class)))
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.PutSavingsProductsProductIdResponse.class)))})
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.PutSavingsProductsProductIdResponse.class))) })
     public String update(@PathParam("productId") @Parameter(description = "productId") final Long productId,
-                         @Parameter(hidden = true) final String apiRequestBodyAsJson) {
+            @Parameter(hidden = true) final String apiRequestBodyAsJson) {
 
         final CommandWrapper commandRequest = new CommandWrapperBuilder().updateSavingProduct(productId).withJson(apiRequestBodyAsJson)
                 .build();
@@ -185,12 +184,12 @@ public class SavingsProductsApiResource {
     }
 
     @GET
-    @Consumes({MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
     @Operation(summary = "List Savings Products", description = "Lists Savings Products\n\n" + "Example Requests:\n" + "\n"
             + "savingsproducts\n" + "\n" + "savingsproducts?fields=name")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.GetSavingsProductsResponse.class))))})
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.GetSavingsProductsResponse.class)))) })
     public String retrieveAll(@Context final UriInfo uriInfo) {
 
         this.context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_PRODUCT_RESOURCE_NAME);
@@ -203,14 +202,14 @@ public class SavingsProductsApiResource {
 
     @GET
     @Path("{productId}")
-    @Consumes({MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
     @Operation(summary = "Retrieve a Savings Product", description = "Retrieves a Savings Product\n\n" + "Example Requests:\n" + "\n"
             + "savingsproducts/1\n" + "\n" + "savingsproducts/1?template=true\n" + "\n" + "savingsproducts/1?fields=name,description")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.GetSavingsProductsProductIdResponse.class)))})
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.GetSavingsProductsProductIdResponse.class))) })
     public String retrieveOne(@PathParam("productId") @Parameter(description = "productId") final Long productId,
-                              @Context final UriInfo uriInfo) {
+            @Context final UriInfo uriInfo) {
 
         this.context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_PRODUCT_RESOURCE_NAME);
 
@@ -245,16 +244,15 @@ public class SavingsProductsApiResource {
 
     @GET
     @Path("{productId}/nextwithdrawaldate")
-    @Consumes({MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_JSON})
-    @Operation(summary = "Retrieve a Savings Product", description = "Retrieves a Savings Product\n\n" + "Example Requests:\n" + "\n"
-            + "savingsproducts/1\n" + "\n" + "savingsproducts/1?template=true\n" + "\n" + "savingsproducts/1?fields=name,description")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    @Operation(summary = "Retrieve Next Widrawal Date", description = "Retrieve Next Widrawal Date\n\n" + "Example Requests:\n" + "\n"
+            + "savingsproduct/1\n" + "\n" + "nextwithdrawaldate\n")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.GetSavingsProductsProductIdResponse.class)))})
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.GetSavingsProductsProductIdResponse.class))) })
     public String findNextWithdrawalDate(@PathParam("productId") @Parameter(description = "productId") final Long productId,
-                                         @QueryParam("locale") @DefaultValue("en") final String locale,
-                                         @QueryParam("dateFormat") @DefaultValue("dd MMMM yyyy") final String dateFormat,
-                                         @Context final UriInfo uriInfo) {
+            @QueryParam("locale") @DefaultValue("en") final String locale,
+            @QueryParam("dateFormat") @DefaultValue("dd MMMM yyyy") final String dateFormat, @Context final UriInfo uriInfo) {
 
         final LocalDate currentDate = LocalDate.now(ZoneId.systemDefault());
         this.context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_PRODUCT_RESOURCE_NAME);
@@ -267,13 +265,13 @@ public class SavingsProductsApiResource {
 
     @GET
     @Path("template")
-    @Consumes({MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
     @Operation(summary = "Retrieve Savings Product Template", description = "This is a convenience resource. It can be useful when building maintenance user interface screens for client applications. The template data returned consists of any or all of:\n"
             + "\n" + "Field Defaults\n" + "Allowed description Lists\n" + "Example Request:\n" + "Account Mapping:\n" + "\n"
             + "savingsproducts/template")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.GetSavingsProductsTemplateResponse.class)))})
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.GetSavingsProductsTemplateResponse.class))) })
     public String retrieveTemplate(@Context final UriInfo uriInfo) {
 
         this.context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_PRODUCT_RESOURCE_NAME);
@@ -295,8 +293,7 @@ public class SavingsProductsApiResource {
         final EnumOptionData interestCalculationType = SavingsEnumerations
                 .interestCalculationType(SavingsInterestCalculationType.DAILY_BALANCE);
 
-        final EnumOptionData withdrawalFrequency = SavingsEnumerations
-                .withdrawalFrequency(WithdrawalFrequency.MONTHLY);
+        final EnumOptionData withdrawalFrequency = SavingsEnumerations.withdrawalFrequency(WithdrawalFrequency.MONTHLY);
 
         final EnumOptionData interestCalculationDaysInYearType = SavingsEnumerations
                 .interestCalculationDaysInYearType(SavingsInterestCalculationDaysInYearType.DAYS_365);
@@ -331,8 +328,7 @@ public class SavingsProductsApiResource {
         final Collection<EnumOptionData> accountingRuleOptions = this.accountingDropdownReadPlatformService
                 .retrieveAccountingRuleTypeOptions();
 
-        final Collection<EnumOptionData> withdrawalFrequencies = this.dropdownReadPlatformService
-                .retrieveWithdrawalFrequencyOptions();
+        final Collection<EnumOptionData> withdrawalFrequencies = this.dropdownReadPlatformService.retrieveWithdrawalFrequencyOptions();
 
         final Map<String, List<GLAccountData>> accountingMappingOptions = this.accountingDropdownReadPlatformService
                 .retrieveAccountMappingOptionsForSavingsProducts();
@@ -352,8 +348,8 @@ public class SavingsProductsApiResource {
             savingsProductToReturn = SavingsProductData.withTemplate(savingsProduct, currencyOptions, interestCompoundingPeriodTypeOptions,
                     interestPostingPeriodTypeOptions, interestCalculationTypeOptions, interestCalculationDaysInYearTypeOptions,
                     lockinPeriodFrequencyTypeOptions, withdrawalFeeTypeOptions, paymentTypeOptions, accountingRuleOptions,
-                    accountingMappingOptions, chargeOptions, penaltyOptions, taxGroupOptions, accountMappingForPayment, savingsProduct.getWithdrawalFrequency(),
-                    withdrawalFrequencies);
+                    accountingMappingOptions, chargeOptions, penaltyOptions, taxGroupOptions, accountMappingForPayment,
+                    savingsProduct.getWithdrawalFrequency(), withdrawalFrequencies);
         } else {
             savingsProductToReturn = SavingsProductData.template(currency, interestCompoundingPeriodType, interestPostingPeriodType,
                     interestCalculationType, interestCalculationDaysInYearType, accountingRule, currencyOptions,
@@ -368,11 +364,11 @@ public class SavingsProductsApiResource {
 
     @DELETE
     @Path("{productId}")
-    @Consumes({MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
     @Operation(summary = "Delete a Savings Product", description = "Deletes a Savings Product")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.DeleteSavingsProductsProductIdResponse.class)))})
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SavingsProductsApiResourceSwagger.DeleteSavingsProductsProductIdResponse.class))) })
     public String delete(@PathParam("productId") @Parameter(description = "productId") final Long productId) {
 
         final CommandWrapper commandRequest = new CommandWrapperBuilder().deleteSavingProduct(productId).build();

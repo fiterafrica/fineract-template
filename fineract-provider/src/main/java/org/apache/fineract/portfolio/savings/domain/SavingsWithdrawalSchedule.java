@@ -22,7 +22,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
@@ -34,7 +33,8 @@ import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 @Entity
 @Table(name = "m_savings_withdrawal_schedule")
 public final class SavingsWithdrawalSchedule extends AbstractPersistableCustom {
-    @ManyToOne(fetch = FetchType.LAZY)
+
+    @ManyToOne()
     @JoinColumn(name = "savings_account_id", referencedColumnName = "id", nullable = false)
     private SavingsAccount savingsAccount;
 
@@ -52,15 +52,16 @@ public final class SavingsWithdrawalSchedule extends AbstractPersistableCustom {
     }
 
     public static SavingsWithdrawalSchedule newInstance(SavingsAccount savingsAccount, Integer withdrawalFrequency,
-            LocalDate nextWithdrawalDate,LocalDateTime createdAt) {
-        return new SavingsWithdrawalSchedule(savingsAccount, withdrawalFrequency, nextWithdrawalDate,createdAt);
+            LocalDate nextWithdrawalDate, LocalDateTime createdAt) {
+        return new SavingsWithdrawalSchedule(savingsAccount, withdrawalFrequency, nextWithdrawalDate, createdAt);
     }
 
-    public   SavingsWithdrawalSchedule(SavingsAccount savingsAccount, Integer withdrawalFrequency, LocalDate nextWithdrawalDate, LocalDateTime createdAt) {
+    public SavingsWithdrawalSchedule(SavingsAccount savingsAccount, Integer withdrawalFrequency, LocalDate nextWithdrawalDate,
+            LocalDateTime createdAt) {
         this.savingsAccount = savingsAccount;
         this.withdrawalFrequency = withdrawalFrequency;
         this.nextWithdrawalDate = nextWithdrawalDate;
-        this.createdAt=createdAt;
+        this.createdAt = createdAt;
     }
 
     public SavingsAccount getSavingsAccount() {
@@ -77,5 +78,9 @@ public final class SavingsWithdrawalSchedule extends AbstractPersistableCustom {
 
     public void setNextWithdrawalDate(LocalDate nextWithdrawalDate) {
         this.nextWithdrawalDate = nextWithdrawalDate;
+    }
+
+    public Integer getWithdrawalFrequency() {
+        return withdrawalFrequency;
     }
 }

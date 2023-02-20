@@ -43,6 +43,7 @@ import static org.apache.fineract.portfolio.savings.SavingsApiConstants.minBalan
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.minOverdraftForInterestCalculationParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.minRequiredOpeningBalanceParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.nameParamName;
+import static org.apache.fineract.portfolio.savings.SavingsApiConstants.nextWithdrawalDate;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.nominalAnnualInterestRateOverdraftParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.nominalAnnualInterestRateParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.numberOfCreditTransactionsParamName;
@@ -96,8 +97,8 @@ public class SavingsProductDataValidator {
             nominalAnnualInterestRateParamName, interestCompoundingPeriodTypeParamName, interestPostingPeriodTypeParamName,
             interestCalculationTypeParamName, interestCalculationDaysInYearTypeParamName, minRequiredOpeningBalanceParamName,
             lockinPeriodFrequencyParamName, lockinPeriodFrequencyTypeParamName, SavingsApiConstants.withdrawalFeeAmountParamName,
-            SavingsApiConstants.withdrawalFeeTypeParamName, withdrawalFeeForTransfersParamName, feeAmountParamName, feeOnMonthDayParamName,
-            SavingsApiConstants.accountingRuleParamName, SavingsApiConstants.chargesParamName,
+            nextWithdrawalDate, SavingsApiConstants.withdrawalFeeTypeParamName, withdrawalFeeForTransfersParamName, feeAmountParamName,
+            feeOnMonthDayParamName, SavingsApiConstants.accountingRuleParamName, SavingsApiConstants.chargesParamName,
             SavingProductAccountingParams.INCOME_FROM_FEES.getValue(), SavingProductAccountingParams.INCOME_FROM_PENALTIES.getValue(),
             SavingProductAccountingParams.INTEREST_ON_SAVINGS.getValue(),
             SavingProductAccountingParams.PAYMENT_CHANNEL_FUND_SOURCE_MAPPING.getValue(),

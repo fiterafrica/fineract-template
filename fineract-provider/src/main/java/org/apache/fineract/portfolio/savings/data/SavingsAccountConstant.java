@@ -34,7 +34,7 @@ public class SavingsAccountConstant extends SavingsApiConstants {
             externalIdParamName, clientIdParamName, groupIdParamName, productIdParamName, fieldOfficerIdParamName, submittedOnDateParamName,
             nominalAnnualInterestRateParamName, interestCompoundingPeriodTypeParamName, interestPostingPeriodTypeParamName,
             interestCalculationTypeParamName, interestCalculationDaysInYearTypeParamName, minRequiredOpeningBalanceParamName,
-            lockinPeriodFrequencyParamName, lockinPeriodFrequencyTypeParamName,
+            nextWithdrawalDate, lockinPeriodFrequencyParamName, lockinPeriodFrequencyTypeParamName,
             // withdrawalFeeAmountParamName, withdrawalFeeTypeParamName,
             withdrawalFeeForTransfersParamName, feeAmountParamName, feeOnMonthDayParamName, chargesParamName, allowOverdraftParamName,
             overdraftLimitParamName, minRequiredBalanceParamName, enforceMinRequiredBalanceParamName, lienAllowedParamName,
@@ -59,7 +59,7 @@ public class SavingsAccountConstant extends SavingsApiConstants {
             Arrays.asList(idParamName, accountNoParamName));
 
     protected static final Set<String> SAVINGS_ACCOUNT_ACTIVATION_REQUEST_DATA_PARAMETERS = new HashSet<>(
-            Arrays.asList(localeParamName, dateFormatParamName, activatedOnDateParamName,nextWithdrawalDate));
+            Arrays.asList(localeParamName, dateFormatParamName, activatedOnDateParamName));
 
     protected static final Set<String> SAVINGS_ACCOUNT_CLOSE_REQUEST_DATA_PARAMETERS = new HashSet<>(
             Arrays.asList(localeParamName, dateFormatParamName, closedOnDateParamName, noteParamName, paymentTypeIdParamName,

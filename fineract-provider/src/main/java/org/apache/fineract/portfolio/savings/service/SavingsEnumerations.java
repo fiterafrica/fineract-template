@@ -879,32 +879,31 @@ public final class SavingsEnumerations {
         return optionData;
     }
 
-
     public static EnumOptionData withdrawalFrequency(final WithdrawalFrequency withdrawalFrequency) {
         EnumOptionData optionData;
         switch (withdrawalFrequency) {
             case MONTHLY:
-                optionData = new EnumOptionData(WithdrawalFrequency.MONTHLY.getValue().longValue(),
-                        WithdrawalFrequency.MONTHLY.getCode(), "Monthly");
-                break;
+                optionData = new EnumOptionData(WithdrawalFrequency.MONTHLY.getValue().longValue(), WithdrawalFrequency.MONTHLY.getCode(),
+                        "Monthly");
+            break;
             case QUARTERLY:
                 optionData = new EnumOptionData(WithdrawalFrequency.QUARTERLY.getValue().longValue(),
                         WithdrawalFrequency.QUARTERLY.getCode(), "Quarterly");
-                break;
+            break;
 
             case BI_ANNUAL:
                 optionData = new EnumOptionData(WithdrawalFrequency.BI_ANNUAL.getValue().longValue(),
                         WithdrawalFrequency.BI_ANNUAL.getCode(), "Biannual");
-                break;
+            break;
 
             case ANNUAL:
-                optionData = new EnumOptionData(WithdrawalFrequency.ANNUAL.getValue().longValue(),
-                        WithdrawalFrequency.ANNUAL.getCode(), "Annual");
-                break;
+                optionData = new EnumOptionData(WithdrawalFrequency.ANNUAL.getValue().longValue(), WithdrawalFrequency.ANNUAL.getCode(),
+                        "Annual");
+            break;
             default:
-                optionData = new EnumOptionData(WithdrawalFrequency.INVALID.getValue().longValue(),
-                        WithdrawalFrequency.INVALID.getCode(), "Invalid");
-                break;
+                optionData = new EnumOptionData(WithdrawalFrequency.INVALID.getValue().longValue(), WithdrawalFrequency.INVALID.getCode(),
+                        "Invalid");
+            break;
 
         }
         return optionData;

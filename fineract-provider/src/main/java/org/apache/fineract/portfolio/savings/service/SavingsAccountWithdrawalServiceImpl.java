@@ -20,10 +20,17 @@ package org.apache.fineract.portfolio.savings.service;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
-
+import org.apache.fineract.infrastructure.core.api.JsonCommand;
+import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
+import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
+import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
+import org.apache.fineract.portfolio.savings.SavingsApiConstants;
 import org.apache.fineract.portfolio.savings.WithdrawalFrequency;
+import org.apache.fineract.portfolio.savings.data.SavingsAccountDataValidator;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
 import org.apache.fineract.portfolio.savings.domain.SavingsProduct;
 import org.apache.fineract.portfolio.savings.domain.SavingsProductRepository;
@@ -40,12 +47,17 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
 
     private final SavingsWithdrawalScheduleRepository savingsWithdrawalScheduleRepository;
     private final SavingsProductRepository savingProductRepository;
+    private final SavingsAccountDataValidator fromApiJsonDataValidator;
+    private final PlatformSecurityContext context;
 
     @Autowired
     public SavingsAccountWithdrawalServiceImpl(SavingsWithdrawalScheduleRepository savingsWithdrawalScheduleRepository,
-            final SavingsProductRepository savingProductRepository) {
+            final SavingsProductRepository savingProductRepository, SavingsAccountDataValidator fromApiJsonDataValidator,
+            PlatformSecurityContext context) {
         this.savingsWithdrawalScheduleRepository = savingsWithdrawalScheduleRepository;
         this.savingProductRepository = savingProductRepository;
+        this.fromApiJsonDataValidator = fromApiJsonDataValidator;
+        this.context = context;
     }
 
     @Override
@@ -57,7 +69,8 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
             savingsWithdrawalSchedule = savingsWithdrawalScheduleOptional.get();
             savingsWithdrawalSchedule.setNextWithdrawalDate(nextWithdrawalDate);
         } else {
-            savingsWithdrawalSchedule = SavingsWithdrawalSchedule.newInstance(savingsAccount, withdrawalFrequency, nextWithdrawalDate, DateUtils.getLocalDateTimeOfSystem());
+            savingsWithdrawalSchedule = SavingsWithdrawalSchedule.newInstance(savingsAccount, withdrawalFrequency, nextWithdrawalDate,
+                    DateUtils.getLocalDateTimeOfSystem());
         }
 
         savingsWithdrawalScheduleRepository.saveAndFlush(savingsWithdrawalSchedule);
@@ -113,9 +126,8 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
 
         // Check if the original date is before or equal to the current date and if the
         // candidate next withdrawal date is on or after the original date
-        return (originalDate.isBefore(currentDate) || originalDate.compareTo(currentDate)==0)
-                && !candidateNextWithdrawalDate.isAfter(currentDate)
-                && candidateNextWithdrawalDate.getDayOfMonth() == originalDayOfMonth;
+        return (originalDate.isBefore(currentDate) || originalDate.compareTo(currentDate) == 0)
+                && !candidateNextWithdrawalDate.isAfter(currentDate) && candidateNextWithdrawalDate.getDayOfMonth() == originalDayOfMonth;
     }
 
     /**
@@ -160,11 +172,45 @@ public class SavingsAccountWithdrawalServiceImpl implements SavingsAccountWithdr
         // the same day of the original date in the next month as the next
         // withdrawal date.
         if (candidateDayOfMonth > originalDayOfMonth) {
-            return  SavingsWithdrawalScheduleData.newInstance(null, null, candidateNextWithdrawalDate);
+            return SavingsWithdrawalScheduleData.newInstance(null, SavingsEnumerations.withdrawalFrequency(withdrawalFrequencyEnum),
+                    candidateNextWithdrawalDate);
         } else {
-            return  SavingsWithdrawalScheduleData.newInstance(null, null,
+            return SavingsWithdrawalScheduleData.newInstance(null, SavingsEnumerations.withdrawalFrequency(withdrawalFrequencyEnum),
                     LocalDate.of(candidateNextWithdrawalDate.getYear(), candidateNextWithdrawalDate.getMonth(), originalDayOfMonth));
         }
+    }
+
+    @Override
+    public SavingsWithdrawalScheduleData findNextWithdrawalDateBySavingsAccountId(Long savingsAccountId) {
+        SavingsWithdrawalSchedule withdrawalSchedule = savingsWithdrawalScheduleRepository.findBySavingsAccountId(savingsAccountId)
+                .orElseThrow(() -> new SavingsScheduleFoundException(savingsAccountId));
+        return withdrawalSchedule.getNextWithdrawalDate().isBefore(LocalDate.now(ZoneId.systemDefault()))
+                ? findByWithdrawalFrequencyAndDate(withdrawalSchedule.getSavingsAccount().getSavingsProductId(),
+                        withdrawalSchedule.getNextWithdrawalDate())
+                : SavingsWithdrawalScheduleData.newInstance(null,
+                        SavingsEnumerations.withdrawalFrequency(WithdrawalFrequency.fromInt(withdrawalSchedule.getWithdrawalFrequency())),
+                        withdrawalSchedule.getNextWithdrawalDate());
+    }
+
+    @Override
+    public CommandProcessingResult updateNextWithdrawalDate(Long savingsAccountId, JsonCommand command) {
+        final Map<String, Object> changes = new LinkedHashMap<>();
+        this.context.authenticatedUser();
+        SavingsWithdrawalSchedule withdrawalSchedule = savingsWithdrawalScheduleRepository.findBySavingsAccountId(savingsAccountId)
+                .orElseThrow(() -> new SavingsScheduleFoundException(savingsAccountId));
+
+        LocalDate minimumWithdrawalDate = withdrawalSchedule.getNextWithdrawalDate().isBefore(LocalDate.now(ZoneId.systemDefault()))
+                ? this.findNextWithdrawalDateBySavingsAccountId(withdrawalSchedule.getSavingsAccount().getId()).getNextWithdrawalDate()
+                : withdrawalSchedule.getNextWithdrawalDate();
+        this.fromApiJsonDataValidator.validateNextWithdrawalDate(command.json(), minimumWithdrawalDate);
+        final LocalDate nextWithdrawalDate = command.localDateValueOfParameterNamed(SavingsApiConstants.nextWithdrawalDate);
+        changes.put(SavingsApiConstants.nextWithdrawalDate, nextWithdrawalDate);
+        changes.put(SavingsApiConstants.withdrawalFrequencyParam,
+                SavingsEnumerations.withdrawalFrequency(WithdrawalFrequency.fromInt(withdrawalSchedule.getWithdrawalFrequency())));
+        this.updateNextWithdrawalDate(withdrawalSchedule.getSavingsAccount(), withdrawalSchedule.getWithdrawalFrequency(),
+                nextWithdrawalDate);
+
+        return new CommandProcessingResultBuilder().withEntityId(savingsAccountId).withSavingsId(savingsAccountId).with(changes).build();
     }
 
 }
