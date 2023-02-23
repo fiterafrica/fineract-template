@@ -220,4 +220,8 @@ public class SavingsApiConstants {
     public static final String totalLiquidationAllowed = "totalLiquidationAllowed";
 
     public static final String allowManuallyEnterInterestRateParamName = "allowManuallyEnterInterestRate";
+
+    public static final String useFloatingInterestRateParamName = "useFloatingInterestRate";
+    public static final String floatingInterestRatesParamName = "floatingInterestRates";
+    public static final String floatingInterestRateValueParamName = "floatingInterestRateValue";
 }

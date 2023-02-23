@@ -115,7 +115,7 @@ public class FixedDepositProduct extends SavingsProduct {
         super(name, shortName, description, currency, interestRate, interestCompoundingPeriodType, interestPostingPeriodType,
                 interestCalculationType, interestCalculationDaysInYearType, minRequiredOpeningBalance, lockinPeriodFrequency,
                 lockinPeriodFrequencyType, withdrawalFeeApplicableForTransfer, accountingRuleType, charges, allowOverdraft, overdraftLimit,
-                minBalanceForInterestCalculation, withHoldTax, taxGroup, null, null, null, isUSDProduct, allowManuallyEnterInterestRate);
+                minBalanceForInterestCalculation, withHoldTax, taxGroup, null, null, null, isUSDProduct, allowManuallyEnterInterestRate, false);
 
         if (charts != null) {
             this.charts = charts;

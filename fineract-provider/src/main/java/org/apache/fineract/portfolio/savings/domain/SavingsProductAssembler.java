@@ -18,6 +18,10 @@
  */
 package org.apache.fineract.portfolio.savings.domain;
 
+import com.google.gson.JsonElement;
+import java.time.LocalDate;
+import static org.apache.fineract.portfolio.interestratechart.InterestRateChartApiConstants.endDateParamName;
+import static org.apache.fineract.portfolio.interestratechart.InterestRateChartApiConstants.fromDateParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.allowOverdraftParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.chargesParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.currencyCodeParamName;
@@ -27,6 +31,8 @@ import static org.apache.fineract.portfolio.savings.SavingsApiConstants.daysToIn
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.descriptionParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.digitsAfterDecimalParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.enforceMinRequiredBalanceParamName;
+import static org.apache.fineract.portfolio.savings.SavingsApiConstants.floatingInterestRateValueParamName;
+import static org.apache.fineract.portfolio.savings.SavingsApiConstants.floatingInterestRatesParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.idParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.inMultiplesOfParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.interestCalculationDaysInYearTypeParamName;
@@ -51,6 +57,7 @@ import static org.apache.fineract.portfolio.savings.SavingsApiConstants.numberOf
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.overdraftLimitParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.shortNameParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.taxGroupIdParamName;
+import static org.apache.fineract.portfolio.savings.SavingsApiConstants.useFloatingInterestRateParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.withHoldTaxParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.withdrawalFeeForTransfersParamName;
 
@@ -61,6 +68,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.apache.fineract.accounting.common.AccountingRuleType;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
+import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.portfolio.charge.domain.Charge;
 import org.apache.fineract.portfolio.charge.domain.ChargeRepositoryWrapper;
@@ -81,11 +89,13 @@ public class SavingsProductAssembler {
 
     private final ChargeRepositoryWrapper chargeRepository;
     private final TaxGroupRepositoryWrapper taxGroupRepository;
+    private final FromJsonHelper fromApiJsonHelper;
 
     @Autowired
-    public SavingsProductAssembler(final ChargeRepositoryWrapper chargeRepository, final TaxGroupRepositoryWrapper taxGroupRepository) {
+    public SavingsProductAssembler(final ChargeRepositoryWrapper chargeRepository, final TaxGroupRepositoryWrapper taxGroupRepository, final FromJsonHelper fromApiJsonHelper) {
         this.chargeRepository = chargeRepository;
         this.taxGroupRepository = taxGroupRepository;
+        this.fromApiJsonHelper = fromApiJsonHelper;
     }
 
     public SavingsProduct assemble(final JsonCommand command) {
@@ -171,6 +181,11 @@ public class SavingsProductAssembler {
             enforceMinRequiredBalance = command.booleanPrimitiveValueOfParameterNamed(enforceMinRequiredBalanceParamName);
         }
 
+        boolean useFloatingInterestRate = false;
+        if (command.parameterExists(useFloatingInterestRateParamName)) {
+            useFloatingInterestRate = command.booleanPrimitiveValueOfParameterNamed(useFloatingInterestRateParamName);
+        }
+
         BigDecimal minRequiredBalance = BigDecimal.ZERO;
         if (command.parameterExists(minRequiredBalanceParamName)) {
             minRequiredBalance = command.bigDecimalValueOfParameterNamed(minRequiredBalanceParamName);
@@ -206,7 +221,22 @@ public class SavingsProductAssembler {
                 allowOverdraft, overdraftLimit, enforceMinRequiredBalance, minRequiredBalance, lienAllowed, maxAllowedLienLimit,
                 minBalanceForInterestCalculation, nominalAnnualInterestRateOverdraft, minOverdraftForInterestCalculation, withHoldTax,
                 taxGroup, isDormancyTrackingActive, daysToInactive, daysToDormancy, daysToEscheat, isInterestPostingConfigUpdate,
-                numOfCreditTransaction, numOfDebitTransaction);
+                numOfCreditTransaction, numOfDebitTransaction, useFloatingInterestRate);
+    }
+
+    public Set<SavingsProductFloatingInterestRate> assembleListOfFloatingInterestRates(final JsonCommand command, SavingsProduct savingsProduct) {
+        final Set<SavingsProductFloatingInterestRate> floatingInterestRates = new HashSet<>();
+        if (command.parameterExists(floatingInterestRatesParamName)) {
+            final JsonArray floatingInterestRatesArray = command.arrayOfParameterNamed(floatingInterestRatesParamName);
+            if (floatingInterestRatesArray != null) {
+                for (int i = 0; i < floatingInterestRatesArray.size(); i++) {
+                    final JsonObject floatingInterestRateElement = floatingInterestRatesArray.get(i).getAsJsonObject();
+                    SavingsProductFloatingInterestRate floatingInterestRate = assembleSavingsProductFloatingInterestRateFrom(floatingInterestRateElement,savingsProduct);
+                    floatingInterestRates.add(floatingInterestRate);
+                }
+            }
+        }
+        return floatingInterestRates;
     }
 
     public Set<Charge> assembleListOfSavingsProductCharges(final JsonCommand command, final String savingsProductCurrencyCode) {
@@ -250,5 +280,17 @@ public class SavingsProductAssembler {
             taxGroup = this.taxGroupRepository.findOneWithNotFoundDetection(taxGroupId);
         }
         return taxGroup;
+    }
+
+    public SavingsProductFloatingInterestRate assembleSavingsProductFloatingInterestRateFrom(final JsonElement element, SavingsProduct savingsProduct) {
+
+        final LocalDate fromDate = this.fromApiJsonHelper.extractLocalDateNamed(fromDateParamName, element);
+        final LocalDate toDate = this.fromApiJsonHelper.extractLocalDateNamed(endDateParamName, element);
+        final BigDecimal floatingInterestRate = this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed(floatingInterestRateValueParamName, element);
+
+
+        final SavingsProductFloatingInterestRate savingsProductFloatingInterestRate = SavingsProductFloatingInterestRate.createNew(fromDate, toDate, floatingInterestRate, savingsProduct);
+
+        return savingsProductFloatingInterestRate;
     }
 }

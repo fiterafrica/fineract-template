@@ -45,6 +45,8 @@ import org.apache.fineract.portfolio.savings.DepositAccountType;
 import org.apache.fineract.portfolio.savings.data.SavingsProductDataValidator;
 import org.apache.fineract.portfolio.savings.domain.SavingsProduct;
 import org.apache.fineract.portfolio.savings.domain.SavingsProductAssembler;
+import org.apache.fineract.portfolio.savings.domain.SavingsProductFloatingInterestRate;
+import org.apache.fineract.portfolio.savings.domain.SavingsProductFloatingInterestRateRepository;
 import org.apache.fineract.portfolio.savings.domain.SavingsProductRepository;
 import org.apache.fineract.portfolio.savings.exception.SavingsProductNotFoundException;
 import org.apache.fineract.portfolio.tax.domain.TaxGroup;
@@ -65,12 +67,14 @@ public class SavingsProductWritePlatformServiceJpaRepositoryImpl implements Savi
     private final SavingsProductAssembler savingsProductAssembler;
     private final ProductToGLAccountMappingWritePlatformService accountMappingWritePlatformService;
     private final FineractEntityAccessUtil fineractEntityAccessUtil;
+    private final SavingsProductFloatingInterestRateRepository savingsProductFloatingInterestRateRepository;
 
     @Autowired
     public SavingsProductWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
             final SavingsProductRepository savingProductRepository, final SavingsProductDataValidator fromApiJsonDataValidator,
             final SavingsProductAssembler savingsProductAssembler,
             final ProductToGLAccountMappingWritePlatformService accountMappingWritePlatformService,
+            final SavingsProductFloatingInterestRateRepository savingsProductFloatingInterestRateRepository,
             final FineractEntityAccessUtil fineractEntityAccessUtil) {
         this.context = context;
         this.savingProductRepository = savingProductRepository;
@@ -78,6 +82,7 @@ public class SavingsProductWritePlatformServiceJpaRepositoryImpl implements Savi
         this.savingsProductAssembler = savingsProductAssembler;
         this.accountMappingWritePlatformService = accountMappingWritePlatformService;
         this.fineractEntityAccessUtil = fineractEntityAccessUtil;
+        this.savingsProductFloatingInterestRateRepository = savingsProductFloatingInterestRateRepository;
     }
 
     /*
@@ -116,6 +121,12 @@ public class SavingsProductWritePlatformServiceJpaRepositoryImpl implements Savi
             final SavingsProduct product = this.savingsProductAssembler.assemble(command);
 
             this.savingProductRepository.saveAndFlush(product);
+
+            //assemle floatingInterestRates
+            final Set<SavingsProductFloatingInterestRate> floatingInterestRates = this.savingsProductAssembler.assembleListOfFloatingInterestRates(command, product);
+            //persist floatingInterestRates
+            this.savingsProductFloatingInterestRateRepository.saveAll(floatingInterestRates);
+
 
             // save accounting mappings
             this.accountMappingWritePlatformService.createSavingProductToGLAccountMapping(product.getId(), command,

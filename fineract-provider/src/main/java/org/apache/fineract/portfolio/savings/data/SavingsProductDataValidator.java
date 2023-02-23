@@ -52,6 +52,8 @@ import static org.apache.fineract.portfolio.savings.SavingsApiConstants.shortNam
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.taxGroupIdParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.withHoldTaxParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.withdrawalFeeForTransfersParamName;
+import static org.apache.fineract.portfolio.savings.SavingsApiConstants.useFloatingInterestRateParamName;
+import static org.apache.fineract.portfolio.savings.SavingsApiConstants.floatingInterestRatesParamName;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -112,7 +114,7 @@ public class SavingsProductDataValidator {
             SavingsApiConstants.maxAllowedLienLimitParamName, SavingsApiConstants.lienAllowedParamName,
             minBalanceForInterestCalculationParamName, withHoldTaxParamName, taxGroupIdParamName, isInterestPostingConfigUpdateParamName,
             numberOfCreditTransactionsParamName, numberOfDebitTransactionsParamName, "receivablePenaltyAccountId",
-            "receivableInterestAccountId", "receivableFeeAccountId", "interestPayableAccountId"));
+            "receivableInterestAccountId", "receivableFeeAccountId", "interestPayableAccountId",useFloatingInterestRateParamName, floatingInterestRatesParamName));
 
     @Autowired
     public SavingsProductDataValidator(final FromJsonHelper fromApiJsonHelper) {
