@@ -51,5 +51,34 @@
             </column>
         </addColumn>
     </changeSet>
-
+    <changeSet author="hitesh@fiter.io" id="permissions_floating_interest_rate">
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio" />
+            <column name="code" value="CREATE_SAVINGSPRODUCTFLOATINGINTERESTRATE" />
+            <column name="entity_name" value="SAVINGSPRODUCTFLOATINGINTERESTRATE" />
+            <column name="action_name" value="CREATE" />
+            <column name="can_maker_checker" valueBoolean="false" />
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio" />
+            <column name="code" value="CREATE_SAVINGSPRODUCTFLOATINGINTERESTRATE_CHECKER" />
+            <column name="entity_name" value="SAVINGSPRODUCTFLOATINGINTERESTRATE" />
+            <column name="action_name" value="CREATE_CHECKER" />
+            <column name="can_maker_checker" valueBoolean="false" />
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio" />
+            <column name="code" value="UPDATE_SAVINGSPRODUCTFLOATINGINTERESTRATE" />
+            <column name="entity_name" value="SAVINGSPRODUCTFLOATINGINTERESTRATE" />
+            <column name="action_name" value="UPDATE" />
+            <column name="can_maker_checker" valueBoolean="false" />
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio" />
+            <column name="code" value="UPDATE_SAVINGSPRODUCTFLOATINGINTERESTRATE_CHECKER" />
+            <column name="entity_name" value="SAVINGSPRODUCTFLOATINGINTERESTRATE" />
+            <column name="action_name" value="UPDATE_CHECKER" />
+            <column name="can_maker_checker" valueBoolean="false" />
+        </insert>
+    </changeSet>
 </databaseChangeLog>

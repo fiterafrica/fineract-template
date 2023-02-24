@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.portfolio.savings.domain;
 
+import java.util.Objects;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 
 import javax.persistence.Entity;
@@ -90,5 +91,24 @@ public class SavingsProductFloatingInterestRate extends AbstractPersistableCusto
 
     public static SavingsProductFloatingInterestRate createNew(LocalDate fromDate, LocalDate toDate, BigDecimal floatingInterestRate, SavingsProduct savingsProduct) {
         return new SavingsProductFloatingInterestRate(savingsProduct, fromDate, toDate, floatingInterestRate);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof SavingsProductFloatingInterestRate)) {
+            return false;
+        }
+
+        SavingsProductFloatingInterestRate that = (SavingsProductFloatingInterestRate) o;
+        return Objects.equals(this.savingsProduct.getId(), that.savingsProduct.getId())
+                && Objects.equals(this.fromDate, that.fromDate) && Objects.equals(this.floatingInterestRate, that.floatingInterestRate);
+    }
+
+    @Override
+    public int hashCode() {
+        return  Objects.hash(this.savingsProduct.getId(), this.fromDate, this.floatingInterestRate);
     }
 }

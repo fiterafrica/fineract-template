@@ -608,6 +608,12 @@ public class SavingsProduct extends AbstractPersistableCustom {
             this.enforceMinRequiredBalance = newValue;
         }
 
+        if (command.isChangeInBooleanParameterNamed(useFloatingInterestRateParamName, this.useFloatingInterestRate)) {
+            final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(useFloatingInterestRateParamName);
+            actualChanges.put(useFloatingInterestRateParamName, newValue);
+            this.useFloatingInterestRate = newValue;
+        }
+
         if (command.isChangeInBigDecimalParameterNamedDefaultingZeroToNull(minRequiredBalanceParamName, this.minRequiredBalance)) {
             final BigDecimal newValue = command.bigDecimalValueOfParameterNamedDefaultToNullIfZero(minRequiredBalanceParamName);
             actualChanges.put(minRequiredBalanceParamName, newValue);
