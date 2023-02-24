@@ -18,7 +18,6 @@
  */
 package org.apache.fineract.portfolio.savings.api;
 
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -62,21 +61,17 @@ public class SavingsProductFloatingInterestRateApiResource {
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
     public String add(@PathParam("savingsProductId") final long savingsProductId, final String apiRequestBodyAsJson) {
-
         final CommandWrapper commandRequest = new CommandWrapperBuilder().addSavingsProductFloatingInterestRate(savingsProductId).withJson(apiRequestBodyAsJson).build();
-
         final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
-
         return this.toApiJsonSerializer.serialize(result);
     }
 
     @PUT
-    @Path("{floatingInterestRateId}")
+    @Path("{savingsProductFloatingInterestRateId}")
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
-    public String update(@PathParam("floatingInterestRateId") @Parameter(description = "floatingInterestRateId") final Long floatingInterestRateId,
-                         @Parameter(hidden = true) final String apiRequestBodyAsJson) {
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().updateInterestRateChart(floatingInterestRateId).withJson(apiRequestBodyAsJson).build();
+    public String update(@PathParam("savingsProductId") final long savingsProductId, @PathParam("savingsProductFloatingInterestRateId") final Long savingsProductFloatingInterestRateId, final String apiRequestBodyAsJson) {
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().updateSavingsProductFloatingInterestRate(savingsProductFloatingInterestRateId, savingsProductId).withJson(apiRequestBodyAsJson).build();
         final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
         return this.toApiJsonSerializer.serialize(result);
     }

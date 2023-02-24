@@ -18,5 +18,27 @@
  */
 package org.apache.fineract.portfolio.savings.handler;
 
-public class UpdateSavingsProductFloatingInterestRateCommandHandler {
+import org.apache.fineract.commands.annotation.CommandType;
+import org.apache.fineract.commands.handler.NewCommandSourceHandler;
+import org.apache.fineract.infrastructure.core.api.JsonCommand;
+import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
+import org.apache.fineract.portfolio.savings.service.SavingsProductFloatingInterestRateWritePlatformService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
+@CommandType(entity = "SAVINGSPRODUCTFLOATINGINTERESTRATE", action = "UPDATE")
+public class UpdateSavingsProductFloatingInterestRateCommandHandler implements NewCommandSourceHandler {
+
+    private final SavingsProductFloatingInterestRateWritePlatformService savingsProductFloatingInterestRateWritePlatformService;
+
+    @Autowired
+    public UpdateSavingsProductFloatingInterestRateCommandHandler(final SavingsProductFloatingInterestRateWritePlatformService savingsProductFloatingInterestRateWritePlatformService) {
+        this.savingsProductFloatingInterestRateWritePlatformService = savingsProductFloatingInterestRateWritePlatformService;
+    }
+
+    @Override
+    public CommandProcessingResult processCommand(JsonCommand command) {
+        return this.savingsProductFloatingInterestRateWritePlatformService.updateSavingsProductFloatingInterestRate(command.entityId(), command);
+    }
 }

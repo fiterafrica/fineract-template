@@ -19,7 +19,7 @@
 package org.apache.fineract.portfolio.savings.domain;
 
 import java.util.Objects;
-import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
+import org.apache.fineract.infrastructure.core.domain.AbstractAuditableCustom;
 
 import javax.persistence.Entity;
 import javax.persistence.Table;
@@ -31,7 +31,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "m_savings_product_floating_interest_rate")
-public class SavingsProductFloatingInterestRate extends AbstractPersistableCustom {
+public class SavingsProductFloatingInterestRate extends AbstractAuditableCustom {
 
     @ManyToOne
     @JoinColumn(name = "savings_product_id")

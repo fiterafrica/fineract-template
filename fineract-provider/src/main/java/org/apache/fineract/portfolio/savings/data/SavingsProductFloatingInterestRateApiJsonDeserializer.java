@@ -35,7 +35,6 @@ import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.exception.InvalidJsonException;
 import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
-import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -44,7 +43,7 @@ public class SavingsProductFloatingInterestRateApiJsonDeserializer {
 
     private final FromJsonHelper fromApiJsonHelper;
     private final Set<String> supportedParameters = new HashSet<>(
-            Arrays.asList("id", "fromDate", "toDate", "dateFormat", "locale", "floatingInterestRateValue"));
+            Arrays.asList("id", "fromDate", "endDate", "dateFormat", "locale", "floatingInterestRateValue"));
 
     @Autowired
     public SavingsProductFloatingInterestRateApiJsonDeserializer(final FromJsonHelper fromApiJsonHelper) {
@@ -73,9 +72,9 @@ public class SavingsProductFloatingInterestRateApiJsonDeserializer {
         final LocalDate fromDate = this.fromApiJsonHelper.extractLocalDateNamed("fromDate", element);
         baseDataValidator.reset().parameter("fromDate").value(fromDate).notNull();
 
-        if (this.fromApiJsonHelper.extractStringNamed("toDate", element) != null) {
-            final LocalDate toDate = this.fromApiJsonHelper.extractLocalDateNamed("toDate", element);
-            baseDataValidator.reset().parameter("toDate").value(toDate).notNull().validateDateBefore(DateUtils.getLocalDateOfTenant());
+        if (this.fromApiJsonHelper.extractLocalDateNamed("endDate", element) != null) {
+            final LocalDate endDate = this.fromApiJsonHelper.extractLocalDateNamed("endDate", element);
+            baseDataValidator.reset().parameter("endDate").value(endDate).notNull().validateDateAfter(fromDate);
         }
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
     }
@@ -89,86 +88,25 @@ public class SavingsProductFloatingInterestRateApiJsonDeserializer {
         this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.supportedParameters);
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("BusinessOwners");
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("SavingsProductFloatingInterestRates");
 
         final JsonElement element = this.fromApiJsonHelper.parse(json);
 
         baseDataValidator.reset().value(savingsProductFloatingInterestId).notBlank().integerGreaterThanZero();
 
-        if (this.fromApiJsonHelper.extractStringNamed("firstName", element) != null) {
-            final String firstName = this.fromApiJsonHelper.extractStringNamed("firstName", element);
-            baseDataValidator.reset().parameter("firstName").value(firstName).notNull().notBlank().notExceedingLengthOf(100);
+        if (this.fromApiJsonHelper.extractLocalDateNamed("fromDate", element) != null) {
+            final LocalDate fromDate = this.fromApiJsonHelper.extractLocalDateNamed("fromDate", element);
+            baseDataValidator.reset().parameter("fromDate").value(fromDate).notNull();
         }
 
-        if (this.fromApiJsonHelper.extractStringNamed("lastName", element) != null) {
-            final String lastName = this.fromApiJsonHelper.extractStringNamed("lastName", element);
-            baseDataValidator.reset().parameter("lastName").value(lastName).notNull().notBlank().notExceedingLengthOf(100);
+        if (this.fromApiJsonHelper.extractLocalDateNamed("endDate", element) != null) {
+            final LocalDate endDate = this.fromApiJsonHelper.extractLocalDateNamed("endDate", element);
+            baseDataValidator.reset().parameter("endDate").value(endDate).notNull();
         }
 
-        if (this.fromApiJsonHelper.extractStringNamed("middleName", element) != null) {
-            final String middleName = this.fromApiJsonHelper.extractStringNamed("middleName", element);
-            baseDataValidator.reset().parameter("middleName").value(middleName).notNull().notBlank().notExceedingLengthOf(100);
-        }
-
-        if (this.fromApiJsonHelper.extractStringNamed("email", element) != null) {
-            final String email = this.fromApiJsonHelper.extractStringNamed("email", element);
-            baseDataValidator.reset().parameter("email").value(email).notNull().notBlank().notExceedingLengthOf(50);
-        }
-
-        if (this.fromApiJsonHelper.extractStringNamed("mobileNumber", element) != null) {
-            final String mobileNumber = this.fromApiJsonHelper.extractStringNamed("mobileNumber", element);
-            baseDataValidator.reset().parameter("mobileNumber").value(mobileNumber).notNull().notBlank().notExceedingLengthOf(100);
-        }
-
-        if (this.fromApiJsonHelper.extractStringNamed("alterMobileNumber", element) != null) {
-            final String alterMobileNumber = this.fromApiJsonHelper.extractStringNamed("alterMobileNumber", element);
-            baseDataValidator.reset().parameter("alterMobileNumber").value(alterMobileNumber).notNull().notBlank()
-                    .notExceedingLengthOf(100);
-        }
-
-        if (this.fromApiJsonHelper.extractStringNamed("dateOfBirth", element) != null) {
-            final LocalDate dateOfBirth = this.fromApiJsonHelper.extractLocalDateNamed("dateOfBirth", element);
-            baseDataValidator.reset().parameter("dateOfBirth").value(dateOfBirth).value(dateOfBirth).notNull()
-                    .validateDateBefore(DateUtils.getLocalDateOfTenant());
-        }
-
-        if (this.fromApiJsonHelper.extractStringNamed("city", element) != null) {
-            final String city = this.fromApiJsonHelper.extractStringNamed("city", element);
-            baseDataValidator.reset().parameter("city").value(city).notNull().notBlank().notExceedingLengthOf(100);
-        }
-
-        if (this.fromApiJsonHelper.extractStringNamed("streetNumberAndName", element) != null) {
-            final String street = this.fromApiJsonHelper.extractStringNamed("streetNumberAndName", element);
-            baseDataValidator.reset().parameter("streetNumberAndName").value(street).notNull().notBlank().notExceedingLengthOf(100);
-        }
-
-        if (this.fromApiJsonHelper.extractStringNamed("landmark", element) != null) {
-            final String landmark = this.fromApiJsonHelper.extractStringNamed("landmark", element);
-            baseDataValidator.reset().parameter("landmark").value(landmark).notNull().notBlank().notExceedingLengthOf(100);
-        }
-
-        if (this.fromApiJsonHelper.extractStringNamed("lga", element) != null) {
-            final String lga = this.fromApiJsonHelper.extractStringNamed("lga", element);
-            baseDataValidator.reset().parameter("lga").value(lga).notNull().notBlank().notExceedingLengthOf(100);
-        }
-
-        if (this.fromApiJsonHelper.extractStringNamed("bvn", element) != null) {
-            final String bvn = this.fromApiJsonHelper.extractStringNamed("bvn", element);
-            baseDataValidator.reset().parameter("bvn").value(bvn).notNull().notBlank().notExceedingLengthOf(100);
-        }
-
-        if (this.fromApiJsonHelper.extractStringNamed("stateProvinceId", element) != null) {
-            final Long stateProvinceId = this.fromApiJsonHelper.extractLongNamed("stateProvinceId", element);
-            baseDataValidator.reset().parameter("stateProvinceId").value(stateProvinceId).notNull().integerGreaterThanZero();
-        }
-
-        if (this.fromApiJsonHelper.extractStringNamed("countryId", element) != null) {
-            final Long countryId = this.fromApiJsonHelper.extractLongNamed("countryId", element);
-            baseDataValidator.reset().parameter("countryId").value(countryId).notNull().integerGreaterThanZero();
-        }
-        if (this.fromApiJsonHelper.extractBooleanNamed("isActive", element) != null) {
-            final Boolean isActive = this.fromApiJsonHelper.extractBooleanNamed("isActive", element);
-            baseDataValidator.reset().parameter("isActive").value(isActive).notNull().notBlank().notExceedingLengthOf(100);
+        if (this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed("floatingInterestRateValue", element) != null) {
+            final BigDecimal floatingInterestRate = this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed("floatingInterestRateValue", element);
+            baseDataValidator.reset().parameter("floatingInterestRateValue").value(floatingInterestRate).notNull().integerGreaterThanZero();
         }
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);

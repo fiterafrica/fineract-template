@@ -51,6 +51,14 @@
             </column>
         </addColumn>
     </changeSet>
+    <changeSet author="hitesh@fiter.io" id="audit_for_m_savings_product_floating_interest_rate">
+        <addColumn tableName="m_savings_product_floating_interest_rate">
+            <column defaultValueComputed="NULL" name="createdby_id" type="BIGINT"/>
+            <column defaultValueComputed="NULL" name="created_date" type="datetime"/>
+            <column defaultValueComputed="NULL" name="lastmodifiedby_id" type="BIGINT"/>
+            <column defaultValueComputed="NULL" name="lastmodified_date" type="datetime"/>
+        </addColumn>
+    </changeSet>
     <changeSet author="hitesh@fiter.io" id="permissions_floating_interest_rate">
         <insert tableName="m_permission">
             <column name="grouping" value="portfolio" />
