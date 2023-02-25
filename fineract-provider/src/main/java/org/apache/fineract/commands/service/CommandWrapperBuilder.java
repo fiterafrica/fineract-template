@@ -3522,8 +3522,16 @@ public class CommandWrapperBuilder {
     public CommandWrapperBuilder updateSavingsProductFloatingInterestRate(final Long savingsProductfloatingInterestRateId, final Long savingsProductId) {
         this.actionName = "UPDATE";
         this.entityName = "SAVINGSPRODUCTFLOATINGINTERESTRATE";
-        this.href = "/clients/" + savingsProductId + "/floatinginterestrates";
+        this.href = "/savingsproducts/" + savingsProductId + "/floatinginterestrates" + savingsProductfloatingInterestRateId;
         this.productId = savingsProductId;
+        this.entityId = savingsProductfloatingInterestRateId;
+        return this;
+    }
+
+    public CommandWrapperBuilder deleteSavingsProductFloatingInterestRate(final Long savingsProductfloatingInterestRateId, final Long savingsProductId) {
+        this.actionName = "DELETE";
+        this.entityName = "SAVINGSPRODUCTFLOATINGINTERESTRATE";
+        this.href = "/savingsproducts/" + savingsProductId + "/floatinginterestrates" + savingsProductfloatingInterestRateId;
         this.entityId = savingsProductfloatingInterestRateId;
         return this;
     }

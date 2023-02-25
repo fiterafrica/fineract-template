@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -114,6 +115,14 @@ public class SavingsProductFloatingInterestRateApiResource {
         final SavingsProductFloatingInterestRateData savingsProductFloatingInterestRateData = this.readPlatformService.getSavingsProductFloatingInterestRateById(savingsProductFloatingInterestRateId);
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings, savingsProductFloatingInterestRateData, this.responseDataParameters);
+    }
 
+    @DELETE
+    @Path("{savingsProductFloatingInterestRateId}")
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String deleteCharge(@PathParam("savingsProductFloatingInterestRateId") final Long savingsProductFloatingInterestRateId, @PathParam("savingsProductId") final Long savingsProductId) {
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().deleteSavingsProductFloatingInterestRate(savingsProductFloatingInterestRateId, savingsProductId).build();
+        final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+        return this.toApiJsonSerializer.serialize(result);
     }
 }

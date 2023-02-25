@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.portfolio.savings.service;
+package org.apache.fineract.portfolio.savings.exception;
 
-import org.apache.fineract.infrastructure.core.api.JsonCommand;
-import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
+import org.apache.fineract.infrastructure.core.exception.AbstractPlatformResourceNotFoundException;
 
-public interface SavingsProductFloatingInterestRateWritePlatformService {
-    CommandProcessingResult addSavingsProductFloatingInterestRate(Long savingsProductId, JsonCommand command);
-    CommandProcessingResult updateSavingsProductFloatingInterestRate(Long floatingInterestRateId, JsonCommand command);
-    CommandProcessingResult deleteSavingsProductFloatingInterestRate(Long floatingInterestRateId);
+public class SavingsProductFloatingInterestRateNotFoundException extends AbstractPlatformResourceNotFoundException {
+
+    public SavingsProductFloatingInterestRateNotFoundException(final Long id) {
+        super("error.msg.savingproductfloatinginterestrate.id.invalid", "Saving product floating interest rate with identifier " + id + " does not exist", id);
+    }
 }

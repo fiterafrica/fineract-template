@@ -89,4 +89,20 @@
             <column name="can_maker_checker" valueBoolean="false" />
         </insert>
     </changeSet>
+    <changeSet author="hitesh@fiter.io" id="delete_permission_floating_interest_rate">
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="DELETE_SAVINGSPRODUCTFLOATINGINTERESTRATE"/>
+            <column name="entity_name" value="SAVINGSPRODUCTFLOATINGINTERESTRATE"/>
+            <column name="action_name" value="DELETE"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="DELETE_SAVINGSPRODUCTFLOATINGINTERESTRATE_CHECKER"/>
+            <column name="entity_name" value="SAVINGSPRODUCTFLOATINGINTERESTRATE"/>
+            <column name="action_name" value="DELETE_CHECKER"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+    </changeSet>
 </databaseChangeLog>

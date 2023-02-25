@@ -30,9 +30,9 @@ import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
+import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
-import org.apache.fineract.portfolio.client.exception.ClientBusinessOwnerNotFoundException;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.floatingInterestRateValueParamName;
 import org.apache.fineract.portfolio.savings.data.SavingsProductFloatingInterestRateApiJsonDeserializer;
 import org.apache.fineract.portfolio.savings.domain.SavingsProduct;
@@ -40,9 +40,13 @@ import org.apache.fineract.portfolio.savings.domain.SavingsProductAssembler;
 import org.apache.fineract.portfolio.savings.domain.SavingsProductFloatingInterestRate;
 import org.apache.fineract.portfolio.savings.domain.SavingsProductFloatingInterestRateRepository;
 import org.apache.fineract.portfolio.savings.domain.SavingsProductRepositoryWrapper;
+import org.apache.fineract.portfolio.savings.exception.SavingsProductFloatingInterestRateNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -79,7 +83,7 @@ public class SavingsProductFloatingInterestRateWritePlatformServiceImpl implemen
         fromApiJsonDeserializer.validateForUpdate(floatingInterestRateId, command.json());
 
         SavingsProductFloatingInterestRate savingsProductFloatingInterestRate = this.savingsProductFloatingInterestRateRepository.findById(floatingInterestRateId)
-                .orElseThrow(() -> new ClientBusinessOwnerNotFoundException(floatingInterestRateId));
+                .orElseThrow(() -> new SavingsProductFloatingInterestRateNotFoundException(floatingInterestRateId));
 
         if (command.bigDecimalValueOfParameterNamed(floatingInterestRateValueParamName) != null) {
             floatingInterestRateValue = command.bigDecimalValueOfParameterNamed(floatingInterestRateValueParamName);
@@ -119,6 +123,20 @@ public class SavingsProductFloatingInterestRateWritePlatformServiceImpl implemen
         if (!dataValidationErrors.isEmpty()) {
             throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
                     dataValidationErrors);
+        }
+    }
+
+    @Transactional
+    @Override
+    public CommandProcessingResult deleteSavingsProductFloatingInterestRate(Long floatingInterestRateId) {
+        try {
+            final SavingsProductFloatingInterestRate savingsProductFloatingInterestRate = this.savingsProductFloatingInterestRateRepository.findById(floatingInterestRateId).orElseThrow(() -> new SavingsProductFloatingInterestRateNotFoundException(floatingInterestRateId));
+            //validation for delete if product is used account
+            this.savingsProductFloatingInterestRateRepository.delete(savingsProductFloatingInterestRate);
+            return new CommandProcessingResultBuilder().withEntityId(floatingInterestRateId).build();
+        } catch (final JpaSystemException | DataIntegrityViolationException e) {
+            throw new PlatformDataIntegrityException("error.msg.unknown.data.integrity.issue",
+                    "Unknown data integrity issue with resource: " + e.getMostSpecificCause(), e);
         }
     }
 }
