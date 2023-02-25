@@ -122,11 +122,11 @@ public class SavingsProductWritePlatformServiceJpaRepositoryImpl implements Savi
 
             this.savingProductRepository.saveAndFlush(product);
 
-            //assemle floatingInterestRates
-            final Set<SavingsProductFloatingInterestRate> floatingInterestRates = this.savingsProductAssembler.assembleListOfFloatingInterestRates(command, product);
-            //persist floatingInterestRates
+            // assemle floatingInterestRates
+            final Set<SavingsProductFloatingInterestRate> floatingInterestRates = this.savingsProductAssembler
+                    .assembleListOfFloatingInterestRates(command, product);
+            // persist floatingInterestRates
             this.savingsProductFloatingInterestRateRepository.saveAll(floatingInterestRates);
-
 
             // save accounting mappings
             this.accountMappingWritePlatformService.createSavingProductToGLAccountMapping(product.getId(), command,

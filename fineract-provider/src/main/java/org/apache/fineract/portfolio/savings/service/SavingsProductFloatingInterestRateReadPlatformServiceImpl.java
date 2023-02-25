@@ -34,7 +34,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class SavingsProductFloatingInterestRateReadPlatformServiceImpl implements SavingsProductFloatingInterestRateReadPlatformService{
+public class SavingsProductFloatingInterestRateReadPlatformServiceImpl implements SavingsProductFloatingInterestRateReadPlatformService {
 
     private final JdbcTemplate jdbcTemplate;
     private final PlatformSecurityContext context;
@@ -47,7 +47,8 @@ public class SavingsProductFloatingInterestRateReadPlatformServiceImpl implement
         }
 
         @Override
-        public SavingsProductFloatingInterestRateData mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
+        public SavingsProductFloatingInterestRateData mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum)
+                throws SQLException {
             final long id = rs.getLong("id");
             final long savingsProductId = rs.getLong("savingsProductId");
             final BigDecimal floatingInterestRate = rs.getBigDecimal("floatingInterestRate");
@@ -58,7 +59,8 @@ public class SavingsProductFloatingInterestRateReadPlatformServiceImpl implement
     }
 
     @Override
-    public Collection<SavingsProductFloatingInterestRateData> getSavingsProductFloatingInterestRateForSavingsProduct(long savingsProductId) {
+    public Collection<SavingsProductFloatingInterestRateData> getSavingsProductFloatingInterestRateForSavingsProduct(
+            long savingsProductId) {
         this.context.authenticatedUser();
         final SavingsProductFloatingInterestRateMapper rm = new SavingsProductFloatingInterestRateMapper();
         final String sql = "select " + rm.schema() + " where spfir.savings_product_id=?";

@@ -33,12 +33,14 @@ public class UpdateSavingsProductFloatingInterestRateCommandHandler implements N
     private final SavingsProductFloatingInterestRateWritePlatformService savingsProductFloatingInterestRateWritePlatformService;
 
     @Autowired
-    public UpdateSavingsProductFloatingInterestRateCommandHandler(final SavingsProductFloatingInterestRateWritePlatformService savingsProductFloatingInterestRateWritePlatformService) {
+    public UpdateSavingsProductFloatingInterestRateCommandHandler(
+            final SavingsProductFloatingInterestRateWritePlatformService savingsProductFloatingInterestRateWritePlatformService) {
         this.savingsProductFloatingInterestRateWritePlatformService = savingsProductFloatingInterestRateWritePlatformService;
     }
 
     @Override
     public CommandProcessingResult processCommand(JsonCommand command) {
-        return this.savingsProductFloatingInterestRateWritePlatformService.updateSavingsProductFloatingInterestRate(command.entityId(), command);
+        return this.savingsProductFloatingInterestRateWritePlatformService.updateSavingsProductFloatingInterestRate(command.entityId(),
+                command);
     }
 }

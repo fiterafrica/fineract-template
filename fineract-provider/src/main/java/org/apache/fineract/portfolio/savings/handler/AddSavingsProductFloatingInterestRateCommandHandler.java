@@ -33,12 +33,14 @@ public class AddSavingsProductFloatingInterestRateCommandHandler implements NewC
     private final SavingsProductFloatingInterestRateWritePlatformService savingsProductFloatingInterestRateWritePlatformService;
 
     @Autowired
-    public AddSavingsProductFloatingInterestRateCommandHandler(final SavingsProductFloatingInterestRateWritePlatformService savingsProductFloatingInterestRateWritePlatformService) {
+    public AddSavingsProductFloatingInterestRateCommandHandler(
+            final SavingsProductFloatingInterestRateWritePlatformService savingsProductFloatingInterestRateWritePlatformService) {
         this.savingsProductFloatingInterestRateWritePlatformService = savingsProductFloatingInterestRateWritePlatformService;
     }
 
     @Override
     public CommandProcessingResult processCommand(JsonCommand command) {
-        return this.savingsProductFloatingInterestRateWritePlatformService.addSavingsProductFloatingInterestRate(command.getProductId(), command);
+        return this.savingsProductFloatingInterestRateWritePlatformService.addSavingsProductFloatingInterestRate(command.getProductId(),
+                command);
     }
 }

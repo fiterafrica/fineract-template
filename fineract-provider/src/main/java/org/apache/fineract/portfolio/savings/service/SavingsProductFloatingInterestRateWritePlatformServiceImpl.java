@@ -18,6 +18,8 @@
  */
 package org.apache.fineract.portfolio.savings.service;
 
+import static org.apache.fineract.portfolio.savings.SavingsApiConstants.floatingInterestRateValueParamName;
+
 import com.google.gson.JsonObject;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -33,7 +35,6 @@ import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidati
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
-import static org.apache.fineract.portfolio.savings.SavingsApiConstants.floatingInterestRateValueParamName;
 import org.apache.fineract.portfolio.savings.data.SavingsProductFloatingInterestRateApiJsonDeserializer;
 import org.apache.fineract.portfolio.savings.domain.SavingsProduct;
 import org.apache.fineract.portfolio.savings.domain.SavingsProductAssembler;
@@ -60,17 +61,17 @@ public class SavingsProductFloatingInterestRateWritePlatformServiceImpl implemen
     private static final Logger LOG = LoggerFactory.getLogger(SavingsProductFloatingInterestRateWritePlatformServiceImpl.class);
 
     @Override
-    public CommandProcessingResult addSavingsProductFloatingInterestRate(Long savingsProductId, JsonCommand command){
+    public CommandProcessingResult addSavingsProductFloatingInterestRate(Long savingsProductId, JsonCommand command) {
         JsonObject jsonObject = command.parsedJson().getAsJsonObject();
         context.authenticatedUser();
         fromApiJsonDeserializer.validateForCreate(savingsProductId, jsonObject.toString());
         final SavingsProduct savingsProduct = savingsProductRepositoryWrapper.findOneWithNotFoundDetection(savingsProductId);
-        SavingsProductFloatingInterestRate floatingInterestRate = savingsProductAssembler.assembleSavingsProductFloatingInterestRateFrom(jsonObject,savingsProduct);
+        SavingsProductFloatingInterestRate floatingInterestRate = savingsProductAssembler
+                .assembleSavingsProductFloatingInterestRateFrom(jsonObject, savingsProduct);
         floatingInterestRate.setCreatedDate(DateUtils.getLocalDateTimeOfTenant());
         savingsProductFloatingInterestRateRepository.saveAndFlush(floatingInterestRate);
         return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withEntityId(floatingInterestRate.getId()).build();
     }
-
 
     @Override
     public CommandProcessingResult updateSavingsProductFloatingInterestRate(Long floatingInterestRateId, JsonCommand command) {
@@ -82,7 +83,8 @@ public class SavingsProductFloatingInterestRateWritePlatformServiceImpl implemen
         this.context.authenticatedUser();
         fromApiJsonDeserializer.validateForUpdate(floatingInterestRateId, command.json());
 
-        SavingsProductFloatingInterestRate savingsProductFloatingInterestRate = this.savingsProductFloatingInterestRateRepository.findById(floatingInterestRateId)
+        SavingsProductFloatingInterestRate savingsProductFloatingInterestRate = this.savingsProductFloatingInterestRateRepository
+                .findById(floatingInterestRateId)
                 .orElseThrow(() -> new SavingsProductFloatingInterestRateNotFoundException(floatingInterestRateId));
 
         if (command.bigDecimalValueOfParameterNamed(floatingInterestRateValueParamName) != null) {
@@ -103,11 +105,12 @@ public class SavingsProductFloatingInterestRateWritePlatformServiceImpl implemen
             isUpdate = true;
         }
 
-        if(savingsProductFloatingInterestRate.getEndDate() != null) {
+        if (savingsProductFloatingInterestRate.getEndDate() != null) {
             List<ApiParameterError> dataValidationErrors = new ArrayList<>();
             DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
                     .resource("SavingsProductFloatingInterestRates");
-            baseDataValidator.reset().parameter("endDate").value(savingsProductFloatingInterestRate.getEndDate()).validateDateAfter(savingsProductFloatingInterestRate.getFromDate());
+            baseDataValidator.reset().parameter("endDate").value(savingsProductFloatingInterestRate.getEndDate())
+                    .validateDateAfter(savingsProductFloatingInterestRate.getFromDate());
             throwExceptionIfValidationWarningsExist(dataValidationErrors);
         }
 
@@ -116,7 +119,8 @@ public class SavingsProductFloatingInterestRateWritePlatformServiceImpl implemen
             this.savingsProductFloatingInterestRateRepository.save(savingsProductFloatingInterestRate);
         }
 
-        return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withEntityId(savingsProductFloatingInterestRate.getId()).build();
+        return new CommandProcessingResultBuilder().withCommandId(command.commandId())
+                .withEntityId(savingsProductFloatingInterestRate.getId()).build();
     }
 
     private void throwExceptionIfValidationWarningsExist(final List<ApiParameterError> dataValidationErrors) {
@@ -130,8 +134,10 @@ public class SavingsProductFloatingInterestRateWritePlatformServiceImpl implemen
     @Override
     public CommandProcessingResult deleteSavingsProductFloatingInterestRate(Long floatingInterestRateId) {
         try {
-            final SavingsProductFloatingInterestRate savingsProductFloatingInterestRate = this.savingsProductFloatingInterestRateRepository.findById(floatingInterestRateId).orElseThrow(() -> new SavingsProductFloatingInterestRateNotFoundException(floatingInterestRateId));
-            //validation for delete if product is used account
+            final SavingsProductFloatingInterestRate savingsProductFloatingInterestRate = this.savingsProductFloatingInterestRateRepository
+                    .findById(floatingInterestRateId)
+                    .orElseThrow(() -> new SavingsProductFloatingInterestRateNotFoundException(floatingInterestRateId));
+            // validation for delete if product is used account
             this.savingsProductFloatingInterestRateRepository.delete(savingsProductFloatingInterestRate);
             return new CommandProcessingResultBuilder().withEntityId(floatingInterestRateId).build();
         } catch (final JpaSystemException | DataIntegrityViolationException e) {

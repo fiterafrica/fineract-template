@@ -60,13 +60,15 @@ public class SavingsProductFloatingInterestRateApiJsonDeserializer {
         this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.supportedParameters);
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("SavingsProductFloatingInterestRates");
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
+                .resource("SavingsProductFloatingInterestRates");
 
         final JsonElement element = this.fromApiJsonHelper.parse(json);
 
         baseDataValidator.reset().value(savingsProductId).notBlank().integerGreaterThanZero();
 
-        final BigDecimal floatingInterestRate = this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed("floatingInterestRateValue", element);
+        final BigDecimal floatingInterestRate = this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed("floatingInterestRateValue",
+                element);
         baseDataValidator.reset().parameter("floatingInterestRate").value(floatingInterestRate).notNull().positiveAmount();
 
         final LocalDate fromDate = this.fromApiJsonHelper.extractLocalDateNamed("fromDate", element);
@@ -88,7 +90,8 @@ public class SavingsProductFloatingInterestRateApiJsonDeserializer {
         this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.supportedParameters);
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("SavingsProductFloatingInterestRates");
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
+                .resource("SavingsProductFloatingInterestRates");
 
         final JsonElement element = this.fromApiJsonHelper.parse(json);
 
@@ -105,7 +108,8 @@ public class SavingsProductFloatingInterestRateApiJsonDeserializer {
         }
 
         if (this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed("floatingInterestRateValue", element) != null) {
-            final BigDecimal floatingInterestRate = this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed("floatingInterestRateValue", element);
+            final BigDecimal floatingInterestRate = this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed("floatingInterestRateValue",
+                    element);
             baseDataValidator.reset().parameter("floatingInterestRateValue").value(floatingInterestRate).notNull().integerGreaterThanZero();
         }
 

@@ -65,9 +65,10 @@ public class SavingsProductFloatingInterestRateApiResource {
 
     @Autowired
     public SavingsProductFloatingInterestRateApiResource(final PlatformSecurityContext context,
-                                            final ToApiJsonSerializer<SavingsProductFloatingInterestRateData> toApiJsonSerializer,
-                                            final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService,
-                                            final SavingsProductFloatingInterestRateReadPlatformService readPlatformService, final ApiRequestParameterHelper apiRequestParameterHelper) {
+            final ToApiJsonSerializer<SavingsProductFloatingInterestRateData> toApiJsonSerializer,
+            final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService,
+            final SavingsProductFloatingInterestRateReadPlatformService readPlatformService,
+            final ApiRequestParameterHelper apiRequestParameterHelper) {
         this.context = context;
         this.toApiJsonSerializer = toApiJsonSerializer;
         this.commandsSourceWritePlatformService = commandsSourceWritePlatformService;
@@ -79,7 +80,8 @@ public class SavingsProductFloatingInterestRateApiResource {
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
     public String add(@PathParam("savingsProductId") final long savingsProductId, final String apiRequestBodyAsJson) {
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().addSavingsProductFloatingInterestRate(savingsProductId).withJson(apiRequestBodyAsJson).build();
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().addSavingsProductFloatingInterestRate(savingsProductId)
+                .withJson(apiRequestBodyAsJson).build();
         final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
         return this.toApiJsonSerializer.serialize(result);
     }
@@ -88,8 +90,12 @@ public class SavingsProductFloatingInterestRateApiResource {
     @Path("{savingsProductFloatingInterestRateId}")
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
-    public String update(@PathParam("savingsProductId") final long savingsProductId, @PathParam("savingsProductFloatingInterestRateId") final Long savingsProductFloatingInterestRateId, final String apiRequestBodyAsJson) {
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().updateSavingsProductFloatingInterestRate(savingsProductFloatingInterestRateId, savingsProductId).withJson(apiRequestBodyAsJson).build();
+    public String update(@PathParam("savingsProductId") final long savingsProductId,
+            @PathParam("savingsProductFloatingInterestRateId") final Long savingsProductFloatingInterestRateId,
+            final String apiRequestBodyAsJson) {
+        final CommandWrapper commandRequest = new CommandWrapperBuilder()
+                .updateSavingsProductFloatingInterestRate(savingsProductFloatingInterestRateId, savingsProductId)
+                .withJson(apiRequestBodyAsJson).build();
         final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
         return this.toApiJsonSerializer.serialize(result);
     }
@@ -99,7 +105,8 @@ public class SavingsProductFloatingInterestRateApiResource {
     @Produces({ MediaType.APPLICATION_JSON })
     public String retrieveBusinessOwners(@Context final UriInfo uriInfo, @PathParam("savingsProductId") final long savingsProductId) {
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
-        final Collection<SavingsProductFloatingInterestRateData> savingsProductFloatingInterestRates = this.readPlatformService.getSavingsProductFloatingInterestRateForSavingsProduct(savingsProductId);
+        final Collection<SavingsProductFloatingInterestRateData> savingsProductFloatingInterestRates = this.readPlatformService
+                .getSavingsProductFloatingInterestRateForSavingsProduct(savingsProductId);
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings, savingsProductFloatingInterestRates, this.responseDataParameters);
 
@@ -109,10 +116,12 @@ public class SavingsProductFloatingInterestRateApiResource {
     @Path("/{savingsProductFloatingInterestRateId}")
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
-    public String getSavingsProductFloatingInterestRateById(@Context final UriInfo uriInfo, @PathParam("savingsProductFloatingInterestRateId") final Long savingsProductFloatingInterestRateId,
-                                  @PathParam("savingsProductId") final Long savingsProductId) {
+    public String getSavingsProductFloatingInterestRateById(@Context final UriInfo uriInfo,
+            @PathParam("savingsProductFloatingInterestRateId") final Long savingsProductFloatingInterestRateId,
+            @PathParam("savingsProductId") final Long savingsProductId) {
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
-        final SavingsProductFloatingInterestRateData savingsProductFloatingInterestRateData = this.readPlatformService.getSavingsProductFloatingInterestRateById(savingsProductFloatingInterestRateId);
+        final SavingsProductFloatingInterestRateData savingsProductFloatingInterestRateData = this.readPlatformService
+                .getSavingsProductFloatingInterestRateById(savingsProductFloatingInterestRateId);
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings, savingsProductFloatingInterestRateData, this.responseDataParameters);
     }
@@ -120,8 +129,10 @@ public class SavingsProductFloatingInterestRateApiResource {
     @DELETE
     @Path("{savingsProductFloatingInterestRateId}")
     @Produces({ MediaType.APPLICATION_JSON })
-    public String deleteCharge(@PathParam("savingsProductFloatingInterestRateId") final Long savingsProductFloatingInterestRateId, @PathParam("savingsProductId") final Long savingsProductId) {
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().deleteSavingsProductFloatingInterestRate(savingsProductFloatingInterestRateId, savingsProductId).build();
+    public String deleteCharge(@PathParam("savingsProductFloatingInterestRateId") final Long savingsProductFloatingInterestRateId,
+            @PathParam("savingsProductId") final Long savingsProductId) {
+        final CommandWrapper commandRequest = new CommandWrapperBuilder()
+                .deleteSavingsProductFloatingInterestRate(savingsProductFloatingInterestRateId, savingsProductId).build();
         final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
         return this.toApiJsonSerializer.serialize(result);
     }

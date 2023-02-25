@@ -18,16 +18,15 @@
  */
 package org.apache.fineract.portfolio.savings.domain;
 
-import java.util.Objects;
-import org.apache.fineract.infrastructure.core.domain.AbstractAuditableCustom;
-
-import javax.persistence.Entity;
-import javax.persistence.Table;
-import javax.persistence.ManyToOne;
-import javax.persistence.JoinColumn;
-import javax.persistence.Column;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Objects;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import org.apache.fineract.infrastructure.core.domain.AbstractAuditableCustom;
 
 @Entity
 @Table(name = "m_savings_product_floating_interest_rate")
@@ -46,7 +45,8 @@ public class SavingsProductFloatingInterestRate extends AbstractAuditableCustom 
     @Column(name = "floating_interest_rate", scale = 6, precision = 19, nullable = false)
     private BigDecimal floatingInterestRate;
 
-    public SavingsProductFloatingInterestRate(SavingsProduct savingsProduct, LocalDate fromDate, LocalDate endDate, BigDecimal floatingInterestRate) {
+    public SavingsProductFloatingInterestRate(SavingsProduct savingsProduct, LocalDate fromDate, LocalDate endDate,
+            BigDecimal floatingInterestRate) {
         this.savingsProduct = savingsProduct;
         this.fromDate = fromDate;
         this.endDate = endDate;
@@ -89,7 +89,8 @@ public class SavingsProductFloatingInterestRate extends AbstractAuditableCustom 
         this.floatingInterestRate = floatingInterestRate;
     }
 
-    public static SavingsProductFloatingInterestRate createNew(LocalDate fromDate, LocalDate toDate, BigDecimal floatingInterestRate, SavingsProduct savingsProduct) {
+    public static SavingsProductFloatingInterestRate createNew(LocalDate fromDate, LocalDate toDate, BigDecimal floatingInterestRate,
+            SavingsProduct savingsProduct) {
         return new SavingsProductFloatingInterestRate(savingsProduct, fromDate, toDate, floatingInterestRate);
     }
 
@@ -103,12 +104,12 @@ public class SavingsProductFloatingInterestRate extends AbstractAuditableCustom 
         }
 
         SavingsProductFloatingInterestRate that = (SavingsProductFloatingInterestRate) o;
-        return Objects.equals(this.savingsProduct.getId(), that.savingsProduct.getId())
-                && Objects.equals(this.fromDate, that.fromDate) && Objects.equals(this.floatingInterestRate, that.floatingInterestRate);
+        return Objects.equals(this.savingsProduct.getId(), that.savingsProduct.getId()) && Objects.equals(this.fromDate, that.fromDate)
+                && Objects.equals(this.floatingInterestRate, that.floatingInterestRate);
     }
 
     @Override
     public int hashCode() {
-        return  Objects.hash(this.savingsProduct.getId(), this.fromDate, this.floatingInterestRate);
+        return Objects.hash(this.savingsProduct.getId(), this.fromDate, this.floatingInterestRate);
     }
 }

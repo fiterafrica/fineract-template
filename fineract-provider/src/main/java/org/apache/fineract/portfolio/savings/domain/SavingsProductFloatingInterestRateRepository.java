@@ -21,5 +21,5 @@ package org.apache.fineract.portfolio.savings.domain;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface SavingsProductFloatingInterestRateRepository extends JpaRepository<SavingsProductFloatingInterestRate, Long>, JpaSpecificationExecutor<SavingsProductFloatingInterestRate> {
-}
+public interface SavingsProductFloatingInterestRateRepository
+        extends JpaRepository<SavingsProductFloatingInterestRate, Long>, JpaSpecificationExecutor<SavingsProductFloatingInterestRate> {}

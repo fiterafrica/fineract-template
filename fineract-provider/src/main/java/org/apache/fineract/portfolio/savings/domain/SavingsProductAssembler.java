@@ -18,8 +18,6 @@
  */
 package org.apache.fineract.portfolio.savings.domain;
 
-import com.google.gson.JsonElement;
-import java.time.LocalDate;
 import static org.apache.fineract.portfolio.interestratechart.InterestRateChartApiConstants.endDateParamName;
 import static org.apache.fineract.portfolio.interestratechart.InterestRateChartApiConstants.fromDateParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.allowOverdraftParamName;
@@ -62,8 +60,10 @@ import static org.apache.fineract.portfolio.savings.SavingsApiConstants.withHold
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.withdrawalFeeForTransfersParamName;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.fineract.accounting.common.AccountingRuleType;
@@ -92,7 +92,8 @@ public class SavingsProductAssembler {
     private final FromJsonHelper fromApiJsonHelper;
 
     @Autowired
-    public SavingsProductAssembler(final ChargeRepositoryWrapper chargeRepository, final TaxGroupRepositoryWrapper taxGroupRepository, final FromJsonHelper fromApiJsonHelper) {
+    public SavingsProductAssembler(final ChargeRepositoryWrapper chargeRepository, final TaxGroupRepositoryWrapper taxGroupRepository,
+            final FromJsonHelper fromApiJsonHelper) {
         this.chargeRepository = chargeRepository;
         this.taxGroupRepository = taxGroupRepository;
         this.fromApiJsonHelper = fromApiJsonHelper;
@@ -224,14 +225,16 @@ public class SavingsProductAssembler {
                 numOfCreditTransaction, numOfDebitTransaction, useFloatingInterestRate);
     }
 
-    public Set<SavingsProductFloatingInterestRate> assembleListOfFloatingInterestRates(final JsonCommand command, SavingsProduct savingsProduct) {
+    public Set<SavingsProductFloatingInterestRate> assembleListOfFloatingInterestRates(final JsonCommand command,
+            SavingsProduct savingsProduct) {
         final Set<SavingsProductFloatingInterestRate> floatingInterestRates = new HashSet<>();
         if (command.parameterExists(floatingInterestRatesParamName)) {
             final JsonArray floatingInterestRatesArray = command.arrayOfParameterNamed(floatingInterestRatesParamName);
             if (floatingInterestRatesArray != null) {
                 for (int i = 0; i < floatingInterestRatesArray.size(); i++) {
                     final JsonObject floatingInterestRateElement = floatingInterestRatesArray.get(i).getAsJsonObject();
-                    SavingsProductFloatingInterestRate floatingInterestRate = assembleSavingsProductFloatingInterestRateFrom(floatingInterestRateElement,savingsProduct);
+                    SavingsProductFloatingInterestRate floatingInterestRate = assembleSavingsProductFloatingInterestRateFrom(
+                            floatingInterestRateElement, savingsProduct);
                     floatingInterestRates.add(floatingInterestRate);
                 }
             }
@@ -282,14 +285,16 @@ public class SavingsProductAssembler {
         return taxGroup;
     }
 
-    public SavingsProductFloatingInterestRate assembleSavingsProductFloatingInterestRateFrom(final JsonElement element, SavingsProduct savingsProduct) {
+    public SavingsProductFloatingInterestRate assembleSavingsProductFloatingInterestRateFrom(final JsonElement element,
+            SavingsProduct savingsProduct) {
 
         final LocalDate fromDate = this.fromApiJsonHelper.extractLocalDateNamed(fromDateParamName, element);
         final LocalDate toDate = this.fromApiJsonHelper.extractLocalDateNamed(endDateParamName, element);
-        final BigDecimal floatingInterestRate = this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed(floatingInterestRateValueParamName, element);
+        final BigDecimal floatingInterestRate = this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed(floatingInterestRateValueParamName,
+                element);
 
-
-        final SavingsProductFloatingInterestRate savingsProductFloatingInterestRate = SavingsProductFloatingInterestRate.createNew(fromDate, toDate, floatingInterestRate, savingsProduct);
+        final SavingsProductFloatingInterestRate savingsProductFloatingInterestRate = SavingsProductFloatingInterestRate.createNew(fromDate,
+                toDate, floatingInterestRate, savingsProduct);
 
         return savingsProductFloatingInterestRate;
     }

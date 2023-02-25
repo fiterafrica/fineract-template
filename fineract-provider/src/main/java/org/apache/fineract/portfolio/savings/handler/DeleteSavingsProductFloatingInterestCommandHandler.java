@@ -33,7 +33,8 @@ public class DeleteSavingsProductFloatingInterestCommandHandler implements NewCo
     private final SavingsProductFloatingInterestRateWritePlatformService savingsProductFloatingInterestRateWritePlatformService;
 
     @Autowired
-    public DeleteSavingsProductFloatingInterestCommandHandler(final SavingsProductFloatingInterestRateWritePlatformService savingsProductFloatingInterestRateWritePlatformService) {
+    public DeleteSavingsProductFloatingInterestCommandHandler(
+            final SavingsProductFloatingInterestRateWritePlatformService savingsProductFloatingInterestRateWritePlatformService) {
         this.savingsProductFloatingInterestRateWritePlatformService = savingsProductFloatingInterestRateWritePlatformService;
     }
 

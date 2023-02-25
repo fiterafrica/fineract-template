@@ -22,6 +22,8 @@ import java.util.Collection;
 import org.apache.fineract.portfolio.savings.data.SavingsProductFloatingInterestRateData;
 
 public interface SavingsProductFloatingInterestRateReadPlatformService {
+
     Collection<SavingsProductFloatingInterestRateData> getSavingsProductFloatingInterestRateForSavingsProduct(long savingsProductId);
+
     SavingsProductFloatingInterestRateData getSavingsProductFloatingInterestRateById(long id);
 }

@@ -22,7 +22,10 @@ import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 
 public interface SavingsProductFloatingInterestRateWritePlatformService {
+
     CommandProcessingResult addSavingsProductFloatingInterestRate(Long savingsProductId, JsonCommand command);
+
     CommandProcessingResult updateSavingsProductFloatingInterestRate(Long floatingInterestRateId, JsonCommand command);
+
     CommandProcessingResult deleteSavingsProductFloatingInterestRate(Long floatingInterestRateId);
 }

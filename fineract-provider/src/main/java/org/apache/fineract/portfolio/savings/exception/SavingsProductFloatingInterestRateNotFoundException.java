@@ -23,6 +23,7 @@ import org.apache.fineract.infrastructure.core.exception.AbstractPlatformResourc
 public class SavingsProductFloatingInterestRateNotFoundException extends AbstractPlatformResourceNotFoundException {
 
     public SavingsProductFloatingInterestRateNotFoundException(final Long id) {
-        super("error.msg.savingproductfloatinginterestrate.id.invalid", "Saving product floating interest rate with identifier " + id + " does not exist", id);
+        super("error.msg.savingproductfloatinginterestrate.id.invalid",
+                "Saving product floating interest rate with identifier " + id + " does not exist", id);
     }
 }

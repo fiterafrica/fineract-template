@@ -40,7 +40,8 @@ public class SavingsProductFloatingInterestRateData implements Serializable {
 
     private BigDecimal floatingInterestRate;
 
-    public SavingsProductFloatingInterestRateData(Long id, Long savingsProductId, LocalDate fromDate, LocalDate endDate, BigDecimal floatingInterestRate) {
+    public SavingsProductFloatingInterestRateData(Long id, Long savingsProductId, LocalDate fromDate, LocalDate endDate,
+            BigDecimal floatingInterestRate) {
         this.id = id;
         this.savingsProductId = savingsProductId;
         this.fromDate = fromDate;
@@ -48,7 +49,8 @@ public class SavingsProductFloatingInterestRateData implements Serializable {
         this.floatingInterestRate = floatingInterestRate;
     }
 
-    public static SavingsProductFloatingInterestRateData instance(Long id, Long savingsProductId, LocalDate fromDate, LocalDate endDate, BigDecimal floatingInterestRate) {
+    public static SavingsProductFloatingInterestRateData instance(Long id, Long savingsProductId, LocalDate fromDate, LocalDate endDate,
+            BigDecimal floatingInterestRate) {
         return new SavingsProductFloatingInterestRateData(id, savingsProductId, fromDate, endDate, floatingInterestRate);
     }
 
