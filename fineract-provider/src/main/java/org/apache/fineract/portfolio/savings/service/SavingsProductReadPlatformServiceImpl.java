@@ -133,6 +133,7 @@ public class SavingsProductReadPlatformServiceImpl implements SavingsProductRead
             sqlBuilder.append("sp.days_to_dormancy as daysToDormancy,");
             sqlBuilder.append("sp.days_to_escheat as daysToEscheat, ");
             sqlBuilder.append("sp.is_interest_posting_config_update as isInterestPostingConfigUpdate, ");
+            sqlBuilder.append("sp.use_floating_interest_rate as useFloatingInterestRate, ");
             sqlBuilder.append("sp.num_of_credit_transaction as numOfCreditTransaction, ");
             sqlBuilder.append("sp.num_of_debit_transaction as numOfDebitTransaction ");
             sqlBuilder.append("from m_savings_product sp ");
@@ -221,6 +222,7 @@ public class SavingsProductReadPlatformServiceImpl implements SavingsProductRead
             final Boolean isInterestPostingConfigUpdate = rs.getBoolean("isInterestPostingConfigUpdate");
             final Long numOfCreditTransaction = JdbcSupport.getLong(rs, "numOfCreditTransaction");
             final Long numOfDebitTransaction = JdbcSupport.getLong(rs, "numOfDebitTransaction");
+            final boolean useFloatingInterestRate = rs.getBoolean("useFloatingInterestRate");
 
             return SavingsProductData.instance(id, name, shortName, description, currency, nominalAnnualInterestRate,
                     compoundingInterestPeriodType, interestPostingPeriodType, interestCalculationType, interestCalculationDaysInYearType,
@@ -228,7 +230,7 @@ public class SavingsProductReadPlatformServiceImpl implements SavingsProductRead
                     accountingRuleType, allowOverdraft, overdraftLimit, minRequiredBalance, enforceMinRequiredBalance, maxAllowedLienLimit,
                     lienAllowed, minBalanceForInterestCalculation, nominalAnnualInterestRateOverdraft, minOverdraftForInterestCalculation,
                     withHoldTax, taxGroupData, isDormancyTrackingActive, daysToInactive, daysToDormancy, daysToEscheat,
-                    isInterestPostingConfigUpdate, numOfCreditTransaction, numOfDebitTransaction);
+                    isInterestPostingConfigUpdate, numOfCreditTransaction, numOfDebitTransaction, useFloatingInterestRate);
         }
     }
 

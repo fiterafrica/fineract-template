@@ -71,8 +71,10 @@ import org.apache.fineract.portfolio.savings.SavingsInterestCalculationDaysInYea
 import org.apache.fineract.portfolio.savings.SavingsInterestCalculationType;
 import org.apache.fineract.portfolio.savings.SavingsPostingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.data.SavingsProductData;
+import org.apache.fineract.portfolio.savings.data.SavingsProductFloatingInterestRateData;
 import org.apache.fineract.portfolio.savings.service.SavingsDropdownReadPlatformService;
 import org.apache.fineract.portfolio.savings.service.SavingsEnumerations;
+import org.apache.fineract.portfolio.savings.service.SavingsProductFloatingInterestRateReadPlatformService;
 import org.apache.fineract.portfolio.savings.service.SavingsProductReadPlatformService;
 import org.apache.fineract.portfolio.tax.data.TaxGroupData;
 import org.apache.fineract.portfolio.tax.service.TaxReadPlatformService;
@@ -102,6 +104,7 @@ public class SavingsProductsApiResource {
     private final PaymentTypeReadPlatformService paymentTypeReadPlatformService;
     private final TaxReadPlatformService taxReadPlatformService;
     private final ConfigurationDomainService configurationDomainService;
+    private final SavingsProductFloatingInterestRateReadPlatformService savingsProductFloatingInterestRateReadPlatformService;
 
     @Autowired
     public SavingsProductsApiResource(final SavingsProductReadPlatformService savingProductReadPlatformService,
@@ -113,7 +116,8 @@ public class SavingsProductsApiResource {
             final AccountingDropdownReadPlatformService accountingDropdownReadPlatformService,
             final ProductToGLAccountMappingReadPlatformService accountMappingReadPlatformService,
             final ChargeReadPlatformService chargeReadPlatformService, PaymentTypeReadPlatformService paymentTypeReadPlatformService,
-            final TaxReadPlatformService taxReadPlatformService, final ConfigurationDomainService configurationDomainService) {
+            final TaxReadPlatformService taxReadPlatformService, final ConfigurationDomainService configurationDomainService,
+            final SavingsProductFloatingInterestRateReadPlatformService savingsProductFloatingInterestRateReadPlatformService) {
         this.savingProductReadPlatformService = savingProductReadPlatformService;
         this.dropdownReadPlatformService = dropdownReadPlatformService;
         this.currencyReadPlatformService = currencyReadPlatformService;
@@ -127,6 +131,7 @@ public class SavingsProductsApiResource {
         this.paymentTypeReadPlatformService = paymentTypeReadPlatformService;
         this.taxReadPlatformService = taxReadPlatformService;
         this.configurationDomainService = configurationDomainService;
+        this.savingsProductFloatingInterestRateReadPlatformService = savingsProductFloatingInterestRateReadPlatformService;
     }
 
     @POST
@@ -203,6 +208,9 @@ public class SavingsProductsApiResource {
         final Collection<ChargeData> charges = this.chargeReadPlatformService.retrieveSavingsProductCharges(productId);
 
         savingProductData = SavingsProductData.withCharges(savingProductData, charges);
+
+        final Collection<SavingsProductFloatingInterestRateData> floatingInterestRates = this.savingsProductFloatingInterestRateReadPlatformService.getSavingsProductFloatingInterestRateForSavingsProduct(productId);
+        savingProductData = SavingsProductData.withFloatingInterestRates(savingProductData, floatingInterestRates);
 
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
 
