@@ -209,7 +209,8 @@ public class SavingsProductsApiResource {
 
         savingProductData = SavingsProductData.withCharges(savingProductData, charges);
 
-        final Collection<SavingsProductFloatingInterestRateData> floatingInterestRates = this.savingsProductFloatingInterestRateReadPlatformService.getSavingsProductFloatingInterestRateForSavingsProduct(productId);
+        final Collection<SavingsProductFloatingInterestRateData> floatingInterestRates = this.savingsProductFloatingInterestRateReadPlatformService
+                .getSavingsProductFloatingInterestRateForSavingsProduct(productId);
         savingProductData = SavingsProductData.withFloatingInterestRates(savingProductData, floatingInterestRates);
 
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
