@@ -105,4 +105,10 @@
             <column name="can_maker_checker" valueBoolean="false"/>
         </insert>
     </changeSet>
+    <changeSet author="hitesh@fiter.io" id="m_savings_product_floating_interest_rate_fk_id">
+        <addForeignKeyConstraint baseColumnNames="savings_product_id" baseTableName="m_savings_product_floating_interest_rate"
+             constraintName="FK1_m_savings_product_floating_interest_rate_m_savings_product" deferrable="false" initiallyDeferred="false"
+             onDelete="RESTRICT" onUpdate="RESTRICT" referencedColumnNames="id"
+             referencedTableName="m_savings_product" validate="true"/>
+    </changeSet>
 </databaseChangeLog>
