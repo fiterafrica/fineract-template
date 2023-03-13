@@ -51,7 +51,7 @@ fineract-rest:
     FINERACT_DEFAULT_TENANTDB_UID: "arn:aws:secretsmanager:eu-west-1:795369207337:secret:FINERACT_DEFAULT_TENANTDB_UID-GguwSS"
     FINERACT_DEFAULT_TENANTDB_PWD: "arn:aws:secretsmanager:eu-west-1:795369207337:secret:FINERACT_DEFAULT_TENANTDB_PWD-Hvuxqd"
     FINERACT_HIKARI_PASSWORD: "arn:aws:secretsmanager:eu-west-1:795369207337:secret:FINERACT_HIKARI_PASSWORD-egifvs"
-    ACTIVEMQ_BROKER_URL:  "arn:aws:secretsmanager:eu-west-1:795369207337:secret:ACTIVEMQ_BROKER_URL-0fMgZl"
+    ACTIVEMQ_BROKER_URL: arn:aws:secretsmanager:eu-west-1:795369207337:secret:ACTIVEMQ_BROKER_URL-0fMgZl
     ACTIVEMQ_BROKER_USERNAME: "arn:aws:secretsmanager:eu-west-1:795369207337:secret:ACTIVEMQ_BROKER_USERNAME-5QDuzq"
     ACTIVEMQ_BROKER_PASSWORD: "arn:aws:secretsmanager:eu-west-1:795369207337:secret:ACTIVEMQ_BROKER_PASSWORD-oWotr3"
    
