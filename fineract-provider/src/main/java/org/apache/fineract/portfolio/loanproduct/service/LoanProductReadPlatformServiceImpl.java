@@ -239,8 +239,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                     + "lvi.maximum_gap as maximumGap, "
                     + "lp.can_use_for_topup as canUseForTopup, lp.is_equal_amortization as isEqualAmortization, lp.is_loan_term_includes_topped_up_loan_term as loanTermIncludesToppedUpLoanTerm ,"
                     + "lp.max_number_of_loan_extensions_allowed as maxNumberOfLoanExtensionsAllowed, "
-                    + "lp.is_bnpl_loan_product as isBnplLoanProduct, "
-                    + "lp.requires_equity_contribution as requiresEquityContribution, "
+                    + "lp.is_bnpl_loan_product as isBnplLoanProduct, " + "lp.requires_equity_contribution as requiresEquityContribution, "
                     + "lp.equity_contribution_loan_percentage as equityContributionLoanPercentage, "
                     + "lp.is_account_level_arrears_tolerance_enable as isAccountLevelArrearsToleranceEnable " + " from m_product_loan lp "
                     + " left join m_fund f on f.id = lp.fund_id "
@@ -480,9 +479,9 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
             final Boolean requiresEquityContribution = rs.getBoolean("requiresEquityContribution");
             final BigDecimal equityContributionLoanPercentage = rs.getBigDecimal("equityContributionLoanPercentage");
 
-            LoanProductData loanProductData = new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal, maxPrincipal, tolerance,
-                    numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery, interestRatePerPeriod,
-                    minInterestRatePerPeriod, maxInterestRatePerPeriod, annualInterestRate, repaymentFrequencyType,
+            LoanProductData loanProductData = new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal,
+                    maxPrincipal, tolerance, numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery,
+                    interestRatePerPeriod, minInterestRatePerPeriod, maxInterestRatePerPeriod, annualInterestRate, repaymentFrequencyType,
                     interestRateFrequencyType, amortizationType, interestType, interestCalculationPeriodType,
                     allowPartialPeriodInterestCalcualtion, fundId, fundName, transactionStrategyId, transactionStrategyName,
                     graceOnPrincipalPayment, recurringMoratoriumOnPrincipalPeriods, graceOnInterestPayment, graceOnInterestCharged,

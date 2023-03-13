@@ -392,7 +392,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
     @Column(name = "is_unlocked")
     private boolean unlocked;
 
-    @Column(name = "use_floating_interest_rate",nullable = true)
+    @Column(name = "use_floating_interest_rate", nullable = true)
     private Boolean useFloatingInterestRate;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "savingsAccount", orphanRemoval = true, fetch = FetchType.LAZY)

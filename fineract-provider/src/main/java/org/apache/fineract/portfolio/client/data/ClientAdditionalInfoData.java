@@ -31,5 +31,4 @@ public class ClientAdditionalInfoData {
     private final String initials;
     private final String altMobileNo;
 
-
 }

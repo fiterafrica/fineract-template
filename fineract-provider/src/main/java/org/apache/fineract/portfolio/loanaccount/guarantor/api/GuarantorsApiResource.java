@@ -137,7 +137,7 @@ public class GuarantorsApiResource {
         final Collection<CodeValueData> genderOptions = this.codeValueReadPlatformService
                 .retrieveCodeValuesByCode(ClientApiConstants.GENDER);
         final GuarantorData guarantorData = GuarantorData.template(guarantorTypeOptions, allowedClientRelationshipTypes,
-                accountLinkingOptions,genderOptions);
+                accountLinkingOptions, genderOptions);
 
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.apiJsonSerializerService.serialize(settings, guarantorData, RESPONSE_DATA_PARAMETERS);
@@ -172,9 +172,10 @@ public class GuarantorsApiResource {
                     .retrieveCodeValuesByCode(GuarantorConstants.GUARANTOR_RELATIONSHIP_CODE_NAME);
             final List<EnumOptionData> guarantorTypeOptions = GuarantorEnumerations.guarantorType(GuarantorType.values());
             final Collection<PortfolioAccountData> accountLinkingOptions = null;
-            final Collection<CodeValueData> genderOptions = this.codeValueReadPlatformService.retrieveCodeValuesByCode(ClientApiConstants.GENDER);
+            final Collection<CodeValueData> genderOptions = this.codeValueReadPlatformService
+                    .retrieveCodeValuesByCode(ClientApiConstants.GENDER);
             guarantorData = GuarantorData.templateOnTop(guarantorData, guarantorTypeOptions, allowedClientRelationshipTypes,
-                    accountLinkingOptions,genderOptions);
+                    accountLinkingOptions, genderOptions);
         }
 
         return this.apiJsonSerializerService.serialize(settings, guarantorData, RESPONSE_DATA_PARAMETERS);
@@ -233,7 +234,7 @@ public class GuarantorsApiResource {
         if (this.loanReadPlatformService.isGuaranteeRequired(loanId)) {
             accountLinkingOptions = this.portfolioAccountReadPlatformService.retrieveAllForLookup(portfolioAccountDTO);
         }
-        final GuarantorData guarantorData = GuarantorData.template(null, null, accountLinkingOptions,null);
+        final GuarantorData guarantorData = GuarantorData.template(null, null, accountLinkingOptions, null);
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.apiJsonSerializerService.serialize(settings, guarantorData, ACCOUNT_TRANSFER_API_RESPONSE_DATA_PARAMETERS);
     }

@@ -35,11 +35,11 @@ public final class GuarantorConstants {
     public enum GuarantorJSONinputParams {
 
         LOAN_ID("loanId"), CLIENT_RELATIONSHIP_TYPE_ID("clientRelationshipTypeId"), GUARANTOR_TYPE_ID("guarantorTypeId"), ENTITY_ID(
-                "entityId"), FIRSTNAME("firstname"), LASTNAME(
-                        "lastname"), ADDRESS_LINE_1("addressLine1"), ADDRESS_LINE_2("addressLine2"), CITY("city"), STATE("state"), ZIP(
-                                "zip"), COUNTRY("country"), MOBILE_NUMBER("mobileNumber"), PHONE_NUMBER("housePhoneNumber"), COMMENT(
-                                        "comment"), DATE_OF_BIRTH("dob"), AMOUNT("amount"), SAVINGS_ID("savingsId"),MIDDLE_NAME("middlename"),
-        EMAIL("email"),PEP("pep"),GENDER_ID("genderId"),PEP_COMMENT("pepComment"),BVN("bvn");
+                "entityId"), FIRSTNAME("firstname"), LASTNAME("lastname"), ADDRESS_LINE_1("addressLine1"), ADDRESS_LINE_2(
+                        "addressLine2"), CITY("city"), STATE("state"), ZIP("zip"), COUNTRY("country"), MOBILE_NUMBER(
+                                "mobileNumber"), PHONE_NUMBER("housePhoneNumber"), COMMENT("comment"), DATE_OF_BIRTH("dob"), AMOUNT(
+                                        "amount"), SAVINGS_ID("savingsId"), MIDDLE_NAME("middlename"), EMAIL(
+                                                "email"), PEP("pep"), GENDER_ID("genderId"), PEP_COMMENT("pepComment"), BVN("bvn");
 
         private final String value;
 

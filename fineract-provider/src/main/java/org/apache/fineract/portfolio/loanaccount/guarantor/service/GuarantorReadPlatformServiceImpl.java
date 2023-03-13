@@ -127,8 +127,7 @@ public class GuarantorReadPlatformServiceImpl implements GuarantorReadPlatformSe
                         .append("g.middlename as middlename,")//
                         .append("g.bvn as bvn,")//
                         .append("g.email as email,")//
-                        .append("cv2.id as genderCvId,")
-                        .append("cv2.code_value as genderValue,")
+                        .append("cv2.id as genderCvId,").append("cv2.code_value as genderValue,")
                         .append(this.guarantorFundingMapper.schema())//
                         .append(",")//
                         .append(this.guarantorTransactionMapper.schema())//
@@ -207,7 +206,7 @@ public class GuarantorReadPlatformServiceImpl implements GuarantorReadPlatformSe
 
             return new GuarantorData(id, loanId, clientRelationshipType, entityId, guarantorType, firstname, lastname, dob, addressLine1,
                     addressLine2, city, state, zip, country, mobileNumber, housePhoneNumber, comment, null, null, null, status,
-                    guarantorFundingDetails, null, null, accountLinkingOptions,null,pep,bvn,email,middlename,gender);
+                    guarantorFundingDetails, null, null, accountLinkingOptions, null, pep, bvn, email, middlename, gender);
         }
     }
 

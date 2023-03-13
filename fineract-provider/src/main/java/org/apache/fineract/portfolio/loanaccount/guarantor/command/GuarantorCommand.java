@@ -22,7 +22,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-
 import lombok.Getter;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
@@ -64,7 +63,7 @@ public class GuarantorCommand {
     public GuarantorCommand(final Long clientRelationshipTypeId, final Integer guarantorTypeId, final Long entityId, final String firstname,
             final String lastname, final String addressLine1, final String addressLine2, final String city, final String state,
             final String zip, final String country, final String mobileNumber, final String housePhoneNumber, final String comment,
-            final LocalDate dob, final Long savingsId, final BigDecimal amount,final Long genderId) {
+            final LocalDate dob, final Long savingsId, final BigDecimal amount, final Long genderId) {
 
         this.clientRelationshipTypeId = clientRelationshipTypeId;
 

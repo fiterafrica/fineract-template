@@ -92,11 +92,10 @@ public final class GuarantorCommandFromApiJsonDeserializer extends AbstractFromA
         final BigDecimal amount = this.fromApiJsonHelper.extractBigDecimalNamed(GuarantorJSONinputParams.AMOUNT.getValue(), element,
                 locale);
 
-        final Long genderId = this.fromApiJsonHelper
-                .extractLongNamed(GuarantorJSONinputParams.GENDER_ID.getValue(), element);
+        final Long genderId = this.fromApiJsonHelper.extractLongNamed(GuarantorJSONinputParams.GENDER_ID.getValue(), element);
 
         return new GuarantorCommand(clientRelationshipTypeId, guarantorTypeId, entityId, firstname, lastname, addressLine1, addressLine2,
-                city, state, zip, country, mobileNumber, housePhoneNumber, comment, dob, savingsId, amount,genderId);
+                city, state, zip, country, mobileNumber, housePhoneNumber, comment, dob, savingsId, amount, genderId);
     }
 
 }

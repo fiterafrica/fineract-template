@@ -148,7 +148,8 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
             final BusinessEventNotifierService businessEventNotifierService,
             final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService,
             BusinessOwnerWritePlatformService businessOwnerWritePlatformService,
-            final ClientTransactionLimitRepository clientTransactionLimitRepository,ClientAdditionalInfoRepository clientAdditionalInfoRepository) {
+            final ClientTransactionLimitRepository clientTransactionLimitRepository,
+            ClientAdditionalInfoRepository clientAdditionalInfoRepository) {
         this.context = context;
         this.clientRepository = clientRepository;
         this.clientNonPersonRepository = clientNonPersonRepository;
@@ -312,7 +313,7 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
                     clientType, clientClassification, legalFormValue, command);
             this.clientRepository.saveAndFlush(newClient);
 
-            createClientAdditionalInfo(newClient,command);
+            createClientAdditionalInfo(newClient, command);
             boolean rollbackTransaction = false;
             if (newClient.isActive()) {
                 validateParentGroupRulesBeforeClientActivation(newClient);
@@ -392,19 +393,19 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
         CodeValue maritalStatusCodeValue = null;
         if (maritalStatusId != null) {
 
-            maritalStatusCodeValue = this.codeValueRepository
-                    .findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.MARITALSTATUS,maritalStatusId);
+            maritalStatusCodeValue = this.codeValueRepository.findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.MARITALSTATUS,
+                    maritalStatusId);
         }
 
         final Long titleId = command.longValueOfParameterNamed(ClientApiConstants.titleParam);
         CodeValue titleCodeValue = null;
         if (titleId != null) {
 
-            titleCodeValue = this.codeValueRepository
-                    .findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.TITLE, titleId);
+            titleCodeValue = this.codeValueRepository.findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.TITLE, titleId);
         }
 
-        final ClientAdditionalInfo clientAdditionalInfo = ClientAdditionalInfo.fromJson(newClient, maritalStatusCodeValue, titleCodeValue, command);
+        final ClientAdditionalInfo clientAdditionalInfo = ClientAdditionalInfo.fromJson(newClient, maritalStatusCodeValue, titleCodeValue,
+                command);
 
         this.clientAdditionalInfoRepository.save(clientAdditionalInfo);
 
@@ -414,32 +415,31 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
 
         Optional<ClientAdditionalInfo> clientAdditionalInfo = this.clientAdditionalInfoRepository.findByClient(newClient);
 
-        if(clientAdditionalInfo.isPresent()){
-
+        if (clientAdditionalInfo.isPresent()) {
 
             final ClientAdditionalInfo clientAdditionalInfoForUpdate = clientAdditionalInfo.get();
-            Map<String,Object> changes = clientAdditionalInfoForUpdate.update(command);
+            Map<String, Object> changes = clientAdditionalInfoForUpdate.update(command);
 
-            if(!changes.isEmpty()){
+            if (!changes.isEmpty()) {
 
-                if(changes.containsKey(ClientApiConstants.maritalStatusIdParamName)){
+                if (changes.containsKey(ClientApiConstants.maritalStatusIdParamName)) {
                     final Long maritalStatusId = command.longValueOfParameterNamed(ClientApiConstants.maritalStatusIdParamName);
                     CodeValue maritalStatusCodeValue = null;
                     if (maritalStatusId != null) {
 
                         maritalStatusCodeValue = this.codeValueRepository
-                                .findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.MARITALSTATUS,maritalStatusId);
+                                .findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.MARITALSTATUS, maritalStatusId);
                     }
                     clientAdditionalInfoForUpdate.setMaritalStatus(maritalStatusCodeValue);
                 }
 
-                if(changes.containsKey(ClientApiConstants.titleParam)){
+                if (changes.containsKey(ClientApiConstants.titleParam)) {
                     final Long titleId = command.longValueOfParameterNamed(ClientApiConstants.titleParam);
                     CodeValue titleCodeValue = null;
                     if (titleId != null) {
 
-                        titleCodeValue = this.codeValueRepository
-                                .findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.TITLE, titleId);
+                        titleCodeValue = this.codeValueRepository.findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.TITLE,
+                                titleId);
                     }
                     clientAdditionalInfoForUpdate.setTitle(titleCodeValue);
                 }
@@ -448,8 +448,7 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
 
             }
 
-
-        }else {
+        } else {
             createClientAdditionalInfo(newClient, command);
         }
 
@@ -493,14 +492,14 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
 
             final String dateFormatAsInput = command.dateFormat();
             final String localeAsInput = command.locale();
-            final LocalDate inBusinessSince = this.fromApiJsonHelper
-                    .extractLocalDateNamed(ClientApiConstants.inBusinessSinceParamName, clientNonPersonElement,dateFormatAsInput,
-                            Locale.forLanguageTag(localeAsInput));
+            final LocalDate inBusinessSince = this.fromApiJsonHelper.extractLocalDateNamed(ClientApiConstants.inBusinessSinceParamName,
+                    clientNonPersonElement, dateFormatAsInput, Locale.forLanguageTag(localeAsInput));
 
-            final Boolean isRegistered = this.fromApiJsonHelper.extractBooleanNamed(ClientApiConstants.isRegisteredParam, clientNonPersonElement);
+            final Boolean isRegistered = this.fromApiJsonHelper.extractBooleanNamed(ClientApiConstants.isRegisteredParam,
+                    clientNonPersonElement);
 
             final ClientNonPerson newClientNonPerson = ClientNonPerson.createNew(client, clientNonPersonConstitution,
-                    clientNonPersonMainBusinessLine, incorpNumber, incorpValidityTill, remarks,inBusinessSince,isRegistered);
+                    clientNonPersonMainBusinessLine, incorpNumber, incorpValidityTill, remarks, inBusinessSince, isRegistered);
 
             this.clientNonPersonRepository.save(newClientNonPerson);
         }
@@ -666,7 +665,7 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
                 }
             }
 
-            updateClientAdditionalInfo(clientForUpdate,command);
+            updateClientAdditionalInfo(clientForUpdate, command);
             return new CommandProcessingResultBuilder() //
                     .withCommandId(command.commandId()) //
                     .withOfficeId(clientForUpdate.officeId()) //

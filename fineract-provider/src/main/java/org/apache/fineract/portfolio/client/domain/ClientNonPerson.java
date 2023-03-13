@@ -71,8 +71,9 @@ public class ClientNonPerson extends AbstractPersistableCustom {
     private Boolean isRegistered;
 
     public static ClientNonPerson createNew(final Client client, final CodeValue constitution, final CodeValue mainBusinessLine,
-            String incorpNumber, LocalDate incorpValidityTill, String remarks,LocalDate inBusinessSince,Boolean isRegistered) {
-        return new ClientNonPerson(client, constitution, mainBusinessLine, incorpNumber, incorpValidityTill, remarks,inBusinessSince,isRegistered);
+            String incorpNumber, LocalDate incorpValidityTill, String remarks, LocalDate inBusinessSince, Boolean isRegistered) {
+        return new ClientNonPerson(client, constitution, mainBusinessLine, incorpNumber, incorpValidityTill, remarks, inBusinessSince,
+                isRegistered);
     }
 
     protected ClientNonPerson() {
@@ -80,7 +81,7 @@ public class ClientNonPerson extends AbstractPersistableCustom {
     }
 
     private ClientNonPerson(final Client client, final CodeValue constitution, final CodeValue mainBusinessLine, final String incorpNumber,
-            final LocalDate incorpValidityTill, final String remarks,LocalDate inBusinessSince,Boolean isRegistered) {
+            final LocalDate incorpValidityTill, final String remarks, LocalDate inBusinessSince, Boolean isRegistered) {
         if (client != null) {
             this.client = client;
         }
@@ -149,12 +150,11 @@ public class ClientNonPerson extends AbstractPersistableCustom {
         }
     }
 
-
     public LocalDate getIncorpValidityTillLocalDate() {
         return this.incorpValidityTill;
     }
 
-    public LocalDate getInBusinessSinceLocalDate(){
+    public LocalDate getInBusinessSinceLocalDate() {
         return this.inBusinessSince;
     }
 
@@ -217,7 +217,6 @@ public class ClientNonPerson extends AbstractPersistableCustom {
 
             this.incorpValidityTill = command.localDateValueOfParameterNamed(ClientApiConstants.incorpValidityTillParamName);
         }
-
 
         if (command.isChangeInBooleanParameterNamed(ClientApiConstants.isRegisteredParam, this.isRegistered)) {
             final Boolean newValue = command.booleanObjectValueOfParameterNamed(ClientApiConstants.isRegisteredParam);

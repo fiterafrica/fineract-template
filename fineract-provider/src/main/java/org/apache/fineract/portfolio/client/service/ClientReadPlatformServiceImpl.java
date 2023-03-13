@@ -172,7 +172,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
                 genderOptions, savingsProductDatas, clientTypeOptions, clientClassificationOptions, clientNonPersonConstitutionOptions,
                 clientNonPersonMainBusinessLineOptions, clientLegalFormOptions, familyMemberOptions,
                 new ArrayList<AddressData>(Arrays.asList(address)), isAddressEnabled, datatableTemplates,
-                new ArrayList<ClientBusinessOwnerData>(Arrays.asList(ownerData)), isbusinessOwnersEnabled,titleOptions);
+                new ArrayList<ClientBusinessOwnerData>(Arrays.asList(ownerData)), isbusinessOwnersEnabled, titleOptions);
     }
 
     @Override
@@ -548,7 +548,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             final Boolean isRegistered = rs.getBoolean("isRegistered");
 
             final ClientNonPersonData clientNonPerson = new ClientNonPersonData(constitution, incorpNo, incorpValidityTill,
-                    mainBusinessLine, remarks,inBusinessSince,isRegistered);
+                    mainBusinessLine, remarks, inBusinessSince, isRegistered);
 
             final ClientTimelineData timeline = new ClientTimelineData(submittedOnDate, submittedByUsername, submittedByFirstname,
                     submittedByLastname, activationDate, activatedByUsername, activatedByFirstname, activatedByLastname, closedOnDate,
@@ -557,7 +557,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             return ClientData.instance(accountNo, status, subStatus, officeId, officeName, transferToOfficeId, transferToOfficeName, id,
                     firstname, middlename, lastname, fullname, displayName, externalId, mobileNo, emailAddress, dateOfBirth, gender,
                     activationDate, imageId, staffId, staffName, timeline, savingsProductId, savingsProductName, savingsAccountId,
-                    clienttype, classification, legalForm, clientNonPerson, isStaff, null, null, null,null);
+                    clienttype, classification, legalForm, clientNonPerson, isStaff, null, null, null, null);
 
         }
     }
@@ -636,7 +636,6 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             builder.append("cadinfo.mnemonics as mnemonics, ");
             builder.append("cadinfo.alt_phone_no as altMobileNo, ");
             builder.append("cadinfo.initials as initials, ");
-
 
             builder.append("c.activation_date as activationDate, c.image_id as imageId, ");
             builder.append("c.staff_id as staffId, s.display_name as staffName, ");
@@ -757,7 +756,6 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             final CodeValueData mainBusinessLine = CodeValueData.instance(mainBusinessLineId, mainBusinessLineValue);
             final String remarks = rs.getString("remarks");
 
-
             final Long maritalStatusId = JdbcSupport.getLong(rs, "maritalStatusId");
             CodeValueData maritalStatus = CodeValueData.instance(maritalStatusId, rs.getString("maritalStatusValue"));
 
@@ -771,13 +769,11 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             final LocalDate inBusinessSince = JdbcSupport.getLocalDate(rs, "inBusinessSince");
             final Boolean isRegistered = rs.getBoolean("isRegistered");
 
-            final ClientAdditionalInfoData clientAdditionalInfo = ClientAdditionalInfoData
-                    .builder().maritalStatus(maritalStatus).title(title).mnemonics(mnemonics).altMobileNo(altMobileNo)
-                    .initials(initials).build();
-
+            final ClientAdditionalInfoData clientAdditionalInfo = ClientAdditionalInfoData.builder().maritalStatus(maritalStatus)
+                    .title(title).mnemonics(mnemonics).altMobileNo(altMobileNo).initials(initials).build();
 
             final ClientNonPersonData clientNonPerson = new ClientNonPersonData(constitution, incorpNo, incorpValidityTill,
-                    mainBusinessLine, remarks,inBusinessSince,isRegistered);
+                    mainBusinessLine, remarks, inBusinessSince, isRegistered);
 
             final ClientTimelineData timeline = new ClientTimelineData(submittedOnDate, submittedByUsername, submittedByFirstname,
                     submittedByLastname, activationDate, activatedByUsername, activatedByFirstname, activatedByLastname, closedOnDate,
@@ -786,7 +782,8 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             return ClientData.instance(accountNo, status, subStatus, officeId, officeName, transferToOfficeId, transferToOfficeName, id,
                     firstname, middlename, lastname, fullname, displayName, externalId, mobileNo, emailAddress, dateOfBirth, gender,
                     activationDate, imageId, staffId, staffName, timeline, savingsProductId, savingsProductName, savingsAccountId,
-                    clienttype, classification, legalForm, clientNonPerson, isStaff, clientLevel, dailyWithDrawLimit, singleWithDrawLimit,clientAdditionalInfo);
+                    clienttype, classification, legalForm, clientNonPerson, isStaff, clientLevel, dailyWithDrawLimit, singleWithDrawLimit,
+                    clientAdditionalInfo);
 
         }
     }
@@ -900,7 +897,7 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
         final List<EnumOptionData> clientLegalFormOptions = null;
         return ClientData.template(null, null, null, null, narrations, null, null, clientTypeOptions, clientClassificationOptions,
                 clientNonPersonConstitutionOptions, clientNonPersonMainBusinessLineOptions, clientLegalFormOptions, null, null, null, null,
-                null, null,null);
+                null, null, null);
     }
 
     @Override

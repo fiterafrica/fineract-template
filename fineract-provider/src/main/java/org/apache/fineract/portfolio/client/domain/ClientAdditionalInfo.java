@@ -18,20 +18,18 @@
  */
 package org.apache.fineract.portfolio.client.domain;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.fineract.infrastructure.core.api.JsonCommand;
-import org.apache.fineract.infrastructure.core.domain.AbstractAuditableCustom;
-import org.apache.fineract.infrastructure.codes.domain.CodeValue;
-import org.apache.fineract.portfolio.client.api.ClientApiConstants;
-
+import java.util.LinkedHashMap;
+import java.util.Map;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
+import org.apache.commons.lang3.StringUtils;
+import org.apache.fineract.infrastructure.codes.domain.CodeValue;
+import org.apache.fineract.infrastructure.core.api.JsonCommand;
+import org.apache.fineract.infrastructure.core.domain.AbstractAuditableCustom;
+import org.apache.fineract.portfolio.client.api.ClientApiConstants;
 
 @Entity
 @Table(name = "m_client_additional_info")
@@ -56,9 +54,10 @@ public class ClientAdditionalInfo extends AbstractAuditableCustom {
     @JoinColumn(name = "marital_status")
     private CodeValue maritalStatus;
 
-    public ClientAdditionalInfo() {
-    }
-    public ClientAdditionalInfo(Client client, CodeValue title, String mnemonics, String alternatePhone, CodeValue maritalStatus,String initials) {
+    public ClientAdditionalInfo() {}
+
+    public ClientAdditionalInfo(Client client, CodeValue title, String mnemonics, String alternatePhone, CodeValue maritalStatus,
+            String initials) {
         this.client = client;
         this.title = title;
         this.mnemonics = mnemonics;
@@ -67,20 +66,20 @@ public class ClientAdditionalInfo extends AbstractAuditableCustom {
         this.initials = initials;
     }
 
-    public static ClientAdditionalInfo fromJson(final Client client, final CodeValue title, final CodeValue maritalStatus,final JsonCommand command) {
+    public static ClientAdditionalInfo fromJson(final Client client, final CodeValue title, final CodeValue maritalStatus,
+            final JsonCommand command) {
         final String mnemonics = command.stringValueOfParameterNamed(ClientApiConstants.mnemonicsParamNameParam);
         final String alternatePhoneNumber = command.stringValueOfParameterNamed(ClientApiConstants.altMobileNoParam);
         final String initials = command.stringValueOfParameterNamed(ClientApiConstants.initialsParam);
-        return new ClientAdditionalInfo(client, title, mnemonics, alternatePhoneNumber, maritalStatus,initials);
+        return new ClientAdditionalInfo(client, title, mnemonics, alternatePhoneNumber, maritalStatus, initials);
     }
-
 
     public Map<String, Object> update(final JsonCommand command) {
 
         final Map<String, Object> actualChanges = new LinkedHashMap<>(4);
 
         final String titleIdParamName = "titleId";
-        if (command.isChangeInLongParameterNamed(titleIdParamName,titleId())) {
+        if (command.isChangeInLongParameterNamed(titleIdParamName, titleId())) {
             final Long newValue = command.longValueOfParameterNamed(titleIdParamName);
             actualChanges.put(titleIdParamName, newValue);
         }
