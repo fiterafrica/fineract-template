@@ -82,5 +82,5 @@
     <include file="parts/UC-68-additional-guarantor-information.xml" relativeToChangelogFile="true" />
     <include file="parts/OXY-116_BNPL_loan_product_configuration.xml" relativeToChangelogFile="true" />
     <include file="parts/OXY-118-BNPL_attributes_for_loan.xml" relativeToChangelogFile="true" />
-    <include file="parts/0042_add_product_categories_and_product_type_column.xml" relativeToChangelogFile="true" />
+    <include file="parts/CI18-127_add_product_categories_and_product_type_column.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>
