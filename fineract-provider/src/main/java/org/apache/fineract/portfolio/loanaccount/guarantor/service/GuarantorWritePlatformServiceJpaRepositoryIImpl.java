@@ -164,7 +164,7 @@ public class GuarantorWritePlatformServiceJpaRepositoryIImpl implements Guaranto
             }
 
             if (guarantor == null) {
-                guarantor = Guarantor.fromJson(loan, clientRelationshipType, command, guarantorFundingDetails,getGuarantorGender(command));
+                guarantor = Guarantor.fromJson(loan, clientRelationshipType, command, guarantorFundingDetails, getGuarantorGender(command));
             } else {
                 guarantor.addFundingDetails(guarantorFundingDetails);
             }
@@ -187,11 +187,11 @@ public class GuarantorWritePlatformServiceJpaRepositoryIImpl implements Guaranto
     }
 
     private CodeValue getGuarantorGender(JsonCommand guarantorCommand) {
-        //Get gender as CodeValue from command
+        // Get gender as CodeValue from command
         CodeValue gender = null;
-        if(guarantorCommand.parameterExists(GuarantorJSONinputParams.GENDER_ID.getValue())){
+        if (guarantorCommand.parameterExists(GuarantorJSONinputParams.GENDER_ID.getValue())) {
             final Long genderId = guarantorCommand.longValueOfParameterNamed(GuarantorJSONinputParams.GENDER_ID.getValue());
-            gender =  this.codeValueRepositoryWrapper.findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.GENDER, genderId);
+            gender = this.codeValueRepositoryWrapper.findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.GENDER, genderId);
         }
 
         return gender;
@@ -222,7 +222,7 @@ public class GuarantorWritePlatformServiceJpaRepositoryIImpl implements Guaranto
                 throw new GuarantorNotFoundException(loanId, guarantorId);
             }
 
-            final Map<String, Object> changesOnly = guarantorForUpdate.update(command,getGuarantorGender(command));
+            final Map<String, Object> changesOnly = guarantorForUpdate.update(command, getGuarantorGender(command));
 
             if (changesOnly.containsKey(GuarantorJSONinputParams.CLIENT_RELATIONSHIP_TYPE_ID.getValue())) {
                 final Long clientRelationshipId = guarantorCommand.getClientRelationshipTypeId();

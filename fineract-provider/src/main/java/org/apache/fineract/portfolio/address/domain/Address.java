@@ -30,7 +30,6 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
-
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
@@ -112,7 +111,8 @@ public class Address extends AbstractPersistableCustom {
     private Address(final String street, final String addressLine1, final String addressLine2, final String addressLine3,
             final String townVillage, final String city, final String countyDistrict, final CodeValue stateProvince,
             final CodeValue country, final String postalCode, final BigDecimal latitude, final BigDecimal longitude, final String createdBy,
-            final LocalDate createdOn, final String updatedBy, final LocalDate updatedOn, final CodeValue lga,final LocalDate atAddressSince) {
+            final LocalDate createdOn, final String updatedBy, final LocalDate updatedOn, final CodeValue lga,
+            final LocalDate atAddressSince) {
         this.street = street;
         this.addressLine1 = addressLine1;
         this.addressLine2 = addressLine2;
@@ -181,7 +181,7 @@ public class Address extends AbstractPersistableCustom {
         final LocalDate atAddressSince = command.localDateValueOfParameterNamed("atAddressSince");
 
         return new Address(street, addressLine1, addressLine2, addressLine3, townVillage, city, countyDistrict, stateProvince, country,
-                postalCode, latitude, longitude, createdBy, createdOn, updatedBy, updatedOn, null,atAddressSince);
+                postalCode, latitude, longitude, createdBy, createdOn, updatedBy, updatedOn, null, atAddressSince);
     }
 
     public static Address fromJsonObject(final JsonObject jsonObject, final CodeValue state_province, final CodeValue country,
@@ -263,7 +263,7 @@ public class Address extends AbstractPersistableCustom {
         }
 
         return new Address(street, addressLine1, addressLine2, addressLine3, townVillage, city, countyDistrict, state_province, country,
-                postalCode, latitude, longitude, createdBy, createdOnDate, updatedBy, updatedOnDate, lga,atAddressSince);
+                postalCode, latitude, longitude, createdBy, createdOnDate, updatedBy, updatedOnDate, lga, atAddressSince);
     }
 
     public Set<ClientAddress> getClientaddress() {

@@ -49,6 +49,10 @@ public class ClientApiConstants {
     public static final String CLIENT_TRANSACTION_ACTION_READ = "READTRANSACTION";
     public static final String CLIENT_TRANSACTION_ACTION_UNDO = "UNDOTRANSACTION";
 
+    public static final String PRODUCT_CATEGORY = "ProductCategory";
+
+    public static final String PRODUCT_TYPE = "ProductType";
+
     // Commands
     public static final String CLIENT_CHARGE_COMMAND_WAIVE_CHARGE = "waive";
     public static final String CLIENT_CHARGE_COMMAND_PAY_CHARGE = "paycharge";
@@ -214,8 +218,8 @@ public class ClientApiConstants {
                     transferToOfficeNameParamName, hierarchyParamName, imageIdParamName, imagePresentParamName, staffIdParamName,
                     staffNameParamName, timelineParamName, groupsParamName, officeOptionsParamName, staffOptionsParamName,
                     dateOfBirthParamName, genderParamName, clientTypeParamName, clientClassificationParamName, legalFormParamName,
-                    clientNonPersonDetailsParamName, isStaffParamName, clientLevelIdParamName, dailyWithdrawLimit, singleWithdrawLimit,initialsParam,
-                    maritalStatusIdParamName,mnemonicsParamNameParam,altMobileNoParam,"clientAdditionalInfoData"));
+                    clientNonPersonDetailsParamName, isStaffParamName, clientLevelIdParamName, dailyWithdrawLimit, singleWithdrawLimit,
+                    initialsParam, maritalStatusIdParamName, mnemonicsParamNameParam, altMobileNoParam, "clientAdditionalInfoData"));
 
     protected static final Set<String> CLIENT_CHARGES_RESPONSE_DATA_PARAMETERS = new HashSet<>(Arrays.asList(chargeIdParamName,
             clientIdParamName, chargeNameParamName, penaltyParamName, chargeTimeTypeParamName, dueAsOfDateParamName,

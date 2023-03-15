@@ -19,13 +19,12 @@
 
 package org.apache.fineract.portfolio.client.domain;
 
-
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.util.Optional;
-
-public interface ClientAdditionalInfoRepository extends JpaRepository<ClientAdditionalInfo, Long>, JpaSpecificationExecutor<ClientAdditionalInfo> {
+public interface ClientAdditionalInfoRepository
+        extends JpaRepository<ClientAdditionalInfo, Long>, JpaSpecificationExecutor<ClientAdditionalInfo> {
 
     Optional<ClientAdditionalInfo> findByClient(Client client);
 

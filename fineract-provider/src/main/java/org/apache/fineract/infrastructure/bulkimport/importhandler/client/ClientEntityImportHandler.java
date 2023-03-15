@@ -143,7 +143,7 @@ public class ClientEntityImportHandler implements ImportHandler {
         Boolean isRegistered = ImportHandlerUtils.readAsBoolean(ClientEntityConstants.IS_REGISTERED, row);
 
         ClientNonPersonData clientNonPersonData = ClientNonPersonData.importInstance(incorporationNo, incorporationTill, remarks,
-                mainBusinessId, constitutionId, locale, dateFormat,inBusinessSince,isRegistered);
+                mainBusinessId, constitutionId, locale, dateFormat, inBusinessSince, isRegistered);
 
         String externalId = ImportHandlerUtils.readAsString(ClientEntityConstants.EXTERNAL_ID_COL, row);
 

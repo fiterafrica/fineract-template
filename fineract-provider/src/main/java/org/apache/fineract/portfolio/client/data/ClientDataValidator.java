@@ -101,7 +101,8 @@ public final class ClientDataValidator {
 
         if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.maritalStatusIdParamName, element)) {
             final Long maritalStatusId = this.fromApiJsonHelper.extractLongNamed(ClientApiConstants.maritalStatusIdParamName, element);
-            baseDataValidator.reset().parameter(ClientApiConstants.maritalStatusIdParamName).value(maritalStatusId).ignoreIfNull().longGreaterThanZero();
+            baseDataValidator.reset().parameter(ClientApiConstants.maritalStatusIdParamName).value(maritalStatusId).ignoreIfNull()
+                    .longGreaterThanZero();
         }
 
         if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.titleParam, element)) {
@@ -522,10 +523,10 @@ public final class ClientDataValidator {
             baseDataValidator.reset().parameter("isStaff").value(isStaffFlag).notNull();
         }
 
-
         if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.maritalStatusIdParamName, element)) {
             final Long maritalStatusId = this.fromApiJsonHelper.extractLongNamed(ClientApiConstants.maritalStatusIdParamName, element);
-            baseDataValidator.reset().parameter(ClientApiConstants.maritalStatusIdParamName).value(maritalStatusId).ignoreIfNull().longGreaterThanZero();
+            baseDataValidator.reset().parameter(ClientApiConstants.maritalStatusIdParamName).value(maritalStatusId).ignoreIfNull()
+                    .longGreaterThanZero();
         }
 
         if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.titleParam, element)) {
