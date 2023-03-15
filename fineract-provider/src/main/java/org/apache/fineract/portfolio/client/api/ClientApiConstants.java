@@ -57,6 +57,10 @@ public class ClientApiConstants {
 
     public static final String CLIENT_CLOSURE_REASON = "ClientClosureReason";
     public static final String CLIENT_ACTION_REASON = "ClientActionReason";
+
+    public static final String PRODUCT_CATEGORY = "ProductCategory";
+
+    public static final String PRODUCT_TYPE = "ProductType";
     public static final String CLIENT_REJECT_REASON = "ClientRejectReason";
     public static final String CLIENT_WITHDRAW_REASON = "ClientWithdrawReason";
 

@@ -124,7 +124,8 @@ public class LoanProductInterestRecalculationDetails extends AbstractPersistable
         final boolean isArrearsBasedOnOriginalSchedule = command
                 .booleanPrimitiveValueOfParameterNamed(LoanProductConstants.isArrearsBasedOnOriginalScheduleParamName);
 
-        final boolean advancePaymentInterestForExactDaysInPeriod = command.booleanPrimitiveValueOfParameterNamed(LoanProductConstants.advancePaymentInterestForExactDaysInPeriodParamName);
+        final boolean advancePaymentInterestForExactDaysInPeriod = command
+                .booleanPrimitiveValueOfParameterNamed(LoanProductConstants.advancePaymentInterestForExactDaysInPeriodParamName);
         RecalculationFrequencyType frequencyType = RecalculationFrequencyType.fromInt(recurrenceFrequency);
         if (frequencyType.isSameAsRepayment()) {
             recurrenceInterval = 0;
@@ -171,7 +172,7 @@ public class LoanProductInterestRecalculationDetails extends AbstractPersistable
                 recurrenceFrequency, recurrenceInterval, recurrenceOnNthDay, recurrenceOnDay, recurrenceOnWeekday,
                 compoundingRecurrenceFrequency, compoundingInterval, compoundingRecurrenceOnNthDay, compoundingRecurrenceOnDay,
                 compoundingRecurrenceOnWeekday, isArrearsBasedOnOriginalSchedule, preCloseInterestCalculationStrategy,
-                isCompoundingToBePostedAsTransaction, allowCompoundingOnEod,advancePaymentInterestForExactDaysInPeriod);
+                isCompoundingToBePostedAsTransaction, allowCompoundingOnEod, advancePaymentInterestForExactDaysInPeriod);
     }
 
     private LoanProductInterestRecalculationDetails(final Integer interestRecalculationCompoundingMethod,
@@ -180,7 +181,8 @@ public class LoanProductInterestRecalculationDetails extends AbstractPersistable
             Integer compoundingFrequencyType, Integer compoundingInterval, final Integer compoundingFrequencyNthDay,
             final Integer compoundingFrequencyOnDay, final Integer compoundingFrequencyWeekday,
             final boolean isArrearsBasedOnOriginalSchedule, final Integer preCloseInterestCalculationStrategy,
-            final boolean isCompoundingToBePostedAsTransaction, final boolean allowCompoundingOnEod, final  boolean advancePaymentInterestForExactDaysInPeriod) {
+            final boolean isCompoundingToBePostedAsTransaction, final boolean allowCompoundingOnEod,
+            final boolean advancePaymentInterestForExactDaysInPeriod) {
         this.interestRecalculationCompoundingMethod = interestRecalculationCompoundingMethod;
         this.rescheduleStrategyMethod = rescheduleStrategyMethod;
         this.restFrequencyType = restFrequencyType;

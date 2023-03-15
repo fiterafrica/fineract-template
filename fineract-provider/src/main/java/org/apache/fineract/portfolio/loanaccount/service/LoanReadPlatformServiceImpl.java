@@ -997,7 +997,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                         rescheduleStrategyType, calendarData, restFrequencyType, restFrequencyInterval, restFrequencyNthDayEnum,
                         restFrequencyWeekDayEnum, restFrequencyOnDay, compoundingCalendarData, compoundingFrequencyType,
                         compoundingInterval, compoundingFrequencyNthDayEnum, compoundingFrequencyWeekDayEnum, compoundingFrequencyOnDay,
-                        isCompoundingToBePostedAsTransaction, allowCompoundingOnEod,advancePaymentInterestForExactDaysInPeriod);
+                        isCompoundingToBePostedAsTransaction, allowCompoundingOnEod, advancePaymentInterestForExactDaysInPeriod);
             }
 
             final boolean canUseForTopup = rs.getBoolean("canUseForTopup");

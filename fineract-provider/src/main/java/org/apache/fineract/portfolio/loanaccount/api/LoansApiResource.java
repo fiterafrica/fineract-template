@@ -265,29 +265,30 @@ public class LoansApiResource {
     private final InterestRateChartReadPlatformService chartReadPlatformService;
 
     public LoansApiResource(final PlatformSecurityContext context, final LoanReadPlatformService loanReadPlatformService,
-                            final LoanProductReadPlatformService loanProductReadPlatformService,
-                            final LoanDropdownReadPlatformService dropdownReadPlatformService, final FundReadPlatformService fundReadPlatformService,
-                            final ChargeReadPlatformService chargeReadPlatformService, final LoanChargeReadPlatformService loanChargeReadPlatformService,
-                            final LoanScheduleCalculationPlatformService calculationPlatformService,
-                            final GuarantorReadPlatformService guarantorReadPlatformService,
-                            final CodeValueReadPlatformService codeValueReadPlatformService, final GroupReadPlatformService groupReadPlatformService,
-                            final DefaultToApiJsonSerializer<LoanAccountData> toApiJsonSerializer,
-                            final DefaultToApiJsonSerializer<LoanApprovalData> loanApprovalDataToApiJsonSerializer,
-                            final DefaultToApiJsonSerializer<LoanScheduleData> loanScheduleToApiJsonSerializer,
-                            final ApiRequestParameterHelper apiRequestParameterHelper, final FromJsonHelper fromJsonHelper,
-                            final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService,
-                            final CalendarReadPlatformService calendarReadPlatformService, final NoteReadPlatformService noteReadPlatformService,
-                            final PortfolioAccountReadPlatformService portfolioAccountReadPlatformServiceImpl,
-                            final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
-                            final LoanScheduleHistoryReadPlatformService loanScheduleHistoryReadPlatformService,
-                            final AccountDetailsReadPlatformService accountDetailsReadPlatformService,
-                            final EntityDatatableChecksReadService entityDatatableChecksReadService,
-                            final BulkImportWorkbookService bulkImportWorkbookService,
-                            final BulkImportWorkbookPopulatorService bulkImportWorkbookPopulatorService, final RateReadService rateReadService,
-                            final ConfigurationDomainService configurationDomainService,
-                            final DefaultToApiJsonSerializer<GlimRepaymentTemplate> glimTemplateToApiJsonSerializer,
-                            final GLIMAccountInfoReadPlatformService glimAccountInfoReadPlatformService,
-                            final LoanCollateralManagementReadPlatformService loanCollateralManagementReadPlatformService, InterestRateChartReadPlatformService chartReadPlatformService) {
+            final LoanProductReadPlatformService loanProductReadPlatformService,
+            final LoanDropdownReadPlatformService dropdownReadPlatformService, final FundReadPlatformService fundReadPlatformService,
+            final ChargeReadPlatformService chargeReadPlatformService, final LoanChargeReadPlatformService loanChargeReadPlatformService,
+            final LoanScheduleCalculationPlatformService calculationPlatformService,
+            final GuarantorReadPlatformService guarantorReadPlatformService,
+            final CodeValueReadPlatformService codeValueReadPlatformService, final GroupReadPlatformService groupReadPlatformService,
+            final DefaultToApiJsonSerializer<LoanAccountData> toApiJsonSerializer,
+            final DefaultToApiJsonSerializer<LoanApprovalData> loanApprovalDataToApiJsonSerializer,
+            final DefaultToApiJsonSerializer<LoanScheduleData> loanScheduleToApiJsonSerializer,
+            final ApiRequestParameterHelper apiRequestParameterHelper, final FromJsonHelper fromJsonHelper,
+            final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService,
+            final CalendarReadPlatformService calendarReadPlatformService, final NoteReadPlatformService noteReadPlatformService,
+            final PortfolioAccountReadPlatformService portfolioAccountReadPlatformServiceImpl,
+            final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
+            final LoanScheduleHistoryReadPlatformService loanScheduleHistoryReadPlatformService,
+            final AccountDetailsReadPlatformService accountDetailsReadPlatformService,
+            final EntityDatatableChecksReadService entityDatatableChecksReadService,
+            final BulkImportWorkbookService bulkImportWorkbookService,
+            final BulkImportWorkbookPopulatorService bulkImportWorkbookPopulatorService, final RateReadService rateReadService,
+            final ConfigurationDomainService configurationDomainService,
+            final DefaultToApiJsonSerializer<GlimRepaymentTemplate> glimTemplateToApiJsonSerializer,
+            final GLIMAccountInfoReadPlatformService glimAccountInfoReadPlatformService,
+            final LoanCollateralManagementReadPlatformService loanCollateralManagementReadPlatformService,
+            InterestRateChartReadPlatformService chartReadPlatformService) {
         this.context = context;
         this.loanReadPlatformService = loanReadPlatformService;
         this.loanProductReadPlatformService = loanProductReadPlatformService;
@@ -466,8 +467,9 @@ public class LoansApiResource {
                 .retrieveTemplates(StatusEnum.CREATE.getCode().longValue(), EntityTables.LOAN.getName(), productId);
         newLoanAccount.setDatatables(datatableTemplates);
 
-        if(productId != null){
-            final Collection<InterestRateChartData> charts = this.chartReadPlatformService.retrieveAllWithSlabsWithTemplateForLoan(productId);
+        if (productId != null) {
+            final Collection<InterestRateChartData> charts = this.chartReadPlatformService
+                    .retrieveAllWithSlabsWithTemplateForLoan(productId);
             newLoanAccount.setInterestRateCharts(charts);
         }
 

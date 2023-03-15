@@ -69,8 +69,7 @@ public class DecliningBalanceInterestLoanScheduleGenerator extends AbstractLoanS
         Money balanceForInterestCalculation = outstandingBalance;
         Money cumulatingInterestDueToGrace = cumulatingInterestPaymentDueToGrace;
 
-
-        if(!loanApplicationTerms.isAdvancePaymentInterestForExactDaysInPeriodEnabled()) {
+        if (!loanApplicationTerms.isAdvancePaymentInterestForExactDaysInPeriodEnabled()) {
             Money compoundedInterest = totalCumulativePrincipal.zero();
             Map<LocalDate, BigDecimal> interestRates = new HashMap<>(termVariations.size());
 

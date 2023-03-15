@@ -46,6 +46,7 @@ import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.accounting.common.AccountingRuleType;
+import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
@@ -208,9 +209,17 @@ public class LoanProduct extends AbstractPersistableCustom {
     @JoinTable(name = "m_product_loan_interest_rate_chart", joinColumns = @JoinColumn(name = "loan_product_id"), inverseJoinColumns = @JoinColumn(name = "interest_rate_chart_id", unique = true))
     protected Set<InterestRateChart> charts;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_category_id")
+    private CodeValue productCategory;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_type_id")
+    private CodeValue productType;
+
     public static LoanProduct assembleFromJson(final Fund fund, final LoanTransactionProcessingStrategy loanTransactionProcessingStrategy,
             final List<Charge> productCharges, final JsonCommand command, final AprCalculator aprCalculator, FloatingRate floatingRate,
-            final List<Rate> productRates) {
+            final List<Rate> productRates, CodeValue productCategory, CodeValue productType) {
 
         final String name = command.stringValueOfParameterNamed("name");
         final String shortName = command.stringValueOfParameterNamed(LoanProductConstants.SHORT_NAME);
@@ -294,7 +303,8 @@ public class LoanProduct extends AbstractPersistableCustom {
         final LocalDate closeDate = command.localDateValueOfParameterNamed("closeDate");
         final String externalId = command.stringValueOfParameterNamedAllowingNull("externalId");
 
-        final boolean advancePaymentInterestForExactDaysInPeriod = command.booleanPrimitiveValueOfParameterNamed("advancePaymentInterestForExactDaysInPeriod");
+        final boolean advancePaymentInterestForExactDaysInPeriod = command
+                .booleanPrimitiveValueOfParameterNamed("advancePaymentInterestForExactDaysInPeriod");
 
         final boolean useBorrowerCycle = command
                 .booleanPrimitiveValueOfParameterNamed(LoanProductConstants.USE_BORROWER_CYCLE_PARAMETER_NAME);
@@ -407,7 +417,7 @@ public class LoanProduct extends AbstractPersistableCustom {
                 minimumGapBetweenInstallments, maximumGapBetweenInstallments, syncExpectedWithDisbursementDate, canUseForTopup,
                 isEqualAmortization, productRates, fixedPrincipalPercentagePerInstallment, disallowExpectedDisbursements,
                 allowApprovedDisbursedAmountsOverApplied, overAppliedCalculationType, overAppliedNumber, maxNumberOfLoanExtensionsAllowed,
-                loanTermIncludesToppedUpLoanTerm, isAccountLevelArrearsToleranceEnable);
+                loanTermIncludesToppedUpLoanTerm, isAccountLevelArrearsToleranceEnable, productCategory, productType);
 
     }
 
@@ -645,7 +655,7 @@ public class LoanProduct extends AbstractPersistableCustom {
             final List<Rate> rates, final BigDecimal fixedPrincipalPercentagePerInstallment, final boolean disallowExpectedDisbursements,
             final boolean allowApprovedDisbursedAmountsOverApplied, final String overAppliedCalculationType,
             final Integer overAppliedNumber, final Integer maxNumberOfLoanExtensionsAllowed, final boolean loanTermIncludesToppedUpLoanTerm,
-            final boolean isAccountLevelArrearsToleranceEnable) {
+            final boolean isAccountLevelArrearsToleranceEnable, CodeValue productCategory, CodeValue productType) {
         this.fund = fund;
         this.transactionProcessingStrategy = transactionProcessingStrategy;
         this.name = name.trim();
@@ -660,6 +670,8 @@ public class LoanProduct extends AbstractPersistableCustom {
             this.charges = charges;
         }
 
+        this.productCategory = productCategory;
+        this.productType = productType;
         this.isLinkedToFloatingInterestRate = isLinkedToFloatingInterestRates == null ? false : isLinkedToFloatingInterestRates;
         if (isLinkedToFloatingInterestRate) {
             this.floatingRates = new LoanProductFloatingRates(floatingRate, this, interestRateDifferential, minDifferentialLendingRate,
@@ -971,6 +983,7 @@ public class LoanProduct extends AbstractPersistableCustom {
         } else {
             clearVariations(null, true);
         }
+
         final String dateFormatAsInput = command.dateFormat();
         final String localeAsInput = command.locale();
 
@@ -1643,6 +1656,22 @@ public class LoanProduct extends AbstractPersistableCustom {
 
     public void setCharts(Set<InterestRateChart> charts) {
         this.charts = charts;
+    }
+
+    public CodeValue getProductCategory() {
+        return productCategory;
+    }
+
+    public void setProductCategory(CodeValue productCategory) {
+        this.productCategory = productCategory;
+    }
+
+    public CodeValue getProductType() {
+        return productType;
+    }
+
+    public void setProductType(CodeValue productType) {
+        this.productType = productType;
     }
 
     public InterestRateChart findChart(Long chartId) {

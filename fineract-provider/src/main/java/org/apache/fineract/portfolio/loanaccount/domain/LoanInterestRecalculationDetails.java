@@ -99,7 +99,7 @@ public class LoanInterestRecalculationDetails extends AbstractPersistableCustom 
             final Integer restFrequencyType, final Integer restInterval, final Integer restFrequencyNthDay, Integer restFrequencyWeekday,
             Integer restFrequencyOnDay, Integer compoundingFrequencyType, Integer compoundingInterval, Integer compoundingFrequencyNthDay,
             Integer compoundingFrequencyWeekday, Integer compoundingFrequencyOnDay, final boolean isCompoundingToBePostedAsTransaction,
-            final boolean allowCompoundingOnEod,final boolean advancePaymentInterestForExactDaysInPeriod) {
+            final boolean allowCompoundingOnEod, final boolean advancePaymentInterestForExactDaysInPeriod) {
         this.interestRecalculationCompoundingMethod = interestRecalculationCompoundingMethod;
         this.rescheduleStrategyMethod = rescheduleStrategyMethod;
         this.restFrequencyNthDay = restFrequencyNthDay;

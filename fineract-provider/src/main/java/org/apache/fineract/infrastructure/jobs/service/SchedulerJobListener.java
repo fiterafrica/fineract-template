@@ -104,7 +104,7 @@ public class SchedulerJobListener implements JobListener {
 
         }
 
-        //If error due to InsufficientAccountBalance then mark job status as success
+        // If error due to InsufficientAccountBalance then mark job status as success
         if (StringUtils.isNotBlank(errorLog) && errorLog.contains(StandingInstructionApiConstants.insufficientBalanceExceptionMessage)) {
             status = SchedulerServiceConstants.STATUS_SUCCESS;
         }

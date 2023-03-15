@@ -209,8 +209,7 @@ public class EndOfDayBalance {
 
                     futureValue = presentValue.multiply(BigDecimal.valueOf(interestRateForCompoundingPeriodPowered), MathContext.DECIMAL64)
                             .setScale(9, MoneyHelper.getRoundingMode()).setScale(9, MoneyHelper.getRoundingMode());
-                    futureValues
-                            .add(futureValue.subtract(presentValue));
+                    futureValues.add(futureValue.subtract(presentValue));
                 }
             } else {
                 if (presentValue.compareTo(minOverdraftForInterestCalculation.negate()) < 0) {
@@ -222,8 +221,7 @@ public class EndOfDayBalance {
                             Integer.valueOf(this.numberOfDays).doubleValue());
                     futureValue = presentValue.multiply(BigDecimal.valueOf(interestRateForCompoundingPeriodPowered), MathContext.DECIMAL64)
                             .setScale(9, MoneyHelper.getRoundingMode()).setScale(9, MoneyHelper.getRoundingMode());
-                    futureValues
-                            .add(futureValue.subtract(presentValue));
+                    futureValues.add(futureValue.subtract(presentValue));
                 }
             }
         }

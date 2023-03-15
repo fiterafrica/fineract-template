@@ -56,7 +56,7 @@ public class LoanInterestRecalculationData {
             final EnumOptionData recalculationCompoundingFrequencyType, final Integer recalculationCompoundingFrequencyInterval,
             final EnumOptionData recalculationCompoundingFrequencyNthDay, final EnumOptionData recalculationCompoundingFrequencyWeekday,
             final Integer recalculationCompoundingFrequencyOnDay, final Boolean isCompoundingToBePostedAsTransaction,
-            final Boolean allowCompoundingOnEod,final boolean advancePaymentInterestForExactDaysInPeriod) {
+            final Boolean allowCompoundingOnEod, final boolean advancePaymentInterestForExactDaysInPeriod) {
         this.id = id;
         this.loanId = loanId;
         this.interestRecalculationCompoundingType = interestRecalculationCompoundingType;
@@ -88,7 +88,7 @@ public class LoanInterestRecalculationData {
                 recalculationData.recalculationCompoundingFrequencyType, recalculationData.recalculationCompoundingFrequencyInterval,
                 recalculationData.recalculationCompoundingFrequencyNthDay, recalculationData.recalculationCompoundingFrequencyWeekday,
                 recalculationData.recalculationCompoundingFrequencyOnDay, recalculationData.isCompoundingToBePostedAsTransaction,
-                recalculationData.allowCompoundingOnEod,recalculationData.advancePaymentInterestForExactDaysInPeriod);
+                recalculationData.allowCompoundingOnEod, recalculationData.advancePaymentInterestForExactDaysInPeriod);
     }
 
     public Long getId() {

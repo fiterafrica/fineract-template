@@ -5674,7 +5674,8 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
             rescheduleStrategyMethod = this.loanInterestRecalculationDetails.getRescheduleStrategyMethod();
             allowCompoundingOnEod = this.loanInterestRecalculationDetails.allowCompoundingOnEod();
             calendarHistoryDataWrapper = scheduleGeneratorDTO.getCalendarHistoryDataWrapper();
-            advancePaymentInterestForExactDaysInPeriod = this.loanInterestRecalculationDetails.isAdvancePaymentInterestForExactDaysInPeriod();
+            advancePaymentInterestForExactDaysInPeriod = this.loanInterestRecalculationDetails
+                    .isAdvancePaymentInterestForExactDaysInPeriod();
         }
         calendar = scheduleGeneratorDTO.getCalendar();
         calendarHistoryDataWrapper = scheduleGeneratorDTO.getCalendarHistoryDataWrapper();
@@ -5699,7 +5700,7 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
                 calendarHistoryDataWrapper, scheduleGeneratorDTO.getNumberOfdays(), scheduleGeneratorDTO.isSkipRepaymentOnFirstDayofMonth(),
                 holidayDetailDTO, allowCompoundingOnEod, scheduleGeneratorDTO.isFirstRepaymentDateAllowedOnHoliday(),
                 scheduleGeneratorDTO.isInterestToBeRecoveredFirstWhenGreaterThanEMI(), this.fixedPrincipalPercentagePerInstallment,
-                scheduleGeneratorDTO.isPrincipalCompoundingDisabledForOverdueLoans(),advancePaymentInterestForExactDaysInPeriod);
+                scheduleGeneratorDTO.isPrincipalCompoundingDisabledForOverdueLoans(), advancePaymentInterestForExactDaysInPeriod);
         return loanApplicationTerms;
     }
 
@@ -5963,7 +5964,8 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
             compoundingFrequencyType = this.loanInterestRecalculationDetails.getCompoundingFrequencyType();
             rescheduleStrategyMethod = this.loanInterestRecalculationDetails.getRescheduleStrategyMethod();
             allowCompoundingOnEod = this.loanInterestRecalculationDetails.allowCompoundingOnEod();
-            advancePaymentInterestForExactDaysInPeriod = this.loanInterestRecalculationDetails.isAdvancePaymentInterestForExactDaysInPeriod();
+            advancePaymentInterestForExactDaysInPeriod = this.loanInterestRecalculationDetails
+                    .isAdvancePaymentInterestForExactDaysInPeriod();
         }
 
         List<LoanTermVariationsData> loanTermVariations = new ArrayList<>();
@@ -5977,7 +5979,7 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
                 compoundingCalendarInstance, compoundingFrequencyType, this.loanProduct.preCloseInterestCalculationStrategy(),
                 rescheduleStrategyMethod, loanCalendar, getApprovedPrincipal(), annualNominalInterestRate, loanTermVariations,
                 calendarHistoryDataWrapper, numberofdays, isSkipRepaymentonmonthFirst, holidayDetailDTO, allowCompoundingOnEod, false,
-                false, this.fixedPrincipalPercentagePerInstallment, false,advancePaymentInterestForExactDaysInPeriod);
+                false, this.fixedPrincipalPercentagePerInstallment, false, advancePaymentInterestForExactDaysInPeriod);
     }
 
     /**

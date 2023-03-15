@@ -233,7 +233,8 @@ public final class LoanApplicationTerms {
             Boolean isInterestChargedFromDateSameAsDisbursalDateEnabled, final Integer numberOfDays,
             boolean isSkipRepaymentOnFirstDayOfMonth, final HolidayDetailDTO holidayDetailDTO, final boolean allowCompoundingOnEod,
             final boolean isEqualAmortization, final boolean isInterestToBeRecoveredFirstWhenGreaterThanEMI,
-            final BigDecimal fixedPrincipalPercentagePerInstallment, final boolean isPrincipalCompoundingDisabledForOverdueLoans,final boolean advancePaymentInterestForExactDaysInPeriod) {
+            final BigDecimal fixedPrincipalPercentagePerInstallment, final boolean isPrincipalCompoundingDisabledForOverdueLoans,
+            final boolean advancePaymentInterestForExactDaysInPeriod) {
 
         final LoanRescheduleStrategyMethod rescheduleStrategyMethod = null;
         final CalendarHistoryDataWrapper calendarHistoryDataWrapper = null;
@@ -250,7 +251,7 @@ public final class LoanApplicationTerms {
                 calendarHistoryDataWrapper, isInterestChargedFromDateSameAsDisbursalDateEnabled, numberOfDays,
                 isSkipRepaymentOnFirstDayOfMonth, holidayDetailDTO, allowCompoundingOnEod, isEqualAmortization, false,
                 isInterestToBeRecoveredFirstWhenGreaterThanEMI, fixedPrincipalPercentagePerInstallment,
-                isPrincipalCompoundingDisabledForOverdueLoans,advancePaymentInterestForExactDaysInPeriod);
+                isPrincipalCompoundingDisabledForOverdueLoans, advancePaymentInterestForExactDaysInPeriod);
 
     }
 
@@ -267,7 +268,8 @@ public final class LoanApplicationTerms {
             final LoanPreClosureInterestCalculationStrategy loanPreClosureInterestCalculationStrategy,
             final LoanRescheduleStrategyMethod rescheduleStrategyMethod, BigDecimal approvedAmount, BigDecimal annualNominalInterestRate,
             List<LoanTermVariationsData> loanTermVariations, final Integer numberOfDays, final boolean isSkipRepaymentOnFirstDayOfMonth,
-            final Calendar loanCalendar, final HolidayDetailDTO holidayDetailDTO, final boolean allowCompoundingOnEod,final boolean advancePaymentInterestForExactDaysInPeriod) {
+            final Calendar loanCalendar, final HolidayDetailDTO holidayDetailDTO, final boolean allowCompoundingOnEod,
+            final boolean advancePaymentInterestForExactDaysInPeriod) {
         final CalendarHistoryDataWrapper calendarHistoryDataWrapper = null;
 
         return assembleFrom(applicationCurrency, loanTermFrequency, loanTermPeriodFrequencyType, nthDay, dayOfWeek,
@@ -277,7 +279,7 @@ public final class LoanApplicationTerms {
                 compoundingMethod, compoundingCalendarInstance, compoundingFrequencyType, loanPreClosureInterestCalculationStrategy,
                 rescheduleStrategyMethod, loanCalendar, approvedAmount, annualNominalInterestRate, loanTermVariations,
                 calendarHistoryDataWrapper, numberOfDays, isSkipRepaymentOnFirstDayOfMonth, holidayDetailDTO, allowCompoundingOnEod, false,
-                false, null, false,advancePaymentInterestForExactDaysInPeriod);
+                false, null, false, advancePaymentInterestForExactDaysInPeriod);
     }
 
     public static LoanApplicationTerms assembleFrom(final ApplicationCurrency applicationCurrency, final Integer loanTermFrequency,
@@ -296,7 +298,8 @@ public final class LoanApplicationTerms {
             final CalendarHistoryDataWrapper calendarHistoryDataWrapper, final Integer numberOfDays,
             final boolean isSkipRepaymentOnFirstDayOfMonth, final HolidayDetailDTO holidayDetailDTO, final boolean allowCompoundingOnEod,
             final boolean isFirstRepaymentDateAllowedOnHoliday, final boolean isInterestToBeRecoveredFirstWhenGreaterThanEMI,
-            final BigDecimal fixedPrincipalPercentagePerInstallment, final boolean isPrincipalCompoundingDisabledForOverdueLoans,final boolean advancePaymentInterestForExactDaysInPeriod) {
+            final BigDecimal fixedPrincipalPercentagePerInstallment, final boolean isPrincipalCompoundingDisabledForOverdueLoans,
+            final boolean advancePaymentInterestForExactDaysInPeriod) {
 
         final Integer numberOfRepayments = loanProductRelatedDetail.getNumberOfRepayments();
         final Integer repaymentEvery = loanProductRelatedDetail.getRepayEvery();
@@ -336,7 +339,7 @@ public final class LoanApplicationTerms {
                 isInterestChargedFromDateSameAsDisbursalDateEnabled, numberOfDays, isSkipRepaymentOnFirstDayOfMonth, holidayDetailDTO,
                 allowCompoundingOnEod, isEqualAmortization, isFirstRepaymentDateAllowedOnHoliday,
                 isInterestToBeRecoveredFirstWhenGreaterThanEMI, fixedPrincipalPercentagePerInstallment,
-                isPrincipalCompoundingDisabledForOverdueLoans,advancePaymentInterestForExactDaysInPeriod);
+                isPrincipalCompoundingDisabledForOverdueLoans, advancePaymentInterestForExactDaysInPeriod);
     }
 
     public static LoanApplicationTerms assembleFrom(final ApplicationCurrency applicationCurrency, final Integer loanTermFrequency,
@@ -351,7 +354,7 @@ public final class LoanApplicationTerms {
             final LoanPreClosureInterestCalculationStrategy loanPreClosureInterestCalculationStrategy, final Calendar loanCalendar,
             BigDecimal approvedAmount, final BigDecimal annualNominalInterestRate, final List<LoanTermVariationsData> loanTermVariations,
             Integer numberOfDays, boolean isSkipRepaymentOnFirstDayOfMonth, final HolidayDetailDTO holidayDetailDTO,
-            final boolean allowCompoundingOnEod,final boolean advancePaymentInterestForExactDaysInPeriod) {
+            final boolean allowCompoundingOnEod, final boolean advancePaymentInterestForExactDaysInPeriod) {
 
         final Integer numberOfRepayments = loanProductRelatedDetail.getNumberOfRepayments();
         final Integer repaymentEvery = loanProductRelatedDetail.getRepayEvery();
@@ -451,7 +454,7 @@ public final class LoanApplicationTerms {
             final Integer numberOfDays, final boolean isSkipRepaymentOnFirstDayOfMonth, final HolidayDetailDTO holidayDetailDTO,
             final boolean allowCompoundingOnEod, final boolean isEqualAmortization, final boolean isFirstRepaymentDateAllowedOnHoliday,
             final boolean isInterestToBeRecoveredFirstWhenGreaterThanEMI, final BigDecimal fixedPrincipalPercentagePerInstallment,
-            final boolean isPrincipalCompoundingDisabledForOverdueLoans,final boolean advancePaymentInterestForExactDaysInPeriod) {
+            final boolean isPrincipalCompoundingDisabledForOverdueLoans, final boolean advancePaymentInterestForExactDaysInPeriod) {
 
         this.currency = currency;
         this.loanTermFrequency = loanTermFrequency;
@@ -650,7 +653,7 @@ public final class LoanApplicationTerms {
         // equal installments
         int periodsElapsed = periodNumber - 1;
 
-        if(periodsElapsed == 0 && isAdvancePaymentInterestForExactDaysInPeriodEnabled()){
+        if (periodsElapsed == 0 && isAdvancePaymentInterestForExactDaysInPeriodEnabled()) {
             periodsElapsed = 1;
         }
         // with periodic interest for default month and year for
@@ -1245,10 +1248,9 @@ public final class LoanApplicationTerms {
             final double futureValue = 0;
             final double principalDouble = balance.getAmount().multiply(BigDecimal.valueOf(-1)).doubleValue();
 
-            Integer periodsRemaining = calculateNumberOfRemainingPrincipalPaymentPeriods(this.actualNumberOfRepayments,
-                    periodsElapsed);
+            Integer periodsRemaining = calculateNumberOfRemainingPrincipalPaymentPeriods(this.actualNumberOfRepayments, periodsElapsed);
 
-            if(periodsRemaining == 0 && isAdvancePaymentInterestForExactDaysInPeriodEnabled()){
+            if (periodsRemaining == 0 && isAdvancePaymentInterestForExactDaysInPeriodEnabled()) {
                 periodsRemaining = 1;
             }
 
@@ -1834,7 +1836,7 @@ public final class LoanApplicationTerms {
         this.newScheduledDueDateStart = newScheduledDueDateStart;
     }
 
-    public boolean isAdvancePaymentInterestForExactDaysInPeriodEnabled(){
+    public boolean isAdvancePaymentInterestForExactDaysInPeriodEnabled() {
         return this.advancePaymentInterestForExactDaysInPeriod;
     }
 }

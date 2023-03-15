@@ -191,7 +191,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
         }
 
         public String loanProductSchema() {
-            return "lp.id as id, lp.fund_id as fundId, f.name as fundName, lp.loan_transaction_strategy_id as transactionStrategyId, ltps.name as transactionStrategyName, "
+            return "lp.id as id, lp.product_type_id productTypeId, lp.product_category_id productCategoryId , lp.fund_id as fundId, f.name as fundName, lp.loan_transaction_strategy_id as transactionStrategyId, ltps.name as transactionStrategyName, "
                     + "lp.name as name, lp.short_name as shortName, lp.description as description, "
                     + "lp.principal_amount as principal, lp.min_principal_amount as minPrincipal, lp.max_principal_amount as maxPrincipal, lp.currency_code as currencyCode, lp.currency_digits as currencyDigits, lp.currency_multiplesof as inMultiplesOf, "
                     + "lp.nominal_interest_rate_per_period as interestRatePerPeriod, lp.min_nominal_interest_rate_per_period as minInterestRatePerPeriod, lp.max_nominal_interest_rate_per_period as maxInterestRatePerPeriod, lp.interest_period_frequency_enum as interestRatePerPeriodFreq, "
@@ -260,6 +260,8 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
             final String shortName = rs.getString("shortName");
             final String description = rs.getString("description");
             final Long fundId = JdbcSupport.getLong(rs, "fundId");
+            final Long productCategoryId = rs.getLong("productCategoryId");
+            final Long productTypeId = rs.getLong("productTypeId");
             final String fundName = rs.getString("fundName");
             final Long transactionStrategyId = JdbcSupport.getLong(rs, "transactionStrategyId");
             final String transactionStrategyName = rs.getString("transactionStrategyName");
@@ -433,7 +435,8 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                         rescheduleStrategyType, restFrequencyType, restFrequencyInterval, restFrequencyNthDayEnum, restFrequencyWeekDayEnum,
                         restFrequencyOnDay, compoundingFrequencyType, compoundingInterval, compoundingFrequencyNthDayEnum,
                         compoundingFrequencyWeekDayEnum, compoundingFrequencyOnDay, isArrearsBasedOnOriginalSchedule,
-                        isCompoundingToBePostedAsTransaction, preCloseInterestCalculationStrategy, allowCompoundingOnEod,advancePaymentInterestForExactDaysInPeriod);
+                        isCompoundingToBePostedAsTransaction, preCloseInterestCalculationStrategy, allowCompoundingOnEod,
+                        advancePaymentInterestForExactDaysInPeriod);
             }
 
             final boolean amortization = rs.getBoolean("amortizationBoolean");
@@ -490,7 +493,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                     maxDifferentialLendingRate, isFloatingInterestRateCalculationAllowed, isVariableIntallmentsAllowed, minimumGap,
                     maximumGap, syncExpectedWithDisbursementDate, canUseForTopup, isEqualAmortization, rateOptions, this.rates,
                     isRatesEnabled, fixedPrincipalPercentagePerInstallment, maxNumberOfLoanExtensionsAllowed,
-                    loanTermIncludesToppedUpLoanTerm, isAccountLevelArrearsToleranceEnable);
+                    loanTermIncludesToppedUpLoanTerm, isAccountLevelArrearsToleranceEnable,productCategoryId,productTypeId);
         }
     }
 

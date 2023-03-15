@@ -69,8 +69,8 @@ public final class LoanScheduleModelRepaymentPeriod implements LoanScheduleModel
     }
 
     @Override
-    public  void merge(LoanScheduleModelPeriod installment){
-        LoanScheduleModelRepaymentPeriod incoming = (LoanScheduleModelRepaymentPeriod)installment;
+    public void merge(LoanScheduleModelPeriod installment) {
+        LoanScheduleModelRepaymentPeriod incoming = (LoanScheduleModelRepaymentPeriod) installment;
         this.principalDue = this.principalDue.add(incoming.principalDue);
         this.outstandingLoanBalance = this.outstandingLoanBalance.add(incoming.outstandingLoanBalance);
         this.interestDue = this.interestDue.add(incoming.interestDue);

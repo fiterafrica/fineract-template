@@ -74,4 +74,5 @@
     <include file="parts/oxy-39_product_loan_interest_rate_chart_table.xml" relativeToChangelogFile="true"/>
     <include file="parts/OXY-95-add_job_for_notifying_failed_standing_instruction.xml" relativeToChangelogFile="true"/>
     <include file="parts/OXY-35_lp_interest_calculation_detail_interest_exact_days.xml" relativeToChangelogFile="true" />
+    <include file="parts/0042_add_product_categories_and_product_type_column.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>
