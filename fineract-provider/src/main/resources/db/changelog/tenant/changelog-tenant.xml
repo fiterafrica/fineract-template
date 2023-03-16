@@ -97,4 +97,6 @@
     <include file="parts/0075_add_processed_commands_purge_job.xml" relativeToChangelogFile="true" />
     <include file="parts/0076_add_loan_transaction_enum_values.xml" relativeToChangelogFile="true" />
     <include file="parts/0077_add_overpaid_date_for_loan.xml" relativeToChangelogFile="true" />
+    <include file="parts/4999_create_correlation_table.xml" relativeToChangelogFile="true" />
+    <include file="parts/5000_insert_async_action_permissions.xml" relativeToChangelogFile="true" />
 </databaseChangeLog>

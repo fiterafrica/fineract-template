@@ -18,7 +18,11 @@
  */
 package org.apache.fineract.commands.service;
 
-import static org.apache.fineract.commands.CommandConstants.*;
+import static org.apache.fineract.commands.CommandConstants.FINERACT_HEADER_APPROVED_BY_CHECKER;
+import static org.apache.fineract.commands.CommandConstants.FINERACT_HEADER_AUTH_TOKEN;
+import static org.apache.fineract.commands.CommandConstants.FINERACT_HEADER_CORRELATION_ID;
+import static org.apache.fineract.commands.CommandConstants.FINERACT_HEADER_RUN_AS;
+import static org.apache.fineract.commands.CommandConstants.FINERACT_HEADER_TENANT_ID;
 
 import java.util.Map;
 import java.util.UUID;
@@ -34,6 +38,7 @@ import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.infrastructure.transactions.service.TransactionStatusService;
 import org.apache.fineract.useradministration.domain.AppUser;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
 public class CamelCommandProcessingService implements CommandProcessingService {
@@ -46,6 +51,7 @@ public class CamelCommandProcessingService implements CommandProcessingService {
     private final PlatformSecurityContext securityContext;
     private final TransactionStatusService transactionStatusService;
 
+    @Autowired
     public CamelCommandProcessingService(final ProducerTemplate producerTemplate, final PlatformSecurityContext securityContext,
             TransactionStatusService transactionStatusService) {
         this.producerTemplate = producerTemplate;

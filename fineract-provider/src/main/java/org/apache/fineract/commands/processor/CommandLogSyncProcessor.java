@@ -18,7 +18,10 @@
  */
 package org.apache.fineract.commands.processor;
 
-import static org.apache.fineract.commands.CommandConstants.*;
+import static org.apache.fineract.commands.CommandConstants.FINERACT_HEADER_AUTH_TOKEN;
+import static org.apache.fineract.commands.CommandConstants.FINERACT_HEADER_CORRELATION_ID;
+import static org.apache.fineract.commands.CommandConstants.FINERACT_HEADER_RUN_AS;
+import static org.apache.fineract.commands.CommandConstants.FINERACT_HEADER_TENANT_ID;
 
 import org.apache.camel.Body;
 import org.apache.camel.Header;

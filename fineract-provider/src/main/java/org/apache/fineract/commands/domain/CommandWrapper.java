@@ -18,8 +18,14 @@
  */
 package org.apache.fineract.commands.domain;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.apache.fineract.commands.serialization.CommandWrapperDeserializer;
+import org.apache.fineract.commands.serialization.CommandWrapperSerializer;
 import org.apache.fineract.useradministration.api.PasswordPreferencesApiConstants;
 
+@JsonSerialize(using = CommandWrapperSerializer.class)
+@JsonDeserialize(using = CommandWrapperDeserializer.class)
 public class CommandWrapper {
 
     private final Long commandId;
@@ -354,5 +360,13 @@ public class CommandWrapper {
 
     public String getJobName() {
         return jobName;
+    }
+
+    public Long getOfficeId() {
+        return this.officeId;
+    }
+
+    public Long getTemplateId() {
+        return this.templateId;
     }
 }

@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License. You may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -23,20 +23,29 @@ import com.google.gson.JsonElement;
 import com.jano7.executor.BoundedStrategy;
 import com.jano7.executor.KeyRunnable;
 import com.jano7.executor.KeySequentialBoundedExecutor;
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.PostConstruct;
-import org.apache.camel.*;
+import org.apache.camel.Body;
+import org.apache.camel.ExchangePattern;
+import org.apache.camel.Header;
+import org.apache.camel.Headers;
+import org.apache.camel.ProducerTemplate;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.fineract.commands.CommandConstants;
 import org.apache.fineract.commands.domain.CommandWrapper;
 import org.apache.fineract.commands.route.CamelEndpoints;
 import org.apache.fineract.commands.service.CommandProcessingService;
+import org.apache.fineract.infrastructure.businessdate.domain.BusinessDateType;
+import org.apache.fineract.infrastructure.businessdate.service.BusinessDateReadPlatformService;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
+import org.apache.fineract.infrastructure.core.domain.ActionContext;
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
@@ -76,6 +85,8 @@ public class CommandQueuingProcessor {
 
     private final TransactionStatusService transactionStatusService;
 
+    private final BusinessDateReadPlatformService businessDateReadPlatformService;
+
     @Value("${fineract.camel.backend.thread.pool.size}")
     private Integer threadPoolSize;
 
@@ -88,13 +99,15 @@ public class CommandQueuingProcessor {
     @Autowired
     public CommandQueuingProcessor(TenantDetailsService tenantDetailsService,
             @Qualifier("synchronousCommandProcessingService") CommandProcessingService processingService, FromJsonHelper fromApiJsonHelper,
-            AppUserRepository appUserRepository, ProducerTemplate producerTemplate, TransactionStatusService transactionStatusService) {
+            AppUserRepository appUserRepository, ProducerTemplate producerTemplate, TransactionStatusService transactionStatusService,
+            final BusinessDateReadPlatformService businessDateReadPlatformService) {
         this.tenantDetailsService = tenantDetailsService;
         this.processingService = processingService;
         this.fromApiJsonHelper = fromApiJsonHelper;
         this.appUserRepository = appUserRepository;
         this.producerTemplate = producerTemplate;
         this.transactionStatusService = transactionStatusService;
+        this.businessDateReadPlatformService = businessDateReadPlatformService;
     }
 
     public void process(@Header(CommandConstants.FINERACT_HEADER_AUTH_TOKEN) String authToken,
@@ -109,7 +122,8 @@ public class CommandQueuingProcessor {
         JsonCommand command = JsonCommand.from(json, parsedCommand, this.fromApiJsonHelper, commandWrapper.getEntityName(),
                 commandWrapper.getEntityId(), commandWrapper.getSubentityId(), commandWrapper.getGroupId(), commandWrapper.getClientId(),
                 commandWrapper.getLoanId(), commandWrapper.getSavingsId(), commandWrapper.getTransactionId(), commandWrapper.getHref(),
-                commandWrapper.getProductId(), commandWrapper.getCreditBureauId(), commandWrapper.getOrganisationCreditBureauId());
+                commandWrapper.getProductId(), commandWrapper.getCreditBureauId(), commandWrapper.getOrganisationCreditBureauId(),
+                commandWrapper.getJobName());
 
         executeCommand(tenantId, authToken, username, approvedByChecker, commandWrapper, command, headers);
     }
@@ -126,13 +140,17 @@ public class CommandQueuingProcessor {
 
             ThreadLocalContextUtil.setAuthToken(authToken);
 
+            HashMap<BusinessDateType, LocalDate> businessDates = businessDateReadPlatformService.getBusinessDates();
+            ThreadLocalContextUtil.setActionContext(ActionContext.DEFAULT);
+            ThreadLocalContextUtil.setBusinessDates(businessDates);
+
             final AppUser user = appUserRepository.findAppUserByName(username);
             SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(user, user.getPassword()));
 
             String correlationId = headers.get(CommandConstants.FINERACT_HEADER_CORRELATION_ID) + "";
 
             try {
-                CommandProcessingResult result = processingService.processAndLogCommand(commandWrapper, command, approvedByChecker);
+                CommandProcessingResult result = processingService.executeCommand(commandWrapper, command, approvedByChecker);
                 this.transactionStatusService.endProcessing(correlationId);
                 result.setCorrelationId(correlationId);
 

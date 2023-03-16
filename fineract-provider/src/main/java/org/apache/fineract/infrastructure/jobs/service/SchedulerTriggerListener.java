@@ -33,6 +33,7 @@ import org.quartz.JobKey;
 import org.quartz.Trigger;
 import org.quartz.Trigger.CompletedExecutionInstruction;
 import org.quartz.TriggerListener;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +48,9 @@ public class SchedulerTriggerListener implements TriggerListener {
 
     private final BusinessDateReadPlatformService businessDateReadPlatformService;
 
+    @Value("${fineract.allowJobs:false}")
+    private volatile boolean allowJobs;
+
     @Override
     public String getName() {
         return "Fineract Global Scheduler Trigger Listener";
@@ -60,25 +64,28 @@ public class SchedulerTriggerListener implements TriggerListener {
     @Override
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public boolean vetoJobExecution(final Trigger trigger, final JobExecutionContext context) {
-        final String tenantIdentifier = trigger.getJobDataMap().getString(SchedulerServiceConstants.TENANT_IDENTIFIER);
-        final FineractPlatformTenant tenant = this.tenantDetailsService.loadTenantById(tenantIdentifier);
-        ThreadLocalContextUtil.setTenant(tenant);
-        ThreadLocalContextUtil.setActionContext(ActionContext.DEFAULT);
-        HashMap<BusinessDateType, LocalDate> businessDates = businessDateReadPlatformService.getBusinessDates();
-        ThreadLocalContextUtil.setBusinessDates(businessDates);
-        final JobKey key = trigger.getJobKey();
-        final String jobKey = key.getName() + SchedulerServiceConstants.JOB_KEY_SEPERATOR + key.getGroup();
-        String triggerType = SchedulerServiceConstants.TRIGGER_TYPE_CRON;
-        if (context.getMergedJobDataMap().containsKey(SchedulerServiceConstants.TRIGGER_TYPE_REFERENCE)) {
-            triggerType = context.getMergedJobDataMap().getString(SchedulerServiceConstants.TRIGGER_TYPE_REFERENCE);
+        if (allowJobs) {
+            final String tenantIdentifier = trigger.getJobDataMap().getString(SchedulerServiceConstants.TENANT_IDENTIFIER);
+            final FineractPlatformTenant tenant = this.tenantDetailsService.loadTenantById(tenantIdentifier);
+            ThreadLocalContextUtil.setTenant(tenant);
+            ThreadLocalContextUtil.setActionContext(ActionContext.DEFAULT);
+            HashMap<BusinessDateType, LocalDate> businessDates = businessDateReadPlatformService.getBusinessDates();
+            ThreadLocalContextUtil.setBusinessDates(businessDates);
+            final JobKey key = trigger.getJobKey();
+            final String jobKey = key.getName() + SchedulerServiceConstants.JOB_KEY_SEPERATOR + key.getGroup();
+            String triggerType = SchedulerServiceConstants.TRIGGER_TYPE_CRON;
+            if (context.getMergedJobDataMap().containsKey(SchedulerServiceConstants.TRIGGER_TYPE_REFERENCE)) {
+                triggerType = context.getMergedJobDataMap().getString(SchedulerServiceConstants.TRIGGER_TYPE_REFERENCE);
+            }
+            boolean vetoJob = this.schedularService.processJobDetailForExecution(jobKey, triggerType);
+            if (vetoJob) {
+                log.warn(
+                        "vetoJobExecution() WILL veto the execution (returning vetoJob == true; the job's execute method will NOT be called); tenant={}, jobKey={}, triggerType={}, trigger={}, context={}",
+                        tenantIdentifier, jobKey, triggerType, trigger, context);
+            }
+            return vetoJob;
         }
-        boolean vetoJob = this.schedularService.processJobDetailForExecution(jobKey, triggerType);
-        if (vetoJob) {
-            log.warn(
-                    "vetoJobExecution() WILL veto the execution (returning vetoJob == true; the job's execute method will NOT be called); tenant={}, jobKey={}, triggerType={}, trigger={}, context={}",
-                    tenantIdentifier, jobKey, triggerType, trigger, context);
-        }
-        return vetoJob;
+        return false;
     }
 
     @Override

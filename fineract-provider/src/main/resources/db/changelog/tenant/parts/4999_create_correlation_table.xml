@@ -22,15 +22,11 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
-    <changeSet author="fineract" id="1" context="tenant_store_db">
-        <dropColumn tableName="tenant_server_connections" columnName="deadlock_max_retries" />
-        <dropColumn tableName="tenant_server_connections" columnName="deadlock_max_retry_interval" />
-    </changeSet>
-
-    <changeSet author="fineract" id="2">
-        <addColumn tableName="tenant_server_connections">
-            <column defaultValueNumeric="0" name="deadlock_max_retries" type="INT"/>
-            <column defaultValueNumeric="1" name="deadlock_max_retry_interval" type="INT"/>
-        </addColumn>
-    </changeSet>
+    <changeSet author="fineract" id="4999_create_correlation_table">
+       <createTable tableName="c_correlation">
+           <column name="id" type="varchar(100)">
+                <constraints primaryKey="true"/>
+           </column>
+       </createTable>
+     </changeSet>
 </databaseChangeLog>

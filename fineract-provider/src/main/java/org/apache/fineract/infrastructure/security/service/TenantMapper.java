@@ -39,7 +39,8 @@ public final class TenantMapper implements RowMapper<FineractPlatformTenant> {
             + " ts.pool_min_evictable_idle_time_millis as poolMinEvictableIdleTimeMillis,"
             + " ts.readonly_schema_server as readOnlySchemaServer, " + " ts.readonly_schema_server_port as readOnlySchemaServerPort, "
             + " ts.readonly_schema_name as readOnlySchemaName, " + " ts.readonly_schema_username as readOnlySchemaUsername, "
-            + " ts.readonly_schema_password as readOnlySchemaPassword, "
+            + " ts.readonly_schema_password as readOnlySchemaPassword, " + " ts.deadlock_max_retries as maxRetriesOnDeadlock,"
+            + " ts.deadlock_max_retry_interval as maxIntervalBetweenRetries,"
             + " ts.readonly_schema_connection_parameters as readOnlySchemaConnectionParameters "
             + " from tenants t left join tenant_server_connections ts ";
     private final StringBuilder sqlBuilder = new StringBuilder(TENANT_SERVER_CONNECTION_BUILDER);
@@ -99,10 +100,26 @@ public final class TenantMapper implements RowMapper<FineractPlatformTenant> {
         final int timeBetweenEvictionRunsMillis = rs.getInt("poolTimeBetweenEvictionRunsMillis");
         final int minEvictableIdleTimeMillis = rs.getInt("poolMinEvictableIdleTimeMillis");
 
+        int maxRetriesOnDeadlock = rs.getInt("maxRetriesOnDeadlock");
+        int maxIntervalBetweenRetries = rs.getInt("maxIntervalBetweenRetries");
+
+        maxRetriesOnDeadlock = bindValueInMinMaxRange(maxRetriesOnDeadlock, 0, 15);
+        maxIntervalBetweenRetries = bindValueInMinMaxRange(maxIntervalBetweenRetries, 1, 15);
+
         return new FineractPlatformTenantConnection(connectionId, schemaName, schemaServer, schemaServerPort, schemaConnectionParameters,
                 schemaUsername, schemaPassword, autoUpdateEnabled, initialSize, validationInterval, removeAbandoned, removeAbandonedTimeout,
                 logAbandoned, abandonWhenPercentageFull, maxActive, minIdle, maxIdle, suspectTimeout, timeBetweenEvictionRunsMillis,
                 minEvictableIdleTimeMillis, testOnBorrow, readOnlySchemaServer, readOnlySchemaServerPort, readOnlySchemaName,
-                readOnlySchemaUsername, readOnlySchemaPassword, readOnlySchemaConnectionParameters);
+                readOnlySchemaUsername, readOnlySchemaPassword, maxRetriesOnDeadlock, maxIntervalBetweenRetries,
+                readOnlySchemaConnectionParameters);
+    }
+
+    private int bindValueInMinMaxRange(final int value, int min, int max) {
+        if (value < min) {
+            return min;
+        } else if (value > max) {
+            return max;
+        }
+        return value;
     }
 }

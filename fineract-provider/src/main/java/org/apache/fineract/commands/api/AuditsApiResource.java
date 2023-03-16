@@ -155,7 +155,7 @@ public class AuditsApiResource {
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = MakercheckersApiResourceSwagger.GetMakerCheckersSearchTemplateResponse.class))) })
     public String retrieveAuditSearchTemplate(@Context final UriInfo uriInfo) {
 
-        this.context.authenticatedUser().validateHasReadPermission(this.RESOURCE_NAME_FOR_PERMISSIONS);
+        this.context.authenticatedUser().validateHasReadPermission(RESOURCE_NAME_FOR_PERMISSIONS);
 
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
 

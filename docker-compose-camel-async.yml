@@ -1,0 +1,188 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements. See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership. The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+version: '3.7'
+services:
+  queue:
+    image: rabbitmq:3-management
+    logging:
+      driver: none
+    hostname: queue
+    ports:
+      - 15672:15672
+      - 25672:25672
+      - 5672:5672
+    environment:
+      - RABBITMQ_ERLANG_COOKIE=cluster_cookie
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=secret
+      - RABBITMQ_DEFAULT_VHOST=/vhost
+      - RABBITMQ_NODENAME=rabbit@queue
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  fineract-frontend:
+    image: fineract:latest
+    ports:
+      - 8443:8443
+      - 8080:8080
+      - 9292:9292
+      - 8000:8000
+    depends_on:
+      - queue
+    volumes:
+      - ./fineract-provider/config/logback-local.xml:/app/resources/logback.xml
+      - /tmp/tomcat:/tmp/tomcat
+      - ./fineract-provider/src/main/resources/keystore.jks:/app/resources/keystore.jks
+    environment:
+      - FINERACT_NODE_ID=1
+      # NOTE: env vars prefixed "FINERACT_HIKARI_*" are used to configure the database connection pool
+      - FINERACT_HIKARI_DRIVER_SOURCE_CLASS_NAME=com.mysql.cj.jdbc.Driver
+      - FINERACT_HIKARI_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
+      - FINERACT_HIKARI_JDBC_URL=jdbc:mysql://host.docker.internal:3306/fineract_tenants
+      - FINERACT_HIKARI_USERNAME=root
+      - FINERACT_HIKARI_PASSWORD=mysql
+      # ... following variables are optional; "application.properties" contains reasonable defaults (same as here)
+      - FINERACT_HIKARI_MINIMUM_IDLE=3
+      - FINERACT_HIKARI_MAXIMUM_POOL_SIZE=10
+      - FINERACT_HIKARI_IDLE_TIMEOUT=60000
+      - FINERACT_HIKARI_CONNECTION_TIMEOUT=20000
+      - FINERACT_HIKARI_TEST_QUERY=SELECT 1
+      - FINERACT_HIKARI_AUTO_COMMIT=true
+      - FINERACT_HIKARI_DS_PROPERTIES_CACHE_PREP_STMTS=true
+      - FINERACT_HIKARI_DS_PROPERTIES_PREP_STMT_CACHE_SIZE=250
+      - FINERACT_HIKARI_DS_PROPERTIES_PREP_STMT_CACHE_SQL_LIMIT=2048
+      - FINERACT_HIKARI_DS_PROPERTIES_USE_SERVER_PREP_STMTS=true
+      - FINERACT_HIKARI_DS_PROPERTIES_USE_LOCAL_SESSION_STATE=true
+      - FINERACT_HIKARI_DS_PROPERTIES_REWRITE_BATCHED_STATEMENTS=true
+      - FINERACT_HIKARI_DS_PROPERTIES_CACHE_RESULT_SET_METADATA=true
+      - FINERACT_HIKARI_DS_PROPERTIES_CACHE_SERVER_CONFIGURATION=true
+      - FINERACT_HIKARI_DS_PROPERTIES_ELIDE_SET_AUTO_COMMITS=true
+      - FINERACT_HIKARI_DS_PROPERTIES_MAINTAIN_TIME_STATS=false
+      - FINERACT_HIKARI_DS_PROPERTIES_LOG_SLOW_QUERIES=true
+      - FINERACT_HIKARI_DS_PROPERTIES_DUMP_QUERIES_IN_EXCEPTION=true
+      # NOTE: env vars prefixed "FINERACT_DEFAULT_TENANTDB_*" are used to create the default tenant database
+      - FINERACT_DEFAULT_TENANTDB_HOSTNAME=localhost
+      - FINERACT_DEFAULT_TENANTDB_PORT=3306
+      - FINERACT_DEFAULT_TENANTDB_UID=root
+      - FINERACT_DEFAULT_TENANTDB_PWD=mysql
+      - FINERACT_DEFAULT_TENANTDB_CONN_PARAMS=
+      - FINERACT_DEFAULT_TENANTDB_TIMEZONE=Africa/Kampala
+      - FINERACT_DEFAULT_TENANTDB_IDENTIFIER=default
+      - FINERACT_DEFAULT_TENANTDB_NAME=fineract_default
+      - FINERACT_DEFAULT_TENANTDB_DESCRIPTION=Default Demo Tenant
+      # NOTE: Camel related configuration
+      - FINERACT_CAMEL_PROCESSING_TIMEOUT=5000
+      - FINERACT_CAMEL_FRONTEND_ENABLED=true
+      - FINERACT_CAMEL_BACKEND_ENABLED=false
+      # NOTE: RabbitMQ related configuration
+      - RABBITMQ_ADDRESSES=queue
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=secret
+      - RABBITMQ_DEFAULT_VHOST=/vhost
+      - RABBITMQ_NODENAME=rabbit@queue
+      - FINERACT_SERVER_PORT=8443
+      - FINERACT_SERVER_SSL_ENABLED=true
+#      - FINERACT_SERVER_PORT=8080
+#      - FINERACT_SERVER_SSL_ENABLED=false
+      #- FINERACT_SERVER_TOMCAT_MAX_CONNECTIONS=10000
+      - FINERACT_SERVER_TOMCAT_ACCEPT_COUNT=1000
+      - FINERACT_SERVER_TOMCAT_THREADS_MAX=400
+      - FINERACT_SERVER_TOMCAT_THREADS_MIN_SPARE=50
+      #VFD SPECIFIC ENVS
+      - spring.profiles.active=basicauth
+      - fineract.allowJobs=false
+      - FINERACT_SERVER_SSL_KEY_STORE=app/resources/keystore.jks
+      - FINERACT_SERVER_SSL_KEY_STORE_PASSWORD=openmf
+      - CAMEL_SSL_KEY_STORE=app/resources/keystore.jks
+      - CAMEL_SSL_PASSWORD=openmf
+      - SPRING_ALLOW_BEAN_DEFINITION_OVERRIDING=true
+    #entrypoint: ["java", "-agentlib:jdwp=transport=dt_socket,server=y,address=*:8000,suspend=n", "-Duser.timezone=UTC", "-Dloader.path=/app/libs/", "-Dlogging.config=/app/logback-local.xml", "-jar", "/app/fineract-provider.jar"]
+    # entrypoint: ["java", "-Xmx2G", "-Xms512m"]
+    entrypoint: ["java", "-Xmx2G", "-Xms1G", "-Xdebug", "-agentlib:jdwp=transport=dt_socket,server=y,address=*:8000,suspend=n", "-Duser.timezone=UTC", "-Djava.net.preferIPv4Stack=true", "-cp", "/app/classes:/app/libs/*", "org.apache.fineract.ServerApplication"]
+
+  fineract-backend:
+    image: fineract:latest
+    ports:
+      - 8444:8443
+      - 8081:8080
+      - 8001:8000
+    depends_on:
+      - queue
+      - fineract-frontend
+    volumes:
+      - ./fineract-provider/config/logback-local.xml:/app/resources/logback.xml
+      - /tmp/tomcat:/tmp/tomcat
+    environment:
+      - FINERACT_NODE_ID=2
+      # NOTE: env vars prefixed "FINERACT_HIKARI_*" are used to configure the database connection pool
+      - FINERACT_HIKARI_DRIVER_SOURCE_CLASS_NAME=com.mysql.cj.jdbc.Driver
+      - FINERACT_HIKARI_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
+      - FINERACT_HIKARI_JDBC_URL=jdbc:mysql://host.docker.internal:3306/fineract_tenants
+      - FINERACT_HIKARI_USERNAME=root
+      - FINERACT_HIKARI_PASSWORD=mysql
+      # ... following variables are optional; "application.properties" contains reasonable defaults (same as here)
+      - FINERACT_HIKARI_MINIMUM_IDLE=3
+      - FINERACT_HIKARI_MAXIMUM_POOL_SIZE=10
+      - FINERACT_HIKARI_IDLE_TIMEOUT=60000
+      - FINERACT_HIKARI_CONNECTION_TIMEOUT=20000
+      - FINERACT_HIKARI_TEST_QUERY=SELECT 1
+      - FINERACT_HIKARI_AUTO_COMMIT=true
+      - FINERACT_HIKARI_DS_PROPERTIES_CACHE_PREP_STMTS=true
+      - FINERACT_HIKARI_DS_PROPERTIES_PREP_STMT_CACHE_SIZE=250
+      - FINERACT_HIKARI_DS_PROPERTIES_PREP_STMT_CACHE_SQL_LIMIT=2048
+      - FINERACT_HIKARI_DS_PROPERTIES_USE_SERVER_PREP_STMTS=true
+      - FINERACT_HIKARI_DS_PROPERTIES_USE_LOCAL_SESSION_STATE=true
+      - FINERACT_HIKARI_DS_PROPERTIES_REWRITE_BATCHED_STATEMENTS=true
+      - FINERACT_HIKARI_DS_PROPERTIES_CACHE_RESULT_SET_METADATA=true
+      - FINERACT_HIKARI_DS_PROPERTIES_CACHE_SERVER_CONFIGURATION=true
+      - FINERACT_HIKARI_DS_PROPERTIES_ELIDE_SET_AUTO_COMMITS=true
+      - FINERACT_HIKARI_DS_PROPERTIES_MAINTAIN_TIME_STATS=false
+      - FINERACT_HIKARI_DS_PROPERTIES_LOG_SLOW_QUERIES=true
+      - FINERACT_HIKARI_DS_PROPERTIES_DUMP_QUERIES_IN_EXCEPTION=true
+      # NOTE: env vars prefixed "FINERACT_DEFAULT_TENANTDB_*" are used to create the default tenant database
+      - FINERACT_DEFAULT_TENANTDB_HOSTNAME=localhost
+      - FINERACT_DEFAULT_TENANTDB_PORT=3306
+      - FINERACT_DEFAULT_TENANTDB_UID=root
+      - FINERACT_DEFAULT_TENANTDB_PWD=mysql
+      - FINERACT_DEFAULT_TENANTDB_CONN_PARAMS=
+      - FINERACT_DEFAULT_TENANTDB_TIMEZONE=Africa/Kampala
+      - FINERACT_DEFAULT_TENANTDB_IDENTIFIER=default
+      - FINERACT_DEFAULT_TENANTDB_NAME=fineract_default
+      - FINERACT_DEFAULT_TENANTDB_DESCRIPTION=Default Demo Tenant
+      # NOTE: Camel related configuration
+      - FINERACT_CAMEL_PROCESSING_TIMEOUT=5000
+      - FINERACT_CAMEL_FRONTEND_ENABLED=false
+      - FINERACT_CAMEL_BACKEND_ENABLED=true
+      # NOTE: RabbitMQ related configuration
+      - RABBITMQ_ADDRESSES=queue
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=secret
+      - RABBITMQ_DEFAULT_VHOST=/vhost
+      - RABBITMQ_NODENAME=rabbit@queue
+      #VFD SPECIFIC ENVS
+      - spring.profiles.active=basicauth
+      - fineract.allowJobs=false
+      - SPRING_ALLOW_BEAN_DEFINITION_OVERRIDING=true
+    # entrypoint: ["java", "-agentlib:jdwp=transport=dt_socket,server=y,address=*:8000,suspend=n", "-Duser.timezone=UTC", "-Dloader.path=/app/libs/", "-Dlogging.config=/app/logback-local.xml", "-jar", "/app/fineract-provider.jar"]
+    # entrypoint: ["java", "-Xmx2G", "-Xms512m", "-Xdebug"]
+    entrypoint: ["java", "-Xmx5G", "-Xms1G", "-Xdebug", "-agentlib:jdwp=transport=dt_socket,server=y,address=*:8000,suspend=n", "-Duser.timezone=UTC", "-Djava.net.preferIPv4Stack=true", "-cp", "/app/classes:/app/libs/*", "org.apache.fineract.ServerApplication"]
+    # entrypoint: ["java", "-Xmx2G", "-Xms512m", "-Duser.timezone=UTC", "-Djava.net.preferIPv4Stack=true", "-Dlogging.config=/app/logback-local.xml", "-cp", "/app/classes:/app/libs/*", "org.apache.fineract.ServerApplication"]

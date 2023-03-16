@@ -81,6 +81,7 @@ dependencies {
             'com.squareup.retrofit2:converter-gson',
             'com.sun.activation:jakarta.activation',
             'com.sun.mail:jakarta.mail',
+            'mysql:mysql-connector-java',
 
             'org.springdoc:springdoc-openapi-ui',
             'org.springdoc:springdoc-openapi-common',

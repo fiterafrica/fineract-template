@@ -57,10 +57,8 @@ import org.apache.fineract.infrastructure.hooks.event.HookEventSource;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Service
 @Slf4j
 @RequiredArgsConstructor
 public class SynchronousCommandProcessingService implements CommandProcessingService {
@@ -78,7 +76,6 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
     private final IdempotencyKeyResolver idempotencyKeyResolver;
     private final IdempotencyKeyGenerator idempotencyKeyGenerator;
     private final CommandSourceService commandSourceService;
-
     private final FineractRequestContextHolder fineractRequestContextHolder;
     private final Gson gson = GoogleGsonSerializerHelper.createSimpleGson();
 

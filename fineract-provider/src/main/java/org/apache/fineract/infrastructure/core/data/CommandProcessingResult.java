@@ -18,11 +18,15 @@
  */
 package org.apache.fineract.infrastructure.core.data;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
 import lombok.ToString;
+import org.apache.fineract.commands.serialization.CommandProcessingResultDeserializer;
+import org.apache.fineract.commands.serialization.CommandProcessingResultSerializer;
 import org.apache.fineract.infrastructure.core.domain.ExternalId;
 
 /**
@@ -30,6 +34,8 @@ import org.apache.fineract.infrastructure.core.domain.ExternalId;
  */
 @ToString
 @Getter
+@JsonSerialize(using = CommandProcessingResultSerializer.class)
+@JsonDeserialize(using = CommandProcessingResultDeserializer.class)
 public class CommandProcessingResult implements Serializable {
 
     private String correlationId;
@@ -245,4 +251,17 @@ public class CommandProcessingResult implements Serializable {
     public void setRollbackTransaction(Boolean rollbackTransaction) {
         this.rollbackTransaction = rollbackTransaction;
     }
+
+    public Long commandId() {
+        return this.commandId;
+    }
+
+    public Long resourceId() {
+        return this.resourceId;
+    }
+
+    public Map<String, Object> getCreditReport() {
+        return this.creditBureauReportData;
+    }
+
 }
