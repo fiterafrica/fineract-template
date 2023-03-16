@@ -85,6 +85,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import org.apache.fineract.accounting.common.AccountingRuleType;
+import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
@@ -240,6 +241,14 @@ public class SavingsProduct extends AbstractPersistableCustom {
     @Column(name = "use_floating_interest_rate")
     private Boolean useFloatingInterestRate;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_category_id")
+    private CodeValue productCategory;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_type_id")
+    private CodeValue productType;
+
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "savingsProduct", orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<SavingsProductFloatingInterestRate> savingsProductFloatingInterestRates = new HashSet<>();
 
@@ -256,7 +265,7 @@ public class SavingsProduct extends AbstractPersistableCustom {
             final BigDecimal minOverdraftForInterestCalculation, boolean withHoldTax, TaxGroup taxGroup,
             final Boolean isDormancyTrackingActive, final Long daysToInactive, final Long daysToDormancy, final Long daysToEscheat,
             final Boolean isInterestPostingConfigUpdate, final Long numOfCreditTransaction, final Long numOfDebitTransaction,
-            final Boolean useFloatingInterestRate) {
+            final Boolean useFloatingInterestRate,final CodeValue productCategory,final CodeValue productType) {
 
         return new SavingsProduct(name, shortName, description, currency, interestRate, interestCompoundingPeriodType,
                 interestPostingPeriodType, interestCalculationType, interestCalculationDaysInYearType, minRequiredOpeningBalance,
@@ -264,7 +273,7 @@ public class SavingsProduct extends AbstractPersistableCustom {
                 allowOverdraft, overdraftLimit, enforceMinRequiredBalance, minRequiredBalance, lienAllowed, maxAllowedLienLimit,
                 minBalanceForInterestCalculation, nominalAnnualInterestRateOverdraft, minOverdraftForInterestCalculation, withHoldTax,
                 taxGroup, isDormancyTrackingActive, daysToInactive, daysToDormancy, daysToEscheat, isInterestPostingConfigUpdate,
-                numOfCreditTransaction, numOfDebitTransaction, false, false, useFloatingInterestRate, false);
+                numOfCreditTransaction, numOfDebitTransaction, false, false, useFloatingInterestRate, false,productCategory,productType);
     }
 
     protected SavingsProduct() {
@@ -287,7 +296,7 @@ public class SavingsProduct extends AbstractPersistableCustom {
                 lockinPeriodFrequencyType, withdrawalFeeApplicableForTransfer, accountingRuleType, charges, allowOverdraft, overdraftLimit,
                 false, null, false, null, minBalanceForInterestCalculation, null, null, withHoldTax, taxGroup, null, null, null, null,
                 isInterestPostingConfigUpdate, numOfCreditTransaction, numOfDebitTransaction, isUSDProduct, allowManuallyEnterInterestRate,
-                useFloatingInterestRate, addPenaltyOnMissedTargetSavings);
+                useFloatingInterestRate, addPenaltyOnMissedTargetSavings,null,null);
     }
 
     protected SavingsProduct(final String name, final String shortName, final String description, final MonetaryCurrency currency,
@@ -303,11 +312,13 @@ public class SavingsProduct extends AbstractPersistableCustom {
             final Boolean isDormancyTrackingActive, final Long daysToInactive, final Long daysToDormancy, final Long daysToEscheat,
             final Boolean isInterestPostingConfigUpdate, final Long numOfCreditTransaction, final Long numOfDebitTransaction,
             boolean isUSDProduct, boolean allowManuallyEnterInterestRate, final Boolean useFloatingInterestRate,
-            Boolean addPenaltyOnMissedTargetSavings) {
+            Boolean addPenaltyOnMissedTargetSavings,final CodeValue productCategory,final CodeValue productType) {
 
         this.name = name;
         this.shortName = shortName;
         this.description = description;
+        this.productCategory=productCategory;
+        this.productType=productType;
 
         this.currency = currency;
         this.nominalAnnualInterestRate = interestRate;
@@ -900,4 +911,19 @@ public class SavingsProduct extends AbstractPersistableCustom {
         return this.isUSDProduct;
     }
 
+    public CodeValue getProductCategory() {
+        return productCategory;
+    }
+
+    public CodeValue getProductType() {
+        return productType;
+    }
+
+    public void setProductCategory(CodeValue productCategory) {
+        this.productCategory = productCategory;
+    }
+
+    public void setProductType(CodeValue productType) {
+        this.productType = productType;
+    }
 }

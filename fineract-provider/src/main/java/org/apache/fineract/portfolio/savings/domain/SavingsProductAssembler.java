@@ -72,6 +72,8 @@ import java.util.List;
 import java.util.Set;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.fineract.accounting.common.AccountingRuleType;
+import org.apache.fineract.infrastructure.codes.domain.CodeValue;
+import org.apache.fineract.infrastructure.codes.domain.CodeValueRepositoryWrapper;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
@@ -83,6 +85,7 @@ import org.apache.fineract.portfolio.charge.domain.Charge;
 import org.apache.fineract.portfolio.charge.domain.ChargeRepositoryWrapper;
 import org.apache.fineract.portfolio.charge.exception.ChargeCannotBeAppliedToException;
 import org.apache.fineract.portfolio.loanproduct.exception.InvalidCurrencyException;
+import org.apache.fineract.portfolio.savings.SavingsApiConstants;
 import org.apache.fineract.portfolio.savings.SavingsCompoundingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.SavingsInterestCalculationDaysInYearType;
 import org.apache.fineract.portfolio.savings.SavingsInterestCalculationType;
@@ -91,6 +94,7 @@ import org.apache.fineract.portfolio.savings.SavingsPostingInterestPeriodType;
 import org.apache.fineract.portfolio.tax.domain.TaxGroup;
 import org.apache.fineract.portfolio.tax.domain.TaxGroupRepositoryWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -100,12 +104,15 @@ public class SavingsProductAssembler {
     private final TaxGroupRepositoryWrapper taxGroupRepository;
     private final FromJsonHelper fromApiJsonHelper;
 
+    private final CodeValueRepositoryWrapper codeValueRepository;
+
     @Autowired
     public SavingsProductAssembler(final ChargeRepositoryWrapper chargeRepository, final TaxGroupRepositoryWrapper taxGroupRepository,
-            final FromJsonHelper fromApiJsonHelper) {
+            final FromJsonHelper fromApiJsonHelper, CodeValueRepositoryWrapper codeValueRepository) {
         this.chargeRepository = chargeRepository;
         this.taxGroupRepository = taxGroupRepository;
         this.fromApiJsonHelper = fromApiJsonHelper;
+        this.codeValueRepository = codeValueRepository;
     }
 
     public SavingsProduct assemble(final JsonCommand command) {
@@ -113,6 +120,9 @@ public class SavingsProductAssembler {
         final String name = command.stringValueOfParameterNamed(nameParamName);
         final String shortName = command.stringValueOfParameterNamed(shortNameParamName);
         final String description = command.stringValueOfParameterNamedAllowingNull(descriptionParamName);
+
+        CodeValue productCategory = getLoanProductCategory(command);
+        CodeValue productType = getLoanProductType(command);
 
         final String currencyCode = command.stringValueOfParameterNamed(currencyCodeParamName);
         final Integer digitsAfterDecimal = command.integerValueOfParameterNamed(digitsAfterDecimalParamName);
@@ -231,7 +241,7 @@ public class SavingsProductAssembler {
                 allowOverdraft, overdraftLimit, enforceMinRequiredBalance, minRequiredBalance, lienAllowed, maxAllowedLienLimit,
                 minBalanceForInterestCalculation, nominalAnnualInterestRateOverdraft, minOverdraftForInterestCalculation, withHoldTax,
                 taxGroup, isDormancyTrackingActive, daysToInactive, daysToDormancy, daysToEscheat, isInterestPostingConfigUpdate,
-                numOfCreditTransaction, numOfDebitTransaction, useFloatingInterestRate);
+                numOfCreditTransaction, numOfDebitTransaction, useFloatingInterestRate,productCategory,productType);
     }
 
     public Set<SavingsProductFloatingInterestRate> assembleListOfFloatingInterestRates(final JsonCommand command,
@@ -367,5 +377,27 @@ public class SavingsProductAssembler {
 
     public static Date asDate(LocalDate localDate) {
         return Date.from(localDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant());
+    }
+
+    @Nullable
+    private CodeValue getLoanProductCategory(JsonCommand command) {
+        CodeValue productCategory = null;
+        final Long productCategoryId = command.longValueOfParameterNamed(SavingsApiConstants.SAVINGS_PRODUCT_CATEGORY_ID);
+        if (productCategoryId != null) {
+            productCategory = this.codeValueRepository.findOneByCodeNameAndIdWithNotFoundDetection(SavingsApiConstants.SAVINGS_PRODUCT_CATEGORY,
+                    productCategoryId);
+        }
+        return productCategory;
+    }
+
+    @Nullable
+    private CodeValue getLoanProductType(JsonCommand command) {
+        CodeValue productType = null;
+        final Long productTypeId = command.longValueOfParameterNamed(SavingsApiConstants.SAVINGS_PRODUCT_TYPE_ID);
+        if (productTypeId != null) {
+            productType = this.codeValueRepository.findOneByCodeNameAndIdWithNotFoundDetection(SavingsApiConstants.SAVINGS_PRODUCT_TYPE,
+                    productTypeId);
+        }
+        return productType;
     }
 }

@@ -226,4 +226,12 @@ public class SavingsApiConstants {
     public static final String floatingInterestRatesParamName = "floatingInterestRates";
     public static final String floatingInterestRateValueParamName = "floatingInterestRateValue";
     public static final String ADD_PENALTY_ON_MISSED_TARGET_SAVINGS = "addPenaltyOnMissedTargetSavings";
+
+    public static String savingsProductCategoryIdParamName = "savingsProductCategoryId";
+
+    public static String savingsProductTypeIdParamName = "savingsProductTypeId";
+
+    public static String SAVINGS_PRODUCT_CATEGORY = "SavingsProductCategory";
+
+    public static String SAVINGS_PRODUCT_TYPE = "SavingsProductType";
 }
