@@ -191,7 +191,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
         }
 
         public String loanProductSchema() {
-            return "lp.id as id, lp.fund_id as fundId,lp.product_type_id productTypeId, lp.product_category_id productCategoryId , f.name as fundName, lp.loan_transaction_strategy_id as transactionStrategyId, ltps.name as transactionStrategyName, "
+            return "lp.id as id, lp.fund_id as fundId, f.name as fundName, lp.loan_transaction_strategy_id as transactionStrategyId, ltps.name as transactionStrategyName, "
                     + "lp.name as name, lp.short_name as shortName, lp.description as description, "
                     + "lp.principal_amount as principal, lp.min_principal_amount as minPrincipal, lp.max_principal_amount as maxPrincipal, lp.currency_code as currencyCode, lp.currency_digits as currencyDigits, lp.currency_multiplesof as inMultiplesOf, "
                     + "lp.nominal_interest_rate_per_period as interestRatePerPeriod, lp.min_nominal_interest_rate_per_period as minInterestRatePerPeriod, lp.max_nominal_interest_rate_per_period as maxInterestRatePerPeriod, lp.interest_period_frequency_enum as interestRatePerPeriodFreq, "
@@ -239,7 +239,8 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                     + "lvi.maximum_gap as maximumGap, "
                     + "lp.can_use_for_topup as canUseForTopup, lp.is_equal_amortization as isEqualAmortization, lp.is_loan_term_includes_topped_up_loan_term as loanTermIncludesToppedUpLoanTerm ,"
                     + "lp.max_number_of_loan_extensions_allowed as maxNumberOfLoanExtensionsAllowed, "
-                    + "lp.is_bnpl_loan_product as isBnplLoanProduct, " + "lp.requires_equity_contribution as requiresEquityContribution, "
+                    + "lp.is_bnpl_loan_product as isBnplLoanProduct, "
+                    + "lp.requires_equity_contribution as requiresEquityContribution, "
                     + "lp.equity_contribution_loan_percentage as equityContributionLoanPercentage, "
                     + "lp.is_account_level_arrears_tolerance_enable as isAccountLevelArrearsToleranceEnable " + " from m_product_loan lp "
                     + " left join m_fund f on f.id = lp.fund_id "
@@ -261,8 +262,6 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
             final String name = rs.getString("name");
             final String shortName = rs.getString("shortName");
             final String description = rs.getString("description");
-            final Long productCategoryId = rs.getLong("productCategoryId");
-            final Long productTypeId = rs.getLong("productTypeId");
             final Long fundId = JdbcSupport.getLong(rs, "fundId");
             final String fundName = rs.getString("fundName");
             final Long transactionStrategyId = JdbcSupport.getLong(rs, "transactionStrategyId");
@@ -481,9 +480,9 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
             final Boolean requiresEquityContribution = rs.getBoolean("requiresEquityContribution");
             final BigDecimal equityContributionLoanPercentage = rs.getBigDecimal("equityContributionLoanPercentage");
 
-            LoanProductData loanProductData = new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal,
-                    maxPrincipal, tolerance, numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery,
-                    interestRatePerPeriod, minInterestRatePerPeriod, maxInterestRatePerPeriod, annualInterestRate, repaymentFrequencyType,
+            LoanProductData loanProductData = new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal, maxPrincipal, tolerance,
+                    numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery, interestRatePerPeriod,
+                    minInterestRatePerPeriod, maxInterestRatePerPeriod, annualInterestRate, repaymentFrequencyType,
                     interestRateFrequencyType, amortizationType, interestType, interestCalculationPeriodType,
                     allowPartialPeriodInterestCalcualtion, fundId, fundName, transactionStrategyId, transactionStrategyName,
                     graceOnPrincipalPayment, recurringMoratoriumOnPrincipalPeriods, graceOnInterestPayment, graceOnInterestCharged,
@@ -499,7 +498,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                     maxDifferentialLendingRate, isFloatingInterestRateCalculationAllowed, isVariableIntallmentsAllowed, minimumGap,
                     maximumGap, syncExpectedWithDisbursementDate, canUseForTopup, isEqualAmortization, rateOptions, this.rates,
                     isRatesEnabled, fixedPrincipalPercentagePerInstallment, maxNumberOfLoanExtensionsAllowed,
-                    loanTermIncludesToppedUpLoanTerm, isAccountLevelArrearsToleranceEnable, productCategoryId, productTypeId);
+                    loanTermIncludesToppedUpLoanTerm, isAccountLevelArrearsToleranceEnable);
             loanProductData.setBnplLoanProduct(isBnplLoanProduct);
             loanProductData.setRequiresEquityContribution(requiresEquityContribution);
             loanProductData.setEquityContributionLoanPercentage(equityContributionLoanPercentage);

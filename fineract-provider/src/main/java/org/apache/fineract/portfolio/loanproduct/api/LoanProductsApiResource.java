@@ -27,7 +27,6 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -53,8 +52,6 @@ import org.apache.fineract.accounting.producttoaccountmapping.service.ProductToG
 import org.apache.fineract.commands.domain.CommandWrapper;
 import org.apache.fineract.commands.service.CommandWrapperBuilder;
 import org.apache.fineract.commands.service.PortfolioCommandSourceWritePlatformService;
-import org.apache.fineract.infrastructure.codes.data.CodeValueData;
-import org.apache.fineract.infrastructure.codes.service.CodeValueReadPlatformService;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.apache.fineract.infrastructure.core.api.ApiParameterHelper;
 import org.apache.fineract.infrastructure.core.api.ApiRequestParameterHelper;
@@ -67,7 +64,6 @@ import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.organisation.monetary.service.CurrencyReadPlatformService;
 import org.apache.fineract.portfolio.charge.data.ChargeData;
 import org.apache.fineract.portfolio.charge.service.ChargeReadPlatformService;
-import org.apache.fineract.portfolio.client.api.ClientApiConstants;
 import org.apache.fineract.portfolio.common.service.DropdownReadPlatformService;
 import org.apache.fineract.portfolio.floatingrates.data.FloatingRateData;
 import org.apache.fineract.portfolio.floatingrates.service.FloatingRatesReadPlatformService;
@@ -138,8 +134,6 @@ public class LoanProductsApiResource {
     private final ConfigurationDomainService configurationDomainService;
     private final InterestRateChartReadPlatformService chartReadPlatformService;
 
-    private final CodeValueReadPlatformService codeValueReadPlatformService;
-
     @Autowired
     public LoanProductsApiResource(final PlatformSecurityContext context, final LoanProductReadPlatformService readPlatformService,
             final ChargeReadPlatformService chargeReadPlatformService, final CurrencyReadPlatformService currencyReadPlatformService,
@@ -154,8 +148,7 @@ public class LoanProductsApiResource {
             final DropdownReadPlatformService commonDropdownReadPlatformService,
             PaymentTypeReadPlatformService paymentTypeReadPlatformService,
             final FloatingRatesReadPlatformService floatingRateReadPlatformService, final RateReadService rateReadService,
-            final ConfigurationDomainService configurationDomainService, InterestRateChartReadPlatformService chartReadPlatformService,
-            CodeValueReadPlatformService codeValueReadPlatformService) {
+            final ConfigurationDomainService configurationDomainService, InterestRateChartReadPlatformService chartReadPlatformService) {
         this.context = context;
         this.loanProductReadPlatformService = readPlatformService;
         this.chargeReadPlatformService = chargeReadPlatformService;
@@ -175,7 +168,6 @@ public class LoanProductsApiResource {
         this.rateReadService = rateReadService;
         this.configurationDomainService = configurationDomainService;
         this.chartReadPlatformService = chartReadPlatformService;
-        this.codeValueReadPlatformService = codeValueReadPlatformService;
     }
 
     @POST
@@ -339,11 +331,6 @@ public class LoanProductsApiResource {
             rateOptions = null;
         }
 
-        final List<CodeValueData> productCategories = new ArrayList<>(
-                this.codeValueReadPlatformService.retrieveCodeValuesByCode(ClientApiConstants.PRODUCT_CATEGORY));
-        final List<CodeValueData> productTypes = new ArrayList<>(
-                this.codeValueReadPlatformService.retrieveCodeValuesByCode(ClientApiConstants.PRODUCT_TYPE));
-
         final Collection<CurrencyData> currencyOptions = this.currencyReadPlatformService.retrieveAllowedCurrencies();
         final List<EnumOptionData> amortizationTypeOptions = this.dropdownReadPlatformService.retrieveLoanAmortizationTypeOptions();
         final List<EnumOptionData> interestTypeOptions = this.dropdownReadPlatformService.retrieveLoanInterestTypeOptions();
@@ -385,14 +372,13 @@ public class LoanProductsApiResource {
                 .retrivePreCloseInterestCalculationStrategyOptions();
         final List<FloatingRateData> floatingRateOptions = this.floatingRateReadPlatformService.retrieveLookupActive();
 
-        LoanProductData loanProductDataResponse = new LoanProductData(productData, chargeOptions, penaltyOptions, paymentTypeOptions,
-                currencyOptions, amortizationTypeOptions, interestTypeOptions, interestCalculationPeriodTypeOptions,
-                repaymentFrequencyTypeOptions, interestRateFrequencyTypeOptions, fundOptions, transactionProcessingStrategyOptions,
-                rateOptions, accountOptions, accountingRuleTypeOptions, loanCycleValueConditionTypeOptions, daysInMonthTypeOptions,
-                daysInYearTypeOptions, interestRecalculationCompoundingTypeOptions, rescheduleStrategyTypeOptions,
-                interestRecalculationFrequencyTypeOptions, preCloseInterestCalculationStrategyOptions, floatingRateOptions,
-                interestRecalculationNthDayTypeOptions, interestRecalculationDayOfWeekTypeOptions, isRatesEnabled, productCategories,
-                productTypes, productData.getProductCategoryId(), productData.getProductTypeId());
+        LoanProductData loanProductDataResponse = new LoanProductData(productData, chargeOptions, penaltyOptions, paymentTypeOptions, currencyOptions, amortizationTypeOptions,
+                interestTypeOptions, interestCalculationPeriodTypeOptions, repaymentFrequencyTypeOptions, interestRateFrequencyTypeOptions,
+                fundOptions, transactionProcessingStrategyOptions, rateOptions, accountOptions, accountingRuleTypeOptions,
+                loanCycleValueConditionTypeOptions, daysInMonthTypeOptions, daysInYearTypeOptions,
+                interestRecalculationCompoundingTypeOptions, rescheduleStrategyTypeOptions, interestRecalculationFrequencyTypeOptions,
+                preCloseInterestCalculationStrategyOptions, floatingRateOptions, interestRecalculationNthDayTypeOptions,
+                interestRecalculationDayOfWeekTypeOptions, isRatesEnabled);
         loanProductDataResponse.setBnplLoanProduct(productData.getBnplLoanProduct());
         loanProductDataResponse.setRequiresEquityContribution(productData.getRequiresEquityContribution());
         loanProductDataResponse.setEquityContributionLoanPercentage(productData.getEquityContributionLoanPercentage());

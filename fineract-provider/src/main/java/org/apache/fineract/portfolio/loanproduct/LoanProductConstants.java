@@ -152,8 +152,4 @@ public interface LoanProductConstants {
 
     String IS_ACCOUNT_LEVEL_ARREARS_TOLERANCE_ENABLE = "isAccountLevelArrearsToleranceEnable";
 
-    String LOAN_PRODUCT_CATEGORY = "productCategoryId";
-
-    String LOAN_PRODUCT_TYPE = "productTypeId";
-
 }

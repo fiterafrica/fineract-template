@@ -32,8 +32,6 @@ import java.util.Set;
 import javax.persistence.PersistenceException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.fineract.accounting.producttoaccountmapping.service.ProductToGLAccountMappingWritePlatformService;
-import org.apache.fineract.infrastructure.codes.domain.CodeValue;
-import org.apache.fineract.infrastructure.codes.domain.CodeValueRepositoryWrapper;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
@@ -48,7 +46,6 @@ import org.apache.fineract.portfolio.businessevent.domain.loan.product.LoanProdu
 import org.apache.fineract.portfolio.businessevent.service.BusinessEventNotifierService;
 import org.apache.fineract.portfolio.charge.domain.Charge;
 import org.apache.fineract.portfolio.charge.domain.ChargeRepositoryWrapper;
-import org.apache.fineract.portfolio.client.api.ClientApiConstants;
 import org.apache.fineract.portfolio.floatingrates.domain.FloatingRate;
 import org.apache.fineract.portfolio.floatingrates.domain.FloatingRateRepositoryWrapper;
 import org.apache.fineract.portfolio.fund.domain.Fund;
@@ -74,7 +71,6 @@ import org.apache.fineract.portfolio.rate.domain.Rate;
 import org.apache.fineract.portfolio.rate.domain.RateRepositoryWrapper;
 import org.apache.fineract.portfolio.savings.DepositsApiConstants;
 import org.apache.fineract.portfolio.savings.domain.DepositProductAssembler;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -105,8 +101,6 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
 
     private final InterestRateChartAssembler chartAssembler;
 
-    private final CodeValueRepositoryWrapper codeValueRepository;
-
     @Autowired
     public LoanProductWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
             final LoanProductDataValidator fromApiJsonDeserializer, final LoanProductRepository loanProductRepository,
@@ -116,8 +110,7 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
             final ProductToGLAccountMappingWritePlatformService accountMappingWritePlatformService,
             final FineractEntityAccessUtil fineractEntityAccessUtil, final FloatingRateRepositoryWrapper floatingRateRepository,
             final LoanRepositoryWrapper loanRepositoryWrapper, final BusinessEventNotifierService businessEventNotifierService,
-            DepositProductAssembler depositProductAssembler, InterestRateChartAssembler chartAssembler,
-            CodeValueRepositoryWrapper codeValueRepository) {
+            DepositProductAssembler depositProductAssembler, InterestRateChartAssembler chartAssembler) {
         this.context = context;
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
         this.loanProductRepository = loanProductRepository;
@@ -133,7 +126,6 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
         this.businessEventNotifierService = businessEventNotifierService;
         this.depositProductAssembler = depositProductAssembler;
         this.chartAssembler = chartAssembler;
-        this.codeValueRepository = codeValueRepository;
     }
 
     @Transactional
@@ -162,10 +154,8 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
                 floatingRate = this.floatingRateRepository
                         .findOneWithNotFoundDetection(command.longValueOfParameterNamed("floatingRatesId"));
             }
-            CodeValue productCategory = getLoanProductCategory(command);
-            CodeValue productType = getLoanProductType(command);
             final LoanProduct loanProduct = LoanProduct.assembleFromJson(fund, loanTransactionProcessingStrategy, charges, command,
-                    this.aprCalculator, floatingRate, rates, productCategory, productType);
+                    this.aprCalculator, floatingRate, rates);
             loanProduct.updateLoanProductInRelatedClasses();
             // Interest rate charts
             final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
@@ -202,28 +192,6 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
 
     }
 
-    @Nullable
-    private CodeValue getLoanProductCategory(JsonCommand command) {
-        CodeValue productCategory = null;
-        final Long productCategoryId = command.longValueOfParameterNamed(LoanProductConstants.LOAN_PRODUCT_CATEGORY);
-        if (productCategoryId != null) {
-            productCategory = this.codeValueRepository.findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.PRODUCT_CATEGORY,
-                    productCategoryId);
-        }
-        return productCategory;
-    }
-
-    @Nullable
-    private CodeValue getLoanProductType(JsonCommand command) {
-        CodeValue productType = null;
-        final Long productTypeId = command.longValueOfParameterNamed(LoanProductConstants.LOAN_PRODUCT_TYPE);
-        if (productTypeId != null) {
-            productType = this.codeValueRepository.findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.PRODUCT_TYPE,
-                    productTypeId);
-        }
-        return productType;
-    }
-
     private LoanTransactionProcessingStrategy findStrategyByIdIfProvided(final Long transactionProcessingStrategyId) {
         LoanTransactionProcessingStrategy strategy = null;
         if (transactionProcessingStrategyId != null) {
@@ -253,16 +221,6 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
 
             this.fromApiJsonDeserializer.validateForUpdate(command.json(), product);
             validateInputDates(command);
-
-            CodeValue productCategory = getLoanProductCategory(command);
-            if (productCategory != null) {
-                product.setProductCategory(productCategory);
-            }
-
-            CodeValue productType = getLoanProductType(command);
-            if (productType != null) {
-                product.setProductType(productType);
-            }
 
             if (anyChangeInCriticalFloatingRateLinkedParams(command, product)
                     && this.loanRepositoryWrapper.doNonClosedLoanAccountsExistForProduct(product.getId())) {
