@@ -26,6 +26,14 @@
     "joiningDate": "#(joiningDate)",
     "locale": "en",
     "dateFormat": "#(format)"
+  },
+  "enableDisableConfigPayload" : {
+    "enabled": "#(status)"
+  },
+  "createCodeValuePayload" : {
+    "isActive": true,
+    "name": "#(name)",
+    "position": "#(position)"
   }
 
 }
