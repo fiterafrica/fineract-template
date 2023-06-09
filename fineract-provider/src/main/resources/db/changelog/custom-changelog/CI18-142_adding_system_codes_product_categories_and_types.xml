@@ -22,38 +22,42 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
-    <changeSet author="judiao@fiter.io" id="CI18-142_adding_system_codes_product_categories_and_types_001">
+    <changeSet author="judiao@fiter.io" id="CI18-142_adding_system_codes_product_categories_and_types_010">
         <preConditions onFail="MARK_RAN">
             <sqlCheck  expectedResult="0">select count(*) from m_code where code_name='SavingsProductCategory'</sqlCheck>
         </preConditions>
         <insert tableName="m_code">
+            <column name="id" value="10140"/>
             <column name="code_name" value="SavingsProductCategory"/>
             <column name="is_system_defined" valueBoolean="true"/>
         </insert>
     </changeSet>
-    <changeSet author="judiao@fiter.io" id="CI18-142_adding_system_codes_product_categories_and_types_002">
+    <changeSet author="judiao@fiter.io" id="CI18-142_adding_system_codes_product_categories_and_types_012">
         <preConditions onFail="MARK_RAN">
             <sqlCheck  expectedResult="0">select count(*) from m_code where code_name='SavingsProductType'</sqlCheck>
         </preConditions>
         <insert tableName="m_code">
+            <column name="id" value="10141"/>
             <column name="code_name" value="SavingsProductType"/>
             <column name="is_system_defined" valueBoolean="true"/>
         </insert>
     </changeSet>
-    <changeSet author="judiao@fiter.io" id="CI18-142_adding_system_codes_product_categories_and_types_003">
+    <changeSet author="judiao@fiter.io" id="CI18-142_adding_system_codes_product_categories_and_types_013">
         <preConditions onFail="MARK_RAN">
             <sqlCheck  expectedResult="0">select count(*) from m_code where code_name='ProductCategory'</sqlCheck>
         </preConditions>
         <insert tableName="m_code">
+            <column name="id" value="10142"/>
             <column name="code_name" value="ProductCategory"/>
             <column name="is_system_defined" valueBoolean="true"/>
         </insert>
     </changeSet>
-    <changeSet author="judiao@fiter.io" id="CI18-142_adding_system_codes_product_categories_and_types_004">
+    <changeSet author="judiao@fiter.io" id="CI18-142_adding_system_codes_product_categories_and_types_014">
         <preConditions onFail="MARK_RAN">
             <sqlCheck  expectedResult="0">select count(*) from m_code where code_name='ProductType'</sqlCheck>
         </preConditions>
         <insert tableName="m_code">
+            <column name="id" value="10143"/>
             <column name="code_name" value="ProductType"/>
             <column name="is_system_defined" valueBoolean="true"/>
         </insert>

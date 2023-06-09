@@ -20,7 +20,7 @@
 
 -->
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
-    <changeSet author="frank@fiter.io" id="add_global_configuration_for_max_active_loans">
+    <changeSet author="frank@fiter.io" id="add_global_configuration_for_max_active_loans01">
         <preConditions onFail="MARK_RAN">
             <not>
                 <sqlCheck expectedResult="1">
@@ -30,6 +30,7 @@
         </preConditions>
 
         <insert tableName="c_configuration">
+            <column name="id" value="10137"/>
             <column name="name" value="max-active-loans" />
             <column name="value" value="0" />
             <column name="enabled" valueBoolean="false" />

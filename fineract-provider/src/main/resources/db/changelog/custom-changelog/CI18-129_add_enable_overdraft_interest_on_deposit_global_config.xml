@@ -20,7 +20,7 @@
 
 -->
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
-    <changeSet author="frank@fiter.io" id="add_global_configuration_for_post_overdraft_interest_on_deposit">
+    <changeSet author="frank@fiter.io" id="add_global_configuration_for_post_overdraft_interest_on_deposit_01">
         <preConditions onFail="MARK_RAN">
             <not>
                 <sqlCheck expectedResult="1">
@@ -32,11 +32,12 @@
         <insert tableName="c_configuration">
             <column name="name" value="post-overdraft-interest-on-deposit" />
             <column name="value" value="0" />
+            <column name="id" value="10129" />
             <column name="enabled" valueBoolean="false" />
             <column name="description" value="Allows overdraft interest to be posted each time a deposit is made on an account that is in overdraft. When this is turned on the option to enable this on savings products and accounts will be available." />
         </insert>
     </changeSet>
-    <changeSet author="frank@fiter.io" id="add_post_over_draft_interest_on_deposit_to_savings_product">
+    <changeSet author="frank@fiter.io" id="add_post_over_draft_interest_on_deposit_to_savings_product_02">
         <preConditions onFail="MARK_RAN">
             <not>
                 <columnExists tableName="m_savings_product" columnName="post_overdraft_interest_on_deposit"/>
@@ -48,7 +49,7 @@
             </column>
         </addColumn>
     </changeSet>
-    <changeSet author="frank@fiter.io" id="add_post_over_draft_interest_on_deposit_to_savings_account">
+    <changeSet author="frank@fiter.io" id="add_post_over_draft_interest_on_deposit_to_savings_account_03">
         <preConditions onFail="MARK_RAN">
             <not>
                 <columnExists tableName="m_savings_account" columnName="post_overdraft_interest_on_deposit"/>

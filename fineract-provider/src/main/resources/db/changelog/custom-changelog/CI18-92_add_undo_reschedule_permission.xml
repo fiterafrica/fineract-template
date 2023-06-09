@@ -22,13 +22,14 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
-    <changeSet author="judio@fiter.io" id="CI18-92_add_undo_reschedule_permission">
+    <changeSet author="judio@fiter.io" id="CI18-92_add_undo_reschedule_permission01">
         <preConditions onFail="MARK_RAN">
             <sqlCheck expectedResult="0">
                 SELECT COUNT(1) FROM m_permission WHERE code = 'UNDO_RESCHEDULELOAN'
             </sqlCheck>
         </preConditions>
         <insert tableName="m_permission">
+            <column name="id" value="10092"/>
             <column name="grouping" value="authorisation"/>
             <column name="code" value="UNDO_RESCHEDULELOAN" />
             <column name="entity_name" value="RESCHEDULELOAN" />
