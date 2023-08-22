@@ -177,4 +177,6 @@ public interface LoanReadPlatformService {
     Collection<LoanTransactionData> retrieveLoanTransactions(final String filterConstraintJson, final Integer limit, final Integer offset);
 
     LoanTransactionData retrieveLoanPayoffTemplate(final Long loanId);
+
+    Page<LoanSchedulePeriodData> getAllLoanRepayments(SearchParameters searchParameters, boolean isCompleted);
 }
