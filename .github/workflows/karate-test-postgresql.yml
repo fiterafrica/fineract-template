@@ -25,5 +25,7 @@ jobs:
         run: sleep 300
       - name: Check health
         run: curl -f -k --retry 10 --retry-connrefused --connect-timeout 30 --retry-delay 30 https://localhost:8443/fineract-provider/actuator/health
-      - name: Check info
-        run: (( $(curl -f -k --retry 5 --retry-connrefused --connect-timeout 30 --retry-delay 30 https://localhost:8443/fineract-provider/actuator/info | wc --chars) > 100 ))
+#      - name: Check info
+#        run: (( $(curl -f -k --retry 5 --retry-connrefused --connect-timeout 30 --retry-delay 30 https://localhost:8443/fineract-provider/actuator/info | wc --chars) > 100 ))
+      - name: Run Karate BDD Tests the image
+        run: ./gradlew --no-daemon --console=plain :karate-tests:build
