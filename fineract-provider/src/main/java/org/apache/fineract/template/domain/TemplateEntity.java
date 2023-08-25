@@ -25,8 +25,11 @@ import com.google.gson.annotations.SerializedName;
 public enum TemplateEntity {
 
     @SerializedName("client")
-    CLIENT(0, "client"), @SerializedName("loan")
-    LOAN(1, "loan");
+    CLIENT(0, "client"),
+    @SerializedName("loan")
+    LOAN(1, "loan"),
+    @SerializedName("savingsaccount")
+    SAVING(2, "savingsaccount");
 
     private final int id;
     private final String name;
