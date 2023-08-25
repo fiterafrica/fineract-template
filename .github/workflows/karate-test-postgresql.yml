@@ -20,7 +20,7 @@ jobs:
       - name: Build the image
         run: ./gradlew --no-daemon --console=plain :fineract-provider:clean :fineract-provider:jibDockerBuild -x test
       - name: Start the Standalone Stack
-        run: docker-compose -f docker-compose-karate-bdd-postgresql.yml up -d
+        run: docker-compose -f docker-compose-karate-bdd-postgresql.yml --verbose up -d
       - name: Wait for stack to come up
         run: sleep 300
       - name: Check health
