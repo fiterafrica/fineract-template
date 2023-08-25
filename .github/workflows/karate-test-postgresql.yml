@@ -1,0 +1,29 @@
+name: Fineract Karate Test - PostgreSQL
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # tag=v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@cd89f46ac9d01407894225f350157564c9c7cee2 # v3
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+          cache: gradle
+      - name: Build the image
+        run: ./gradlew --no-daemon --console=plain :fineract-provider:clean :fineract-provider:jibDockerBuild -x test
+      - name: Start the Standalone Stack
+        run: docker-compose -f docker-compose-karate-bdd-postgresql.yml up -d
+      - name: Wait for stack to come up
+        run: sleep 300
+      - name: Check health
+        run: curl -f -k --retry 10 --retry-connrefused --connect-timeout 30 --retry-delay 30 https://localhost:8443/fineract-provider/actuator/health
+      - name: Check info
+        run: (( $(curl -f -k --retry 5 --retry-connrefused --connect-timeout 30 --retry-delay 30 https://localhost:8443/fineract-provider/actuator/info | wc --chars) > 100 ))
