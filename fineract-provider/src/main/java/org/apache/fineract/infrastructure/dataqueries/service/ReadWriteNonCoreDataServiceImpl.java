@@ -1321,7 +1321,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         String whereClause = getFKField(appTable) + " = " + appTableId;
 
         // Check for new search columns
-        if(StringUtils.isNotBlank(columnFilter) && StringUtils.isNotBlank(valueFilter)){
+        if (StringUtils.isNotBlank(columnFilter) && StringUtils.isNotBlank(valueFilter)) {
             whereClause = buildColumnFilterWhereClause(whereClause, columnFilter, valueFilter, columnHeaders);
         }
 
@@ -1368,7 +1368,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                             DateUtils.DEFAULT_DATETIME_FORMATER);
                     append.append(localDateTime);
                 } else {
-                   append.append(sqlGenerator.escapeValue(valueFilter));
+                    append.append(sqlGenerator.escapeValue(valueFilter));
                 }
             }
             whereClause = append.toString();
