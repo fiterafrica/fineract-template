@@ -76,4 +76,6 @@ public interface ReadWriteNonCoreDataService {
     BigDecimal getFxLatestRate(final String datatableName, final Long appTableId);
 
     public DatatableData checkDatatableExists(final String datatable);
+
+    String getClientBVN(final String datatableName, final Long appTableId);
 }
