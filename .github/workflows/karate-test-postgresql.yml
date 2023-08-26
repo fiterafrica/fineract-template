@@ -18,7 +18,8 @@ jobs:
           distribution: 'zulu'
           cache: gradle
       - name: Build the image
-        run: ./gradlew --no-daemon --console=plain :fineract-provider:clean :fineract-provider:jibDockerBuild -x test
+        run: docker build -t fineract-provider-latest .
+#        run: ./gradlew --no-daemon clean bootJar -x test -x spotlessCheck -x checkstyleMain -x spotbugsMain -x checkstyleTest -x licenseMain
       - name: Start the Standalone Stack
         run: docker-compose -f docker-compose-karate-bdd-postgresql.yml --verbose up -d
       - name: Wait for stack to come up
