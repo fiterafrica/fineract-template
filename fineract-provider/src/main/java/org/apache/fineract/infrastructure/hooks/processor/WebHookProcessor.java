@@ -39,6 +39,7 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.domain.FineractContext;
+import org.apache.fineract.infrastructure.dataqueries.service.ReadWriteNonCoreDataService;
 import org.apache.fineract.infrastructure.hooks.api.HookApiConstants;
 import org.apache.fineract.infrastructure.hooks.domain.Hook;
 import org.apache.fineract.infrastructure.hooks.domain.HookConfiguration;
@@ -60,6 +61,8 @@ public class WebHookProcessor implements HookProcessor {
     private final ClientRepositoryWrapper clientRepository;
     private final ProcessorHelper processorHelper;
     private final LoanRepositoryWrapper loanRepository;
+
+    private final ReadWriteNonCoreDataService dataService;
 
     private final SavingsAccountRepositoryWrapper savingsAccountRepositoryWrapper;
 
@@ -103,7 +106,11 @@ public class WebHookProcessor implements HookProcessor {
         if ((clientId != null || payLoadMap.containsKey("clientId")) && !"DELETE".equals(actionName)) {
             clientId = null != clientId ? clientId : Long.parseLong(String.valueOf(payLoadMap.containsKey("clientId")));
             Client client = clientRepository.findOneWithNotFoundDetection(clientId);
+            // Get BVN Datatable
+            String clientBVN = dataService.getClientBVN("Bank Information", clientId);
+
             payLoadMap.put("client", client);
+            payLoadMap.put("bvn", clientBVN);
         }
 
         if ((savingsAccountId != null || payLoadMap.containsKey("savingsAccountId")) && !"DELETE".equals(actionName)) {

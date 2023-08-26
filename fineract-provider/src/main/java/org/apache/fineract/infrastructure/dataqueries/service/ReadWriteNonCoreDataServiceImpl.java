@@ -2057,4 +2057,18 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         return datatableData;
     }
 
+    @Override
+    public String getClientBVN(final String datatableName, final Long appTableId) {
+
+        try {
+            final String sqlString = "SELECT " + sqlGenerator.escape("BVN") + " FROM " + sqlGenerator.escape(datatableName) + " WHERE "
+                    + sqlGenerator.escape("client_id") + " = " + appTableId;
+            final String bvn = this.jdbcTemplate.queryForObject(sqlString, String.class); // NOSONAR
+            return bvn;
+        } catch (EmptyResultDataAccessException e) {
+            LOG.info("no data for client BVN");
+            return null;
+        }
+    }
+
 }
