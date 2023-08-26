@@ -1,4 +1,4 @@
-name: Fineract Karate Test - PostgreSQL
+name: Fineract Karate Test - MySQL
 
 on: [pull_request]
 
@@ -18,7 +18,7 @@ jobs:
           distribution: 'zulu'
           cache: gradle
       - name: Build the image
-        run: docker build -t fineractpostgres .
+        run: docker build -t fineractmysql .
       - name: Start the Standalone Stack
         run: docker-compose -f docker-compose-karate-bdd-postgresql.yml --verbose up -d > docker-compose.log 2>&1
 
