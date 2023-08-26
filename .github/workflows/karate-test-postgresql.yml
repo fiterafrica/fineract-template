@@ -19,9 +19,10 @@ jobs:
           cache: gradle
       - name: Build the image
         run: docker build -t fineract .
-#        run: ./gradlew --no-daemon clean bootJar -x test -x spotlessCheck -x checkstyleMain -x spotbugsMain -x checkstyleTest -x licenseMain
       - name: Start the Standalone Stack
-        run: docker-compose -f docker-compose-karate-bdd-postgresql.yml --info up -d
+#        run: docker-compose -f docker-compose-karate-bdd-postgresql.yml --verbose up -d
+        run: docker-compose -f docker-compose-karate-bdd-postgresql.yml --verbose up -d > docker-compose.log 2>&1
+
       - name: Wait for stack to come up
         run: sleep 300
       - name: Check health
