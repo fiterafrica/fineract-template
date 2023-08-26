@@ -114,13 +114,6 @@ public class WebHookProcessor implements HookProcessor {
         }
 
         if ((savingsAccountId != null || payLoadMap.containsKey("savingsAccountId")) && !"DELETE".equals(actionName)) {
-            savingsAccountId = null != savingsAccountId ? savingsAccountId
-                    : Long.parseLong(String.valueOf(payLoadMap.containsKey("savingsAccountId")));
-            SavingsAccount savingsAccount = savingsAccountRepositoryWrapper.findOneWithNotFoundDetection(savingsAccountId);
-            payLoadMap.put("savingsAccount", savingsAccount);
-        }
-
-        if ((savingsAccountId != null || payLoadMap.containsKey("savingsAccountId")) && !"DELETE".equals(actionName)) {
             savingsAccountId = null != savingsAccountId ? savingsAccountId : Long.parseLong(String.valueOf(payLoadMap.containsKey("savingsAccountId")));
             SavingsAccount savingsAccount = savingsAccountRepositoryWrapper.findOneWithNotFoundDetection(savingsAccountId);
             payLoadMap.put("savingsAccount", savingsAccount);
