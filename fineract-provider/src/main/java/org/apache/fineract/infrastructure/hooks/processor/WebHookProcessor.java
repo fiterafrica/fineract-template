@@ -47,6 +47,8 @@ import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.client.domain.ClientRepositoryWrapper;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
+import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
+import org.apache.fineract.portfolio.savings.domain.SavingsAccountRepositoryWrapper;
 import org.apache.fineract.template.domain.Template;
 import org.springframework.stereotype.Service;
 import retrofit2.Callback;
@@ -59,11 +61,14 @@ public class WebHookProcessor implements HookProcessor {
     private final ProcessorHelper processorHelper;
     private final LoanRepositoryWrapper loanRepository;
 
+    private final SavingsAccountRepositoryWrapper savingsAccountRepositoryWrapper;
+
     @Override
     public void process(final Hook hook, final String payload, final String entityName, final String actionName,
             final FineractContext context) throws IOException {
         final HashMap<String, Object> payLoadMap = new ObjectMapper().readValue(payload, HashMap.class);
         Long clientId = null;
+        Long savingsAccountId = null;
 
         if (payLoadMap.get("response") instanceof Map<?, ?>) {
             Map<String, Object> responseMap = (Map<String, Object>) payLoadMap.get("response");
@@ -83,6 +88,10 @@ public class WebHookProcessor implements HookProcessor {
                 clientId = Long.parseLong(String.valueOf(responseMap.get("clientId")));
                 payLoadMap.put("clientId", clientId);
             }
+            if (responseMap.get("savingsId") != null) {
+                savingsAccountId = Long.parseLong(String.valueOf(responseMap.get("savingsId")));
+                payLoadMap.put("savingsAccountId", savingsAccountId);
+            }
         }
 
         if (payLoadMap.get("request") instanceof Map<?, ?>) {
@@ -95,6 +104,12 @@ public class WebHookProcessor implements HookProcessor {
             clientId = null != clientId ? clientId : Long.parseLong(String.valueOf(payLoadMap.containsKey("clientId")));
             Client client = clientRepository.findOneWithNotFoundDetection(clientId);
             payLoadMap.put("client", client);
+        }
+
+        if ((savingsAccountId != null || payLoadMap.containsKey("savingsAccountId")) && !"DELETE".equals(actionName)) {
+            savingsAccountId = null != savingsAccountId ? savingsAccountId : Long.parseLong(String.valueOf(payLoadMap.containsKey("savingsAccountId")));
+            SavingsAccount savingsAccount = savingsAccountRepositoryWrapper.findOneWithNotFoundDetection(savingsAccountId);
+            payLoadMap.put("savingsAccount", savingsAccount);
         }
 
         payLoadMap.put("activity", actionName);
@@ -133,6 +148,8 @@ public class WebHookProcessor implements HookProcessor {
                 List<WebCondition> conditions = new ArrayList<>();
                 String inputConditions = conf.getFieldValue().trim();
                 boolean isOrCondition = inputConditions.contains("||");
+                // Cl18-229
+                boolean isAndCondition = inputConditions.contains("&&");
 
                 Iterable<String> conditionStrings = Splitter.onPattern(isOrCondition ? "\\s*\\|\\|\\s*" : "\\s*&&\\s*")
                         .split(conf.getFieldValue().trim());
@@ -145,7 +162,7 @@ public class WebHookProcessor implements HookProcessor {
                 }
                 if (isOrCondition && !evaluateOR(conditions)) {
                     return;
-                } else if (!evaluateAND(conditions)) {
+                } else if (isAndCondition && !evaluateAND(conditions)) {
                     return;
                 }
             }
