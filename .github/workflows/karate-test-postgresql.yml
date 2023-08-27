@@ -27,6 +27,8 @@ jobs:
         run: docker images
       - name: Display Docker Processes
         run: docker ps -a
+      - name: Display Docker Logs
+        run: docker logs fineract-template_fineract-server_1
       - name: Check health
         run: curl -f -k --retry 10 --retry-connrefused --connect-timeout 30 --retry-delay 30 https://localhost:8443/fineract-provider/actuator/health
       - name: Check info
