@@ -21,6 +21,8 @@ jobs:
         run: docker build -t fineractpostgres .
       - name: Start the Standalone Stack
         run: docker-compose -f docker-compose-karate-bdd-postgresql.yml --verbose up -d > docker-compose.log 2>&1
+      - name: Wait for stack to come up
+        run: sleep 900
       - name: Display Docker images
         run: docker images
       - name: Display Docker Processes
@@ -31,5 +33,3 @@ jobs:
         run: (( $(curl -f -k --retry 5 --retry-connrefused --connect-timeout 30 --retry-delay 30 https://localhost:8443/fineract-provider/actuator/info | wc --chars) > 100 ))
       - name: Run Karate BDD Tests the image
         run: ./gradlew --no-daemon --console=plain :karate-tests:build
-      - name: Wait for stack to come up
-        run: sleep 300
