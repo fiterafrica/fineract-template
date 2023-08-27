@@ -21,7 +21,8 @@ jobs:
         run: docker build -t fineractpostgres .
       - name: Start the Standalone Stack
         run: docker-compose -f docker-compose-karate-bdd-postgresql.yml --verbose up -d > docker-compose.log 2>&1
-
+      - name: Display Docker Compose Log
+        run: cat docker-compose.log
       - name: Wait for stack to come up
         run: sleep 300
       - name: Check health
