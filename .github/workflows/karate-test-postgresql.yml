@@ -22,7 +22,7 @@ jobs:
       - name: Start the Standalone Stack
         run: docker-compose -f docker-compose-karate-bdd-postgresql.yml --verbose up -d
       - name: Wait for stack to come up
-        run: sleep 500
+        run: sleep 300
       - name: Display Docker images
         run: docker images
       - name: Display Docker Processes

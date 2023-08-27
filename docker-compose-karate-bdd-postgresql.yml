@@ -53,9 +53,9 @@ services:
         condition: service_healthy
     environment:
 
-#      - FINERACT_NODE_ID=1
+      - FINERACT_NODE_ID=1
       - FINERACT_HIKARI_DRIVER_SOURCE_CLASS_NAME=org.postgresql.Driver
-      - FINERACT_HIKARI_JDBC_URL=jdbc:postgresql://fineractpostgresql:5432/fineract_tenants
+      - FINERACT_HIKARI_JDBC_URL=jdbc:postgresql://fineract-template_fineractpostgresql_1:5432/fineract_tenants
       - FINERACT_HIKARI_USERNAME=postgres
       - FINERACT_HIKARI_PASSWORD=skdcnwauicn2ucnaecasdsajdnizucawencascdca
       - FINERACT_HIKARI_MINIMUM_IDLE=3
@@ -80,7 +80,7 @@ services:
       - FINERACT_DEFAULT_TENANTDB_PORT=5432
       - FINERACT_DEFAULT_TENANTDB_UID=postgres
       - FINERACT_DEFAULT_TENANTDB_PWD=skdcnwauicn2ucnaecasdsajdnizucawencascdca
-#      - FINERACT_DEFAULT_TENANTDB_CONN_PARAMS=
+      - FINERACT_DEFAULT_TENANTDB_CONN_PARAMS=
       - FINERACT_DEFAULT_TENANTDB_TIMEZONE=Asia/Kolkata
       - FINERACT_DEFAULT_TENANTDB_IDENTIFIER=default
       - FINERACT_DEFAULT_TENANTDB_NAME=fineract_default
