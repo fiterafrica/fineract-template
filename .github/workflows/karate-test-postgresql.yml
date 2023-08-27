@@ -20,11 +20,11 @@ jobs:
       - name: Build the image
         run: docker build -t fineractpostgres .
       - name: Start the Standalone Stack
-        run: docker-compose docker-compose-karate-bdd-postgresql.yml up -d
-      - name: Display Docker Compose Log
-        run: docker-compose docker-compose-karate-bdd-postgresql.yml logs -f
+        run: docker-compose -f docker-compose-karate-bdd-postgresql.yml --verbose up -d > docker-compose.log 2>&1
       - name: Wait for stack to come up
         run: sleep 300
+      - name: Display Docker Compose Log
+        run: cat docker-compose.log
       - name: Check health
         run: curl -f -k --retry 10 --retry-connrefused --connect-timeout 30 --retry-delay 30 https://localhost:8443/fineract-provider/actuator/health
       - name: Check info
