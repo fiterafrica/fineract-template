@@ -85,4 +85,8 @@ services:
       - FINERACT_DEFAULT_TENANTDB_IDENTIFIER=default
       - FINERACT_DEFAULT_TENANTDB_NAME=fineract_default
       - FINERACT_DEFAULT_TENANTDB_DESCRIPTION=Default Demo Tenant
+      - fineract_tenants_driver=org.postgresql.Driver
+      - fineract_tenants_pwd=skdcnwauicn2ucnaecasdsajdnizucawencascdca
+      - fineract_tenants_uid=postgres
+      - fineract_tenants_url=jdbc:postgresql://fineract-template_fineractpostgresql_1:5432/fineract_tenants
       - JAVA_TOOL_OPTIONS="-Xmx1G"
