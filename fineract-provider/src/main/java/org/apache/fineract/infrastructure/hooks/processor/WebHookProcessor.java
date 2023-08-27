@@ -120,6 +120,12 @@ public class WebHookProcessor implements HookProcessor {
             payLoadMap.put("savingsAccount", savingsAccount);
         }
 
+        if ((savingsAccountId != null || payLoadMap.containsKey("savingsAccountId")) && !"DELETE".equals(actionName)) {
+            savingsAccountId = null != savingsAccountId ? savingsAccountId : Long.parseLong(String.valueOf(payLoadMap.containsKey("savingsAccountId")));
+            SavingsAccount savingsAccount = savingsAccountRepositoryWrapper.findOneWithNotFoundDetection(savingsAccountId);
+            payLoadMap.put("savingsAccount", savingsAccount);
+        }
+
         payLoadMap.put("activity", actionName);
         Date currentDate = new Date();
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss.SSS");
