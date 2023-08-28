@@ -851,4 +851,8 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
     public Set<LoanInstallmentCharge> getInstallmentCharges() {
         return installmentCharges;
     }
+
+    public void setInstallmentNumber(Integer installmentNumber) {
+        this.installmentNumber = installmentNumber;
+    }
 }

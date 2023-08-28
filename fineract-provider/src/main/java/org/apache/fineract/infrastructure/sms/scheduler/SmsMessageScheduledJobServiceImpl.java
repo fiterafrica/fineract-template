@@ -96,7 +96,7 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
      **/
     @Override
     @Transactional
-    @CronTarget(jobName = JobName.SEND_MESSAGES_TO_SMS_GATEWAY)
+    // @CronTarget(jobName = JobName.SEND_MESSAGES_TO_SMS_GATEWAY)
     public void sendMessagesToGateway() {
         Integer pageLimit = 200;
         Integer page = 0;

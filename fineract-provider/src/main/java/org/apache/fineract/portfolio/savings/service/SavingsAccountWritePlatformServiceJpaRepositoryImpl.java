@@ -64,6 +64,8 @@ import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.dataqueries.data.EntityTables;
 import org.apache.fineract.infrastructure.dataqueries.data.StatusEnum;
 import org.apache.fineract.infrastructure.dataqueries.service.EntityDatatableChecksWritePlatformService;
+import org.apache.fineract.infrastructure.jobs.annotation.CronTarget;
+import org.apache.fineract.infrastructure.jobs.service.JobName;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.organisation.holiday.domain.HolidayRepositoryWrapper;
 import org.apache.fineract.organisation.monetary.domain.ApplicationCurrency;
@@ -84,6 +86,7 @@ import org.apache.fineract.portfolio.account.service.AccountTransfersReadPlatfor
 import org.apache.fineract.portfolio.businessevent.domain.savings.SavingsActivateBusinessEvent;
 import org.apache.fineract.portfolio.businessevent.domain.savings.SavingsCloseBusinessEvent;
 import org.apache.fineract.portfolio.businessevent.service.BusinessEventNotifierService;
+import org.apache.fineract.portfolio.calendar.domain.CalendarInstanceRepository;
 import org.apache.fineract.portfolio.charge.domain.Charge;
 import org.apache.fineract.portfolio.charge.domain.ChargeRepositoryWrapper;
 import org.apache.fineract.portfolio.charge.domain.ChargeTimeType;
@@ -98,6 +101,7 @@ import org.apache.fineract.portfolio.note.exception.NoteNotFoundException;
 import org.apache.fineract.portfolio.paymentdetail.domain.PaymentDetail;
 import org.apache.fineract.portfolio.paymentdetail.service.PaymentDetailWritePlatformService;
 import org.apache.fineract.portfolio.paymenttype.domain.PaymentTypeRepositoryWrapper;
+import org.apache.fineract.portfolio.savings.DepositAccountType;
 import org.apache.fineract.portfolio.savings.SavingsAccountTransactionType;
 import org.apache.fineract.portfolio.savings.SavingsApiConstants;
 import org.apache.fineract.portfolio.savings.SavingsTransactionBooleanValues;
@@ -108,8 +112,11 @@ import org.apache.fineract.portfolio.savings.data.SavingsAccountDataValidator;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionDTO;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionDataValidator;
+import org.apache.fineract.portfolio.savings.domain.DepositAccountAssembler;
 import org.apache.fineract.portfolio.savings.domain.DepositAccountOnHoldTransaction;
 import org.apache.fineract.portfolio.savings.domain.DepositAccountOnHoldTransactionRepository;
+import org.apache.fineract.portfolio.savings.domain.FixedDepositAccount;
+import org.apache.fineract.portfolio.savings.domain.FixedDepositAccountRepository;
 import org.apache.fineract.portfolio.savings.domain.GSIMRepositoy;
 import org.apache.fineract.portfolio.savings.domain.GroupSavingsIndividualMonitoring;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
@@ -138,6 +145,9 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -180,32 +190,38 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
     private final SavingsAccountTransactionLimitPlatformService savingsAccountTransactionLimitPlatformService;
     private final SavingsAccountDataValidator savingsAccountDataValidator;
+    private final CalendarInstanceRepository calendarInstanceRepository;
+
+    private final FixedDepositAccountRepository fixedDepositAccountRepository;
+
+    private final DepositAccountAssembler depositAccountAssembler;
 
     @Autowired
     public SavingsAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
-            final SavingsAccountRepositoryWrapper savingAccountRepositoryWrapper,
-            final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
-            final SavingsAccountAssembler savingAccountAssembler,
-            final SavingsAccountTransactionDataValidator savingsAccountTransactionDataValidator,
-            final SavingsAccountChargeDataValidator savingsAccountChargeDataValidator,
-            final PaymentDetailWritePlatformService paymentDetailWritePlatformService,
-            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
-            final JournalEntryWritePlatformService journalEntryWritePlatformService,
-            final SavingsAccountDomainService savingsAccountDomainService, final NoteRepository noteRepository,
-            final AccountTransfersReadPlatformService accountTransfersReadPlatformService, final HolidayRepositoryWrapper holidayRepository,
-            final WorkingDaysRepositoryWrapper workingDaysRepository,
-            final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
-            final ChargeRepositoryWrapper chargeRepository, final SavingsAccountChargeRepositoryWrapper savingsAccountChargeRepository,
-            final SavingsAccountDataValidator fromApiJsonDeserializer, final StaffRepositoryWrapper staffRepository,
-            final ConfigurationDomainService configurationDomainService,
-            final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
-            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService,
-            final AppUserRepositoryWrapper appuserRepository, final StandingInstructionRepository standingInstructionRepository,
-            final BusinessEventNotifierService businessEventNotifierService, final GSIMRepositoy gsimRepository,
-            final JdbcTemplate jdbcTemplate, final SavingsAccountInterestPostingService savingsAccountInterestPostingService,
-            final CodeValueRepositoryWrapper codeValueRepositoryWrapper, final PaymentTypeRepositoryWrapper repositoryWrapper,
-            final SavingsAccountTransactionLimitPlatformService savingsAccountTransactionLimitPlatformService,
-            SavingsAccountDataValidator savingsAccountDataValidator) {
+                                                               final SavingsAccountRepositoryWrapper savingAccountRepositoryWrapper,
+                                                               final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
+                                                               final SavingsAccountAssembler savingAccountAssembler,
+                                                               final SavingsAccountTransactionDataValidator savingsAccountTransactionDataValidator,
+                                                               final SavingsAccountChargeDataValidator savingsAccountChargeDataValidator,
+                                                               final PaymentDetailWritePlatformService paymentDetailWritePlatformService,
+                                                               final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
+                                                               final JournalEntryWritePlatformService journalEntryWritePlatformService,
+                                                               final SavingsAccountDomainService savingsAccountDomainService, final NoteRepository noteRepository,
+                                                               final AccountTransfersReadPlatformService accountTransfersReadPlatformService, final HolidayRepositoryWrapper holidayRepository,
+                                                               final WorkingDaysRepositoryWrapper workingDaysRepository,
+                                                               final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
+                                                               final ChargeRepositoryWrapper chargeRepository, final SavingsAccountChargeRepositoryWrapper savingsAccountChargeRepository,
+                                                               final SavingsAccountDataValidator fromApiJsonDeserializer, final StaffRepositoryWrapper staffRepository,
+                                                               final ConfigurationDomainService configurationDomainService,
+                                                               final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
+                                                               final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService,
+                                                               final AppUserRepositoryWrapper appuserRepository, final StandingInstructionRepository standingInstructionRepository,
+                                                               final BusinessEventNotifierService businessEventNotifierService, final GSIMRepositoy gsimRepository,
+                                                               final JdbcTemplate jdbcTemplate, final SavingsAccountInterestPostingService savingsAccountInterestPostingService,
+                                                               final CodeValueRepositoryWrapper codeValueRepositoryWrapper, final PaymentTypeRepositoryWrapper repositoryWrapper,
+                                                               final SavingsAccountTransactionLimitPlatformService savingsAccountTransactionLimitPlatformService,
+                                                               SavingsAccountDataValidator savingsAccountDataValidator, CalendarInstanceRepository calendarInstanceRepository,
+                                                               FixedDepositAccountRepository fixedDepositAccountRepository, DepositAccountAssembler depositAccountAssembler) {
         this.context = context;
         this.savingAccountRepositoryWrapper = savingAccountRepositoryWrapper;
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
@@ -238,6 +254,9 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         this.repositoryWrapper = repositoryWrapper;
         this.savingsAccountTransactionLimitPlatformService = savingsAccountTransactionLimitPlatformService;
         this.savingsAccountDataValidator = savingsAccountDataValidator;
+        this.calendarInstanceRepository = calendarInstanceRepository;
+        this.fixedDepositAccountRepository = fixedDepositAccountRepository;
+        this.depositAccountAssembler = depositAccountAssembler;
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(SavingsAccountWritePlatformServiceJpaRepositoryImpl.class);
@@ -2516,5 +2535,64 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         return new CommandProcessingResultBuilder().withEntityId(note.getId()).withSavingsId(note.getSavingsAccount().getId())
                 .withClientId(note.getSavingsAccount().clientId()).with(changes).build();
     }
+
+    @Override
+    @CronTarget(jobName = JobName.SEND_MESSAGES_TO_SMS_GATEWAY)
+    public void cleanUpSavingsAccounts() {
+        this.refreshSavingsAccounts(SavingsAccountStatusType.ACTIVE.getValue());
+        this.refreshSavingsAccounts(SavingsAccountStatusType.CLOSED.getValue());
+        this.refreshSavingsAccounts(SavingsAccountStatusType.MATURED.getValue());
+        this.refreshSavingsAccounts(SavingsAccountStatusType.PRE_MATURE_CLOSURE.getValue());
+    }
+
+    private void refreshSavingsAccounts(Integer status) {
+        int offset = 0;
+        final int pageSize = 1000;
+        Page<SavingsAccount> savingsAccounts;
+        do {
+            Pageable pageRequest = PageRequest.of(offset, pageSize);
+            savingsAccounts = this.savingAccountRepositoryWrapper.findByStatus(status, pageRequest);
+
+            for (SavingsAccount savingsAccount : savingsAccounts) {
+                if (savingsAccount instanceof FixedDepositAccount) {
+                    FixedDepositAccount fd = (FixedDepositAccount) this.depositAccountAssembler.assembleFrom(savingsAccount.getId(), DepositAccountType.FIXED_DEPOSIT);
+                    this.generateDepositAccountTerms(fd);
+                }
+                // else if (savingsAccount instanceof RecurringDepositAccount) {
+                //
+                // }
+                savingsAccount = this.savingAccountAssembler.assembleFrom(savingsAccount.getId());
+                savingsAccount.updateSummary();
+                this.savingAccountRepositoryWrapper.save(savingsAccount);
+            }
+            offset += 1; // next page
+        } while (!savingsAccounts.isEmpty());
+    }
+
+    private void generateDepositAccountTerms(FixedDepositAccount account) {
+        final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
+                .isSavingsInterestPostingAtCurrentPeriodEnd();
+        final Integer financialYearBeginningMonth = this.configurationDomainService.retrieveFinancialYearBeginningMonth();
+        account.updateMaturityDateAndAmountBeforeAccountActivation(MathContext.DECIMAL64, false, isSavingsInterestPostingAtCurrentPeriodEnd,
+                financialYearBeginningMonth);
+        this.fixedDepositAccountRepository.saveAndFlush(account);
+    }
+
+    // private void generateCalendarInstances(RecurringDepositAccount account) {
+    // LocalDate calendarStartDate = account.depositStartDate();
+    // final Integer frequencyType = command.integerValueSansLocaleOfParameterNamed(recurringFrequencyTypeParamName);
+    // final PeriodFrequencyType periodFrequencyType = PeriodFrequencyType.fromInt(frequencyType);
+    // final Integer frequency = command.integerValueSansLocaleOfParameterNamed(recurringFrequencyParamName);
+    //
+    // final Integer repeatsOnDay = calendarStartDate.get(ChronoField.DAY_OF_WEEK);
+    // final String title = "recurring_savings_" + account.getId();
+    //
+    // final Calendar calendar = Calendar.createRepeatingCalendar(title, calendarStartDate,
+    // CalendarType.COLLECTION.getValue(),
+    // CalendarFrequencyType.from(periodFrequencyType), frequency, repeatsOnDay, null);
+    // CalendarInstance calendarInstance = CalendarInstance.from(calendar, account.getId(),
+    // CalendarEntityType.SAVINGS.getValue());
+    // this.calendarInstanceRepository.save(calendarInstance);
+    // }
 
 }

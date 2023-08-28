@@ -179,6 +179,7 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanOverdueInstallmentCh
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentReminder;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentReminderRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallmentRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleTransactionProcessorFactory;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
@@ -231,6 +232,9 @@ import org.apache.fineract.useradministration.domain.AppUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -282,6 +286,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     private final RepaymentWithPostDatedChecksAssembler repaymentWithPostDatedChecksAssembler;
     private final PostDatedChecksRepository postDatedChecksRepository;
     private final LoanRepaymentReminderRepository loanRepaymentReminderRepository;
+    private final LoanRepaymentScheduleInstallmentRepository installmentRepository;
     private final LoanDecisionStateUtilService loanDecisionStateUtilService;
 
     @Autowired
@@ -3311,6 +3316,35 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         CommandProcessingResult result = this.makeLoanRepayment(LoanTransactionType.PAY_OFF, command.getLoanId(), command,
                 isRecoveryPayment, isPayOff);
         return result;
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY)
+    public void cleanUpLoans() {
+        int offset = 0;
+        final int pageSize = 1000;
+        Page<Loan> loans;
+        do {
+            Pageable pageRequest = PageRequest.of(offset, pageSize);
+            loans = this.loanRepository.findAll(pageRequest);
+            for (Loan loan : loans) {
+                // if (loan.getId().equals(30715L)) {
+                loan = this.loanAssembler.assembleFrom(loan.getId());
+                if (loan.isDisbursed()) {
+                    int num = 1;
+                    LocalDate date = loan.getDisbursementDate();
+                    for (LoanRepaymentScheduleInstallment installment : loan.getRepaymentScheduleInstallments()) {
+                        installment.setInstallmentNumber(num);
+                        num += 1;
+                        this.installmentRepository.save(installment);
+                    }
+                }
+                loan.updateLoanSummaryDerivedFields();
+                this.loanRepository.save(loan);
+                // }
+            }
+            offset += 1; // next page
+        } while (!loans.isEmpty());
     }
 
     @Override
