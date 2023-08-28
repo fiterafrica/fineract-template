@@ -178,6 +178,49 @@ public class WebHookProcessor implements HookProcessor {
         sendRequest(url, contentType, compilePayLoad, entityName, actionName, context, basicAuthCreds, apiKey, apiKeyValue);
     }
 
+    private boolean processConditions(String inputConditions, final HashMap<String, Object> payLoadMap) throws IOException {
+        boolean isOrCondition = inputConditions.contains("||");
+        boolean isAndCondition = inputConditions.contains("&&");
+
+        if(isAndCondition){
+            Iterable<String> conditionStrings = Splitter.onPattern("\\s*&&\\s*").split(inputConditions.trim());
+            List<WebCondition> conditions = new ArrayList<>();
+
+            for(String andCondition: conditionStrings){
+                if(andCondition.contains("||")){
+                    // process OR
+                    boolean orResult = processOrCondition(andCondition, payLoadMap);
+                    if(!orResult){
+                        return false;
+                    }
+                }else{
+                    List<String> parts = Splitter.onPattern("\\s*\\|\\s*").splitToList(andCondition.trim());
+                    if (parts.size() == 3) {
+                        conditions.add(new WebCondition(getValueFromPayLoad(parts.get(0), payLoadMap), parts.get(1), parts.get(2)));
+                    }
+                }
+            }
+
+            return evaluateAND(conditions);
+        }
+
+
+    }
+
+    private boolean processOrCondition(String orCondition, final HashMap<String, Object> payLoadMap) throws IOException {
+        Iterable<String> orConditionStrings = Splitter.onPattern("\\s*\\|\\|\\s*").split(orCondition.trim());
+        List<WebCondition> conditions = new ArrayList<>();
+
+        for (String conditionString : orConditionStrings) {
+            List<String> parts = Splitter.onPattern("\\s*\\|\\s*").splitToList(conditionString.trim());
+            if (parts.size() == 3) {
+                conditions.add(new WebCondition(getValueFromPayLoad(parts.get(0), payLoadMap), parts.get(1), parts.get(2)));
+            }
+        }
+
+        return evaluateOR(conditions);
+    }
+
     @SuppressWarnings("unchecked")
     private void sendRequest(final String url, final String contentType, final String payload, final String entityName,
             final String actionName, final FineractContext context, String basicAuthCreds, String apiKey, String apiKeyValue) {
