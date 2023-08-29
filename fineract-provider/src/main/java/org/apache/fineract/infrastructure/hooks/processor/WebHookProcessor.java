@@ -152,26 +152,20 @@ public class WebHookProcessor implements HookProcessor {
                 apiKeyValue = StringUtils.split(keyValuePair, ":")[1];
             }
             if (fieldName.equals(HookApiConstants.Conditions) && !conf.getFieldValue().isEmpty()) {
-                List<WebCondition> conditions = new ArrayList<>();
                 String inputConditions = conf.getFieldValue().trim();
                 boolean isOrCondition = inputConditions.contains("||");
-                // Cl18-229
                 boolean isAndCondition = inputConditions.contains("&&");
 
-                Iterable<String> conditionStrings = Splitter.onPattern(isOrCondition ? "\\s*\\|\\|\\s*" : "\\s*&&\\s*")
-                        .split(conf.getFieldValue().trim());
-                for (String conditionString : conditionStrings) {
-                    List<String> parts = Splitter.onPattern("\\s*\\|\\s*").splitToList(conditionString.trim());
+                boolean result = true;
+                // Refactored conditions to handle multi line AND conditions for Cl18-227 webhook #4. Before these conditons were not executed well
+                // First execute AND conditions . if conditions contains AND and || then AND determines final value
+                if(isAndCondition){
+                    result = processConditions(inputConditions, payLoadMap);
+                }else if(isOrCondition){
+                    result = processOrCondition(inputConditions, payLoadMap);
+                }
 
-                    if (parts.size() == 3) {
-                        conditions.add(new WebCondition(getValueFromPayLoad(parts.get(0), payLoadMap), parts.get(1), parts.get(2)));
-                    }
-                }
-                if (isOrCondition && !evaluateOR(conditions)) {
-                    return;
-                } else if (isAndCondition && !evaluateAND(conditions)) {
-                    return;
-                }
+                if(!result) return;
             }
         }
         final String compilePayLoad = compilePayLoad(hook.getUgdTemplate(), payLoadMap);
@@ -179,7 +173,6 @@ public class WebHookProcessor implements HookProcessor {
     }
 
     private boolean processConditions(String inputConditions, final HashMap<String, Object> payLoadMap) throws IOException {
-        boolean isOrCondition = inputConditions.contains("||");
         boolean isAndCondition = inputConditions.contains("&&");
 
         if(isAndCondition){
@@ -188,7 +181,7 @@ public class WebHookProcessor implements HookProcessor {
 
             for(String andCondition: conditionStrings){
                 if(andCondition.contains("||")){
-                    // process OR
+                    // if condition also has parts with || first execute the || part and if it is false no need to execute the AND parts because entire statement will always be false
                     boolean orResult = processOrCondition(andCondition, payLoadMap);
                     if(!orResult){
                         return false;
@@ -197,14 +190,15 @@ public class WebHookProcessor implements HookProcessor {
                     List<String> parts = Splitter.onPattern("\\s*\\|\\s*").splitToList(andCondition.trim());
                     if (parts.size() == 3) {
                         conditions.add(new WebCondition(getValueFromPayLoad(parts.get(0), payLoadMap), parts.get(1), parts.get(2)));
+                    } else if (parts.size() == 2) {
+                        conditions.add(new WebCondition(getValueFromPayLoad(parts.get(0), payLoadMap), parts.get(1)));
                     }
                 }
             }
 
             return evaluateAND(conditions);
         }
-
-
+        return false;
     }
 
     private boolean processOrCondition(String orCondition, final HashMap<String, Object> payLoadMap) throws IOException {
@@ -215,6 +209,8 @@ public class WebHookProcessor implements HookProcessor {
             List<String> parts = Splitter.onPattern("\\s*\\|\\s*").splitToList(conditionString.trim());
             if (parts.size() == 3) {
                 conditions.add(new WebCondition(getValueFromPayLoad(parts.get(0), payLoadMap), parts.get(1), parts.get(2)));
+            }else if (parts.size() == 2) {
+                conditions.add(new WebCondition(getValueFromPayLoad(parts.get(0), payLoadMap), parts.get(1)));
             }
         }
 
