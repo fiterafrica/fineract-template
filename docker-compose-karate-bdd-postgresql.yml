@@ -38,6 +38,8 @@ services:
       retries: 10
     ports:
       - "5432:5432"
+    command: [ "sh", "-c", "/docker-entrypoint.sh fineract_default && /grant_postgresDB_permissions_on_githubActions.sh" ]
+
   fineract-server:
     image: fineractpostgres:latest
     volumes:

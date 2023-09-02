@@ -19,6 +19,8 @@ jobs:
           cache: gradle
       - name: Build the image
         run: docker build -t fineractpostgres .
+      - name: ChangeMode to Grant Permissions to Postgres DB
+        run: chmod +x /path/to/grant_postgresDB_permissions_on_githubActions.sh
       - name: Start the Standalone Stack
         run: docker-compose -f docker-compose-karate-bdd-postgresql.yml --verbose up -d
       - name: Wait for stack to come up
