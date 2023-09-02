@@ -40,6 +40,7 @@ import org.apache.fineract.accounting.common.AccountingRuleType;
 import org.apache.fineract.infrastructure.codes.data.CodeValueData;
 import org.apache.fineract.infrastructure.codes.service.CodeValueReadPlatformService;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
+import org.apache.fineract.infrastructure.configuration.service.ConfigurationReadPlatformService;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
 import org.apache.fineract.infrastructure.core.filters.FilterConstraint;
@@ -178,6 +179,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
     private final PortfolioAccountReadPlatformService portfolioAccountReadPlatformService;
 
     private final SearchReadPlatformService searchReadPlatformService;
+    private final ConfigurationReadPlatformService configurationReadPlatformService;
     private final LoanDueDiligenceInfoRepository loanDueDiligenceInfoRepository;
 
     @Autowired
@@ -195,7 +197,8 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
             final PortfolioAccountReadPlatformService portfolioAccountReadPlatformService,
             final AccountDetailsReadPlatformService accountDetailsReadPlatformService, final LoanRepositoryWrapper loanRepositoryWrapper,
             final ColumnValidator columnValidator, DatabaseSpecificSQLGenerator sqlGenerator, PaginationHelper paginationHelper,
-            SearchReadPlatformService searchReadPlatformService, final LoanDueDiligenceInfoRepository loanDueDiligenceInfoRepository) {
+            SearchReadPlatformService searchReadPlatformService, final LoanDueDiligenceInfoRepository loanDueDiligenceInfoRepository,
+            final ConfigurationReadPlatformService configurationReadPlatformService) {
         this.context = context;
         this.loanRepositoryWrapper = loanRepositoryWrapper;
         this.applicationCurrencyRepository = applicationCurrencyRepository;
@@ -223,6 +226,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         this.portfolioAccountReadPlatformService = portfolioAccountReadPlatformService;
         this.searchReadPlatformService = searchReadPlatformService;
         this.loanDueDiligenceInfoRepository = loanDueDiligenceInfoRepository;
+        this.configurationReadPlatformService = configurationReadPlatformService;
     }
 
     @Override
@@ -330,6 +334,9 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
     public Page<LoanAccountData> retrieveAll(final SearchParameters searchParameters) {
 
         final AppUser currentUser = this.context.authenticatedUser();
+        Boolean isExtendLoanLifeCycleConfig = configurationReadPlatformService
+                .retrieveGlobalConfiguration("Add-More-Stages-To-A-Loan-Life-Cycle").isEnabled();
+
         final String hierarchy = currentUser.getOffice().getHierarchy();
         final String hierarchySearchString = hierarchy + "%";
 
@@ -345,6 +352,11 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         sqlBuilder.append(" join m_office o on (o.id = c.office_id or o.id = g.office_id) ");
         sqlBuilder.append(" left join m_office transferToOffice on transferToOffice.id = c.transfer_to_office_id ");
         sqlBuilder.append(" where ( o.hierarchy like ? or transferToOffice.hierarchy like ?)");
+
+        if (isExtendLoanLifeCycleConfig) {
+            sqlBuilder.append(
+                    " and l.loan_decision_state is not null and ds.next_loan_ic_review_decision_state = 1900 and l.loan_decision_state = 1900 ");
+        }
 
         int arrayPos = 2;
         List<Object> extraCriterias = new ArrayList<>();
@@ -3055,4 +3067,36 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlBuilder.toString(),
                 new Object[] { searchParameters.getStartDueDate(), searchParameters.getEndDueDate() }, mapper);
     }
+
+    @Override
+    public Collection<LoanAccountData> getAllLoansPendingDecisionEngine(Integer loanDecisionState) {
+        this.context.authenticatedUser();
+        final LoanMapper rm = new LoanMapper(sqlGenerator);
+        final StringBuilder sqlBuilder = new StringBuilder(200);
+
+        final String sql = "select " + rm.loanSchema();
+        sqlBuilder.append(sql);
+        sqlBuilder.append(" where l.loan_status_id=100  ");
+        if (loanDecisionState == 100) {
+            sqlBuilder.append(" and l.loan_decision_state is null and ds.next_loan_ic_review_decision_state is null ");
+        } else if (loanDecisionState == 1000 || loanDecisionState == 1200 || loanDecisionState == 1300) {
+            sqlBuilder.append(" and l.loan_decision_state is not null and l.loan_decision_state = ? ");
+        } else if (loanDecisionState == 1900) {
+            // Return Loan Accounts that are prepare and sign Contract stage only
+            sqlBuilder.append(
+                    " and l.loan_decision_state is not null and ds.next_loan_ic_review_decision_state = ? and l.loan_decision_state != 1900 ");
+        } else {
+            // when loan is in IC Review
+            sqlBuilder.append(" and l.loan_decision_state is not null and ds.next_loan_ic_review_decision_state = ?");
+        }
+        sqlBuilder.append(" order by l.id ASC ");
+
+        if (loanDecisionState == 100) {
+            return this.jdbcTemplate.query(sqlBuilder.toString(), rm); // NOSONAR
+        } else {
+            return this.jdbcTemplate.query(sqlBuilder.toString(), rm, loanDecisionState); // NOSONAR
+        }
+
+    }
+
 }

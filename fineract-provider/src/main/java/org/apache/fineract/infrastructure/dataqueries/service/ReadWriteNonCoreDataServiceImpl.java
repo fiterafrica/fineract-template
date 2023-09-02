@@ -1321,7 +1321,9 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         String whereClause = getFKField(appTable) + " = " + appTableId;
 
         // Check for new search columns
-        whereClause = buildColumnFilterWhereClause(whereClause, columnFilter, valueFilter, columnHeaders);
+        if (StringUtils.isNotBlank(columnFilter) && StringUtils.isNotBlank(valueFilter)) {
+            whereClause = buildColumnFilterWhereClause(whereClause, columnFilter, valueFilter, columnHeaders);
+        }
 
         SQLInjectionValidator.validateSQLInput(whereClause);
         String sql = "select * from " + sqlGenerator.escape(dataTableName) + " where " + whereClause;
@@ -1366,7 +1368,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                             DateUtils.DEFAULT_DATETIME_FORMATER);
                     append.append(localDateTime);
                 } else {
-                    append.append(valueFilter);
+                    append.append(sqlGenerator.escapeValue(valueFilter));
                 }
             }
             whereClause = append.toString();
@@ -2055,6 +2057,20 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
 
         return datatableData;
+    }
+
+    @Override
+    public String getClientBVN(final String datatableName, final Long appTableId) {
+
+        try {
+            final String sqlString = "SELECT " + sqlGenerator.escape("BVN") + " FROM " + sqlGenerator.escape(datatableName) + " WHERE "
+                    + sqlGenerator.escape("client_id") + " = " + appTableId;
+            final String bvn = this.jdbcTemplate.queryForObject(sqlString, String.class); // NOSONAR
+            return bvn;
+        } catch (EmptyResultDataAccessException e) {
+            LOG.info("no data for client BVN");
+            return null;
+        }
     }
 
 }

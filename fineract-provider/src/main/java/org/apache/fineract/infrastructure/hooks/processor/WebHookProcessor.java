@@ -39,6 +39,7 @@ import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.domain.FineractContext;
+import org.apache.fineract.infrastructure.dataqueries.service.ReadWriteNonCoreDataService;
 import org.apache.fineract.infrastructure.hooks.api.HookApiConstants;
 import org.apache.fineract.infrastructure.hooks.domain.Hook;
 import org.apache.fineract.infrastructure.hooks.domain.HookConfiguration;
@@ -47,6 +48,8 @@ import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.client.domain.ClientRepositoryWrapper;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
+import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
+import org.apache.fineract.portfolio.savings.domain.SavingsAccountRepositoryWrapper;
 import org.apache.fineract.template.domain.Template;
 import org.springframework.stereotype.Service;
 import retrofit2.Callback;
@@ -59,29 +62,40 @@ public class WebHookProcessor implements HookProcessor {
     private final ProcessorHelper processorHelper;
     private final LoanRepositoryWrapper loanRepository;
 
+    private final ReadWriteNonCoreDataService dataService;
+
+    private final SavingsAccountRepositoryWrapper savingsAccountRepositoryWrapper;
+
     @Override
     public void process(final Hook hook, final String payload, final String entityName, final String actionName,
             final FineractContext context) throws IOException {
         final HashMap<String, Object> payLoadMap = new ObjectMapper().readValue(payload, HashMap.class);
         Long clientId = null;
+        Long savingsAccountId = null;
 
         if (payLoadMap.get("response") instanceof Map<?, ?>) {
             Map<String, Object> responseMap = (Map<String, Object>) payLoadMap.get("response");
             if (responseMap.get("errors") instanceof List && ((List) responseMap.get("errors")).size() > 0) {
                 return;
             }
+            for (Map.Entry<String, Object> entry : responseMap.entrySet()) {
+                payLoadMap.put(entry.getKey(), entry.getValue());
+            }
+
             if (responseMap.get("loanId") != null) {
                 if (!"DELETE".equals(actionName)) {
                     Long loanId = Long.parseLong(String.valueOf(responseMap.get("loanId")));
                     Loan loan = loanRepository.findOneWithNotFoundDetection(loanId);
                     payLoadMap.put("loan", loan);
                 }
-                payLoadMap.put("loanId", responseMap.get("loanId"));
 
             }
             if (responseMap.get("clientId") != null) {
                 clientId = Long.parseLong(String.valueOf(responseMap.get("clientId")));
-                payLoadMap.put("clientId", clientId);
+            }
+            if (responseMap.get("savingsId") != null) {
+                savingsAccountId = Long.parseLong(String.valueOf(responseMap.get("savingsId")));
+                payLoadMap.put("savingsAccountId", savingsAccountId);
             }
         }
 
@@ -94,7 +108,18 @@ public class WebHookProcessor implements HookProcessor {
         if ((clientId != null || payLoadMap.containsKey("clientId")) && !"DELETE".equals(actionName)) {
             clientId = null != clientId ? clientId : Long.parseLong(String.valueOf(payLoadMap.containsKey("clientId")));
             Client client = clientRepository.findOneWithNotFoundDetection(clientId);
+            // Get BVN Datatable
+            String clientBVN = dataService.getClientBVN("Bank Information", clientId);
+
             payLoadMap.put("client", client);
+            payLoadMap.put("bvn", clientBVN);
+        }
+
+        if ((savingsAccountId != null || payLoadMap.containsKey("savingsAccountId")) && !"DELETE".equals(actionName)) {
+            savingsAccountId = null != savingsAccountId ? savingsAccountId
+                    : Long.parseLong(String.valueOf(payLoadMap.containsKey("savingsAccountId")));
+            SavingsAccount savingsAccount = savingsAccountRepositoryWrapper.findOneWithNotFoundDetection(savingsAccountId);
+            payLoadMap.put("savingsAccount", savingsAccount);
         }
 
         payLoadMap.put("activity", actionName);
@@ -133,6 +158,8 @@ public class WebHookProcessor implements HookProcessor {
                 List<WebCondition> conditions = new ArrayList<>();
                 String inputConditions = conf.getFieldValue().trim();
                 boolean isOrCondition = inputConditions.contains("||");
+                // Cl18-229
+                boolean isAndCondition = inputConditions.contains("&&");
 
                 Iterable<String> conditionStrings = Splitter.onPattern(isOrCondition ? "\\s*\\|\\|\\s*" : "\\s*&&\\s*")
                         .split(conf.getFieldValue().trim());
@@ -145,12 +172,13 @@ public class WebHookProcessor implements HookProcessor {
                 }
                 if (isOrCondition && !evaluateOR(conditions)) {
                     return;
-                } else if (!evaluateAND(conditions)) {
+                } else if (isAndCondition && !evaluateAND(conditions)) {
                     return;
                 }
             }
         }
         final String compilePayLoad = compilePayLoad(hook.getUgdTemplate(), payLoadMap);
+        url = getValueFromPayLoad(url, payLoadMap);
         sendRequest(url, contentType, compilePayLoad, entityName, actionName, context, basicAuthCreds, apiKey, apiKeyValue);
     }
 

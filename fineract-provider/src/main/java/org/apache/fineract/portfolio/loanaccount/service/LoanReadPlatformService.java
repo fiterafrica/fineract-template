@@ -184,4 +184,6 @@ public interface LoanReadPlatformService {
     LoanDueDiligenceData retrieveLoanDueDiligenceData(Long loanId);
 
     Page<LoanSchedulePeriodData> getAllLoanRepayments(SearchParameters searchParameters, boolean isCompleted);
+
+    Collection<LoanAccountData> getAllLoansPendingDecisionEngine(Integer nextLoanDecisionState);
 }

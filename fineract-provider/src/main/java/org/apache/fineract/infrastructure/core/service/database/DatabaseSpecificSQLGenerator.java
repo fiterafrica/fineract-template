@@ -43,6 +43,15 @@ public class DatabaseSpecificSQLGenerator {
         return arg;
     }
 
+    public String escapeValue(String arg) {
+        if (databaseTypeResolver.isMySQL()) {
+            return format("`%s`", arg);
+        } else if (databaseTypeResolver.isPostgreSQL()) {
+            return format("\'%s\'", arg);
+        }
+        return arg;
+    }
+
     public String groupConcat(String arg) {
         if (databaseTypeResolver.isMySQL()) {
             return format("GROUP_CONCAT(%s)", arg);

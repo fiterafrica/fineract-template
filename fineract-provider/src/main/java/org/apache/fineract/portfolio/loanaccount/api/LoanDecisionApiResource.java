@@ -331,4 +331,20 @@ public class LoanDecisionApiResource {
 
         return this.toApiJsonSerializer.serialize(result);
     }
+
+    @GET
+    @Path("getAllLoansPendingDecisionEngine/{nextLoanDecisionState}")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String getAllLoansPendingDecisionEngine(@PathParam("nextLoanDecisionState") final Integer nextLoanDecisionState,
+            @Context final UriInfo uriInfo) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+
+        Collection<LoanAccountData> loanAccountData = this.loanReadPlatformService.getAllLoansPendingDecisionEngine(nextLoanDecisionState);
+
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.loanApprovalDataToApiJsonSerializer.serialize(settings, loanAccountData, this.loanDataParameters);
+
+    }
 }
