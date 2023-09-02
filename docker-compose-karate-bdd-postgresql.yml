@@ -55,7 +55,7 @@ services:
 
       - FINERACT_NODE_ID=1
       - FINERACT_HIKARI_DRIVER_SOURCE_CLASS_NAME=org.postgresql.Driver
-      - FINERACT_HIKARI_JDBC_URL=jdbc:postgresql://fineract-template_fineractpostgresql_1:5432/fineract_tenants&useSSL=false
+      - FINERACT_HIKARI_JDBC_URL=jdbc:postgresql://fineract-template_fineractpostgresql_1:5432/fineract_tenants
       - FINERACT_HIKARI_USERNAME=postgres
       - FINERACT_HIKARI_PASSWORD=skdcnwauicn2ucnaecasdsajdnizucawencascdca
       - FINERACT_HIKARI_MINIMUM_IDLE=3
@@ -88,5 +88,5 @@ services:
       - fineract_tenants_driver=org.postgresql.Driver
       - fineract_tenants_pwd=skdcnwauicn2ucnaecasdsajdnizucawencascdca
       - fineract_tenants_uid=postgres
-      - fineract_tenants_url=jdbc:postgresql://fineract-template_fineractpostgresql_1:5432/fineract_tenants&useSSL=false
-      - JAVA_TOOL_OPTIONS="-Xmx1G"
+      - fineract_tenants_url=jdbc:postgresql://fineract-template_fineractpostgresql_1:5432/fineract_tenants
+      - JAVA_TOOL_OPTIONS="-Xmx2G"
