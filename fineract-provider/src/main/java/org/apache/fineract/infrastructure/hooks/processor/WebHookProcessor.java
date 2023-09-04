@@ -114,7 +114,8 @@ public class WebHookProcessor implements HookProcessor {
         }
 
         if ((savingsAccountId != null || payLoadMap.containsKey("savingsAccountId")) && !"DELETE".equals(actionName)) {
-            savingsAccountId = null != savingsAccountId ? savingsAccountId : Long.parseLong(String.valueOf(payLoadMap.containsKey("savingsAccountId")));
+            savingsAccountId = null != savingsAccountId ? savingsAccountId
+                    : Long.parseLong(String.valueOf(payLoadMap.containsKey("savingsAccountId")));
             SavingsAccount savingsAccount = savingsAccountRepositoryWrapper.findOneWithNotFoundDetection(savingsAccountId);
             payLoadMap.put("savingsAccount", savingsAccount);
         }
@@ -157,15 +158,16 @@ public class WebHookProcessor implements HookProcessor {
                 boolean isAndCondition = inputConditions.contains("&&");
 
                 boolean result = true;
-                // Refactored conditions to handle multi line AND conditions for Cl18-227 webhook #4. Before these conditons were not executed well
+                // Refactored conditions to handle multi line AND conditions for Cl18-227 webhook #4. Before these
+                // conditons were not executed well
                 // First execute AND conditions . if conditions contains AND and || then AND determines final value
-                if(isAndCondition){
+                if (isAndCondition) {
                     result = processConditions(inputConditions, payLoadMap);
-                }else if(isOrCondition){
+                } else if (isOrCondition) {
                     result = processOrCondition(inputConditions, payLoadMap);
                 }
 
-                if(!result) return;
+                if (!result) return;
             }
         }
         final String compilePayLoad = compilePayLoad(hook.getUgdTemplate(), payLoadMap);
@@ -175,18 +177,19 @@ public class WebHookProcessor implements HookProcessor {
     private boolean processConditions(String inputConditions, final HashMap<String, Object> payLoadMap) throws IOException {
         boolean isAndCondition = inputConditions.contains("&&");
 
-        if(isAndCondition){
+        if (isAndCondition) {
             Iterable<String> conditionStrings = Splitter.onPattern("\\s*&&\\s*").split(inputConditions.trim());
             List<WebCondition> conditions = new ArrayList<>();
 
-            for(String andCondition: conditionStrings){
-                if(andCondition.contains("||")){
-                    // if condition also has parts with || first execute the || part and if it is false no need to execute the AND parts because entire statement will always be false
+            for (String andCondition : conditionStrings) {
+                if (andCondition.contains("||")) {
+                    // if condition also has parts with || first execute the || part and if it is false no need to
+                    // execute the AND parts because entire statement will always be false
                     boolean orResult = processOrCondition(andCondition, payLoadMap);
-                    if(!orResult){
+                    if (!orResult) {
                         return false;
                     }
-                }else{
+                } else {
                     List<String> parts = Splitter.onPattern("\\s*\\|\\s*").splitToList(andCondition.trim());
                     if (parts.size() == 3) {
                         conditions.add(new WebCondition(getValueFromPayLoad(parts.get(0), payLoadMap), parts.get(1), parts.get(2)));
@@ -209,7 +212,7 @@ public class WebHookProcessor implements HookProcessor {
             List<String> parts = Splitter.onPattern("\\s*\\|\\s*").splitToList(conditionString.trim());
             if (parts.size() == 3) {
                 conditions.add(new WebCondition(getValueFromPayLoad(parts.get(0), payLoadMap), parts.get(1), parts.get(2)));
-            }else if (parts.size() == 2) {
+            } else if (parts.size() == 2) {
                 conditions.add(new WebCondition(getValueFromPayLoad(parts.get(0), payLoadMap), parts.get(1)));
             }
         }
