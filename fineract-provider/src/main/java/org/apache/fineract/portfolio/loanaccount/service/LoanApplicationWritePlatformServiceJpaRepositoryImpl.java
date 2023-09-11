@@ -128,6 +128,7 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanStatus;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanSummaryWrapper;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTopupDetails;
+import org.apache.fineract.portfolio.loanaccount.exception.GLIMLoanCannotBeApprovedException;
 import org.apache.fineract.portfolio.loanaccount.exception.LoanApplicationDateException;
 import org.apache.fineract.portfolio.loanaccount.exception.LoanApplicationNotInSubmittedAndPendingApprovalStateCannotBeDeleted;
 import org.apache.fineract.portfolio.loanaccount.exception.LoanApplicationNotInSubmittedAndPendingApprovalStateCannotBeModified;
@@ -1371,6 +1372,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
     @Transactional
     @Override
     public CommandProcessingResult approveGLIMLoanAppication(final Long loanId, final JsonCommand command) {
+        Boolean isExtendLoanLifeCycleConfig = loanDecisionStateUtilService.isExtendLoanLifeCycleConfig();
 
         final Long parentLoanId = loanId;
         GroupLoanIndividualMonitoringAccount parentLoan = glimRepository.findById(parentLoanId).orElseThrow();
@@ -1394,8 +1396,11 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         for (JsonElement approvals : approvalFormData) {
 
             childCommand = JsonCommand.fromExistingCommand(command, approvals);
-
-            result = approveApplication(childLoanId[j++], childCommand);
+            if (isExtendLoanLifeCycleConfig) {
+                result = approveLoanApplicationAssociatedToGLIM(childLoanId[j++], childCommand);
+            } else {
+                result = approveApplication(childLoanId[j++], childCommand);
+            }
 
             if (result.getLoanId() != null) {
                 count++;
@@ -1424,6 +1429,12 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         this.loanApplicationTransitionApiJsonValidator.validateApproval(command.json());
 
         final Loan loan = retrieveLoanBy(loanId);
+        final Boolean isExtendLoanLifeCycleConfig = this.loanDecisionStateUtilService.isExtendLoanLifeCycleConfig();
+
+        // block loan approval if loan is associated to GLIM
+        if (isExtendLoanLifeCycleConfig && loan.getLoanType().equals(AccountType.GLIM.getValue())) {
+            throw new GLIMLoanCannotBeApprovedException(loanId);
+        }
         this.validateActiveLoanCount(loan.getClientId());
         this.loanDecisionStateUtilService.validateLoanAccountWithExtraLoanDecisionStagesConfiguredGlobally(loan, command);
 
@@ -2215,6 +2226,157 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         final var transactionDate = command.localDateValueOfParameterNamed(LoanApiConstants.transactionDateParamName);
         loanRepositoryWrapper.updateRedrawAmount(loan, user, loanId, transactionAmount, true, transactionDate, null);
         return new CommandProcessingResultBuilder().withEntityId(loanId).withLoanId(loanId).build();
+    }
+
+    @Transactional
+    private CommandProcessingResult approveLoanApplicationAssociatedToGLIM(final Long loanId, final JsonCommand command) {
+
+        final AppUser currentUser = getAppUserIfPresent();
+        LocalDate expectedDisbursementDate = null;
+
+        this.loanApplicationTransitionApiJsonValidator.validateApproval(command.json());
+
+        final Loan loan = retrieveLoanBy(loanId);
+        if (loan.status().isRejected()) {
+            return null;
+        }
+
+        this.validateActiveLoanCount(loan.getClientId());
+        this.loanDecisionStateUtilService.validateLoanAccountWithExtraLoanDecisionStagesConfiguredGlobally(loan, command);
+
+        final JsonArray disbursementDataArray = command.arrayOfParameterNamed(LoanApiConstants.disbursementDataParameterName);
+
+        expectedDisbursementDate = command.localDateValueOfParameterNamed(LoanApiConstants.disbursementDateParameterName);
+        if (expectedDisbursementDate == null) {
+            expectedDisbursementDate = loan.getExpectedDisbursedOnLocalDate();
+        }
+        if (loan.loanProduct().isMultiDisburseLoan()) {
+            this.validateMultiDisbursementData(command, expectedDisbursementDate);
+        }
+
+        checkClientOrGroupActive(loan);
+
+        // if bnpl loan and equity contribution, the check client's savings account for client's contribution for bnpl
+        // vendor payment
+        BigDecimal amountToDisburseForBnplEquityContributionLoan = BigDecimal.ZERO;
+        Boolean isBnplEquityContributionLoan = loan.getBnplLoan() != null && loan.getBnplLoan()
+                && loan.getRequiresEquityContribution() != null && loan.getRequiresEquityContribution();
+        if (isBnplEquityContributionLoan) {
+            Money disburseAmount = loan.adjustDisburseAmount(command, expectedDisbursementDate);
+            Money amountToDisburse = disburseAmount.copy();
+            // get amount to transfer as equity
+            Money equityAmount = Money.zero(amountToDisburse.getCurrency());
+            BigDecimal equityContributionLoanPercentage = loan.getEquityContributionLoanPercentage();
+            if (equityContributionLoanPercentage.compareTo(BigDecimal.ZERO) > 0) {
+                final RoundingMode roundingMode = MoneyHelper.getRoundingMode();
+                final MathContext mc = new MathContext(8, roundingMode);
+                equityAmount = disburseAmount.percentageOf(equityContributionLoanPercentage, mc.getRoundingMode());
+            } else {
+                final String errorMessage = "Approval BNPL Loan with id:" + loan.getId()
+                        + " requires percentage of loan which needs to be transfer to vendor if the loan RequiresEquityContribution has true";
+                throw new LinkedAccountRequiredException("loan.approval.link.Savings", errorMessage, loan.getId());
+            }
+
+            // get client savings account
+            final PortfolioAccountData clientPortfolioAccountData = this.accountAssociationsReadPlatformService
+                    .retriveLoanLinkedAssociation(loan.getId());
+            if (clientPortfolioAccountData == null) {
+                final String errorMessage = "Approval BNPL Loan with id:" + loan.getId()
+                        + " requires linked savings account for disbursement";
+                throw new LinkedAccountRequiredException("loan.approval.links.savings", errorMessage, loan.getId());
+            }
+            final SavingsAccount clientSavingsAccount = this.savingsAccountAssembler.assembleFrom(clientPortfolioAccountData.accountId(),
+                    false);
+            clientSavingsAccount.validateAccountBalanceForBnplLoanWithEquityContribution(equityAmount.getAmount(), false);
+            amountToDisburseForBnplEquityContributionLoan = amountToDisburse.getAmount().subtract(equityAmount.getAmount());
+        }
+
+        Boolean isSkipRepaymentOnFirstMonth = false;
+        Integer numberOfDays = 0;
+        // validate expected disbursement date against meeting date
+        if (loan.isSyncDisbursementWithMeeting() && (loan.isGroupLoan() || loan.isJLGLoan())) {
+            final CalendarInstance calendarInstance = this.calendarInstanceRepository.findCalendarInstaneByEntityId(loan.getId(),
+                    CalendarEntityType.LOANS.getValue());
+            Calendar calendar = null;
+            if (calendarInstance != null) {
+                calendar = calendarInstance.getCalendar();
+            }
+            // final Calendar calendar = calendarInstance.getCalendar();
+            boolean isSkipRepaymentOnFirstMonthEnabled = this.configurationDomainService.isSkippingMeetingOnFirstDayOfMonthEnabled();
+            if (isSkipRepaymentOnFirstMonthEnabled) {
+                isSkipRepaymentOnFirstMonth = this.loanUtilService.isLoanRepaymentsSyncWithMeeting(loan.group(), calendar);
+                if (isSkipRepaymentOnFirstMonth) {
+                    numberOfDays = configurationDomainService.retreivePeroidInNumberOfDaysForSkipMeetingDate().intValue();
+                }
+            }
+            this.loanScheduleAssembler.validateDisbursementDateWithMeetingDates(expectedDisbursementDate, calendar,
+                    isSkipRepaymentOnFirstMonth, numberOfDays);
+        }
+
+        final Map<String, Object> changes = loan.loanApplicationApproval(currentUser, command, disbursementDataArray,
+                defaultLoanLifecycleStateMachine(), isBnplEquityContributionLoan, amountToDisburseForBnplEquityContributionLoan);
+
+        entityDatatableChecksWritePlatformService.runTheCheckForProduct(loanId, EntityTables.LOAN.getName(),
+                StatusEnum.APPROVE.getCode().longValue(), EntityTables.LOAN.getForeignKeyColumnNameOnDatatable(), loan.productId());
+
+        if (!changes.isEmpty()) {
+
+            // If loan approved amount less than loan demanded amount, then need
+            // to recompute the schedule
+            if (changes.containsKey(LoanApiConstants.approvedLoanAmountParameterName) || changes.containsKey("recalculateLoanSchedule")
+                    || changes.containsKey("expectedDisbursementDate")) {
+                LocalDate recalculateFrom = null;
+                ScheduleGeneratorDTO scheduleGeneratorDTO = this.loanUtilService.buildScheduleGeneratorDTO(loan, recalculateFrom);
+                loan.regenerateRepaymentSchedule(scheduleGeneratorDTO);
+            }
+
+            if (loan.isTopup() && loan.getClientId() != null) {
+                final Long loanIdToClose = loan.getTopupLoanDetails().getLoanIdToClose();
+                final Loan loanToClose = this.loanRepositoryWrapper.findNonClosedLoanThatBelongsToClient(loanIdToClose, loan.getClientId());
+                if (loanToClose == null) {
+                    throw new GeneralPlatformDomainRuleException("error.msg.loan.to.be.closed.with.topup.is.not.active",
+                            "Loan to be closed with this topup is not active.");
+                }
+
+                final LocalDate lastUserTransactionOnLoanToClose = loanToClose.getLastUserTransactionDate();
+                if (loan.getDisbursementDate().isBefore(lastUserTransactionOnLoanToClose)) {
+                    throw new GeneralPlatformDomainRuleException(
+                            "error.msg.loan.disbursal.date.should.be.after.last.transaction.date.of.loan.to.be.closed",
+                            "Disbursal date of this loan application " + loan.getDisbursementDate()
+                                    + " should be after last transaction date of loan to be closed " + lastUserTransactionOnLoanToClose);
+                }
+                BigDecimal loanOutstanding = this.loanReadPlatformService
+                        .retrieveLoanForeclosureTemplate(loanIdToClose, expectedDisbursementDate).getAmount();
+                final BigDecimal firstDisbursalAmount = loan.getFirstDisbursalAmount();
+                if (loanOutstanding.compareTo(firstDisbursalAmount) > 0) {
+                    throw new GeneralPlatformDomainRuleException("error.msg.loan.amount.less.than.outstanding.of.loan.to.be.closed",
+                            "Topup loan amount should be greater than outstanding amount of loan to be closed.");
+                }
+                BigDecimal netDisbursalAmount = loan.getApprovedPrincipal().subtract(loanOutstanding);
+                loan.adjustNetDisbursalAmount(netDisbursalAmount);
+            }
+
+            saveAndFlushLoanWithDataIntegrityViolationChecks(loan);
+
+            final String noteText = command.stringValueOfParameterNamed("note");
+            if (StringUtils.isNotBlank(noteText)) {
+                final Note note = Note.loanNote(loan, noteText);
+                changes.put("note", noteText);
+                this.noteRepository.save(note);
+            }
+
+            businessEventNotifierService.notifyPostBusinessEvent(new LoanApprovedBusinessEvent(loan));
+        }
+
+        return new CommandProcessingResultBuilder() //
+                .withCommandId(command.commandId()) //
+                .withEntityId(loan.getId()) //
+                .withOfficeId(loan.getOfficeId()) //
+                .withClientId(loan.getClientId()) //
+                .withGroupId(loan.getGroupId()) //
+                .withLoanId(loanId) //
+                .with(changes) //
+                .build();
     }
 
 }

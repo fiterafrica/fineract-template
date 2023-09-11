@@ -32,7 +32,7 @@ public interface GLIMAccountInfoReadPlatformService {
 
     Collection<GLIMContainer> findGlimAccount(Long groupId);
 
-    Collection<GroupLoanIndividualMonitoringAccountData> findGlimAccountByGroupIdandAccountNo(String groupId, String accountNo);
+    Collection<GroupLoanIndividualMonitoringAccountData> findGlimAccountByGroupIdandAccountNo(Long groupId, String accountNo);
 
     Collection<GLIMContainer> findGlimAccountbyGroupAndAccount(Long groupId, String accountNo);
 
