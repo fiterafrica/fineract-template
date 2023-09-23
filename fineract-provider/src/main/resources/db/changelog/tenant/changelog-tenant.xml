@@ -88,5 +88,6 @@
     <include file="parts/INKO-43_client_business_details.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO-69-modify-loan-account-and-product.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO_71_add_client_statement_table_report_reports_table.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_72_update_report_sql_obligations_met_table_report.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>
