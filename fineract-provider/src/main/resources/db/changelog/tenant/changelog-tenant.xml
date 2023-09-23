@@ -87,5 +87,6 @@
     <include file="parts/OXY-138_add_on_hold_table_for_savings_account.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO-43_client_business_details.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO-69-modify-loan-account-and-product.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_71_add_client_statement_table_report_reports_table.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>
