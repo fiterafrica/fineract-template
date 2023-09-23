@@ -45,10 +45,10 @@ case
     when l.loan_status_id = 602 then 'Closed Reschedule Outstanding Amount'
     when l.loan_status_id = 700 then 'Overpaid'
 end as 'Status', YEAR(now()) - YEAR(c.date_of_birth) as Age, cvg.code_value as Gender, cvc.code_value as Cohort, l.loan_counter as Cycle,
-cvn.code_value as Nationality, '' as Location
+cvn.code_value as Nationality, cvl.code_value as Location
 from m_office o
 join m_office ounder on ounder.hierarchy like concat(o.hierarchy, '%')
-and ounder.hierarchy like concat('.', '%')
+and ounder.hierarchy like concat('${currentUserHierarchy}', '%')
 join m_client c on c.office_id = ounder.id
 join m_loan l on l.client_id = c.id
 join m_product_loan pl on pl.id = l.product_id
