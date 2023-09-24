@@ -1,0 +1,56 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements. See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership. The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.6.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+    <changeSet author="moses@fiter.io" id="INKO_74_add_collateral_report_to_reports_table_1" context="mysql">
+        <insert tableName="stretchy_report">
+            <column name="report_name" value="Collateral"/>
+            <column name="report_type" value="Table"/>
+            <column name="report_subtype"/>
+            <column name="report_category" value="Loan"/>
+            <column name="report_sql" value="select o.name as Office , c.external_id as UID, concat(c.firstname,' ',c.lastname) as 'Customer Name',
+l.account_no as 'Loan Id Number', l.principal_amount as 'Loan Amount', cvs.code_value as 'Strata', cvc.code_value as 'Type of Collateral',
+lc.value as 'Collateral Coverage', '' as 'OMV', '' as 'FSV', '' as 'Province', '' as 'District', '' as 'Sector', '' as 'Cell', '' as 'Village'
+from m_office o
+join m_office ounder on ounder.hierarchy like concat(o.hierarchy, '%')
+and ounder.hierarchy like concat('${currentUserHierarchy}', '%')
+join m_client c on c.office_id = ounder.id
+join m_loan l on l.client_id = c.id
+left join m_client_other_info coi on coi.client_id = c.id
+left join m_code_value cvs on cvs.id = coi.strata_cv_id
+left join m_loan_collateral lc on lc.loan_id = l.id
+left join m_code_value cvc on cvc.id = lc.type_cv_id
+where o.id = ${officeId} "/>
+            <column name="description" value="Collateral Table Report"/>
+            <column name="core_report" valueBoolean="true"/>
+            <column name="use_report" valueBoolean="true"/>
+            <column name="self_service_user_report" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+    <changeSet author="moses@fiter.io" id="INKO_74_add_collateral_report_to_reports_table_2" context="mysql">
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Collateral')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'OfficeIdSelectOne')"/>
+            <column name="report_parameter_name" value="officeId"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>
