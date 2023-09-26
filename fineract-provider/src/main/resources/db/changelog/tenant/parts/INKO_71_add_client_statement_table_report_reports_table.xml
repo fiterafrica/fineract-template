@@ -27,13 +27,22 @@
             <column name="report_type" value="Table"/>
             <column name="report_subtype"/>
             <column name="report_category" value="Client"/>
-            <column name="report_sql" value="select o.name as Office, cvl.code_value as 'Client Location', c.external_id as UID, concat(c.firstname,' ',c.lastname) as 'Customer Name',
+            <column name="report_sql" value="select l.id,o.name as Office, cvl.code_value as 'Client Location', c.external_id as UID, concat(c.firstname,' ',c.lastname) as 'Customer Name',
        l.account_no as 'Loan Id Number', l.principal_amount as 'Loan Amount', l.interest_charged_derived as Interest, l.term_frequency as 'Total Payments',
        l.principal_repaid_derived as 'Total Principal Paid', l.fee_charges_repaid_derived as 'Total Fees Paid',
        l.interest_repaid_derived as 'Total Interest Paid', l.penalty_charges_charged_derived as 'Total Late Fees',
        l.total_outstanding_derived as 'Outstanding Balance', l.interest_outstanding_derived as 'Outstanding Interest',
        l.fee_charges_outstanding_derived as 'Outstanding Fees', cvs.code_value as 'Client Classification',
-       ifnull(loanStatusTable.loanDecisionState, loanStatusTable.loanStatus) as 'Status',
+       case
+           when ( con.enabled = false ) then loanStatusTable.loanStatus
+           when con.enabled = true then
+               case
+                   when loanStatusTable.loanStatus = 'Pending Approval' and loanStatusTable.loanDecisionState is null then loanStatusTable.loanStatus
+                   when loanStatusTable.loanStatus = 'Pending Approval' and loanStatusTable.loanDecisionState is not null and  loanStatusTable.loanDecisionState != 'Prepare And Sign Contract' then loanStatusTable.loanDecisionState
+                   when loanStatusTable.loanStatus != 'Pending Approval' then loanStatusTable.loanStatus
+                   when loanStatusTable.loanStatus = 'Pending Approval' and loanStatusTable.loanDecisionState = 'Prepare And Sign Contract' then loanStatusTable.loanStatus
+              end
+       end as 'Status',
     YEAR(now()) - YEAR(c.date_of_birth) as Age, cvg.code_value as Gender, cvc.code_value as Cohort, l.loan_counter as Cycle,
     cvn.code_value as Nationality, cvl.code_value as Location
 from m_office o join m_office ounder on ounder.hierarchy like concat(o.hierarchy, '%') and ounder.hierarchy like concat('${currentUserHierarchy}', '%')
@@ -49,6 +58,7 @@ from m_office o join m_office ounder on ounder.hierarchy like concat(o.hierarchy
     left join m_fund f on f.id = l.fund_id
     left join m_staff lo on lo.id = l.loan_officer_id
     left join m_loan_decision ld on ld.loan_id = l.id
+    left join c_configuration con on con.name = 'Add-More-Stages-To-A-Loan-Life-Cycle'
     left join (select l.id as loanId,
        case
            when l.loan_status_id = 100 then 'Pending Approval'
