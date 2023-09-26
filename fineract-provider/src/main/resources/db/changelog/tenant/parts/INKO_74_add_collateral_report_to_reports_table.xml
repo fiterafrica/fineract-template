@@ -29,7 +29,8 @@
             <column name="report_category" value="Loan"/>
             <column name="report_sql" value="select o.name as Office , c.external_id as UID, concat(c.firstname,' ',c.lastname) as 'Customer Name',
 l.account_no as 'Loan Id Number', l.principal_amount as 'Loan Amount', cvs.code_value as 'Strata', cvc.code_value as 'Type of Collateral',
-lc.value as 'Collateral Coverage', '' as 'OMV', '' as 'FSV', '' as 'Province', '' as 'District', '' as 'Sector', '' as 'Cell', '' as 'Village'
+lc.value as 'Collateral Coverage', '' as 'OMV', '' as 'FSV', cvp.code_value as 'Province', cvd.code_value as 'District',
+cvsec.code_value as 'Sector', cvcell.code_value as 'Cell', cvv.code_value as 'Village'
 from m_office o
 join m_office ounder on ounder.hierarchy like concat(o.hierarchy, '%')
 and ounder.hierarchy like concat('${currentUserHierarchy}', '%')
@@ -38,8 +39,19 @@ join m_loan l on l.client_id = c.id
 left join m_client_other_info coi on coi.client_id = c.id
 left join m_code_value cvs on cvs.id = coi.strata_cv_id
 left join m_loan_collateral lc on lc.loan_id = l.id
+left join m_loan_collateral_management lcm on lcm.loan_id = l.id
 left join m_code_value cvc on cvc.id = lc.type_cv_id
-where o.id = ${officeId} "/>
+left join m_client_collateral_management_additional_details ccma on ccma.client_collateral_id = lcm.client_collateral_id
+left join m_code_value cvp on cvp.id = ccma.province_cv_id
+left join m_code_value cvd on cvd.id = ccma.district_cv_id
+left join m_code_value cvsec on cvsec.id = ccma.sector_cv_id
+left join m_code_value cvcell on cvcell.id = ccma.cell_cv_id
+left join m_code_value cvv on cvv.id = ccma.village_cv_id
+where o.id = ${officeId}
+and (l.product_id = '${loanProductId}' or '-1' = '${loanProductId}')
+and (l.fund_id = '${fundId}' or '-1' = '${fundId}')
+and (l.loan_officer_id = '${loanOfficerId}' or '-1' = '${loanOfficerId}')
+and (ccma.province_cv_id = '${provinceId}' or '-1' = '${provinceId}') "/>
             <column name="description" value="Collateral Table Report"/>
             <column name="core_report" valueBoolean="true"/>
             <column name="use_report" valueBoolean="true"/>
@@ -47,10 +59,45 @@ where o.id = ${officeId} "/>
         </insert>
     </changeSet>
     <changeSet author="moses@fiter.io" id="INKO_74_add_collateral_report_to_reports_table_2" context="mysql">
+        <insert tableName="stretchy_parameter">
+            <column name="parameter_name" value="provinceIdSelectAll"/>
+            <column name="parameter_variable" value="provinceId"/>
+            <column name="parameter_label" value="Province"/>
+            <column name="parameter_displayType" value="select"/>
+            <column name="parameter_FormatType" value="number"/>
+            <column name="parameter_default" value="n/a"/>
+            <column name="special"/>
+            <column name="selectOne"/>
+            <column name="selectAll" value="Y"/>
+            <column name="parameter_sql" value="(select ccma.province_cv_id, cvp.code_value from m_client_collateral_management_additional_details ccma left join m_code_value cvp on cvp.id = ccma.province_cv_id) union all (select -10, '-') order by 2 "/>
+            <column name="parent_id"/>
+        </insert>
+    </changeSet>
+    <changeSet author="moses@fiter.io" id="INKO_74_add_collateral_report_to_reports_table_3" context="mysql">
         <insert tableName="stretchy_report_parameter">
             <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Collateral')"/>
             <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'OfficeIdSelectOne')"/>
             <column name="report_parameter_name" value="officeId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Collateral')"/>
+            <column name="parameter_id" valueNumeric="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'loanOfficerIdSelectAll')"/>
+            <column name="report_parameter_name" value="loanOfficerId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Collateral')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'loanProductIdSelectAllWithoutCurrency')"/>
+            <column name="report_parameter_name" value="loanProductId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Collateral')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'fundIdSelectAll')"/>
+            <column name="report_parameter_name" value="fundId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Collateral')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'provinceIdSelectAll')"/>
+            <column name="report_parameter_name" value="provinceId"/>
         </insert>
     </changeSet>
 </databaseChangeLog>
