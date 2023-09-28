@@ -91,5 +91,6 @@
     <include file="parts/INKO_72_update_report_sql_obligations_met_table_report.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO_73_add_loan_in_arrears_to_reports_table.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO_74_add_collateral_report_to_reports_table.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_76_update_client_id_select_all_report_parameter_query.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>
