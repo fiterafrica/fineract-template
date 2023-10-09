@@ -55,6 +55,13 @@ public class PaginationHelper {
         return new Page<>(items, totalFilteredRecords);
     }
 
+    public <E> Page<E> fetchPageNoRecordCount(final JdbcTemplate jt, final String sqlFetchRows, final Object[] args,
+            final RowMapper<E> rowMapper) {
+
+        final List<E> items = jt.query(sqlFetchRows, rowMapper, args); // NOSONAR
+        return new Page<>(items, 0);
+    }
+
     public <E> Page<Long> fetchPage(JdbcTemplate jdbcTemplate, String sql, Class<Long> type) {
         final List<Long> items = jdbcTemplate.queryForList(sql, type);
 
@@ -63,5 +70,9 @@ public class PaginationHelper {
         Integer totalFilteredRecords = jdbcTemplate.queryForObject(sqlCountRows, Integer.class);
 
         return new Page<>(items, ObjectUtils.defaultIfNull(totalFilteredRecords, 0));
+    }
+
+    public DatabaseTypeResolver getDatabaseTypeResolver() {
+        return databaseTypeResolver;
     }
 }

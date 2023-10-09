@@ -106,6 +106,8 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
     private final PaginationHelper paginationHelper;
     private final DatabaseSpecificSQLGenerator sqlGenerator;
     private final ClientMapper clientMapper = new ClientMapper();
+
+    private final ClientLiteMapper clientLiteMapper = new ClientLiteMapper();
     private final ClientLookupMapper lookupMapper = new ClientLookupMapper();
     private final ClientMembersOfGroupMapper membersOfGroupMapper = new ClientMembersOfGroupMapper();
     private final ParentGroupsMapper clientGroupsMapper = new ParentGroupsMapper();
@@ -269,6 +271,11 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
                 } else {
                     sqlBuilder.append(sqlGenerator.limit(searchParameters.getLimit()));
                 }
+                if (this.paginationHelper.getDatabaseTypeResolver().isPostgreSQL()) {
+                    // If this is limited and database is postgres, counting records won't be effective
+                    return this.paginationHelper.fetchPageNoRecordCount(this.jdbcTemplate, sqlBuilder.toString(), paramList.toArray(),
+                            this.clientMapper);
+                }
             }
         }
         return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlBuilder.toString(), paramList.toArray(), this.clientMapper);
@@ -411,6 +418,24 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
             ClientData previewClientData = ClientData.setParentGroups(clientData, parentGroups, clientCollateralManagementDataSet);
             previewClientData.setClientBusinessDetailDataSet(clientBusinessDetailDataSet);
             return previewClientData;
+
+        } catch (final EmptyResultDataAccessException e) {
+            throw new ClientNotFoundException(clientId, e);
+        }
+    }
+
+    @Override
+    public ClientData retrieveOneLite(Long clientId) {
+        try {
+
+            final String sql = "select " + this.clientLiteMapper.schema() + " where c.id = ?";
+            final ClientData clientData = this.jdbcTemplate.queryForObject(sql, this.clientLiteMapper, clientId);
+
+            final String clientGroupsSql = "select " + this.clientGroupsMapper.parentGroupsSchema();
+
+            final Collection<GroupGeneralData> parentGroups = this.jdbcTemplate.query(clientGroupsSql, this.clientGroupsMapper, // NOSONAR
+                    clientId);
+            return ClientData.setParentGroups(clientData, parentGroups, null);
 
         } catch (final EmptyResultDataAccessException e) {
             throw new ClientNotFoundException(clientId, e);
@@ -870,6 +895,97 @@ public class ClientReadPlatformServiceImpl implements ClientReadPlatformService 
                     activationDate, imageId, staffId, staffName, timeline, savingsProductId, savingsProductName, savingsAccountId,
                     clienttype, classification, legalForm, clientNonPerson, isStaff, clientLevel, dailyWithDrawLimit, singleWithDrawLimit,
                     clientAdditionalInfo, createdDate);
+
+        }
+    }
+
+    private static final class ClientLiteMapper implements RowMapper<ClientData> {
+
+        private final String schema;
+
+        ClientLiteMapper() {
+            final StringBuilder builder = new StringBuilder(400);
+
+            builder.append("c.id as id,ctl.client_level_id clientLevelId,ctl.daily_withdraw_limit dailyWithDrawLimit,");
+            builder.append(" ctl.single_withdraw_limit singleWithDrawLimit, c.account_no as accountNo,");
+            builder.append(" c.external_id as externalId, c.status_enum as statusEnum,c.sub_status as subStatus,");
+            builder.append("cvSubStatus.code_value as subStatusValue,cvSubStatus.code_description as subStatusDesc, ");
+            builder.append("c.firstname as firstname, c.middlename as middlename, c.lastname as lastname, ");
+            builder.append("c.fullname as fullname, c.display_name as displayName, ");
+            builder.append("c.mobile_no as mobileNo, ");
+            builder.append("c.is_staff as isStaff, ");
+            builder.append("c.created_on_utc as createdDate, ");
+            builder.append("c.email_address as emailAddress, ");
+            builder.append("c.date_of_birth as dateOfBirth, ");
+            builder.append("c.legal_form_enum as legalFormEnum, ");
+            builder.append("c.submittedon_date as submittedOnDate, ");
+            builder.append("c.closedon_date as closedOnDate, ");
+
+            builder.append("c.activation_date as activationDate, c.image_id as imageId, ");
+            builder.append("c.default_savings_product as savingsProductId, sp.name as savingsProductName, ");
+            builder.append("c.default_savings_account as savingsAccountId ");
+            builder.append("from m_client c ");
+            builder.append("left join m_client_non_person cnp on cnp.client_id = c.id ");
+            builder.append("left join m_savings_product sp on sp.id = c.default_savings_product ");
+            builder.append("left join m_client_transaction_limit ctl on ctl.client_id = c.id ");
+            builder.append("left join m_code_value cvSubStatus on cvSubStatus.id = c.sub_status ");
+
+            this.schema = builder.toString();
+        }
+
+        public String schema() {
+            return this.schema;
+        }
+
+        @Override
+        public ClientData mapRow(final ResultSet rs, final int rowNum) throws SQLException {
+
+            final String accountNo = rs.getString("accountNo");
+
+            final Integer statusEnum = JdbcSupport.getInteger(rs, "statusEnum");
+            final EnumOptionData status = ClientEnumerations.status(statusEnum);
+
+            final Long subStatusId = JdbcSupport.getLong(rs, "subStatus");
+            final String subStatusValue = rs.getString("subStatusValue");
+            final String subStatusDesc = rs.getString("subStatusDesc");
+            final boolean isActive = false;
+            final CodeValueData subStatus = CodeValueData.instance(subStatusId, subStatusValue, subStatusDesc, isActive);
+
+            final Long id = JdbcSupport.getLong(rs, "id");
+            final String firstname = rs.getString("firstname");
+            final String middlename = rs.getString("middlename");
+            final String lastname = rs.getString("lastname");
+            final String fullname = rs.getString("fullname");
+            final String displayName = rs.getString("displayName");
+            final String externalId = rs.getString("externalId");
+            final String mobileNo = rs.getString("mobileNo");
+            final boolean isStaff = rs.getBoolean("isStaff");
+            final String emailAddress = rs.getString("emailAddress");
+            final LocalDate dateOfBirth = JdbcSupport.getLocalDate(rs, "dateOfBirth");
+            final BigDecimal dailyWithDrawLimit = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "dailyWithDrawLimit");
+            final BigDecimal singleWithDrawLimit = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "singleWithDrawLimit");
+
+            final LocalDate activationDate = JdbcSupport.getLocalDate(rs, "activationDate");
+
+            final Long savingsProductId = JdbcSupport.getLong(rs, "savingsProductId");
+            final String savingsProductName = rs.getString("savingsProductName");
+            final Long savingsAccountId = JdbcSupport.getLong(rs, "savingsAccountId");
+
+            final LocalDate closedOnDate = JdbcSupport.getLocalDate(rs, "closedOnDate");
+
+            final LocalDate submittedOnDate = JdbcSupport.getLocalDate(rs, "submittedOnDate");
+            final LocalDateTime createdDate = JdbcSupport.getLocalDateTime(rs, "createdDate");
+
+            final Integer legalFormEnum = JdbcSupport.getInteger(rs, "legalFormEnum");
+            EnumOptionData legalForm = null;
+            if (legalFormEnum != null) {
+                legalForm = ClientEnumerations.legalForm(legalFormEnum);
+            }
+
+            return ClientData.instance(accountNo, status, subStatus, null, null, null, null, id, firstname, middlename, lastname, fullname,
+                    displayName, externalId, mobileNo, emailAddress, dateOfBirth, null, activationDate, null, null, null, null,
+                    savingsProductId, savingsProductName, savingsAccountId, null, null, legalForm, null, isStaff, null, dailyWithDrawLimit,
+                    singleWithDrawLimit, null, createdDate);
 
         }
     }
