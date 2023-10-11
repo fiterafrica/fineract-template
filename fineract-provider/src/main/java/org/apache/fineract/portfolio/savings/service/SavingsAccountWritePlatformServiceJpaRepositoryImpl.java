@@ -2539,10 +2539,12 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     @Override
     @CronTarget(jobName = JobName.SEND_MESSAGES_TO_SMS_GATEWAY)
     public void cleanUpSavingsAccounts() {
+        LOG.info("Savings Accounts are being cleaned up");
         this.refreshSavingsAccounts(SavingsAccountStatusType.ACTIVE.getValue());
         this.refreshSavingsAccounts(SavingsAccountStatusType.CLOSED.getValue());
         this.refreshSavingsAccounts(SavingsAccountStatusType.MATURED.getValue());
         this.refreshSavingsAccounts(SavingsAccountStatusType.PRE_MATURE_CLOSURE.getValue());
+        LOG.info("Savings Accounts are refreshed");
     }
 
     private void refreshSavingsAccounts(Integer status) {
@@ -2558,12 +2560,10 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
                     FixedDepositAccount fd = (FixedDepositAccount) this.depositAccountAssembler.assembleFrom(savingsAccount.getId(), DepositAccountType.FIXED_DEPOSIT);
                     this.generateDepositAccountTerms(fd);
                 }
-                // else if (savingsAccount instanceof RecurringDepositAccount) {
-                //
-                // }
                 savingsAccount = this.savingAccountAssembler.assembleFrom(savingsAccount.getId());
                 savingsAccount.updateSummary();
                 this.savingAccountRepositoryWrapper.save(savingsAccount);
+                LOG.info("Savings Account {} with status {} has been refreshed", savingsAccount.getId(), savingsAccount.getStatus());
             }
             offset += 1; // next page
         } while (!savingsAccounts.isEmpty());
