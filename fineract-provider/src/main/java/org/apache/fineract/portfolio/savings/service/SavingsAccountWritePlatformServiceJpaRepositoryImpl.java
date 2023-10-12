@@ -61,6 +61,7 @@ import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidati
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.apache.fineract.infrastructure.core.exception.PlatformServiceUnavailableException;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
+import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.dataqueries.data.EntityTables;
 import org.apache.fineract.infrastructure.dataqueries.data.StatusEnum;
 import org.apache.fineract.infrastructure.dataqueries.service.EntityDatatableChecksWritePlatformService;
@@ -145,9 +146,9 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -198,30 +199,31 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
     @Autowired
     public SavingsAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
-                                                               final SavingsAccountRepositoryWrapper savingAccountRepositoryWrapper,
-                                                               final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
-                                                               final SavingsAccountAssembler savingAccountAssembler,
-                                                               final SavingsAccountTransactionDataValidator savingsAccountTransactionDataValidator,
-                                                               final SavingsAccountChargeDataValidator savingsAccountChargeDataValidator,
-                                                               final PaymentDetailWritePlatformService paymentDetailWritePlatformService,
-                                                               final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
-                                                               final JournalEntryWritePlatformService journalEntryWritePlatformService,
-                                                               final SavingsAccountDomainService savingsAccountDomainService, final NoteRepository noteRepository,
-                                                               final AccountTransfersReadPlatformService accountTransfersReadPlatformService, final HolidayRepositoryWrapper holidayRepository,
-                                                               final WorkingDaysRepositoryWrapper workingDaysRepository,
-                                                               final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
-                                                               final ChargeRepositoryWrapper chargeRepository, final SavingsAccountChargeRepositoryWrapper savingsAccountChargeRepository,
-                                                               final SavingsAccountDataValidator fromApiJsonDeserializer, final StaffRepositoryWrapper staffRepository,
-                                                               final ConfigurationDomainService configurationDomainService,
-                                                               final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
-                                                               final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService,
-                                                               final AppUserRepositoryWrapper appuserRepository, final StandingInstructionRepository standingInstructionRepository,
-                                                               final BusinessEventNotifierService businessEventNotifierService, final GSIMRepositoy gsimRepository,
-                                                               final JdbcTemplate jdbcTemplate, final SavingsAccountInterestPostingService savingsAccountInterestPostingService,
-                                                               final CodeValueRepositoryWrapper codeValueRepositoryWrapper, final PaymentTypeRepositoryWrapper repositoryWrapper,
-                                                               final SavingsAccountTransactionLimitPlatformService savingsAccountTransactionLimitPlatformService,
-                                                               SavingsAccountDataValidator savingsAccountDataValidator, CalendarInstanceRepository calendarInstanceRepository,
-                                                               FixedDepositAccountRepository fixedDepositAccountRepository, DepositAccountAssembler depositAccountAssembler) {
+            final SavingsAccountRepositoryWrapper savingAccountRepositoryWrapper,
+            final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
+            final SavingsAccountAssembler savingAccountAssembler,
+            final SavingsAccountTransactionDataValidator savingsAccountTransactionDataValidator,
+            final SavingsAccountChargeDataValidator savingsAccountChargeDataValidator,
+            final PaymentDetailWritePlatformService paymentDetailWritePlatformService,
+            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
+            final JournalEntryWritePlatformService journalEntryWritePlatformService,
+            final SavingsAccountDomainService savingsAccountDomainService, final NoteRepository noteRepository,
+            final AccountTransfersReadPlatformService accountTransfersReadPlatformService, final HolidayRepositoryWrapper holidayRepository,
+            final WorkingDaysRepositoryWrapper workingDaysRepository,
+            final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
+            final ChargeRepositoryWrapper chargeRepository, final SavingsAccountChargeRepositoryWrapper savingsAccountChargeRepository,
+            final SavingsAccountDataValidator fromApiJsonDeserializer, final StaffRepositoryWrapper staffRepository,
+            final ConfigurationDomainService configurationDomainService,
+            final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
+            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService,
+            final AppUserRepositoryWrapper appuserRepository, final StandingInstructionRepository standingInstructionRepository,
+            final BusinessEventNotifierService businessEventNotifierService, final GSIMRepositoy gsimRepository,
+            final SavingsAccountInterestPostingService savingsAccountInterestPostingService,
+            final CodeValueRepositoryWrapper codeValueRepositoryWrapper, final PaymentTypeRepositoryWrapper repositoryWrapper,
+            final SavingsAccountTransactionLimitPlatformService savingsAccountTransactionLimitPlatformService,
+            SavingsAccountDataValidator savingsAccountDataValidator, CalendarInstanceRepository calendarInstanceRepository,
+            FixedDepositAccountRepository fixedDepositAccountRepository, DepositAccountAssembler depositAccountAssembler,
+            RoutingDataSource dataSource) {
         this.context = context;
         this.savingAccountRepositoryWrapper = savingAccountRepositoryWrapper;
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
@@ -248,7 +250,6 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         this.standingInstructionRepository = standingInstructionRepository;
         this.businessEventNotifierService = businessEventNotifierService;
         this.gsimRepository = gsimRepository;
-        this.jdbcTemplate = jdbcTemplate;
         this.savingsAccountInterestPostingService = savingsAccountInterestPostingService;
         this.codeValueRepositoryWrapper = codeValueRepositoryWrapper;
         this.repositoryWrapper = repositoryWrapper;
@@ -257,6 +258,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         this.calendarInstanceRepository = calendarInstanceRepository;
         this.fixedDepositAccountRepository = fixedDepositAccountRepository;
         this.depositAccountAssembler = depositAccountAssembler;
+        this.jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(SavingsAccountWritePlatformServiceJpaRepositoryImpl.class);
@@ -2540,33 +2542,126 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     @CronTarget(jobName = JobName.SEND_MESSAGES_TO_SMS_GATEWAY)
     public void cleanUpSavingsAccounts() {
         LOG.info("Savings Accounts are being cleaned up");
-        this.refreshSavingsAccounts(SavingsAccountStatusType.ACTIVE.getValue());
-        this.refreshSavingsAccounts(SavingsAccountStatusType.CLOSED.getValue());
-        this.refreshSavingsAccounts(SavingsAccountStatusType.MATURED.getValue());
-        this.refreshSavingsAccounts(SavingsAccountStatusType.PRE_MATURE_CLOSURE.getValue());
+        String sql = "SELECT x.savings_account_id FROM (SELECT COUNT(savings_account_id) trxn_count, savings_account_id FROM m_savings_account_transaction GROUP BY savings_account_id HAVING COUNT(savings_account_id) > 5000) x";
+        List<Long> bigAccountIds = this.jdbcTemplate.queryForList(sql, Long.class);
+        this.refreshSavingsAccounts(SavingsAccountStatusType.ACTIVE.getValue(), bigAccountIds);
+        this.refreshSavingsAccounts(SavingsAccountStatusType.CLOSED.getValue(), bigAccountIds);
+        bigAccountIds.forEach(this::recalculateRunningBalances);
         LOG.info("Savings Accounts are refreshed");
     }
 
-    private void refreshSavingsAccounts(Integer status) {
+    @Override
+    @CronTarget(jobName = JobName.GENERATE_ADHOCCLIENT_SCEHDULE)
+    public void cleanUpFixeDepositAccounts() {
+        LOG.info("Fixed Deposit Accounts are being cleaned up");
+        this.refreshSavingsFDAccounts(SavingsAccountStatusType.ACTIVE.getValue());
+        this.refreshSavingsFDAccounts(SavingsAccountStatusType.CLOSED.getValue());
+        this.refreshSavingsFDAccounts(SavingsAccountStatusType.MATURED.getValue());
+        this.refreshSavingsFDAccounts(SavingsAccountStatusType.PRE_MATURE_CLOSURE.getValue());
+        LOG.info("Fixed Deposit Accounts are refreshed");
+    }
+
+    private void refreshSavingsAccounts(Integer status, List<Long> bigAccountIds) {
         int offset = 0;
         final int pageSize = 1000;
-        Page<SavingsAccount> savingsAccounts;
+        String sql = "SELECT id FROM m_savings_account WHERE status_enum = ? AND deposit_type_enum = ? LIMIT ? OFFSET ?";
+        String countSql = "SELECT COUNT(*) FROM m_savings_account WHERE status_enum = ? AND deposit_type_enum = ?";
+        List<Long> savingsAccountIds = jdbcTemplate.queryForList(sql, Long.class, status, DepositAccountType.SAVINGS_DEPOSIT.getValue(),
+                pageSize, offset);
+        int total = jdbcTemplate.queryForObject(countSql, Integer.class, status, DepositAccountType.SAVINGS_DEPOSIT.getValue());
+        int count = 1;
         do {
-            Pageable pageRequest = PageRequest.of(offset, pageSize);
-            savingsAccounts = this.savingAccountRepositoryWrapper.findByStatus(status, pageRequest);
-
-            for (SavingsAccount savingsAccount : savingsAccounts) {
-                if (savingsAccount instanceof FixedDepositAccount) {
-                    FixedDepositAccount fd = (FixedDepositAccount) this.depositAccountAssembler.assembleFrom(savingsAccount.getId(), DepositAccountType.FIXED_DEPOSIT);
-                    this.generateDepositAccountTerms(fd);
+            for (Long accountId : savingsAccountIds) {
+                if (bigAccountIds.contains(accountId)) {
+                    LOG.info("Skipping BIG Savings Account {} with status {}, which is {} of {}", accountId, status, count, total);
+                    count += 1;
+                    continue;
                 }
-                savingsAccount = this.savingAccountAssembler.assembleFrom(savingsAccount.getId());
-                savingsAccount.updateSummary();
-                this.savingAccountRepositoryWrapper.save(savingsAccount);
-                LOG.info("Savings Account {} with status {} has been refreshed", savingsAccount.getId(), savingsAccount.getStatus());
+                try {
+                    LOG.info("Refreshing Savings Account {} with status {}, which is {} of {}", accountId, status, count, total);
+                    SavingsAccount savingsAccount = this.savingAccountAssembler.assembleFrom(accountId);
+                    savingsAccount.updateSummary();
+                    this.savingAccountRepositoryWrapper.save(savingsAccount);
+                    LOG.info("Savings Account {} with status {} has been refreshed", savingsAccount.getId(), savingsAccount.getStatus());
+                } catch (Exception e) {
+                    LOG.error("Savings Account {} with status {} could not be refreshed due to {}", accountId, status, e.getMessage());
+                }
+                count += 1;
             }
+            offset += pageSize; // next page
+            savingsAccountIds = jdbcTemplate.queryForList(sql, Long.class, status, DepositAccountType.FIXED_DEPOSIT.getValue(), pageSize,
+                    offset);
+        } while (!savingsAccountIds.isEmpty());
+    }
+
+    private void recalculateRunningBalances(Long accountId) {
+        final int pageSize = 100;
+        int offset = 0;
+        Sort sort = Sort.by("dateOf", "createdDate", "id");
+        SavingsAccount account = this.savingAccountRepositoryWrapper.findOneWithNotFoundDetection(accountId);
+        this.savingAccountAssembler.setHelpers(account);
+        account.resetBalances();
+        MonetaryCurrency currency = account.getCurrency();
+        Money runningBalance = Money.zero(currency);
+        List<SavingsAccountTransaction> transactions;
+
+        LOG.info("Recalculating balances for BIG Savings Account {}", accountId);
+        do {
+            Pageable pageRequest = PageRequest.of(offset, pageSize, sort);
+            transactions = this.savingsAccountTransactionRepository.findAllBySavingsAccount_IdAndReversed(accountId, false, pageRequest)
+                    .getContent();
+
+            for (final SavingsAccountTransaction transaction : transactions) {
+                Money transactionRunningBalance = transaction.getRunningBalance(currency);
+                if (transaction.isCredit()) {
+                    runningBalance = transaction.getAmount(currency).plus(runningBalance);
+                } else if (transaction.isDebit()) {
+                    runningBalance = runningBalance.minus(transaction.getAmount(currency));
+                }
+                if (!runningBalance.isEqualTo(transactionRunningBalance)) {
+                    transaction.updateRunningBalance(runningBalance);
+                    this.savingsAccountTransactionRepository.save(transaction);
+                }
+            }
+            account.updateSummaryCumulative(transactions);
+
             offset += 1; // next page
-        } while (!savingsAccounts.isEmpty());
+        } while (!transactions.isEmpty());
+        this.savingAccountRepositoryWrapper.save(account);
+        LOG.info("Balances recalculated for BIG Savings Account {}", accountId);
+    }
+
+    private void refreshSavingsFDAccounts(Integer status) {
+        int offset = 0;
+        final int pageSize = 1000;
+        String sql = "SELECT id FROM m_savings_account WHERE status_enum = ? AND deposit_type_enum = ? LIMIT ? OFFSET ?";
+        String countSql = "SELECT COUNT(*) FROM m_savings_account WHERE status_enum = ? AND deposit_type_enum = ?";
+        List<Long> savingsAccountIds = jdbcTemplate.queryForList(sql, Long.class, status, DepositAccountType.FIXED_DEPOSIT.getValue(),
+                pageSize, offset);
+        int total = jdbcTemplate.queryForObject(countSql, Integer.class, status, DepositAccountType.FIXED_DEPOSIT.getValue());
+        int count = 1;
+        do {
+
+            for (Long accountId : savingsAccountIds) {
+                try {
+                    LOG.info("Refreshing Fixed Deposit Account {} with status {}, which is {} of {}", accountId, status, count, total);
+                    SavingsAccount savingsAccount = this.depositAccountAssembler.assembleFrom(accountId, DepositAccountType.FIXED_DEPOSIT);
+                    this.generateDepositAccountTerms((FixedDepositAccount) savingsAccount);
+                    savingsAccount = this.savingAccountAssembler.assembleFrom(savingsAccount.getId());
+                    savingsAccount.updateSummary();
+                    this.savingAccountRepositoryWrapper.save(savingsAccount);
+                    LOG.info("Fixed Deposit Account {} with status {} has been refreshed", savingsAccount.getId(),
+                            savingsAccount.getStatus());
+                } catch (Exception e) {
+                    LOG.error("Fixed Deposit Account {} with status {} could not be refreshed due to {}", accountId, status,
+                            e.getMessage());
+                }
+                count += 1;
+            }
+            offset += pageSize; // next page
+            savingsAccountIds = jdbcTemplate.queryForList(sql, Long.class, status, DepositAccountType.FIXED_DEPOSIT.getValue(), pageSize,
+                    offset);
+        } while (!savingsAccountIds.isEmpty());
     }
 
     private void generateDepositAccountTerms(FixedDepositAccount account) {

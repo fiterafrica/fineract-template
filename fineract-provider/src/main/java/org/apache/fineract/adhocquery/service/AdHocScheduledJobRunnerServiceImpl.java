@@ -29,8 +29,6 @@ import org.apache.fineract.adhocquery.domain.ReportRunFrequency;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.core.service.database.DatabaseSpecificSQLGenerator;
-import org.apache.fineract.infrastructure.jobs.annotation.CronTarget;
-import org.apache.fineract.infrastructure.jobs.service.JobName;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,7 +44,7 @@ public class AdHocScheduledJobRunnerServiceImpl implements AdHocScheduledJobRunn
 
     @Transactional
     @Override
-    @CronTarget(jobName = JobName.GENERATE_ADHOCCLIENT_SCEHDULE)
+    // @CronTarget(jobName = JobName.GENERATE_ADHOCCLIENT_SCEHDULE)
     @SuppressWarnings("UnnecessaryDefaultInEnumSwitch")
     public void generateClientSchedule() {
         final Collection<AdHocData> adhocs = this.adHocReadPlatformService.retrieveAllActiveAdHocQuery();

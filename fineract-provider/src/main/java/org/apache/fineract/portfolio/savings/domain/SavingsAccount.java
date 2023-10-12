@@ -5243,4 +5243,12 @@ public class SavingsAccount extends AbstractPersistableCustom {
     public boolean isPostOverdraftInterestOnDeposit() {
         return ObjectUtils.defaultIfNull(this.postOverdraftInterestOnDeposit, Boolean.FALSE);
     }
+
+    public void resetBalances() {
+        this.summary.resetBalances();
+    }
+
+    public void updateSummaryCumulative(List<SavingsAccountTransaction> transactions) {
+        this.summary.updateSummaryCumulative(this.currency, this.savingsAccountTransactionSummaryWrapper, transactions);
+    }
 }

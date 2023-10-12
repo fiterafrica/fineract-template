@@ -1098,10 +1098,10 @@ public class LoanProduct extends AbstractPersistableCustom {
                     .isJsonNull()) {
                 actualChanges.put(configurableAttributesChanges, command.jsonFragment(configurableAttributesChanges));
 
-                if (this.loanConfigurableAttributes.getAmortizationBoolean() != null &&
-                        command.parsedJson().getAsJsonObject().getAsJsonObject(LoanProductConstants.allowAttributeOverridesParamName)
-                        .getAsJsonPrimitive(LoanProductConstants.amortizationTypeParamName)
-                        .getAsBoolean() != this.loanConfigurableAttributes.getAmortizationBoolean()) {
+                if (this.loanConfigurableAttributes.getAmortizationBoolean() != null
+                        && command.parsedJson().getAsJsonObject().getAsJsonObject(LoanProductConstants.allowAttributeOverridesParamName)
+                                .getAsJsonPrimitive(LoanProductConstants.amortizationTypeParamName)
+                                .getAsBoolean() != this.loanConfigurableAttributes.getAmortizationBoolean()) {
                     this.loanConfigurableAttributes.setAmortizationType(
                             command.parsedJson().getAsJsonObject().getAsJsonObject(LoanProductConstants.allowAttributeOverridesParamName)
                                     .getAsJsonPrimitive(LoanProductConstants.amortizationTypeParamName).getAsBoolean());

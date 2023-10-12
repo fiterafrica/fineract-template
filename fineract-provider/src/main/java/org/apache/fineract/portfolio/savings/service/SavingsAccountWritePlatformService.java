@@ -137,4 +137,6 @@ public interface SavingsAccountWritePlatformService {
     CommandProcessingResult updateSavingsAccountNote(Long noteId, JsonCommand command);
 
     void cleanUpSavingsAccounts();
+
+    void cleanUpFixeDepositAccounts();
 }

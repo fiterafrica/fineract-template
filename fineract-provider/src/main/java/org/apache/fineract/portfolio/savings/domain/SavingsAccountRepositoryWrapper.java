@@ -112,6 +112,13 @@ public class SavingsAccountRepositoryWrapper {
         return accounts;
     }
 
+    @Transactional(readOnly = true)
+    public Page<SavingsAccount> findByStatusAndDepositType(Integer status, Integer depositType, Pageable pageable) {
+        Page<SavingsAccount> accounts = this.repository.findByStatusAndDepositType(status, depositType, pageable);
+        loadLazyCollections(accounts);
+        return accounts;
+    }
+
     // Root Entities are enough
     public List<SavingsAccount> findByClientIdAndGroupId(@Param("clientId") Long clientId, @Param("groupId") Long groupId) {
         return this.repository.findByClientIdAndGroupId(clientId, groupId);
