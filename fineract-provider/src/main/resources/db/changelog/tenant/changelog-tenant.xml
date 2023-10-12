@@ -105,5 +105,6 @@
     <include file="parts/INKO_86_update_report_sql_loan_fully_paid_table_report.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO_87_update_report_sql_sectorial_table_report.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO_88_update_report_sql_group_loans_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_89_add_topup_loans_table_report.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>
