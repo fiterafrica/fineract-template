@@ -40,9 +40,10 @@ public class SqlInjectionPreventerServiceImpl implements SqlInjectionPreventerSe
     @Override
     public String encodeSql(String literal) {
         if (databaseTypeResolver.isMySQL()) {
-            //TODO: INKO-32 commented encoding for mysql because it seems JDBCTemplate escapes special characters and so we end up with double escaping
-            //TODO: Need to do more research on this.
-            return literal; //ESAPI.encoder().encodeForSQL(MYSQL_CODEC, literal);
+            // TODO: INKO-32 commented encoding for mysql because it seems JDBCTemplate escapes special characters and
+            // so we end up with double escaping
+            // TODO: Need to do more research on this.
+            return literal; // ESAPI.encoder().encodeForSQL(MYSQL_CODEC, literal);
         } else if (databaseTypeResolver.isPostgreSQL()) {
             try {
                 return Utils.escapeLiteral(null, literal, true).toString();
