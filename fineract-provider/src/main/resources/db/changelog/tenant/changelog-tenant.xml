@@ -108,5 +108,6 @@
     <include file="parts/INKO_90_created_fees_collection_pentaho_report.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO_89_add_topup_loans_table_report.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO_91_fix_sql_query_for_loan_aging_summary_table_reports.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_92_add_loan_product_pentaho_reports.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>
