@@ -21,6 +21,22 @@ package org.apache.fineract.portfolio.loanaccount.service;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -174,6 +190,7 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanTrancheDisbursementC
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransaction;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionType;
+import org.apache.fineract.portfolio.loanaccount.domain.transactionprocessor.LoanRepaymentScheduleTransactionProcessor;
 import org.apache.fineract.portfolio.loanaccount.exception.DateMismatchException;
 import org.apache.fineract.portfolio.loanaccount.exception.ExceedingTrancheCountException;
 import org.apache.fineract.portfolio.loanaccount.exception.InstallmentNotFoundException;
@@ -190,6 +207,7 @@ import org.apache.fineract.portfolio.loanaccount.guarantor.service.GuarantorDoma
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanRepaymentConfirmationData;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanRepaymentScheduleData;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.OverdueLoanScheduleData;
+import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.AprCalculator;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.DefaultScheduledDateGenerator;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanScheduleModel;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanScheduleModelPeriod;
@@ -218,29 +236,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.math.MathContext;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -293,6 +291,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     private final LoanRepaymentReminderRepository loanRepaymentReminderRepository;
     private final LoanRepaymentScheduleInstallmentRepository installmentRepository;
     private final LoanDecisionStateUtilService loanDecisionStateUtilService;
+    private final AprCalculator aprCalculator;
 
     @Autowired
     private ActiveMqNotificationDomainServiceImpl activeMqNotificationDomainService;
@@ -3326,33 +3325,48 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     @Override
     @CronTarget(jobName = JobName.GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY)
     public void cleanUpLoans() {
-        int offset = 0;
-        final int pageSize = 1000;
-        Page<Loan> loans;
-        do {
-            Pageable pageRequest = PageRequest.of(offset, pageSize);
-            loans = this.loanRepository.findAll(pageRequest);
-            for (Loan loan : loans) {
-                // if (loan.getId().equals(30715L)) {
-                loan = this.loanAssembler.assembleFrom(loan.getId());
-                if (loan.isDisbursed()) {
-                    int num = 1;
-                    LocalDate date = loan.getDisbursementDate();
-                    for (LoanRepaymentScheduleInstallment installment : loan.getRepaymentScheduleInstallments()) {
-                        installment.setInstallmentNumber(num);
-                        num += 1;
-                        //TODO: get the corresponding loan transaction and update the fields on this installment
-                        //TODO: insert the corresponding m_loan_transaction_repayment_schedule_mapping record
-                        this.installmentRepository.save(installment);
-                    }
-                }
-                loan.updateLoanSummaryDerivedFields();
-                this.loanRepository.save(loan);
-                // }
-            }
-            LOG.info("offset {} limit {} total {} ", offset, pageSize, loans.getTotalElements());
-            offset += 1; // next page
-        } while (!loans.isEmpty());
+        // int offset = 0;
+        // final int pageSize = 1000;
+        // Page<Loan> loans;
+        // do {
+        // Pageable pageRequest = PageRequest.of(offset, pageSize);
+        // loans = this.loanRepository.findAll(pageRequest);
+        // for (Loan loan : loans) {
+        // if (loan.getId().equals(30715L)) {
+        Loan loan = this.loanAssembler.assembleFrom(119L);
+        // 1. update the annual_nominal_interest rate
+        loan.getLoanProductRelatedDetail().updateInterestRateDerivedFields(this.aprCalculator);
+
+        // 3. update the loan schedule
+        int num = 1;
+        LocalDate date = loan.getDisbursementDate();
+        for (LoanRepaymentScheduleInstallment installment : loan.getRepaymentScheduleInstallments()) {
+            installment.setInstallmentNumber(num);
+            installment.setFromDate(date);
+            date = installment.getDueDate();// this will be the fromDate of the next installment
+            num += 1;
+            this.installmentRepository.saveAndFlush(installment);
+        }
+
+        final LoanRepaymentScheduleTransactionProcessor loanRepaymentScheduleTransactionProcessor = loan.getTransactionProcessorFactory()
+                .determineProcessor(loan.getLoanProduct().getRepaymentStrategy());
+
+        // 3. clean up the loan transactions
+        for (LoanTransaction loanTransaction : loan.getLoanTransactions()) {
+            // if repayment, update the corresponding loan repayment schedule installment
+            // TODO: get the corresponding loan transaction and update the fields on this installment
+            // TODO: insert the corresponding m_loan_transaction_repayment_schedule_mapping record
+            loanRepaymentScheduleTransactionProcessor.handleTransaction(loanTransaction, loan.getCurrency(),
+                    loan.getRepaymentScheduleInstallments(), loan.charges());
+        }
+
+        loan.updateLoanSummaryDerivedFields();
+        this.loanRepository.saveAndFlush(loan);
+        // }
+        // }
+        // LOG.info("offset {} limit {} total {} ", offset, pageSize, loans.getTotalElements());
+        // offset += 1; // next page
+        // } while (!loans.isEmpty());
     }
 
     @Override

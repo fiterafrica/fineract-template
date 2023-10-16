@@ -7007,4 +7007,8 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
     public Integer getLoanDecisionState() {
         return loanDecisionState;
     }
+
+    public LoanRepaymentScheduleTransactionProcessorFactory getTransactionProcessorFactory() {
+        return transactionProcessorFactory;
+    }
 }

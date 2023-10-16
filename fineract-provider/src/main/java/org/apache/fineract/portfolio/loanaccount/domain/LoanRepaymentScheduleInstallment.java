@@ -855,4 +855,8 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
     public void setInstallmentNumber(Integer installmentNumber) {
         this.installmentNumber = installmentNumber;
     }
+
+    public void setFromDate(LocalDate fromDate) {
+        this.fromDate = fromDate;
+    }
 }

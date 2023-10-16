@@ -563,7 +563,7 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
         return result;
     }
 
-    private void updateInterestRateDerivedFields(final AprCalculator aprCalculator) {
+    public void updateInterestRateDerivedFields(final AprCalculator aprCalculator) {
         this.annualNominalInterestRate = aprCalculator.calculateFrom(this.interestPeriodFrequencyType, this.nominalInterestRatePerPeriod,
                 this.numberOfRepayments, this.repayEvery, this.repaymentPeriodFrequencyType);
 
@@ -674,5 +674,9 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
 
     public void setNominalInterestRatePerPeriod(BigDecimal nominalInterestRatePerPeriod) {
         this.nominalInterestRatePerPeriod = nominalInterestRatePerPeriod;
+    }
+
+    public void setAnnualNominalInterestRate(BigDecimal annualNominalInterestRate) {
+        this.annualNominalInterestRate = annualNominalInterestRate;
     }
 }
