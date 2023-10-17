@@ -29,11 +29,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.InputStream;
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -76,6 +73,7 @@ import org.apache.fineract.portfolio.savings.data.SavingsAccountData;
 import org.apache.fineract.portfolio.savings.service.SavingsAccountReadPlatformService;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -205,6 +203,25 @@ public class ClientsApiResource {
                 clientData = ClientData.templateWithSavingAccountOptions(clientData, savingAccountOptions);
             }
         }
+        return this.toApiJsonSerializer.serialize(settings, clientData, ClientApiConstants.CLIENT_RESPONSE_DATA_PARAMETERS);
+    }
+
+    @GET
+    @Path("lite/{clientId}")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    @Operation(summary = "Retrieve a Client", description = "Example Requests:\n" + "\n" + "clients/1\n" + "\n" + "\n"
+            + "clients/1?template=true\n" + "\n" + "\n" + "clients/1?fields=id,displayName,officeName")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = ClientsApiResourceSwagger.GetClientsClientIdResponse.class))) })
+    public String retrieveOneLite(@PathParam("clientId") @Parameter(description = "clientId") final Long clientId,
+            @Context final UriInfo uriInfo) {
+
+        this.context.authenticatedUser().validateHasReadPermission(ClientApiConstants.CLIENT_RESOURCE_NAME);
+
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+
+        ClientData clientData = this.clientReadPlatformService.retrieveOneLite(clientId);
         return this.toApiJsonSerializer.serialize(settings, clientData, ClientApiConstants.CLIENT_RESPONSE_DATA_PARAMETERS);
     }
 
@@ -386,13 +403,14 @@ public class ClientsApiResource {
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
     @Operation(summary = "Retrieve client accounts overview", description = "An example of how a loan portfolio summary can be provided. This is requested in a specific use case of the community application.\n"
-            + "It is quite reasonable to add resources like this to simplify User Interface development.\n" + "\n" + "Example Requests:\n "
-            + "\n" + "clients/1/accounts\n" + "\n" + "clients/1/accounts?fields=loanAccounts,savingsAccounts")
+            + "It is quite reasonable to add resources like this to simplify User Interface development. The fields query parameter is case insensitive\n"
+            + "\n" + "Example Requests:\n " + "\n" + "clients/1/accounts\n" + "\n"
+            + "clients/1/accounts?fields=loanAccounts,savingsAccounts,shareAccounts,glimAccounts,guarantorLoanAccounts")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = ClientsApiResourceSwagger.GetClientsClientIdAccountsResponse.class))),
             @ApiResponse(responseCode = "400", description = "Bad Request") })
     public String retrieveAssociatedAccounts(@PathParam("clientId") @Parameter(description = "clientId") final Long clientId,
-            @Context final UriInfo uriInfo) {
+            @QueryParam("fields") @NotNull String filter) {
 
         this.context.authenticatedUser().validateHasReadPermission(ClientApiConstants.CLIENT_RESOURCE_NAME);
 
@@ -400,14 +418,11 @@ public class ClientsApiResource {
                 .retrieveGlobalConfiguration("Add-More-Stages-To-A-Loan-Life-Cycle");
         final Boolean isExtendLoanLifeCycleConfig = extendLoanLifeCycleConfig.isEnabled();
 
-        final AccountSummaryCollectionData clientAccount = this.accountDetailsReadPlatformService.retrieveClientAccountDetails(clientId);
+        final AccountSummaryCollectionData clientAccount = this.accountDetailsReadPlatformService.retrieveClientAccountDetails(clientId,
+                filter);
         clientAccount.setExtendLoanLifeCycleConfig(isExtendLoanLifeCycleConfig);
 
-        final Set<String> CLIENT_ACCOUNTS_DATA_PARAMETERS = new HashSet<>(
-                Arrays.asList("loanAccounts", "savingsAccounts", "shareAccounts"));
-
-        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
-        return this.clientAccountSummaryToApiJsonSerializer.serialize(settings, clientAccount, CLIENT_ACCOUNTS_DATA_PARAMETERS);
+        return this.clientAccountSummaryToApiJsonSerializer.serialize(clientAccount);
     }
 
     @GET

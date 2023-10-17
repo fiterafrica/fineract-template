@@ -19,11 +19,14 @@
 package org.apache.fineract.portfolio.accountdetails.data;
 
 import java.util.Collection;
+import lombok.Builder;
 
 /**
  * Immutable data object representing a summary of various accounts.
  */
 @SuppressWarnings("unused")
+@lombok.Data
+@Builder
 public class AccountSummaryCollectionData {
 
     private final Collection<LoanAccountSummaryData> loanAccounts;
@@ -73,6 +76,22 @@ public class AccountSummaryCollectionData {
         this.memberGuarantorAccounts = defaultGuarantorAccountsIfEmpty(memberGuarantorAccounts);
     }
 
+    public AccountSummaryCollectionData(Collection<LoanAccountSummaryData> loanAccounts,
+            Collection<LoanAccountSummaryData> groupLoanIndividualMonitoringAccounts, Collection<SavingsAccountSummaryData> savingsAccounts,
+            Collection<ShareAccountSummaryData> shareAccounts, Collection<GuarantorAccountSummaryData> guarantorAccounts,
+            Collection<LoanAccountSummaryData> memberLoanAccounts, Collection<SavingsAccountSummaryData> memberSavingsAccounts,
+            Collection<GuarantorAccountSummaryData> memberGuarantorAccounts, Boolean isExtendLoanLifeCycleConfig) {
+        this.loanAccounts = loanAccounts;
+        this.groupLoanIndividualMonitoringAccounts = groupLoanIndividualMonitoringAccounts;
+        this.savingsAccounts = savingsAccounts;
+        this.shareAccounts = shareAccounts;
+        this.guarantorAccounts = guarantorAccounts;
+        this.memberLoanAccounts = memberLoanAccounts;
+        this.memberSavingsAccounts = memberSavingsAccounts;
+        this.memberGuarantorAccounts = memberGuarantorAccounts;
+        this.isExtendLoanLifeCycleConfig = isExtendLoanLifeCycleConfig;
+    }
+
     private Collection<LoanAccountSummaryData> defaultLoanAccountsIfEmpty(final Collection<LoanAccountSummaryData> collection) {
         Collection<LoanAccountSummaryData> returnCollection = null;
         if (collection != null && !collection.isEmpty()) {
@@ -109,4 +128,5 @@ public class AccountSummaryCollectionData {
     public void setExtendLoanLifeCycleConfig(Boolean extendLoanLifeCycleConfig) {
         isExtendLoanLifeCycleConfig = extendLoanLifeCycleConfig;
     }
+
 }

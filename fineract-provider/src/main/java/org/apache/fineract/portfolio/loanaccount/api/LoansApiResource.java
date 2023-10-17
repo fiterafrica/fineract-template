@@ -800,7 +800,6 @@ public class LoansApiResource {
                         .retrieveClientActiveLoanAccountSummary(loanBasicDetails.clientId());
             }
 
-            vendorClientOptions = this.clientReadPlatformService.retrieveAllForLookupByOfficeId(loanBasicDetails.officeId());
             if (linkedVendorAccount != null && linkedVendorAccount.getClientId() != null) {
                 vendorSavingsAccountOptions = this.loanReadPlatformService
                         .retrieveVendorSavingAccountsForBnplLoans(linkedVendorAccount.getClientId());

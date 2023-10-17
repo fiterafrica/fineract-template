@@ -84,6 +84,9 @@ public class LoanTransactionData {
     private Integer receiptNumber;
     private Integer bankNumber;
     private transient Long accountId;
+
+    private Long loanId;
+    private String loanExternalId;
     private transient String transactionType;
     private List<LoanRepaymentScheduleInstallmentData> loanRepaymentScheduleInstallments;
 
@@ -236,10 +239,11 @@ public class LoanTransactionData {
             final BigDecimal feeChargesPortion, final BigDecimal penaltyChargesPortion, final BigDecimal overpaymentPortion,
             final BigDecimal unrecognizedIncomePortion, final String externalId, final AccountTransferData transfer,
             BigDecimal fixedEmiAmount, BigDecimal outstandingLoanBalance, LocalDate submittedOnDate, final boolean manuallyReversed,
-            final LocalDateTime createdDate) {
+            final LocalDateTime createdDate, Long accountId) {
         this(id, officeId, officeName, transactionType, paymentDetailData, currency, date, amount, netDisbursalAmount, principalPortion,
                 interestPortion, feeChargesPortion, penaltyChargesPortion, overpaymentPortion, unrecognizedIncomePortion, null, externalId,
                 transfer, fixedEmiAmount, outstandingLoanBalance, submittedOnDate, manuallyReversed, createdDate);
+        this.loanId = accountId;
     }
 
     public LoanTransactionData(final Long id, final Long officeId, final String officeName, final LoanTransactionEnumData transactionType,
@@ -379,5 +383,9 @@ public class LoanTransactionData {
 
     public void setLoanChargePaidByList(Collection<LoanChargePaidByData> loanChargePaidByList) {
         this.loanChargePaidByList = loanChargePaidByList;
+    }
+
+    public void setLoanExternalId(String loanExternalId) {
+        this.loanExternalId = loanExternalId;
     }
 }

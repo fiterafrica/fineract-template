@@ -510,7 +510,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             AccountAssociations accountAssociations;
             final Long savingsAccountId = command.longValueOfParameterNamed("linkAccountId");
             if (savingsAccountId != null) {
-                if (newLoanApplication.getLoanType() == 4) {
+                if (newLoanApplication.getLoanType().equals(AccountType.GLIM.getValue())) {
 
                     List<GroupSavingsIndividualMonitoringAccountData> childSavings = (List<GroupSavingsIndividualMonitoringAccountData>) gsimReadPlatformService
                             .findGSIMAccountsByGSIMId(savingsAccountId);

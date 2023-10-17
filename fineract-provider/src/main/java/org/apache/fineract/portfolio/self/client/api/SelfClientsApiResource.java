@@ -55,6 +55,7 @@ import org.apache.fineract.useradministration.domain.AppUser;
 import org.glassfish.jersey.media.multipart.FormDataBodyPart;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -143,15 +144,16 @@ public class SelfClientsApiResource {
     @Produces({ MediaType.APPLICATION_JSON })
     @Operation(summary = "Retrieve client accounts overview", description = "An example of how a loan portfolio summary can be provided. This is requested in a specific use case of the community application.\n"
             + "It is quite reasonable to add resources like this to simplify User Interface development.\n" + "\n" + "Example Requests:\n"
-            + "\n" + "self/clients/1/accounts\n" + "\n" + "\n" + "self/clients/1/accounts?fields=loanAccounts,savingsAccounts")
+            + "\n" + "self/clients/1/accounts\n" + "\n" + "\n"
+            + "self/clients/1/accounts?fields=loanAccounts,savingsAccounts,shareAccounts,glimAccounts,guarantorLoanAccounts")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = SelfClientsApiResourceSwagger.GetSelfClientsClientIdAccountsResponse.class))) })
     public String retrieveAssociatedAccounts(@PathParam("clientId") @Parameter(description = "clientId") final Long clientId,
-            @Context final UriInfo uriInfo) {
+            @QueryParam("fields") @NotNull String filter) {
 
         validateAppuserClientsMapping(clientId);
 
-        return this.clientApiResource.retrieveAssociatedAccounts(clientId, uriInfo);
+        return this.clientApiResource.retrieveAssociatedAccounts(clientId, filter);
     }
 
     @GET

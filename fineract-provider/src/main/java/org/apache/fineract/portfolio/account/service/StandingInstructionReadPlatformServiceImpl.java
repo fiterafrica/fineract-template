@@ -182,7 +182,6 @@ public class StandingInstructionReadPlatformServiceImpl implements StandingInstr
 
         if (mostRelevantFromOfficeId != null) {
             fromOffice = this.officeReadPlatformService.retrieveOffice(mostRelevantFromOfficeId);
-            fromClientOptions = this.clientReadPlatformService.retrieveAllForLookupByOfficeId(mostRelevantFromOfficeId);
         }
 
         // defaults
@@ -200,16 +199,12 @@ public class StandingInstructionReadPlatformServiceImpl implements StandingInstr
             toClient = this.clientReadPlatformService.retrieveOne(mostRelevantToClientId);
             mostRelevantToOfficeId = toClient.officeId();
 
-            toClientOptions = this.clientReadPlatformService.retrieveAllForLookupByOfficeId(mostRelevantToOfficeId);
-
             toAccountOptions = retrieveToAccounts(fromAccount, mostRelevantToAccountType, mostRelevantToClientId);
         }
 
         if (mostRelevantToOfficeId != null) {
             toOffice = this.officeReadPlatformService.retrieveOffice(mostRelevantToOfficeId);
             toOfficeOptions = this.officeReadPlatformService.retrieveAllOfficesForDropdown();
-
-            toClientOptions = this.clientReadPlatformService.retrieveAllForLookupByOfficeId(mostRelevantToOfficeId);
             if (toClientOptions != null && toClientOptions.size() == 1) {
                 toClient = new ArrayList<>(toClientOptions).get(0);
 
@@ -264,7 +259,8 @@ public class StandingInstructionReadPlatformServiceImpl implements StandingInstr
         sqlBuilder.append("select " + sqlGenerator.calcFoundRows() + " ");
         sqlBuilder.append(this.standingInstructionMapper.schema());
         if (standingInstructionDTO.transferType() != null || standingInstructionDTO.clientId() != null
-                || standingInstructionDTO.clientName() != null) {
+                || standingInstructionDTO.clientName() != null
+                || (standingInstructionDTO.fromAccountType() != null && standingInstructionDTO.fromAccount() != null)) {
             sqlBuilder.append(" where ");
         }
         boolean addAndCaluse = false;

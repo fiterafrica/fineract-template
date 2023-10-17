@@ -35,6 +35,8 @@ public class LoanAccountSummaryData {
     private final String externalId;
     private final Long productId;
     private final String productName;
+
+    private String loanProductDescription;
     private final String shortProductName;
     private final LoanStatusEnumData status;
     private final EnumOptionData loanType;
@@ -96,5 +98,9 @@ public class LoanAccountSummaryData {
 
     public LoanStatusEnumData getStatus() {
         return status;
+    }
+
+    public void setLoanProductDescription(String loanProductDescription) {
+        this.loanProductDescription = loanProductDescription;
     }
 }
