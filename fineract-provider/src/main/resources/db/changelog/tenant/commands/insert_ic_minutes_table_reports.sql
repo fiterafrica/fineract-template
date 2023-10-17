@@ -36,11 +36,11 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
-INSERT INTO stretchy_report (report_name, report_type, report_category, report_sql, description, core_report, use_report, self_service_user_report) 
+INSERT INTO stretchy_report (report_name, report_type, report_category, report_sql, description, core_report, use_report, self_service_user_report)
 VALUES ("IC Minutes", "Table", "Loan", "select c.external_id as 'Client UID', concat(c.firstname,c.lastname) as 'Client/Company Name', l.loan_counter as 'Cycle', cvg.code_value as 'Gender', cvs.code_value as  'Strata',
 cvb.code_value as 'Business Sector', loanPurposeTble.code_value as 'Purpose of the loan', l.principal_amount_proposed as 'Applied Amount', icReviewTbl.IC_Level_One as 'IC Decision Level One',
 icReviewTbl.IC_Level_Two as 'IC Decision Level Two', icReviewTbl.IC_Level_Three as 'IC Decision Level Three',icReviewTbl.IC_Level_Four as 'IC Decision Level Four',
-icReviewTbl.IC_Level_Five as 'IC Decision Level Five', l.approved_principal as 'IC Approved Amount', 0 as 'Loan Tenure in months', '' as 'IC Approved Amount in Words', l.principal_disbursed_derived as 'Installment Amount', 
+icReviewTbl.IC_Level_Five as 'IC Decision Level Five', l.approved_principal as 'IC Approved Amount', 0 as 'Loan Tenure in months', '' as 'IC Approved Amount in Words', l.principal_disbursed_derived as 'Installment Amount',
 l.penalty_charges_charged_derived as 'Late Fees',
 coi.tax_identification_number as 'Company Tin Number', cvn.code_value as 'Nationality', villageTbl.code_value as 'Village', cellTbl.code_value as 'Cell', cvb.code_value as 'Sector', districtTbl.code_value as 'District',
 coi.telephone_no as 'Contact Number', coi.co_signors as 'Cosigner Number', l.account_no as 'Loan ID Number', '' as 'Bank Account Number', '' as 'Bank Name', ccma.UPI_NO as 'UPI Number', cvp.code_value as 'Province',

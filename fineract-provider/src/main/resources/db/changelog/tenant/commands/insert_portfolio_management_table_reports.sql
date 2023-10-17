@@ -36,7 +36,7 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
-INSERT INTO stretchy_report (report_name, report_type, report_category, report_sql, description, core_report, use_report, self_service_user_report) 
+INSERT INTO stretchy_report (report_name, report_type, report_category, report_sql, description, core_report, use_report, self_service_user_report)
 VALUES ("Portfolio Management", "Table", "Loan", "select concat(u.firstname, ' ', u.lastname) as 'User', concat(c.firstname, ' ', c.lastname) as 'Client Name', c.external_id as 'Client UUID', l.account_no as 'Loan Number', loanPurposeTble.code_value as 'Purpose',
 cvd.code_value as 'Department', cvs.code_value as  'Strata', '-' as 'KIVA Loan ID', c.id as 'Client ID', c.date_of_birth as 'Date of Birth', '-' as 'KIVA Client ID', l.loan_counter as 'Cycle', cvc.code_value as 'Cohort',
 '-' as 'Is Startup', cvg.code_value as 'Gender', cvp.code_value as 'Province', cvb.code_value as 'Sector', cvn.code_value as 'Nationality', coi.telephone_no as 'Telephone', l.approvedon_date as 'Approval Date',
