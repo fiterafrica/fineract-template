@@ -2668,8 +2668,10 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
                 .isSavingsInterestPostingAtCurrentPeriodEnd();
         final Integer financialYearBeginningMonth = this.configurationDomainService.retrieveFinancialYearBeginningMonth();
-        account.updateMaturityDateAndAmountBeforeAccountActivation(MathContext.DECIMAL64, false, isSavingsInterestPostingAtCurrentPeriodEnd,
-                financialYearBeginningMonth);
+        if (account.getAccountTermAndPreClosure().depositPeriod() != null) {
+            account.updateMaturityDateAndAmountBeforeAccountActivation(MathContext.DECIMAL64, false, isSavingsInterestPostingAtCurrentPeriodEnd,
+                    financialYearBeginningMonth);
+        }
         this.fixedDepositAccountRepository.saveAndFlush(account);
     }
 
