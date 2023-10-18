@@ -55,6 +55,7 @@ import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidati
 import org.apache.fineract.infrastructure.core.exception.PlatformServiceUnavailableException;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
+import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.dataqueries.data.EntityTables;
 import org.apache.fineract.infrastructure.dataqueries.data.StatusEnum;
 import org.apache.fineract.infrastructure.dataqueries.service.EntityDatatableChecksWritePlatformService;
@@ -190,7 +191,6 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanTrancheDisbursementC
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransaction;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionType;
-import org.apache.fineract.portfolio.loanaccount.domain.transactionprocessor.LoanRepaymentScheduleTransactionProcessor;
 import org.apache.fineract.portfolio.loanaccount.exception.DateMismatchException;
 import org.apache.fineract.portfolio.loanaccount.exception.ExceedingTrancheCountException;
 import org.apache.fineract.portfolio.loanaccount.exception.InstallmentNotFoundException;
@@ -236,6 +236,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -292,6 +293,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     private final LoanRepaymentScheduleInstallmentRepository installmentRepository;
     private final LoanDecisionStateUtilService loanDecisionStateUtilService;
     private final AprCalculator aprCalculator;
+    private final JdbcTemplate jdbcTemplate;
 
     @Autowired
     private ActiveMqNotificationDomainServiceImpl activeMqNotificationDomainService;
@@ -3325,48 +3327,20 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     @Override
     @CronTarget(jobName = JobName.GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY)
     public void cleanUpLoans() {
-        // int offset = 0;
-        // final int pageSize = 1000;
-        // Page<Loan> loans;
-        // do {
-        // Pageable pageRequest = PageRequest.of(offset, pageSize);
-        // loans = this.loanRepository.findAll(pageRequest);
-        // for (Loan loan : loans) {
-        // if (loan.getId().equals(30715L)) {
-        Loan loan = this.loanAssembler.assembleFrom(119L);
-        // 1. update the annual_nominal_interest rate
-        loan.getLoanProductRelatedDetail().updateInterestRateDerivedFields(this.aprCalculator);
+        final Integer totalLoans = this.jdbcTemplate
+                .queryForObject("SELECT COUNT(*) FROM m_loan l JOIN loanaccount_v17 la ON l.external_id = la.encodedkey", Integer.class);
+        final int totalToProcess = 3000000;
 
-        // 3. update the loan schedule
-        int num = 1;
-        LocalDate date = loan.getDisbursementDate();
-        for (LoanRepaymentScheduleInstallment installment : loan.getRepaymentScheduleInstallments()) {
-            installment.setInstallmentNumber(num);
-            installment.setFromDate(date);
-            date = installment.getDueDate();// this will be the fromDate of the next installment
-            num += 1;
-            this.installmentRepository.saveAndFlush(installment);
-        }
-
-        final LoanRepaymentScheduleTransactionProcessor loanRepaymentScheduleTransactionProcessor = loan.getTransactionProcessorFactory()
-                .determineProcessor(loan.getLoanProduct().getRepaymentStrategy());
-
-        // 3. clean up the loan transactions
-        for (LoanTransaction loanTransaction : loan.getLoanTransactions()) {
-            // if repayment, update the corresponding loan repayment schedule installment
-            // TODO: get the corresponding loan transaction and update the fields on this installment
-            // TODO: insert the corresponding m_loan_transaction_repayment_schedule_mapping record
-            loanRepaymentScheduleTransactionProcessor.handleTransaction(loanTransaction, loan.getCurrency(),
-                    loan.getRepaymentScheduleInstallments(), loan.charges());
-        }
-
-        loan.updateLoanSummaryDerivedFields();
-        this.loanRepository.saveAndFlush(loan);
-        // }
-        // }
-        // LOG.info("offset {} limit {} total {} ", offset, pageSize, loans.getTotalElements());
-        // offset += 1; // next page
-        // } while (!loans.isEmpty());
+        LoanCleanUpRunner runner1 = new LoanCleanUpRunner(1, ThreadLocalContextUtil.getTenant(), this.jdbcTemplate, 0, totalToProcess,
+                this.loanAssembler, this.aprCalculator, this.installmentRepository, this.loanRepository);
+        LoanCleanUpRunner runner2 = new LoanCleanUpRunner(2, ThreadLocalContextUtil.getTenant(), this.jdbcTemplate, totalToProcess,
+                totalToProcess, this.loanAssembler, this.aprCalculator, this.installmentRepository, this.loanRepository);
+        LoanCleanUpRunner runner3 = new LoanCleanUpRunner(3, ThreadLocalContextUtil.getTenant(), this.jdbcTemplate, (totalToProcess * 2),
+                (totalLoans - (totalToProcess * 2)), this.loanAssembler, this.aprCalculator, this.installmentRepository,
+                this.loanRepository);
+        runner1.start();
+        runner2.start();
+        runner3.start();
     }
 
     @Override
