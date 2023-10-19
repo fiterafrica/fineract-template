@@ -42,6 +42,11 @@
         </insert>
         <insert tableName="stretchy_report_parameter">
             <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Portfolio Management')"/>
+            <column name="parameter_id" valueNumeric="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'currencyIdSelectAll')"/>
+            <column name="report_parameter_name" value="currencyId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Portfolio Management')"/>
             <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'fundIdSelectAll')"/>
             <column name="report_parameter_name" value="fundId"/>
         </insert>

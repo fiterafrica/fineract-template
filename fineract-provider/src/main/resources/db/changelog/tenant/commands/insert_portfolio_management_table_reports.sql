@@ -49,14 +49,13 @@ l.disbursedon_date as 'Disbursement Date', l.principal_amount_proposed as 'Appli
             when l.loan_type_enum = 4 then 'GLIM'
             when l.loan_type_enum = 5 then 'GSIM'
         end as 'Loan Type',
-l.term_frequency as 'Terms Duration', l.total_repayment_derived as 'Actual Payment Amount(KES)', l.principal_repaid_derived as 'Principal Paid(KES)', l.interest_repaid_derived as 'Interest Paid(KES)',
-l.fee_charges_repaid_derived as 'Fees Paid(kes)', l.penalty_charges_repaid_derived as 'Total Late Fees Paid(KES)', l.total_overpaid_derived as 'Excess Amount Paid(KES)', l.total_outstanding_derived as 'Current Balance(KES)',
-l.principal_outstanding_derived as 'Principal Balance(KES)', l.interest_outstanding_derived as 'Interest Balance(KES)', l.fee_charges_outstanding_derived as 'Fees Balance(KES)', laa.total_overdue_derived as 'Amount Past Due(KES)',
-laa.principal_overdue_derived as 'Principal Past Due(KES)', laa.interest_overdue_derived as 'Interest Past Due(KES)', laa.fee_charges_overdue_derived as 'Fees Past Due(KES)',
-nextPaymentTbl.scheduledPrincipalAmount as 'Scheduled Principal Amount(KES)', nextPaymentTbl.scheduledInterestAmount as 'Scheduled Interest Amount', nextPaymentTbl.scheduledFeesAmount as 'Scheduled Fees Amount(KES)',
-lastPaymentTbl.amount as 'Last Payment Amount(KES)', lastPaymentTbl.principal_portion_derived as 'Last Principal Amount(KES)', lastPaymentTbl.interest_portion_derived as 'Last Interest Amount(KES)',
-lastPaymentTbl.fee_charges_portion_derived as 'Last Fees Amount', lastPaymentTbl.fee_charges_portion_derived as 'Last Fees Amount(KES)', 0 as 'Last Late Fees Amount',
-0 as 'Last Late Fees Amount(KES)', 0 as 'Last Excess Amount', 0 as 'Last Excess Amount(KES)',
+l.term_frequency as 'Terms Duration', l.total_repayment_derived as 'Actual Payment Amount', l.principal_repaid_derived as 'Principal Paid', l.interest_repaid_derived as 'Interest Paid',
+l.fee_charges_repaid_derived as 'Fees Paid', l.penalty_charges_repaid_derived as 'Total Late Fees Paid', l.total_overpaid_derived as 'Excess Amount Paid', l.total_outstanding_derived as 'Current Balance',
+l.principal_outstanding_derived as 'Principal Balance', l.interest_outstanding_derived as 'Interest Balance', l.fee_charges_outstanding_derived as 'Fees Balance', laa.total_overdue_derived as 'Amount Past Due',
+laa.principal_overdue_derived as 'Principal Past Due', laa.interest_overdue_derived as 'Interest Past Due', laa.fee_charges_overdue_derived as 'Fees Past Due',
+nextPaymentTbl.scheduledPrincipalAmount as 'Scheduled Principal Amount', nextPaymentTbl.scheduledInterestAmount as 'Scheduled Interest Amount', nextPaymentTbl.scheduledFeesAmount as 'Scheduled Fees Amount',
+lastPaymentTbl.amount as 'Last Payment Amount', lastPaymentTbl.principal_portion_derived as 'Last Principal Amount', lastPaymentTbl.interest_portion_derived as 'Last Interest Amount',
+lastPaymentTbl.fee_charges_portion_derived as 'Last Fees Amount',  lastPaymentTbl.fee_charges_portion_derived as 'Last Late Fees Amount', l.total_overpaid_derived as 'Last Excess Amount',
 datediff(now(), laa.overdue_since_date_derived) as 'Days in Arrears', installmentArrears.installemntsCount as 'Installment in Arrears',
 lastPaymentTbl.transaction_date as 'Last Payment Date', nextPaymentTbl.nextPaymentDueDate as 'Next Payment Due', l.maturedon_date as 'Final Payment Date', l.closedon_date as 'Date Closed',
        case
@@ -133,4 +132,5 @@ and (l.product_id = '${loanProductId}' or '-1' = '${loanProductId}')
 and (ifnull(l.loan_officer_id, -10) = '${loanOfficerId}' or '-1' = '${loanOfficerId}')
 and (ifnull(l.fund_id, -10) = ${fundId} or -1 = ${fundId})
 and (ifnull(l.loanpurpose_cv_id, -10) = ${loanPurposeId} or -1 = ${loanPurposeId})
+and (l.currency_code = '${currencyId}' or '-1' = '${currencyId}')
 and (date(l.submittedon_date) between date('${startDate}') and date('${endDate}')) ", "Portfolio Management Report", true, true, false);
