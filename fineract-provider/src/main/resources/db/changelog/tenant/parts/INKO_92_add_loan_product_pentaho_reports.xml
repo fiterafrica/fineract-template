@@ -1,0 +1,80 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements. See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership. The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.6.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+    <changeSet author="moses@fiter.io" id="INKO_92_add_loan_product_pentaho_reports_1" context="mysql">
+        <insert tableName="stretchy_report">
+            <column name="report_name" value="Loan Product(Pentaho)"/>
+            <column name="report_type" value="Pentaho"/>
+            <column name="report_subtype"/>
+            <column name="report_category" value="Loan"/>
+            <column name="report_sql" value="SELECT o.name AS Office, c.display_name AS 'Client Name', COALESCE(c.external_id, '')  AS 'Client UID', l.account_no AS 'Account Number', COALESCE(cvd.code_value, '')  AS Department, '' AS 'Kiva loan ID', '' AS 'Kiva client ID', l.loan_counter 'Loan Cycle', lp.name AS 'Loan Product', l.disbursedon_date AS 'Disbursed Date', ROUND(l.principal_disbursed_derived, 2) AS 'Amount Disbursed', currency.code AS 'Currency', ROUND(l.principal_repaid_derived + l.interest_repaid_derived, 2) AS 'Amount Paid', ROUND(l.total_outstanding_derived, 2) 'Current Balance', 0.0 AS 'Amount Past Due', YEAR(NOW()) - YEAR(c.date_of_birth) AS Age, COALESCE(cv.code_value, '') AS 'Gender', '' AS Cohort, COALESCE(cvn.code_value, '') AS Nationality, '' AS Location, '' as 'Larger Borrower', COALESCE(cvs.code_value, '') AS Strata FROM m_loan l join m_product_loan lp  ON l.product_id = l.product_id join m_client c ON c.office_id = l.client_id JOIN m_office o ON o.id = c.office_id JOIN m_currency currency ON currency.code = l.currency_code LEFT JOIN m_code_value cv ON cv.id = c.gender_cv_id LEFT JOIN m_client_other_info coi ON coi.client_id = c.id LEFT JOIN m_code_value cvn ON cvn.id = coi.nationality_cv_id LEFT JOIN m_code_value cvs ON cvs.id = coi.strata_cv_id LEFT JOIN m_code_value cvd ON cvd.id = l.department_cv_id LEFT JOIN m_fund f ON f.id = l.fund_id "/>
+            <column name="description" value="Loan Product report Report"/>
+            <column name="core_report" valueBoolean="true"/>
+            <column name="use_report" valueBoolean="true"/>
+            <column name="self_service_user_report" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+    <changeSet author="moses@fiter.io" id="INKO_92_add_loan_product_pentaho_reports_2" context="mysql">
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan Product(Pentaho)')"/>
+            <column name="parameter_id" valueNumeric="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'OfficeIdSelectOne')"/>
+            <column name="report_parameter_name" value="officeId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan Product(Pentaho)')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'loanProductIdSelectAll')"/>
+            <column name="report_parameter_name" value="loanProductId"/>
+        </insert>
+
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan Product(Pentaho)')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'fundIdSelectAll')"/>
+            <column name="report_parameter_name" value="fundId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan Product(Pentaho)')"/>
+            <column name="parameter_id" valueNumeric="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'startDateSelect')"/>
+            <column name="report_parameter_name" value="fromDate"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan Product(Pentaho)')"/>
+            <column name="parameter_id" valueNumeric="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'endDateSelect')"/>
+            <column name="report_parameter_name" value="toDate"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan Product(Pentaho)')"/>
+            <column name="parameter_id" valueNumeric="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'departmentIdSelectAll')"/>
+            <column name="report_parameter_name" value="departmentId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan Product(Pentaho)')"/>
+            <column name="parameter_id" valueNumeric="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'strataIdSelectAll')"/>
+            <column name="report_parameter_name" value="strataId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan Product(Pentaho)')"/>
+            <column name="parameter_id" valueNumeric="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'currencyIdSelectAll')"/>
+            <column name="report_parameter_name" value="currencyId"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>
