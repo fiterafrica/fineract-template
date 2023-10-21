@@ -510,10 +510,6 @@ public class SavingsAccountAssembler {
         savingsAccount.setHelpers(this.savingsAccountTransactionSummaryWrapper, this.savingsHelper);
     }
 
-    public void assignSavingAccountHelpers(final SavingsAccountData savingsAccountData) {
-        savingsAccountData.setHelpers(this.savingsAccountTransactionSummaryWrapper, this.savingsHelper);
-    }
-
     public SavingsAccount assembleFrom(final Long savingsId) {
         final SavingsAccount account = this.savingsAccountRepository.findOneWithNotFoundDetection(savingsId);
         // Gets all transactions for this account
@@ -536,7 +532,10 @@ public class SavingsAccountAssembler {
         // Retrieve 100 most recent active transactions for an account
         String sql = "SELECT t.id FROM (SELECT * FROM m_savings_account_transaction WHERE savings_account_id = ? AND is_reversed = false ORDER BY id DESC LIMIT 100) t ORDER BY transaction_date, created_date, id;";
         List<Long> transactionIds = this.jdbcTemplate.queryForList(sql, Long.class, savingsId);
-        List<SavingsAccountTransaction> transactions = this.savingsAccountTransactionRepository.findByIdIn(transactionIds);
+        List<SavingsAccountTransaction> transactions = new ArrayList<>();
+        if (!transactionIds.isEmpty()) {
+            this.savingsAccountTransactionRepository.findByIdIn(transactionIds);
+        }
         SavingsAccountActionService.populateTransactions(account, transactions);
         setHelpers(account);
         return account;
