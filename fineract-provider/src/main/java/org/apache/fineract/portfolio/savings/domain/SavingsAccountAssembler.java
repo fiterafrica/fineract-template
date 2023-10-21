@@ -91,6 +91,7 @@ import org.apache.fineract.portfolio.savings.SavingsPostingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionData;
 import org.apache.fineract.portfolio.savings.exception.SavingsProductNotFoundException;
+import org.apache.fineract.portfolio.savings.service.SavingsAccountActionService;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,9 +112,9 @@ public class SavingsAccountAssembler {
     private final SavingsAccountRepositoryWrapper savingsAccountRepository;
     private final SavingsAccountChargeAssembler savingsAccountChargeAssembler;
     private final FromJsonHelper fromApiJsonHelper;
-    private final JdbcTemplate jdbcTemplate;
     private final ConfigurationDomainService configurationDomainService;
     private final SavingsAccountTransactionRepository savingsAccountTransactionRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @Autowired
     public SavingsAccountAssembler(final SavingsAccountTransactionSummaryWrapper savingsAccountTransactionSummaryWrapper,
@@ -121,9 +122,9 @@ public class SavingsAccountAssembler {
             final StaffRepositoryWrapper staffRepository, final SavingsProductRepository savingProductRepository,
             final SavingsAccountRepositoryWrapper savingsAccountRepository,
             final SavingsAccountChargeAssembler savingsAccountChargeAssembler, final FromJsonHelper fromApiJsonHelper,
-            final AccountTransfersReadPlatformService accountTransfersReadPlatformService, final JdbcTemplate jdbcTemplate,
+            final AccountTransfersReadPlatformService accountTransfersReadPlatformService,
             final ConfigurationDomainService configurationDomainService,
-            SavingsAccountTransactionRepository savingsAccountTransactionRepository) {
+            SavingsAccountTransactionRepository savingsAccountTransactionRepository, JdbcTemplate jdbcTemplate) {
         this.savingsAccountTransactionSummaryWrapper = savingsAccountTransactionSummaryWrapper;
         this.clientRepository = clientRepository;
         this.groupRepository = groupRepository;
@@ -132,10 +133,10 @@ public class SavingsAccountAssembler {
         this.savingsAccountRepository = savingsAccountRepository;
         this.savingsAccountChargeAssembler = savingsAccountChargeAssembler;
         this.fromApiJsonHelper = fromApiJsonHelper;
-        savingsHelper = new SavingsHelper(accountTransfersReadPlatformService);
-        this.jdbcTemplate = jdbcTemplate;
+        this.savingsHelper = new SavingsHelper(accountTransfersReadPlatformService);
         this.configurationDomainService = configurationDomainService;
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     /**
@@ -515,7 +516,9 @@ public class SavingsAccountAssembler {
 
     public SavingsAccount assembleFrom(final Long savingsId) {
         final SavingsAccount account = this.savingsAccountRepository.findOneWithNotFoundDetection(savingsId);
-        populateTransactions(account, this.savingsAccountTransactionRepository.getTransactionsByAccountId(savingsId));
+        // Gets all transactions for this account
+        SavingsAccountActionService.populateTransactions(account,
+                this.savingsAccountTransactionRepository.getTransactionsByAccountId(savingsId));
         return setAccountHelpers(account);
     }
 
@@ -524,12 +527,19 @@ public class SavingsAccountAssembler {
         return account;
     }
 
-    private void populateTransactions(SavingsAccount account, List<SavingsAccountTransaction> transactions) {
-        // We do this in case the passed transaction list is read-only
-        List<SavingsAccountTransaction> trans = account.getTransactions();
-        // Always clear the list first to avoid dups
-        trans.clear();
-        trans.addAll(transactions);
+    /**
+     * Assembles a savings account with minimal transactions, usually the most recent 100 transactions This is to delay
+     * loading of all transactions until absolutely required.
+     **/
+    public SavingsAccount assembleWithMinimalTransactions(final Long savingsId) {
+        final SavingsAccount account = this.savingsAccountRepository.findOneWithNotFoundDetection(savingsId);
+        // Retrieve 100 most recent active transactions for an account
+        String sql = "SELECT t.id FROM (SELECT * FROM m_savings_account_transaction WHERE savings_account_id = ? AND is_reversed = false ORDER BY id DESC LIMIT 100) t ORDER BY transaction_date, created_date, id;";
+        List<Long> transactionIds = this.jdbcTemplate.queryForList(sql, Long.class, savingsId);
+        List<SavingsAccountTransaction> transactions = this.savingsAccountTransactionRepository.findByIdIn(transactionIds);
+        SavingsAccountActionService.populateTransactions(account, transactions);
+        setHelpers(account);
+        return account;
     }
 
     public SavingsAccount assembleFrom(final JsonCommand command, final AppUser submittedBy, SavingsAccount clonedParentSavingsAccount) {

@@ -69,7 +69,6 @@ import javax.persistence.InheritanceType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
-import javax.persistence.OrderBy;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
@@ -314,8 +313,11 @@ public class SavingsAccount extends AbstractPersistableCustom {
     @Embedded
     protected SavingsAccountSummary summary;
 
-    @OrderBy(value = "dateOf, createdDate, id")
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "savingsAccount", orphanRemoval = true, fetch = FetchType.LAZY)
+    // Avoid lazy loading this list as it impacts on performance for transaction-heavy accounts
+    // @OrderBy(value = "dateOf, createdDate, id")
+    // @OneToMany(cascade = CascadeType.DETACH, mappedBy = "savingsAccount", orphanRemoval = true, fetch =
+    // FetchType.LAZY)
+    @Transient
     protected List<SavingsAccountTransaction> transactions = new ArrayList<>();
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "savingsAccount", orphanRemoval = true, fetch = FetchType.LAZY)
@@ -703,7 +705,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
         }
 
         if (!backdatedTxnsAllowedTill) {
-            this.summary.updateSummary(this.currency, this.savingsAccountTransactionSummaryWrapper, this.transactions);
+            this.updateSummary(this.transactions);
         } else {
             this.summary.updateSummaryWithPivotConfig(this.currency, this.savingsAccountTransactionSummaryWrapper, null,
                     this.savingsAccountTransactions);
@@ -1179,7 +1181,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
             this.summary.updateSummaryWithPivotConfig(this.currency, this.savingsAccountTransactionSummaryWrapper, null,
                     this.savingsAccountTransactions);
         } else {
-            this.summary.updateSummary(this.currency, this.savingsAccountTransactionSummaryWrapper, this.transactions);
+            this.updateSummary(this.transactions);
         }
 
         return allPostingPeriods;
@@ -1552,7 +1554,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
         if (backdatedTxnsAllowedTill) {
             addTransactionToExisting(transaction);
         } else {
-            addTransaction(transaction);
+            addNewTransaction(transaction);
         }
 
         if (this.sub_status.equals(SavingsAccountSubStatusEnum.INACTIVE.getValue())
@@ -1693,7 +1695,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
         if (backdatedTxnsAllowedTill) {
             addTransactionToExisting(transaction);
         } else {
-            addTransaction(transaction);
+            addNewTransaction(transaction);
         }
 
         if (this.sub_status.equals(SavingsAccountSubStatusEnum.INACTIVE.getValue())
@@ -1846,17 +1848,12 @@ public class SavingsAccount extends AbstractPersistableCustom {
             final List<DepositAccountOnHoldTransaction> depositAccountOnHoldTransactions, final boolean backdatedTxnsAllowedTill,
             final BigDecimal overdueLoanAmount) {
 
-        List<SavingsAccountTransaction> transactionsSortedByDate = null;
-
-        if (backdatedTxnsAllowedTill) {
-            transactionsSortedByDate = retrieveSortedTransactions();
-        } else {
-            transactionsSortedByDate = retreiveListOfTransactions();
-        }
+        List<SavingsAccountTransaction> transactionsSortedByDate = retreiveListOfTransactions();
 
         Money runningBalance = Money.zero(this.currency);
-        if (backdatedTxnsAllowedTill) {
-            runningBalance = Money.of(this.currency, this.summary.getRunningBalanceOnPivotDate());
+        if (!transactionsSortedByDate.isEmpty()) {
+            SavingsAccountTransaction lastTransaction = transactionsSortedByDate.get(transactionsSortedByDate.size() - 1);
+            runningBalance = lastTransaction.getRunningBalance(this.currency);
         }
 
         Money minRequiredBalance = minRequiredBalanceDerived(getCurrency());
@@ -2337,6 +2334,21 @@ public class SavingsAccount extends AbstractPersistableCustom {
             }
         }
 
+        accountingBridgeData.put("newSavingsTransactions", newSavingsTransactions);
+        return accountingBridgeData;
+    }
+
+    public Map<String, Object> deriveAccountingBridgeData(CurrencyData currencyData, List<SavingsAccountTransaction> transactions) {
+        final Map<String, Object> accountingBridgeData = new LinkedHashMap<>();
+        accountingBridgeData.put("savingsId", getId());
+        accountingBridgeData.put("savingsProductId", productId());
+        accountingBridgeData.put("currency", currencyData);
+        accountingBridgeData.put("officeId", officeId());
+        accountingBridgeData.put("cashBasedAccountingEnabled", isCashBasedAccountingEnabledOnSavingsProduct());
+        accountingBridgeData.put("accrualBasedAccountingEnabled", isAccrualBasedAccountingEnabledOnSavingsProduct());
+
+        final List<Map<String, Object>> newSavingsTransactions = new ArrayList<>();
+        transactions.forEach(t -> newSavingsTransactions.add(t.toMapData(currencyData)));
         accountingBridgeData.put("newSavingsTransactions", newSavingsTransactions);
         return accountingBridgeData;
     }
@@ -3881,7 +3893,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
             this.summary.updateSummaryWithPivotConfig(this.currency, this.savingsAccountTransactionSummaryWrapper, transaction,
                     this.savingsAccountTransactions);
         } else {
-            this.transactions.add(transaction);
+            this.addNewTransaction(transaction);
         }
     }
 
@@ -4155,7 +4167,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
         }
         boolean postReversals = false;
         recalculateDailyBalances(Money.zero(this.currency), transactionDate, backdatedTxnsAllowedTill, postReversals);
-        this.summary.updateSummary(this.currency, this.savingsAccountTransactionSummaryWrapper, this.transactions);
+        this.updateSummary(this.transactions);
     }
 
     public void setSubStatusDormant() {
@@ -4178,12 +4190,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
         this.summary.updateSummary(this.currency, this.savingsAccountTransactionSummaryWrapper, this.transactions);
     }
 
-    public void loadTransactions() {
-        transactions.size();
-    }
-
     public void loadLazyCollections() {
-        transactions.size();
         charges.size();
         savingsOfficerHistory.size();
         if (group != null) {
@@ -4915,6 +4922,14 @@ public class SavingsAccount extends AbstractPersistableCustom {
 
     public void updateSummary(List<SavingsAccountTransaction> transactions) {
         this.summary.updateSummary(this.currency, this.savingsAccountTransactionSummaryWrapper, transactions);
+    }
+
+    public void updateSummaryCumulative(List<SavingsAccountTransaction> transactions) {
+        this.summary.updateSummaryCumulative(this.currency, this.savingsAccountTransactionSummaryWrapper, transactions);
+    }
+
+    public void setTransactions(List<SavingsAccountTransaction> transactions) {
+        this.transactions = transactions;
     }
 
     protected void recalculateRunningBalances() {

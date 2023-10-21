@@ -67,7 +67,7 @@ public class SavingsAccountActionService {
     public static void populateTransactions(SavingsAccount account, List<SavingsAccountTransaction> transactions) {
         // We do this in case the passed transaction list is read-only
         List<SavingsAccountTransaction> trans = account.getTransactions();
-        // Always clear the list first to avoid dups
+        // Always clear the list first to avoid duplicates
         trans.clear();
         trans.addAll(transactions);
     }

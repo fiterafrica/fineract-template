@@ -34,6 +34,11 @@ public interface SavingsAccountTransactionRepository
     SavingsAccountTransaction findOneByIdAndSavingsAccountId(@Param("transactionId") Long transactionId,
             @Param("savingsId") Long savingsId);
 
+    // @Query("SELECT sat FROM SavingsAccountTransaction sat WHERE sat.id IN (:ids)")
+    // List<SavingsAccountTransaction> getTransactionsByIds(@Param("ids") List<Long> savingsId);
+
+    List<SavingsAccountTransaction> findByIdIn(List<Long> ids);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select st from SavingsAccountTransaction st where st.savingsAccount = :savingsAccount and st.dateOf >= :transactionDate order by st.dateOf,st.createdDate,st.id")
     List<SavingsAccountTransaction> findTransactionsAfterPivotDate(@Param("savingsAccount") SavingsAccount savingsAccount,

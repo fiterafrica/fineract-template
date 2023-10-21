@@ -128,11 +128,7 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         AppUser user = getAppUserIfPresent();
         account.validateForAccountBlock();
         account.validateForDebitBlock();
-        final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
-                .isSavingsInterestPostingAtCurrentPeriodEnd();
         final Long relaxingDaysConfigForPivotDate = this.configurationDomainService.retrieveRelaxingDaysConfigForPivotDate();
-        final boolean postReversals = this.configurationDomainService.isReversalTransactionAllowed();
-        final Integer financialYearBeginningMonth = this.configurationDomainService.retrieveFinancialYearBeginningMonth();
         final boolean isClientLevelValidationEnabled = this.configurationDomainService.isClientLevelValidationEnabled();
 
         if (this.shouldValidateLimitDuringWithdrawal(account, isAccountTransfer, isClientLevelValidationEnabled)) {
@@ -146,15 +142,6 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         if (transactionBooleanValues.isRegularTransaction() && !account.allowWithdrawal()) {
             throw new DepositAccountTransactionNotAllowedException(account.getId(), "withdraw", account.depositAccountType());
         }
-        final Set<Long> existingTransactionIds = new HashSet<>();
-        final LocalDate postInterestOnDate = null;
-        final Set<Long> existingReversedTransactionIds = new HashSet<>();
-
-        if (backdatedTxnsAllowedTill) {
-            updateTransactionDetailsWithPivotConfig(account, existingTransactionIds, existingReversedTransactionIds);
-        } else {
-            updateExistingTransactionsDetails(account, existingTransactionIds, existingReversedTransactionIds);
-        }
 
         Integer accountType = null;
         final SavingsAccountTransactionDTO transactionDTO = new SavingsAccountTransactionDTO(fmt, transactionDate, transactionAmount,
@@ -162,18 +149,6 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         UUID refNo = UUID.randomUUID();
         final SavingsAccountTransaction withdrawal = account.withdraw(transactionDTO, transactionBooleanValues.isApplyWithdrawFee(),
                 backdatedTxnsAllowedTill, relaxingDaysConfigForPivotDate, refNo.toString());
-        final MathContext mc = MathContext.DECIMAL64;
-
-        final LocalDate today = DateUtils.getBusinessLocalDate();
-
-        if (account.isBeforeLastPostingPeriod(transactionDate, backdatedTxnsAllowedTill)) {
-            account.postInterest(mc, today, transactionBooleanValues.isInterestTransfer(), isSavingsInterestPostingAtCurrentPeriodEnd,
-                    financialYearBeginningMonth, postInterestOnDate, backdatedTxnsAllowedTill, postReversals);
-        } else {
-            account.calculateInterestUsing(mc, today, transactionBooleanValues.isInterestTransfer(),
-                    isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, postInterestOnDate, true,
-                    backdatedTxnsAllowedTill, false);
-        }
 
         List<DepositAccountOnHoldTransaction> depositAccountOnHoldTransactions = null;
         if (account.getOnHoldFunds().compareTo(BigDecimal.ZERO) > 0) {
@@ -185,11 +160,11 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         account.validateAccountBalanceDoesNotBecomeNegative(transactionAmount, transactionBooleanValues.isExceptionForBalanceCheck(),
                 depositAccountOnHoldTransactions, backdatedTxnsAllowedTill, getOverdueLoanAmountForClient(account, isAccountTransfer));
 
-        saveTransactionToGenerateTransactionId(withdrawal);
-        if (backdatedTxnsAllowedTill) {
-            // Update transactions separately
-            saveUpdatedTransactionsOfSavingsAccount(account.getSavingsAccountTransactionsWithPivotConfig());
-        }
+        List<SavingsAccountTransaction> newTransactions = this.extractNewTransactions(account);
+        saveTransactionToGenerateTransactionId(newTransactions);
+        account.updateSummaryCumulative(newTransactions);
+        this.savingsAccountRepository.saveAndFlush(account);
+        this.postJournalEntries(account, newTransactions);
 
         account.setPreviousFlexWithdrawalDate(transactionDate);
         if (account.getWithdrawalFrequency() != null && account.getWithdrawalFrequencyEnum() != null
@@ -201,10 +176,6 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
             }
         }
         this.savingsAccountRepository.save(account);
-
-        postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, transactionBooleanValues.isAccountTransfer(),
-                backdatedTxnsAllowedTill);
-
         businessEventNotifierService.notifyPostBusinessEvent(new SavingsWithdrawalBusinessEvent(withdrawal));
         return withdrawal;
     }
@@ -266,23 +237,9 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
             this.savingsAccountTransactionDataValidator.validateDailyDepositLimits(account.getClient(), transactionAmount);
             this.savingsAccountTransactionDataValidator.validateCumulativeBalanceByLimit(account, transactionAmount);
         }
-
-        // Global configurations
-        final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
-                .isSavingsInterestPostingAtCurrentPeriodEnd();
-        final Integer financialYearBeginningMonth = this.configurationDomainService.retrieveFinancialYearBeginningMonth();
         final Long relaxingDaysConfigForPivotDate = this.configurationDomainService.retrieveRelaxingDaysConfigForPivotDate();
         if (isRegularTransaction && !account.allowDeposit()) {
             throw new DepositAccountTransactionNotAllowedException(account.getId(), "deposit", account.depositAccountType());
-        }
-        boolean isInterestTransfer = false;
-        final Set<Long> existingTransactionIds = new HashSet<>();
-        final Set<Long> existingReversedTransactionIds = new HashSet<>();
-
-        if (backdatedTxnsAllowedTill) {
-            updateTransactionDetailsWithPivotConfig(account, existingTransactionIds, existingReversedTransactionIds);
-        } else {
-            updateExistingTransactionsDetails(account, existingTransactionIds, existingReversedTransactionIds);
         }
 
         Integer accountType = null;
@@ -291,29 +248,12 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         UUID refNo = UUID.randomUUID();
         final SavingsAccountTransaction deposit = account.deposit(transactionDTO, savingsAccountTransactionType, backdatedTxnsAllowedTill,
                 relaxingDaysConfigForPivotDate, refNo.toString());
-        final LocalDate postInterestOnDate = null;
-        final MathContext mc = MathContext.DECIMAL64;
 
-        final LocalDate today = DateUtils.getBusinessLocalDate();
-        boolean postReversals = this.configurationDomainService.isReversalTransactionAllowed();
-        if (account.isBeforeLastPostingPeriod(transactionDate, backdatedTxnsAllowedTill)) {
-            account.postInterest(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth,
-                    postInterestOnDate, backdatedTxnsAllowedTill, postReversals);
-        } else {
-            account.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
-                    financialYearBeginningMonth, postInterestOnDate, true, backdatedTxnsAllowedTill, false);
-        }
-
-        saveTransactionToGenerateTransactionId(deposit);
-
-        if (backdatedTxnsAllowedTill) {
-            // Update transactions separately
-            saveUpdatedTransactionsOfSavingsAccount(account.getSavingsAccountTransactionsWithPivotConfig());
-        }
-
+        List<SavingsAccountTransaction> newTransactions = this.extractNewTransactions(account);
+        saveTransactionToGenerateTransactionId(newTransactions);
+        account.updateSummaryCumulative(newTransactions);
         this.savingsAccountRepository.saveAndFlush(account);
-
-        postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer, backdatedTxnsAllowedTill);
+        this.postJournalEntries(account, newTransactions);
         businessEventNotifierService.notifyPostBusinessEvent(new SavingsDepositBusinessEvent(deposit));
         return deposit;
     }
@@ -352,13 +292,9 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         existingReversedTransactionIds.addAll(account.findExistingReversedTransactionIds());
     }
 
-    private Long saveTransactionToGenerateTransactionId(final SavingsAccountTransaction transaction) {
-        this.savingsAccountTransactionRepository.saveAndFlush(transaction);
-        return transaction.getId();
-    }
-
-    private void saveUpdatedTransactionsOfSavingsAccount(final List<SavingsAccountTransaction> savingsAccountTransactions) {
-        this.savingsAccountTransactionRepository.saveAll(savingsAccountTransactions);
+    private void saveTransactionToGenerateTransactionId(List<SavingsAccountTransaction> transactions) {
+        this.savingsAccountTransactionRepository.saveAll(transactions);
+        transactions.forEach(t -> t.setNewTransaction(false));
     }
 
     private void updateTransactionDetailsWithPivotConfig(final SavingsAccount account, Set<Long> existingTransactionIds,
@@ -375,6 +311,13 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
 
         final Map<String, Object> accountingBridgeData = savingsAccount.deriveAccountingBridgeData(applicationCurrency.toData(),
                 existingTransactionIds, existingReversedTransactionIds, isAccountTransfer, backdatedTxnsAllowedTill);
+        this.journalEntryWritePlatformService.createJournalEntriesForSavings(accountingBridgeData);
+    }
+
+    private void postJournalEntries(SavingsAccount account, List<SavingsAccountTransaction> transactions) {
+        final MonetaryCurrency currency = account.getCurrency();
+        final ApplicationCurrency applicationCurrency = this.applicationCurrencyRepositoryWrapper.findOneWithNotFoundDetection(currency);
+        final Map<String, Object> accountingBridgeData = account.deriveAccountingBridgeData(applicationCurrency.toData(), transactions);
         this.journalEntryWritePlatformService.createJournalEntriesForSavings(accountingBridgeData);
     }
 
