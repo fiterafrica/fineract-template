@@ -3568,6 +3568,9 @@ public class SavingsAccount extends AbstractPersistableCustom {
 
     public void addTransaction(final SavingsAccountTransaction transaction) {
         this.transactions.add(transaction);
+        if (this.savingsAccountTransactionRepository != null) {
+            this.savingsAccountTransactionRepository.save(transaction);
+        }
     }
 
     public void addTransactionToExisting(final SavingsAccountTransaction transaction) {

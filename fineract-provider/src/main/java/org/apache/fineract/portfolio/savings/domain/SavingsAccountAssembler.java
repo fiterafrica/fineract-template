@@ -379,6 +379,9 @@ public class SavingsAccountAssembler {
 
     public SavingsAccount assembleFrom(final Long savingsId, final boolean backdatedTxnsAllowedTill) {
         SavingsAccount account = this.savingsAccountRepository.findSavingsWithNotFoundDetection(savingsId, backdatedTxnsAllowedTill);
+        // Gets all transactions for this account
+        SavingsAccountActionService.populateTransactions(account,
+                this.savingsAccountTransactionRepository.getTransactionsByAccountId(savingsId));
         return loadTransactionsToSavingsAccount(account, backdatedTxnsAllowedTill);
     }
 
@@ -534,7 +537,7 @@ public class SavingsAccountAssembler {
         List<Long> transactionIds = this.jdbcTemplate.queryForList(sql, Long.class, savingsId);
         List<SavingsAccountTransaction> transactions = new ArrayList<>();
         if (!transactionIds.isEmpty()) {
-            this.savingsAccountTransactionRepository.findByIdIn(transactionIds);
+            transactions = this.savingsAccountTransactionRepository.findByIdIn(transactionIds);
         }
         SavingsAccountActionService.populateTransactions(account, transactions);
         setHelpers(account);

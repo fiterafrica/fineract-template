@@ -624,6 +624,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         boolean isInterestTransfer = false;
         final LocalDate postInterestOnDate = null;
         boolean postReversals = false;
+        account.setSavingsAccountTransactionRepository(this.savingsAccountTransactionRepository);
         account.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                 financialYearBeginningMonth, postInterestOnDate, backdatedTxnsAllowedTill, postReversals);
 
