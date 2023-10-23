@@ -418,6 +418,10 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
     private CodeValue department;
     @Column(name = "loan_decision_state")
     private Integer loanDecisionState;
+    @Column(name = "last_repayment_amount")
+    private BigDecimal lastRepaymentAmount;
+    @Column(name = "last_repayment_date")
+    private LocalDate lastRepaymentDate;
 
     public static Loan newIndividualLoanApplication(final String accountNo, final Client client, final Integer loanType,
             final LoanProduct loanProduct, final Fund fund, final Staff officer, final CodeValue loanPurpose,
@@ -4864,6 +4868,10 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
         return AccountType.fromInt(this.loanType).isJLGAccount();
     }
 
+    public boolean isGLIMLoan() {
+        return AccountType.fromInt(this.loanType).isGLIMAccount();
+    }
+
     public void updateInterestRateFrequencyType() {
         this.loanRepaymentScheduleDetail.updatenterestPeriodFrequencyType(this.loanProduct.getInterestPeriodFrequencyType());
     }
@@ -7006,5 +7014,17 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
 
     public Integer getLoanDecisionState() {
         return loanDecisionState;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
+    public void setLastRepaymentAmount(BigDecimal lastRepaymentAmount) {
+        this.lastRepaymentAmount = lastRepaymentAmount;
+    }
+
+    public void setLastRepaymentDate(LocalDate lastRepaymentDate) {
+        this.lastRepaymentDate = lastRepaymentDate;
     }
 }

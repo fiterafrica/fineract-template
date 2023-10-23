@@ -1,0 +1,116 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements. See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership. The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.6.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+    <changeSet author="moses@fiter.io" id="INKO_81_add_group_loans_table_report_1" context="mysql">
+        <insert tableName="stretchy_report">
+            <column name="report_name" value="Group Loans"/>
+            <column name="report_type" value="Table"/>
+            <column name="report_subtype"/>
+            <column name="report_category" value="Loan"/>
+            <column name="report_sql" value="select o.name as 'Office', departmentTbl.code_value as 'Department', cvn.code_value as 'Country', cvl.code_value as 'Location',
+concat(c.firstname, ' ', c.lastname) as 'Member Name', g.external_id as 'Group UID', l.account_no as 'Loan Account Number',
+l.principal_disbursed_derived as 'Loan Amount', l.interest_charged_derived as 'Interest', l.total_repayment_derived as 'Total Payments',
+l.principal_repaid_derived as 'Total Principal Paid', l.interest_repaid_derived as 'Total Interest Paid', l.fee_charges_repaid_derived as 'Total Fees Paid',
+l.penalty_charges_repaid_derived as 'Total Late Fees Paid', l.principal_outstanding_derived as 'Outstanding Principal',
+l.interest_outstanding_derived as 'Outstanding Interest', l.fee_charges_outstanding_derived as 'Outstanding Fees',
+l.penalty_charges_outstanding_derived as 'Outstanding Late Fees', p.name as 'Product', f.name as 'Fund'
+from m_office o
+join m_office ounder on ounder.hierarchy like concat(o.hierarchy, '%')
+and ounder.hierarchy like concat('${currentUserHierarchy}', '%')
+join m_group g on g.office_id = ounder.id
+join m_group_client gc on gc.group_id = g.id
+join m_client c on c.id = gc.client_id
+join m_loan l on l.client_id = g.id
+left join m_client_other_info coi on coi.client_id = c.id
+left join m_client_recruitment_survey crs on crs.client_id = c.id
+join m_product_loan p on p.id = l.product_id
+left join m_currency cur on cur.code = l.currency_code
+left join m_fund f on f.id = l.fund_id
+left join m_code_value departmentTbl on departmentTbl.id = l.department_cv_id
+left join m_code_value cvn on cvn.id = coi.nationality_cv_id
+left join m_code_value cvl on cvl.id = crs.survey_location_cv_id
+where o.id = ${officeId}
+and (l.product_id = '${loanProductId}' or '-1' = '${loanProductId}')
+and (l.department_cv_id = '${departmentId}' or '-1' = '${departmentId}')
+and (l.loan_officer_id = '${loanOfficerId}' or '-1' = '${loanOfficerId}')
+and (l.fund_id = '${fundId}' or '-1' = '${fundId}')
+and date(l.disbursedon_date) between date(${startDate}) and date(${endDate}) "/>
+            <column name="description" value="Groups Loan Table Report"/>
+            <column name="core_report" valueBoolean="true"/>
+            <column name="use_report" valueBoolean="true"/>
+            <column name="self_service_user_report" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+    <changeSet author="moses@fiter.io" id="INKO_81_add_group_loans_table_report_2" context="mysql">
+        <insert tableName="stretchy_parameter">
+            <column name="parameter_name" value="departmentIdSelectAll"/>
+            <column name="parameter_variable" value="departmentId"/>
+            <column name="parameter_label" value="Department"/>
+            <column name="parameter_displayType" value="select"/>
+            <column name="parameter_FormatType" value="number"/>
+            <column name="parameter_default" value="n/a"/>
+            <column name="special"/>
+            <column name="selectOne"/>
+            <column name="selectAll" value="Y"/>
+            <column name="parameter_sql" value="(select distinct cvd.id as id, cvd.code_value as name from m_loan l join m_code_value cvd on cvd.id = l.department_cv_id) union all (select -10, '-') order by 2"/>
+            <column name="parent_id"/>
+        </insert>
+    </changeSet>
+    <changeSet author="moses@fiter.io" id="INKO_81_add_group_loans_table_report_3" context="mysql">
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Group Loans')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'OfficeIdSelectOne')"/>
+            <column name="report_parameter_name" value="officeId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Group Loans')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'loanProductIdSelectAllWithoutCurrency')"/>
+            <column name="report_parameter_name" value="loanProductId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Group Loans')"/>
+            <column name="parameter_id" valueNumeric="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'loanOfficerIdSelectAll')"/>
+            <column name="report_parameter_name" value="loanOfficerId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Group Loans')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'fundIdSelectAll')"/>
+            <column name="report_parameter_name" value="fundId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Group Loans')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'startDateSelect')"/>
+            <column name="report_parameter_name" value="startDate"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Group Loans')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'endDateSelect')"/>
+            <column name="report_parameter_name" value="endDate"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Group Loans')"/>
+            <column name="parameter_id" valueNumeric="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'departmentIdSelectAll')"/>
+            <column name="report_parameter_name" value="departmentId"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>

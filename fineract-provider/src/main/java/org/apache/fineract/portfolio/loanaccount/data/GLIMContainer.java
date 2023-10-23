@@ -35,15 +35,18 @@ public class GLIMContainer {
     private final BigDecimal parentPrincipalAmount;
 
     private final String loanStatus;
+    private final BigDecimal actualPrincipalAmount;
 
     public GLIMContainer(final BigDecimal glimId, final BigDecimal groupId, final String accountNumber,
-            final List<LoanAccountSummaryData> childGLIMAccounts, final BigDecimal parentPrincipalAmount, final String loanStatus) {
+            final List<LoanAccountSummaryData> childGLIMAccounts, final BigDecimal parentPrincipalAmount, final String loanStatus,
+            final BigDecimal actualPrincipalAmount) {
         this.glimId = glimId;
         this.groupId = groupId;
         this.accountNumber = accountNumber;
         this.childGLIMAccounts = childGLIMAccounts;
         this.parentPrincipalAmount = parentPrincipalAmount;
         this.loanStatus = loanStatus;
+        this.actualPrincipalAmount = actualPrincipalAmount;
 
     }
 
@@ -69,5 +72,9 @@ public class GLIMContainer {
 
     public String getLoanStatus() {
         return loanStatus;
+    }
+
+    public BigDecimal getActualPrincipalAmount() {
+        return actualPrincipalAmount;
     }
 }

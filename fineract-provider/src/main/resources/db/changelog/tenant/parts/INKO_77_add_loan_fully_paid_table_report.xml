@@ -1,0 +1,106 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements. See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership. The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.6.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+    <changeSet author="moses@fiter.io" id="INKO_77_add_loan_fully_paid_table_report_1" context="mysql">
+        <insert tableName="stretchy_report">
+            <column name="report_name" value="Loan fully repaid Table"/>
+            <column name="report_type" value="Table"/>
+            <column name="report_subtype"/>
+            <column name="report_category" value="Loan"/>
+            <column name="report_sql" value="SELECT
+c.id AS 'id',
+c.firstname AS 'firstName',
+c.middlename AS 'middleName',
+c.lastname AS 'lastName',
+c.display_name AS 'fullName',
+c.mobile_no AS 'mobileNo',
+l.principal_amount AS 'loanAmount',
+(IFNULL(l.principal_outstanding_derived, 0) + IFNULL(l.interest_outstanding_derived, 0) + IFNULL(l.fee_charges_outstanding_derived, 0) + IFNULL(l.penalty_charges_outstanding_derived, 0)) AS 'loanOutstanding',
+l.principal_disbursed_derived AS 'loanDisbursed',
+o.id AS 'officeNumber',
+l.account_no AS 'loanAccountId',
+gua.lastname AS 'guarantorLastName', COUNT(gua.id) AS 'numberOfGuarantors',
+ls.duedate AS 'dueDate',
+laa.total_overdue_derived AS 'totalDue',
+gp.display_name AS 'groupName',
+l.total_repayment_derived AS 'totalFullyPaid',
+year(now()) - YEAR(c.date_of_birth) as 'Age',
+c.external_id as 'Client UID',
+cdg.code_value as 'Gender',
+cvc.code_value as 'Cohort',
+l.loan_counter as 'Cycle',
+cvn.code_value as 'Nationality',
+cvl.code_value as 'Location',
+cvs.code_value AS 'Strata'
+FROM m_office o
+JOIN m_office ounder ON ounder.hierarchy LIKE CONCAT(o.hierarchy, '%')
+JOIN m_client c ON c.office_id = ounder.id
+JOIN m_loan l ON l.client_id = c.id
+LEFT JOIN m_staff lo ON lo.id = l.loan_officer_id
+LEFT JOIN m_currency cur ON cur.code = l.currency_code
+LEFT JOIN m_group_client gc ON gc.client_id = c.id
+LEFT JOIN m_group gp ON gp.id = l.group_id
+LEFT JOIN m_loan_repayment_schedule ls ON l.id = ls.loan_id
+LEFT JOIN m_guarantor gua ON gua.loan_id = l.id
+LEFT JOIN m_loan_arrears_aging laa ON laa.loan_id=l.id
+left join m_client_other_info coi on coi.client_id = c.id
+left join m_code_value cdg on cdg.id = c.gender_cv_id
+left join m_client_recruitment_survey crs on crs.client_id = c.id
+left join m_code_value cvc on cvc.id = crs.cohort_cv_id
+left join m_code_value cvn on cvn.id = coi.nationality_cv_id
+left join m_code_value cvl on cvl.id = crs.survey_location_cv_id
+left join m_code_value cvs on cvs.id = coi.strata_cv_id
+WHERE o.id = ${officeId} AND (IFNULL(l.loan_officer_id, -10) = ${loanOfficerId} OR '-1' = ${loanOfficerId}) AND
+            (DATEDIFF(CURDATE(), l.closedon_date) BETWEEN ${fromX} AND ${toY})
+            AND (l.loan_status_id IN (600, 700))
+            GROUP BY l.id, ounder.hierarchy, l.currency_code, c.account_no, l.account_no
+            ORDER BY ounder.hierarchy, l.currency_code, c.account_no, l.account_no "/>
+            <column name="description" value="Loan fully repaid Table Report"/>
+            <column name="core_report" valueBoolean="true"/>
+            <column name="use_report" valueBoolean="true"/>
+            <column name="self_service_user_report" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+    <changeSet author="moses@fiter.io" id="INKO_77_add_loan_fully_paid_table_report_2" context="mysql">
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan fully repaid Table')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'OfficeIdSelectOne')"/>
+            <column name="report_parameter_name" value="officeId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan fully repaid Table')"/>
+            <column name="parameter_id" valueNumeric="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'loanOfficerIdSelectAll')"/>
+            <column name="report_parameter_name" value="loanOfficerId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan fully repaid Table')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'fromXSelect')"/>
+            <column name="report_parameter_name" value="fromX"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan fully repaid Table')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'toYSelect')"/>
+            <column name="report_parameter_name" value="toY"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>

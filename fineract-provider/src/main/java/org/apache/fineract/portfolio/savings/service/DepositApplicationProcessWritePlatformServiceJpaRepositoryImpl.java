@@ -276,10 +276,7 @@ public class DepositApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
                         .findByAccountType(EntityAccountType.SAVINGS);
                 account.updateAccountNo(this.accountNumberGenerator.generate(account, accountNumberFormat));
             }
-
-            final Long savingsId = account.getId();
             final CalendarInstance calendarInstance = getCalendarInstance(command, account);
-            this.calendarInstanceRepository.save(calendarInstance);
 
             // FIXME: Avoid save separately (Calendar instance requires account
             // details)
@@ -293,7 +290,15 @@ public class DepositApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
             account.updateMaturityDateAndAmount(mc, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
                     financialYearBeginningMonth);
             account.validateApplicableInterestRate();
-            savingAccountRepository.save(account);
+            SavingsAccount savedAccount = savingAccountRepository.saveAndFlush(account);
+            final Long savingsId = savedAccount.getId();
+            if (null == calendarInstance.getEntityId()) {
+                calendarInstance.updateEntityId(savingsId);
+            }
+            if (command.booleanPrimitiveValueOfParameterNamed(isCalendarInheritedParamName)) {
+                calendarInstance.getCalendar().updateTitle("recurring_savings_" + savingsId);
+            }
+            this.calendarInstanceRepository.save(calendarInstance);
 
             // Save linked account information
             final Long savingsAccountId = command.longValueOfParameterNamed(DepositsApiConstants.linkedAccountParamName);

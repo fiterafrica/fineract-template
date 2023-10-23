@@ -34,6 +34,7 @@ public final class GroupLoanIndividualMonitoringAccountData {
     private final BigDecimal childPrincipalAmount;
 
     private final BigDecimal parentPrincipalAmount;
+    private final BigDecimal actualPrincipalAmount;
 
     private final Long childAccountsCount;
 
@@ -41,7 +42,7 @@ public final class GroupLoanIndividualMonitoringAccountData {
 
     private GroupLoanIndividualMonitoringAccountData(final BigDecimal glimId, final BigDecimal groupId, final String accountNumber,
             final String childAccountNumber, final BigDecimal childPrincipalAmount, final BigDecimal parentPrincipalAmount,
-            final Long childAccountsCount, final String loanStatus) {
+            final Long childAccountsCount, final String loanStatus, final BigDecimal actualPrincipalAmount) {
         this.glimId = glimId;
         this.groupId = groupId;
         this.accountNumber = accountNumber;
@@ -50,19 +51,22 @@ public final class GroupLoanIndividualMonitoringAccountData {
         this.parentPrincipalAmount = parentPrincipalAmount;
         this.childAccountsCount = childAccountsCount;
         this.loanStatus = loanStatus;
+        this.actualPrincipalAmount = actualPrincipalAmount;
     }
 
     public static GroupLoanIndividualMonitoringAccountData getInstance(final BigDecimal glimId, final BigDecimal groupId,
             final String accountNumber, final String childAccountNumber, final BigDecimal childPrincipalAmount,
-            final BigDecimal parentPrincipalAmount, final Long childAccountsCount, final String loanStatus) {
+            final BigDecimal parentPrincipalAmount, final Long childAccountsCount, final String loanStatus,
+            final BigDecimal actualPrincipalAmount) {
         return new GroupLoanIndividualMonitoringAccountData(glimId, groupId, accountNumber, childAccountNumber, childPrincipalAmount,
-                parentPrincipalAmount, childAccountsCount, loanStatus);
+                parentPrincipalAmount, childAccountsCount, loanStatus, actualPrincipalAmount);
     }
 
     public static GroupLoanIndividualMonitoringAccountData getInstance1(final BigDecimal glimId, final BigDecimal groupId,
-            final String accountNumber, final BigDecimal parentPrincipalAmount, final String loanStatus) {
+            final String accountNumber, final BigDecimal parentPrincipalAmount, final String loanStatus,
+            final BigDecimal actualPrincipalAmount) {
         return new GroupLoanIndividualMonitoringAccountData(glimId, groupId, accountNumber, null, null, parentPrincipalAmount, null,
-                loanStatus);
+                loanStatus, actualPrincipalAmount);
     }
 
     public BigDecimal getGlimId() {
@@ -95,5 +99,9 @@ public final class GroupLoanIndividualMonitoringAccountData {
 
     public String getLoanStatus() {
         return loanStatus;
+    }
+
+    public BigDecimal getActualPrincipalAmount() {
+        return actualPrincipalAmount;
     }
 }

@@ -219,7 +219,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
         sqlBuilder.append("select " + sqlGenerator.calcFoundRows() + " ");
         sqlBuilder.append(this.savingAccountMapper.schema());
 
-        sqlBuilder.append(" join m_office o on o.id = c.office_id");
+        sqlBuilder.append(" join m_office o on (o.id = c.office_id or o.id = g.office_id)");
         sqlBuilder.append(" where o.hierarchy like ?");
 
         final Object[] objectArray = new Object[2];
@@ -236,6 +236,11 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
             if (StringUtils.isNotBlank(searchParameters.getExternalId())) {
                 sqlBuilder.append(" and sa.external_id = ?");
                 objectArray[arrayPos] = searchParameters.getExternalId();
+                arrayPos = arrayPos + 1;
+            }
+            if (StringUtils.isNotBlank(searchParameters.getAccountNo())) {
+                sqlBuilder.append(" and sa.account_no = ?");
+                objectArray[arrayPos] = searchParameters.getAccountNo();
                 arrayPos = arrayPos + 1;
             }
             if (searchParameters.getOfficeId() != null) {

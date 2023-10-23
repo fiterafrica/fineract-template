@@ -18,7 +18,9 @@
  */
 package org.apache.fineract.infrastructure.jobs.data;
 
+import java.time.LocalDateTime;
 import java.util.Date;
+import org.apache.fineract.infrastructure.core.service.DateUtils;
 
 public class JobDetailData {
 
@@ -30,6 +32,7 @@ public class JobDetailData {
 
     @SuppressWarnings("unused")
     private final Date nextRunTime;
+    private final String nextRunTimeTZ;
 
     @SuppressWarnings("unused")
     private final String initializingError;
@@ -56,5 +59,11 @@ public class JobDetailData {
         this.active = active;
         this.lastRunHistory = lastRunHistory;
         this.currentlyRunning = currentlyRunning;
+        if (nextRunTime != null) {
+            LocalDateTime nextRunTimeLocalDateTime = DateUtils.convertToLocalDateTime(nextRunTime);
+            this.nextRunTimeTZ = nextRunTimeLocalDateTime.format(DateUtils.DEFAULT_DATETIME_FORMATTER);
+        } else {
+            this.nextRunTimeTZ = null;
+        }
     }
 }

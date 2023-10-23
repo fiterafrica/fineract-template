@@ -1225,6 +1225,43 @@
             </column>
         </addColumn>
     </changeSet>
+    <changeSet author="bosco@fiter.io" id="add_actual_principal_amount_column_to_glim_accounts_table">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="glim_accounts" columnName="actual_principal_amount"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="glim_accounts">
+            <column name="actual_principal_amount" type="decimal(19,6)" >
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
 
+    <changeSet author="bosco@fiter.io" id="add_last_repayment_amount_column_to_m_loan_table">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="m_loan" columnName="last_repayment_amount"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="m_loan">
+            <column name="last_repayment_amount" type="decimal(19,6)" >
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet author="bosco@fiter.io" id="add_last_repayment_date_column_to_m_loan_table">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="m_loan" columnName="last_repayment_date"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="m_loan">
+            <column name="last_repayment_date" type="date" >
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
 
 </databaseChangeLog>

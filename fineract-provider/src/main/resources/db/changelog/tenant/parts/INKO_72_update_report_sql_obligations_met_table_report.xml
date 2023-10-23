@@ -1,0 +1,84 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements. See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership. The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.6.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+    <changeSet author="moses@fiter.io" id="INKO_72_update_report_sql_obligations_met_table_report" context="mysql">
+        <update tableName="stretchy_report">
+            <column name="report_sql" value="select concat(repeat('..',
+            ((LENGTH(ounder.`hierarchy`) - LENGTH(REPLACE(ounder.`hierarchy`, '.', '')) - 1))), ounder.`name`) as 'Office/Branch',
+            ifnull(cur.display_symbol, l.currency_code) as Currency,
+            count(distinct(c.id)) as 'No. of Clients',
+            count(distinct(l.id)) as 'No. of Loans',
+            sum(l.principal_amount) as 'Total Loan Amount',
+            sum(l.principal_repaid_derived) as 'Total Principal Repaid',
+            sum(l.interest_repaid_derived) as 'Total Interest Repaid',
+            sum(l.fee_charges_repaid_derived) as 'Total Fees Repaid',
+            sum(l.penalty_charges_repaid_derived) as 'Total Penalties Repaid',
+            sum(l.interest_waived_derived) as 'Total Interest Waived',
+            sum(l.fee_charges_waived_derived) as 'Total Fees Waived',
+            sum(l.penalty_charges_waived_derived) as 'Total Penalties Waived',
+            year(now()) - YEAR(c.date_of_birth) as 'Age',
+            c.external_id as 'Client UID',
+            cdg.code_value as 'Gender',
+            cvc.code_value as 'Cohort',
+            l.loan_counter as 'Cycle',
+            cvn.code_value as 'Nationality',
+            cvl.code_value as 'Location',
+            cvs.code_value as 'Strata'
+
+            from m_office o
+            join m_office ounder on ounder.hierarchy like concat(o.hierarchy, '%')
+            and ounder.hierarchy like concat('${currentUserHierarchy}', '%')
+            join m_client c on c.office_id = ounder.id
+            join m_loan l on l.client_id = c.id
+            join m_product_loan pl on pl.id = l.product_id
+            left join m_staff lo on lo.id = l.loan_officer_id
+            left join m_currency cur on cur.code = l.currency_code
+            left join m_fund f on f.id = l.fund_id
+            left join m_client_other_info coi on coi.client_id = c.id
+            left join m_code_value cdg on cdg.id = c.gender_cv_id
+            left join m_client_recruitment_survey crs on crs.client_id = c.id
+            left join m_code_value cvc on cvc.id = crs.cohort_cv_id
+            left join m_code_value cvn on cvn.id = coi.nationality_cv_id
+            left join m_code_value cvl on cvl.id = crs.survey_location_cv_id
+            left join m_code_value cvs on cvs.id = coi.strata_cv_id
+            where o.id = ${officeId}
+            and (l.currency_code = '${currencyId}' or '-1' = '${currencyId}')
+            and (l.product_id = '${loanProductId}' or '-1' = '${loanProductId}')
+            and (ifnull(l.loan_officer_id, -10) = '${loanOfficerId}' or '-1' = '${loanOfficerId}')
+            and (ifnull(l.fund_id, -10) = ${fundId} or -1 = ${fundId})
+            and (ifnull(l.loanpurpose_cv_id, -10) = ${loanPurposeId} or -1 = ${loanPurposeId})
+            and (case
+            when ${obligDateType} = 1 then
+            l.closedon_date between '${startDate}' and '${endDate}'
+            when ${obligDateType} = 2 then
+            l.disbursedon_date between '${startDate}' and '${endDate}'
+            else 1 = 1
+            end)
+            and l.loan_status_id = 600
+            group by ounder.hierarchy, l.currency_code
+            order by ounder.hierarchy, l.currency_code  "/>
+            <where>report_name = 'Obligation Met Loans Summary'</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

@@ -43,7 +43,7 @@ public class DisburseLoanCommandHandler implements NewCommandSourceHandler {
     public CommandProcessingResult processCommand(final JsonCommand command) {
 
         try {
-            return this.writePlatformService.disburseLoan(command.entityId(), command, false);
+            return this.writePlatformService.disburseLoan(command.entityId(), command, false, false);
         } catch (final JpaSystemException | DataIntegrityViolationException dve) {
             dataIntegrityErrorHandler.handleDataIntegrityIssues(command, dve.getMostSpecificCause(), dve, "loan.disbursement",
                     "Disbursement");

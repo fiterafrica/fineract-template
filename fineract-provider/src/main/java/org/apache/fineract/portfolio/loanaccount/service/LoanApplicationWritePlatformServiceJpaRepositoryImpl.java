@@ -111,8 +111,13 @@ import org.apache.fineract.portfolio.loanaccount.domain.GLIMAccountInfoRepositor
 import org.apache.fineract.portfolio.loanaccount.domain.GroupLoanIndividualMonitoringAccount;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanAccountDomainService;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanApprovalMatrix;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanApprovalMatrixRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanCharge;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanCollateralManagement;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanDecision;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanDecisionRepository;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanDecisionState;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanDisbursementDetails;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanLifecycleStateMachine;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
@@ -123,6 +128,7 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanStatus;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanSummaryWrapper;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTopupDetails;
+import org.apache.fineract.portfolio.loanaccount.exception.GLIMLoanCannotBeApprovedException;
 import org.apache.fineract.portfolio.loanaccount.exception.LoanApplicationDateException;
 import org.apache.fineract.portfolio.loanaccount.exception.LoanApplicationNotInSubmittedAndPendingApprovalStateCannotBeDeleted;
 import org.apache.fineract.portfolio.loanaccount.exception.LoanApplicationNotInSubmittedAndPendingApprovalStateCannotBeModified;
@@ -152,6 +158,7 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountAssembler;
 import org.apache.fineract.portfolio.savings.service.GSIMReadPlatformService;
 import org.apache.fineract.useradministration.domain.AppUser;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -211,6 +218,9 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
     private final LoanAccountDomainService loanAccountDomainService;
 
     private final LoanDecisionStateUtilService loanDecisionStateUtilService;
+    private final LoanDecisionRepository loanDecisionRepository;
+    private final LoanApprovalMatrixRepository loanApprovalMatrixRepository;
+    private final LoanDecisionAssembler loanDecisionAssembler;
 
     private LoanLifecycleStateMachine defaultLoanLifecycleStateMachine() {
         final List<LoanStatus> allowedLoanStatuses = Arrays.asList(LoanStatus.values());
@@ -392,7 +402,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                             newLoanApplication.updateAccountNo(accountNumber + "1");
                             glimAccountInfoWritePlatformService.addGLIMAccountInfo(accountNumber, group,
                                     command.bigDecimalValueOfParameterNamedDefaultToNullIfZero("totalLoan"), Long.valueOf(1), true,
-                                    LoanStatus.SUBMITTED_AND_PENDING_APPROVAL.getValue(), applicationId);
+                                    LoanStatus.SUBMITTED_AND_PENDING_APPROVAL.getValue(), applicationId,
+                                    command.bigDecimalValueOfParameterNamedDefaultToNullIfZero("totalLoan"));
                             newLoanApplication.setGlim(glimRepository.findOneByAccountNumber(accountNumber));
                             this.loanRepositoryWrapper.save(newLoanApplication);
 
@@ -404,7 +415,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                             newLoanApplication.updateAccountNo(accountNumber + "1");
                             glimAccountInfoWritePlatformService.addGLIMAccountInfo(accountNumber, group,
                                     command.bigDecimalValueOfParameterNamedDefaultToNullIfZero("totalLoan"), Long.valueOf(1), true,
-                                    LoanStatus.SUBMITTED_AND_PENDING_APPROVAL.getValue(), applicationId);
+                                    LoanStatus.SUBMITTED_AND_PENDING_APPROVAL.getValue(), applicationId,
+                                    command.bigDecimalValueOfParameterNamedDefaultToNullIfZero("totalLoan"));
                             newLoanApplication.setGlim(glimRepository.findOneByAccountNumber(accountNumber));
                             this.loanRepositoryWrapper.save(newLoanApplication);
 
@@ -431,7 +443,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                             newLoanApplication.updateAccountNo(accountNumber + "1");
                             glimAccountInfoWritePlatformService.addGLIMAccountInfo(accountNumber, group,
                                     command.bigDecimalValueOfParameterNamedDefaultToNullIfZero("totalLoan"), Long.valueOf(1), true,
-                                    LoanStatus.SUBMITTED_AND_PENDING_APPROVAL.getValue(), applicationId);
+                                    LoanStatus.SUBMITTED_AND_PENDING_APPROVAL.getValue(), applicationId,
+                                    command.bigDecimalValueOfParameterNamedDefaultToNullIfZero("totalLoan"));
                             newLoanApplication.setGlim(glimRepository.findOneByAccountNumber(accountNumber));
                             this.loanRepositoryWrapper.save(newLoanApplication);
 
@@ -497,7 +510,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             AccountAssociations accountAssociations;
             final Long savingsAccountId = command.longValueOfParameterNamed("linkAccountId");
             if (savingsAccountId != null) {
-                if (newLoanApplication.getLoanType() == 4) {
+                if (newLoanApplication.getLoanType().equals(AccountType.GLIM.getValue())) {
 
                     List<GroupSavingsIndividualMonitoringAccountData> childSavings = (List<GroupSavingsIndividualMonitoringAccountData>) gsimReadPlatformService
                             .findGSIMAccountsByGSIMId(savingsAccountId);
@@ -1362,6 +1375,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
     @Transactional
     @Override
     public CommandProcessingResult approveGLIMLoanAppication(final Long loanId, final JsonCommand command) {
+        Boolean isExtendLoanLifeCycleConfig = loanDecisionStateUtilService.isExtendLoanLifeCycleConfig();
 
         final Long parentLoanId = loanId;
         GroupLoanIndividualMonitoringAccount parentLoan = glimRepository.findById(parentLoanId).orElseThrow();
@@ -1386,9 +1400,13 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
 
             childCommand = JsonCommand.fromExistingCommand(command, approvals);
 
-            result = approveApplication(childLoanId[j++], childCommand);
+            if (isExtendLoanLifeCycleConfig) {
+                result = approveLoanApplicationAssociatedToGLIM(childLoanId[j++], childCommand);
+            } else {
+                result = approveApplication(childLoanId[j++], childCommand, Boolean.FALSE);
+            }
 
-            if (result.getLoanId() != null) {
+            if (result != null && result.getLoanId() != null) {
                 count++;
                 // if all the child loans are approved, mark the parent loan as
                 // approved
@@ -1399,15 +1417,32 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                 }
 
             }
+            updateGlimActualPrincipal(parentLoan);
 
         }
 
         return result;
     }
 
+    private void updateGlimActualPrincipal(GroupLoanIndividualMonitoringAccount parentLoan) {
+        final Collection<Integer> loanStatuses = new ArrayList<>(Arrays.asList(LoanStatus.SUBMITTED_AND_PENDING_APPROVAL.getValue(),
+                LoanStatus.APPROVED.getValue(), LoanStatus.ACTIVE.getValue()));
+        List<Loan> activeChild = this.loanRepository.findLoanByGlimIdAndLoanStatus(parentLoan.getId(), loanStatuses);
+
+        if (!CollectionUtils.isEmpty(activeChild)) {
+            BigDecimal sum = activeChild.stream().map(Loan::getProposedPrincipal).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            parentLoan.setActualPrincipalAmount(sum);
+            glimRepository.save(parentLoan);
+        } else {
+            parentLoan.setActualPrincipalAmount(BigDecimal.ZERO);
+            glimRepository.save(parentLoan);
+        }
+    }
+
     @Transactional
     @Override
-    public CommandProcessingResult approveApplication(final Long loanId, final JsonCommand command) {
+    public CommandProcessingResult approveApplication(final Long loanId, final JsonCommand command, Boolean isGlimBulkApproval) {
 
         final AppUser currentUser = getAppUserIfPresent();
         LocalDate expectedDisbursementDate = null;
@@ -1415,6 +1450,15 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         this.loanApplicationTransitionApiJsonValidator.validateApproval(command.json());
 
         final Loan loan = retrieveLoanBy(loanId);
+
+        final Boolean isExtendLoanLifeCycleConfig = this.loanDecisionStateUtilService.isExtendLoanLifeCycleConfig();
+
+        // block loan approval if loan is associated to GLIM and is direct Approval not passing through bulk GLIM
+        // Operation call
+        if (isExtendLoanLifeCycleConfig && loan.getLoanType().equals(AccountType.GLIM.getValue()) && !isGlimBulkApproval) {
+            throw new GLIMLoanCannotBeApprovedException(loanId);
+        }
+
         this.validateActiveLoanCount(loan.getClientId());
         this.loanDecisionStateUtilService.validateLoanAccountWithExtraLoanDecisionStagesConfiguredGlobally(loan, command);
 
@@ -1683,24 +1727,48 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         final AppUser currentUser = getAppUserIfPresent();
 
         this.loanApplicationTransitionApiJsonValidator.validateRejection(command.json());
-
+        Boolean isExtendLoanLifeCycleConfig = loanDecisionStateUtilService.isExtendLoanLifeCycleConfig();
         final Loan loan = retrieveLoanBy(loanId);
 
         checkClientOrGroupActive(loan);
 
         entityDatatableChecksWritePlatformService.runTheCheckForProduct(loanId, EntityTables.LOAN.getName(),
                 StatusEnum.REJECTED.getCode().longValue(), EntityTables.LOAN.getForeignKeyColumnNameOnDatatable(), loan.productId());
+        Map<String, Object> changes = new HashMap<>();
+        if ((isExtendLoanLifeCycleConfig && loan.isSubmittedAndPendingApproval() && loan.getLoanDecisionState() != null
+                && loanDecisionStateUtilService.isLoanAccountInICReview(LoanDecisionState.fromInt(loan.getLoanDecisionState())))) {
 
-        final Map<String, Object> changes = loan.loanApplicationRejection(currentUser, command, defaultLoanLifecycleStateMachine());
-        if (!changes.isEmpty()) {
-            this.loanRepositoryWrapper.saveAndFlush(loan);
+            // intercept the reject module and transition the loan to other stages
+            switch (LoanDecisionState.fromInt(loan.getLoanDecisionState())) {
+                case COLLATERAL_REVIEW:
+                    changes = rejectLoanAccountForIcReviewLevelOne(command, currentUser, loan, changes);
+                break;
+                case IC_REVIEW_LEVEL_ONE:
+                    changes = rejectLoanAccountForIcReviewLevelTwo(command, currentUser, loan, changes);
+                break;
+                case IC_REVIEW_LEVEL_TWO:
+                    changes = rejectLoanAccountForIcReviewLevelThree(command, currentUser, loan, changes);
+                break;
+                case IC_REVIEW_LEVEL_THREE:
+                    changes = rejectLoanAccountForIcReviewLevelFour(command, currentUser, loan, changes);
+                break;
+                case IC_REVIEW_LEVEL_FOUR:
+                    changes = rejectLoanAccountForIcReviewLevelFive(command, currentUser, loan);
 
-            final String noteText = command.stringValueOfParameterNamed("note");
-            if (StringUtils.isNotBlank(noteText)) {
-                final Note note = Note.loanNote(loan, noteText);
-                this.noteRepository.save(note);
+                break;
+                default:
+                    changes = rejectLoanAccountParentStatus(command, currentUser, loan);
+                break;
             }
+        } else {
+            changes = rejectLoanAccountParentStatus(command, currentUser, loan);
         }
+        // update GLIM Account on actual Amounts
+        if (loan.getLoanType().equals(AccountType.GLIM.getValue())) {
+            GroupLoanIndividualMonitoringAccount parentLoan = glimRepository.findById(loan.getGlimId()).orElseThrow();
+            updateGlimActualPrincipal(parentLoan);
+        }
+
         businessEventNotifierService.notifyPostBusinessEvent(new LoanRejectedBusinessEvent(loan));
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
@@ -1711,6 +1779,256 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                 .withLoanId(loanId) //
                 .with(changes) //
                 .build();
+    }
+
+    @NotNull
+    private Map<String, Object> rejectLoanAccountForIcReviewLevelFive(JsonCommand command, AppUser currentUser, Loan loan) {
+        Map<String, Object> changes;
+        final LoanDecision loanDecision = this.loanDecisionRepository.findLoanDecisionByLoanId(loan.getId());
+        LocalDate rejectedOnDate = command.localDateValueOfParameterNamed("rejectedOnDate");
+
+        loanDecisionStateUtilService.validateIcReviewDecisionLevelFiveBusinessRule(command, loan, loanDecision, rejectedOnDate);
+        LoanApprovalMatrix approvalMatrix = this.loanApprovalMatrixRepository.findLoanApprovalMatrixByCurrency(loan.getCurrencyCode());
+
+        if (approvalMatrix == null) {
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.approval.matrix.with.this.currency.does.not.exist.",
+                    String.format("Loan Approval Matrix with Currency [ %s ] doesn't exist. Approval matrix is expected to continue ",
+                            loan.getCurrencyCode()));
+        }
+        // Get Loan Matrix
+        // Determine which cycle of this Loan Account
+        // Determine the Next Level or stage to review
+        // Add custom Params in Decision Table
+        List<Loan> loanIndividualCounter = loanDecisionStateUtilService.getLoanCounter(loan);
+
+        Boolean isLoanFirstCycle = loanDecisionStateUtilService.isLoanFirstCycle(loanIndividualCounter);
+        Boolean isLoanUnsecure = loanDecisionStateUtilService.isLoanUnSecure(loan);
+
+        loanDecisionStateUtilService.validateLoanAccountToComplyToApprovalMatrixStage(loan, approvalMatrix, isLoanFirstCycle,
+                isLoanUnsecure, LoanDecisionState.IC_REVIEW_LEVEL_FIVE);
+
+        LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelFiveFrom(command, currentUser, loanDecision,
+                Boolean.TRUE, rejectedOnDate);
+        loanDecisionRepository.saveAndFlush(loanDecisionObj);
+
+        Loan loanObj = loan;
+        loanObj.setLoanDecisionState(LoanDecisionState.IC_REVIEW_LEVEL_FIVE.getValue());
+        this.loanRepositoryWrapper.saveAndFlush(loanObj);
+
+        if (StringUtils.isNotBlank(loanDecisionObj.getIcReviewDecisionLevelFiveNote())) {
+            final Note note = Note.loanNote(loanObj,
+                    "Reject IC Review-Decision Level Five : " + loanDecisionObj.getIcReviewDecisionLevelFiveNote());
+            this.noteRepository.save(note);
+        }
+        // By Default Completely Reject this Loan Account since this is a last stage of IC Review
+        changes = rejectLoanAccountParentStatus(command, currentUser, loan);
+        return changes;
+    }
+
+    private Map<String, Object> rejectLoanAccountForIcReviewLevelFour(JsonCommand command, AppUser currentUser, Loan loan,
+            Map<String, Object> changes) {
+        final LoanDecision loanDecision = this.loanDecisionRepository.findLoanDecisionByLoanId(loan.getId());
+        LocalDate rejectedOnDate = command.localDateValueOfParameterNamed("rejectedOnDate");
+
+        loanDecisionStateUtilService.validateIcReviewDecisionLevelFourBusinessRule(command, loan, loanDecision, rejectedOnDate);
+        LoanApprovalMatrix approvalMatrix = this.loanApprovalMatrixRepository.findLoanApprovalMatrixByCurrency(loan.getCurrencyCode());
+
+        if (approvalMatrix == null) {
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.approval.matrix.with.this.currency.does.not.exist.",
+                    String.format("Loan Approval Matrix with Currency [ %s ] doesn't exist. Approval matrix is expected to continue ",
+                            loan.getCurrencyCode()));
+        }
+        // Get Loan Matrix
+        // Determine which cycle of this Loan Account
+        // Determine the Next Level or stage to review
+        // Add custom Params in Decision Table
+        List<Loan> loanIndividualCounter = loanDecisionStateUtilService.getLoanCounter(loan);
+
+        Boolean isLoanFirstCycle = loanDecisionStateUtilService.isLoanFirstCycle(loanIndividualCounter);
+        Boolean isLoanUnsecure = loanDecisionStateUtilService.isLoanUnSecure(loan);
+
+        loanDecisionStateUtilService.validateLoanAccountToComplyToApprovalMatrixStage(loan, approvalMatrix, isLoanFirstCycle,
+                isLoanUnsecure, LoanDecisionState.IC_REVIEW_LEVEL_FOUR);
+        // generate the next stage based on loan approval matrix via amounts to be disbursed
+        loanDecisionStateUtilService.determineTheNextDecisionStage(loan, loanDecision, approvalMatrix, isLoanFirstCycle, isLoanUnsecure,
+                LoanDecisionState.IC_REVIEW_LEVEL_FOUR);
+
+        LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelFourFrom(command, currentUser, loanDecision,
+                Boolean.TRUE, rejectedOnDate);
+        loanDecisionRepository.saveAndFlush(loanDecisionObj);
+
+        Loan loanObj = loan;
+        loanObj.setLoanDecisionState(LoanDecisionState.IC_REVIEW_LEVEL_FOUR.getValue());
+        this.loanRepositoryWrapper.saveAndFlush(loanObj);
+
+        if (StringUtils.isNotBlank(loanDecisionObj.getIcReviewDecisionLevelFourNote())) {
+            final Note note = Note.loanNote(loanObj,
+                    "Reject IC Review-Decision Level Four : " + loanDecisionObj.getIcReviewDecisionLevelFourNote());
+            this.noteRepository.save(note);
+        }
+        // If the next state is outside the IC Review, then reject the loan account completely
+        if (loanDecisionObj.getNextLoanIcReviewDecisionState().equals(LoanDecisionState.PREPARE_AND_SIGN_CONTRACT.getValue())) {
+            changes = rejectLoanAccountParentStatus(command, currentUser, loan);
+        }
+        return changes;
+    }
+
+    private Map<String, Object> rejectLoanAccountForIcReviewLevelThree(JsonCommand command, AppUser currentUser, Loan loan,
+            Map<String, Object> changes) {
+        final LoanDecision loanDecision = this.loanDecisionRepository.findLoanDecisionByLoanId(loan.getId());
+        LocalDate rejectedOnDate = command.localDateValueOfParameterNamed("rejectedOnDate");
+
+        loanDecisionStateUtilService.validateIcReviewDecisionLevelThreeBusinessRule(command, loan, loanDecision, rejectedOnDate);
+        LoanApprovalMatrix approvalMatrix = this.loanApprovalMatrixRepository.findLoanApprovalMatrixByCurrency(loan.getCurrencyCode());
+
+        if (approvalMatrix == null) {
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.approval.matrix.with.this.currency.does.not.exist.",
+                    String.format("Loan Approval Matrix with Currency [ %s ] doesn't exist. Approval matrix is expected to continue ",
+                            loan.getCurrencyCode()));
+        }
+        // Get Loan Matrix
+        // Determine which cycle of this Loan Account
+        // Determine the Next Level or stage to review
+        // Add custom Params in Decision Table
+        List<Loan> loanIndividualCounter = loanDecisionStateUtilService.getLoanCounter(loan);
+
+        Boolean isLoanFirstCycle = loanDecisionStateUtilService.isLoanFirstCycle(loanIndividualCounter);
+        Boolean isLoanUnsecure = loanDecisionStateUtilService.isLoanUnSecure(loan);
+
+        loanDecisionStateUtilService.validateLoanAccountToComplyToApprovalMatrixStage(loan, approvalMatrix, isLoanFirstCycle,
+                isLoanUnsecure, LoanDecisionState.IC_REVIEW_LEVEL_THREE);
+        // generate the next stage based on loan approval matrix via amounts to be disbursed
+        loanDecisionStateUtilService.determineTheNextDecisionStage(loan, loanDecision, approvalMatrix, isLoanFirstCycle, isLoanUnsecure,
+                LoanDecisionState.IC_REVIEW_LEVEL_THREE);
+
+        LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelThreeFrom(command, currentUser, loanDecision,
+                Boolean.TRUE, rejectedOnDate);
+        loanDecisionRepository.saveAndFlush(loanDecisionObj);
+
+        Loan loanObj = loan;
+        loanObj.setLoanDecisionState(LoanDecisionState.IC_REVIEW_LEVEL_THREE.getValue());
+        this.loanRepositoryWrapper.saveAndFlush(loanObj);
+
+        if (StringUtils.isNotBlank(loanDecisionObj.getIcReviewDecisionLevelThreeNote())) {
+            final Note note = Note.loanNote(loanObj,
+                    "Reject IC Review-Decision Level Three : " + loanDecisionObj.getIcReviewDecisionLevelThreeNote());
+            this.noteRepository.save(note);
+        }
+        // If the next state is outside the IC Review, then reject the loan account completely
+        if (loanDecisionObj.getNextLoanIcReviewDecisionState().equals(LoanDecisionState.PREPARE_AND_SIGN_CONTRACT.getValue())) {
+            changes = rejectLoanAccountParentStatus(command, currentUser, loan);
+        }
+        return changes;
+    }
+
+    private Map<String, Object> rejectLoanAccountForIcReviewLevelTwo(JsonCommand command, AppUser currentUser, Loan loan,
+            Map<String, Object> changes) {
+        final LoanDecision loanDecision = this.loanDecisionRepository.findLoanDecisionByLoanId(loan.getId());
+
+        LocalDate rejectedOnDate = command.localDateValueOfParameterNamed("rejectedOnDate");
+
+        loanDecisionStateUtilService.validateIcReviewDecisionLevelTwoBusinessRule(command, loan, loanDecision, rejectedOnDate);
+        LoanApprovalMatrix approvalMatrix = this.loanApprovalMatrixRepository.findLoanApprovalMatrixByCurrency(loan.getCurrencyCode());
+
+        if (approvalMatrix == null) {
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.approval.matrix.with.this.currency.does.not.exist.",
+                    String.format("Loan Approval Matrix with Currency [ %s ] doesn't exist. Approval matrix is expected to continue ",
+                            loan.getCurrencyCode()));
+        }
+        // Get Loan Matrix
+        // Determine which cycle of this Loan Account
+        // Determine the Next Level or stage to review
+        // Add custom Params in Decision Table
+        List<Loan> loanIndividualCounter = loanDecisionStateUtilService.getLoanCounter(loan);
+
+        Boolean isLoanFirstCycle = loanDecisionStateUtilService.isLoanFirstCycle(loanIndividualCounter);
+        Boolean isLoanUnsecure = loanDecisionStateUtilService.isLoanUnSecure(loan);
+
+        loanDecisionStateUtilService.validateLoanAccountToComplyToApprovalMatrixStage(loan, approvalMatrix, isLoanFirstCycle,
+                isLoanUnsecure, LoanDecisionState.IC_REVIEW_LEVEL_TWO);
+        // generate the next stage based on loan approval matrix via amounts to be disbursed
+        loanDecisionStateUtilService.determineTheNextDecisionStage(loan, loanDecision, approvalMatrix, isLoanFirstCycle, isLoanUnsecure,
+                LoanDecisionState.IC_REVIEW_LEVEL_TWO);
+
+        LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelTwoFrom(command, currentUser, loanDecision,
+                Boolean.TRUE, rejectedOnDate);
+        loanDecisionRepository.saveAndFlush(loanDecisionObj);
+
+        Loan loanObj = loan;
+        loanObj.setLoanDecisionState(LoanDecisionState.IC_REVIEW_LEVEL_TWO.getValue());
+        this.loanRepositoryWrapper.saveAndFlush(loanObj);
+
+        if (StringUtils.isNotBlank(loanDecisionObj.getIcReviewDecisionLevelTwoNote())) {
+            final Note note = Note.loanNote(loanObj,
+                    "Reject IC Review-Decision Level Two : " + loanDecisionObj.getIcReviewDecisionLevelTwoNote());
+            this.noteRepository.save(note);
+        }
+        // If the next state is outside the IC Review, then reject the loan account completely
+        if (loanDecisionObj.getNextLoanIcReviewDecisionState().equals(LoanDecisionState.PREPARE_AND_SIGN_CONTRACT.getValue())) {
+            changes = rejectLoanAccountParentStatus(command, currentUser, loan);
+        }
+        return changes;
+    }
+
+    private Map<String, Object> rejectLoanAccountForIcReviewLevelOne(JsonCommand command, AppUser currentUser, Loan loan,
+            Map<String, Object> changes) {
+        final LoanDecision loanDecision = this.loanDecisionRepository.findLoanDecisionByLoanId(loan.getId());
+
+        LocalDate rejectedOnDate = command.localDateValueOfParameterNamed("rejectedOnDate");
+
+        loanDecisionStateUtilService.validateIcReviewDecisionLevelOneBusinessRule(command, loan, loanDecision, rejectedOnDate);
+        LoanApprovalMatrix approvalMatrix = this.loanApprovalMatrixRepository.findLoanApprovalMatrixByCurrency(loan.getCurrencyCode());
+
+        if (approvalMatrix == null) {
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.approval.matrix.with.this.currency.does.not.exist.",
+                    String.format("Loan Approval Matrix with Currency [ %s ] doesn't exist. Approval matrix is expected to continue ",
+                            loan.getCurrencyCode()));
+        }
+
+        List<Loan> loanIndividualCounter = loanDecisionStateUtilService.getLoanCounter(loan);
+
+        Boolean isLoanFirstCycle = loanDecisionStateUtilService.isLoanFirstCycle(loanIndividualCounter);
+        Boolean isLoanUnsecure = loanDecisionStateUtilService.isLoanUnSecure(loan);
+
+        loanDecisionStateUtilService.validateLoanAccountToComplyToApprovalMatrixStage(loan, approvalMatrix, isLoanFirstCycle,
+                isLoanUnsecure, LoanDecisionState.IC_REVIEW_LEVEL_ONE);
+        // generate the next stage based on loan approval matrix via amounts to be disbursed
+        loanDecisionStateUtilService.determineTheNextDecisionStage(loan, loanDecision, approvalMatrix, isLoanFirstCycle, isLoanUnsecure,
+                LoanDecisionState.IC_REVIEW_LEVEL_ONE);
+
+        LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelOneFrom(command, currentUser, loanDecision,
+                Boolean.TRUE, rejectedOnDate);
+        loanDecisionRepository.saveAndFlush(loanDecisionObj);
+
+        Loan loanObj = loan;
+        loanObj.setLoanDecisionState(LoanDecisionState.IC_REVIEW_LEVEL_ONE.getValue());
+        this.loanRepositoryWrapper.saveAndFlush(loanObj);
+
+        if (StringUtils.isNotBlank(loanDecisionObj.getIcReviewDecisionLevelOneNote())) {
+            final Note note = Note.loanNote(loanObj,
+                    "Reject IC Review-Decision Level One : " + loanDecisionObj.getIcReviewDecisionLevelOneNote());
+            this.noteRepository.save(note);
+        }
+        // If the next state is outside the IC Review, then reject the loan account completely
+        if (loanDecisionObj.getNextLoanIcReviewDecisionState().equals(LoanDecisionState.PREPARE_AND_SIGN_CONTRACT.getValue())) {
+            changes = rejectLoanAccountParentStatus(command, currentUser, loan);
+        }
+        return changes;
+    }
+
+    @NotNull
+    private Map<String, Object> rejectLoanAccountParentStatus(JsonCommand command, AppUser currentUser, Loan loan) {
+        Map<String, Object> changes;
+        changes = loan.loanApplicationRejection(currentUser, command, defaultLoanLifecycleStateMachine());
+        if (!changes.isEmpty()) {
+            final String noteText = command.stringValueOfParameterNamed("note");
+            this.loanRepositoryWrapper.saveAndFlush(loan);
+            if (StringUtils.isNotBlank(noteText)) {
+                final Note note = Note.loanNote(loan, noteText);
+                this.noteRepository.save(note);
+            }
+        }
+        return changes;
     }
 
     @Transactional
@@ -1937,6 +2255,22 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         final var transactionDate = command.localDateValueOfParameterNamed(LoanApiConstants.transactionDateParamName);
         loanRepositoryWrapper.updateRedrawAmount(loan, user, loanId, transactionAmount, true, transactionDate, null);
         return new CommandProcessingResultBuilder().withEntityId(loanId).withLoanId(loanId).build();
+    }
+
+    @Transactional
+    private CommandProcessingResult approveLoanApplicationAssociatedToGLIM(final Long loanId, final JsonCommand command) {
+        final Loan loan = retrieveLoanBy(loanId);
+        if (loan.status().isRejected()) {
+            return new CommandProcessingResultBuilder() //
+                    .withCommandId(command.commandId()) //
+                    .withEntityId(loan.getId()) //
+                    .withOfficeId(loan.getOfficeId()) //
+                    .withClientId(loan.getClientId()) //
+                    .withGroupId(loan.getGroupId()) //
+                    .withLoanId(loanId).build();
+        }
+        return approveApplication(loanId, command, Boolean.TRUE);
+
     }
 
 }

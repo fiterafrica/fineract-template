@@ -57,7 +57,6 @@ import org.apache.fineract.portfolio.calendar.data.CalendarData;
 import org.apache.fineract.portfolio.calendar.service.CalendarEnumerations;
 import org.apache.fineract.portfolio.calendar.service.CalendarReadPlatformService;
 import org.apache.fineract.portfolio.calendar.service.CalendarUtils;
-import org.apache.fineract.portfolio.client.data.ClientData;
 import org.apache.fineract.portfolio.client.domain.ClientEnumerations;
 import org.apache.fineract.portfolio.client.service.ClientReadPlatformService;
 import org.apache.fineract.portfolio.group.api.GroupingTypesApiConstants;
@@ -471,13 +470,8 @@ public class CenterReadPlatformServiceImpl implements CenterReadPlatformService 
             staffOptions = null;
         }
 
-        Collection<ClientData> clientOptions = this.clientReadPlatformService.retrieveAllForLookupByOfficeId(centerOfficeId);
-        if (CollectionUtils.isEmpty(clientOptions)) {
-            clientOptions = null;
-        }
-
         return GroupGeneralData.template(centerOfficeId, center.getId(), center.getAccountNo(), center.getName(), staffId, staffName,
-                centerOptions, officeOptions, staffOptions, clientOptions, null);
+                centerOptions, officeOptions, staffOptions, null);
     }
 
     @Override

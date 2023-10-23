@@ -1268,7 +1268,13 @@ public final class LoanApplicationCommandFromApiJsonHelper {
                     "Linked Savings account with id:" + savingsAccount.getId() + " is not in active state", "linkAccountId",
                     savingsAccount.getId());
             dataValidationErrors.add(error);
-        } else if (!loanApplication.getClientId().equals(savingsAccount.clientId())) {
+        } else if (savingsAccount.getGroupId() != null && !loanApplication.getGroupId().equals(savingsAccount.getGroupId())) {
+            final ApiParameterError error = ApiParameterError.parameterError(
+                    "validation.msg.loan.linked.savings.account.is.group.savings.account",
+                    "Linked Savings account with id:" + savingsAccount.getId() + " is a group savings account", "linkAccountId",
+                    savingsAccount.getId());
+            dataValidationErrors.add(error);
+        } else if (savingsAccount.clientId() != null && !loanApplication.getClientId().equals(savingsAccount.clientId())) {
             final ApiParameterError error = ApiParameterError.parameterError(
                     "validation.msg.loan.linked.savings.account.not.belongs.to.same.client",
                     "Linked Savings account with id:" + savingsAccount.getId() + " is not belongs to the same client", "linkAccountId",

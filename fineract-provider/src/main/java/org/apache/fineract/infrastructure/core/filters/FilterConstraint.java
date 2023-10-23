@@ -27,6 +27,7 @@ public class FilterConstraint {
     private String value;
     private String secondValue;
 
+    private FilterType filterType;
     private List<String> values;
 
     public FilterConstraint() {}
@@ -69,5 +70,13 @@ public class FilterConstraint {
 
     public void setValues(List<String> values) {
         this.values = values;
+    }
+
+    public FilterType getFilterType() {
+        return filterType;
+    }
+
+    public void setFilterType(FilterType filterType) {
+        this.filterType = filterType;
     }
 }

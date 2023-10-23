@@ -32,9 +32,7 @@ public interface ClientReadPlatformService {
 
     ClientData retrieveOne(Long clientId);
 
-    Collection<ClientData> retrieveAllForLookup(String extraCriteria);
-
-    Collection<ClientData> retrieveAllForLookupByOfficeId(Long officeId);
+    ClientData retrieveOneLite(Long clientId);
 
     ClientData retrieveClientByIdentifier(Long identifierTypeId, String identifierKey);
 

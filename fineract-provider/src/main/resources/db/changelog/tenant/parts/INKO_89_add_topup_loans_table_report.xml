@@ -1,0 +1,67 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements. See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership. The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.6.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+    <changeSet author="moses@fiter.io" id="INKO_89_add_topup_loans_table_report_1" context="mysql">
+        <insert tableName="stretchy_report">
+            <column name="report_name" value="Topup Loans"/>
+            <column name="report_type" value="Table"/>
+            <column name="report_subtype"/>
+            <column name="report_category" value="Loan"/>
+            <column name="report_sql" value="SELECT o.name AS Office, c.display_name AS 'Client Name', COALESCE(c.external_id, '-')  AS 'Client UID', l.account_no AS 'Account Number',
+l.principal_disbursed_derived as 'Initial Loan Amount', topup.topup_amount as 'Outstanding amount before Top Up', (l.principal_disbursed_derived - topup.topup_amount)  as 'Top Up',
+l.principal_outstanding_derived as 'Principal Outstanding', l.interest_outstanding_derived as 'Interest Outstanding',
+l.fee_charges_outstanding_derived as 'Fees Outstanding', l.description as 'Reason for Topup', la.total_overdue_derived as 'Amount in Arrears',
+la.principal_overdue_derived as 'Principal in Arrears', la.interest_overdue_derived as 'Interest in Arrears',
+la.fee_charges_overdue_derived 'Fees in Arrears', datediff(now(), la.overdue_since_date_derived) as 'Days in Arrears',
+departmentTbl.code_value as 'Department',  cdg.code_value as 'Gender', year(now()) - YEAR(c.date_of_birth) as 'Age', cvl.code_value as 'Location',
+cvs.code_value as 'Strata'
+from m_office o
+join m_office ounder ON ounder.hierarchy like concat(o.hierarchy, '%') and ounder.hierarchy like CONCAT('${currentUserHierarchy}', '%')
+join m_client c ON c.office_id = ounder.id
+join m_loan l ON l.client_id = c.id
+left join m_loan_topup as topup on l.id = topup.loan_id
+left join m_loan as topuploan on topuploan.id = topup.closure_loan_id
+join m_product_loan mpl ON mpl.id= l.product_id
+left join m_loan_arrears_aging la on la.loan_id = l.id
+left join m_client_other_info coi on coi.client_id = c.id
+left join m_client_recruitment_survey crs on crs.client_id = c.id
+left join m_code_value departmentTbl on departmentTbl.id = l.department_cv_id
+left join m_code_value cvl on cvl.id = crs.survey_location_cv_id
+left join m_code_value cvs on cvs.id = coi.strata_cv_id
+left join m_code_value cdg on cdg.id = c.gender_cv_id
+where o.id = ${officeId}
+and l.is_topup = true "/>
+            <column name="description" value="Topup Loans Table Report"/>
+            <column name="core_report" valueBoolean="true"/>
+            <column name="use_report" valueBoolean="true"/>
+            <column name="self_service_user_report" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+    <changeSet author="moses@fiter.io" id="INKO_89_add_topup_loans_table_report_2" context="mysql">
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Topup Loans')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'OfficeIdSelectOne')"/>
+            <column name="report_parameter_name" value="officeId"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>

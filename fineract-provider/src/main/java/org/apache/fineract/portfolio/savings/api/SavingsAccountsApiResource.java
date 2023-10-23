@@ -168,6 +168,7 @@ public class SavingsAccountsApiResource {
     public String retrieveAll(@Context final UriInfo uriInfo,
             @QueryParam("sqlSearch") @Parameter(description = "sqlSearch") final String sqlSearch,
             @QueryParam("externalId") @Parameter(description = "externalId") final String externalId,
+            @QueryParam("accountNo") @Parameter(description = "accountNo") final String accountNo,
             // @QueryParam("underHierarchy") final String hierarchy,
             @QueryParam("offset") @Parameter(description = "offset") final Integer offset,
             @QueryParam("limit") @Parameter(description = "limit") final Integer limit,
@@ -176,7 +177,8 @@ public class SavingsAccountsApiResource {
 
         this.context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME);
 
-        final SearchParameters searchParameters = SearchParameters.forSavings(sqlSearch, externalId, offset, limit, orderBy, sortOrder);
+        final SearchParameters searchParameters = SearchParameters.forSavings(sqlSearch, externalId, accountNo, offset, limit, orderBy,
+                sortOrder);
 
         final Page<SavingsAccountData> products = this.savingsAccountReadPlatformService.retrieveAll(searchParameters);
 

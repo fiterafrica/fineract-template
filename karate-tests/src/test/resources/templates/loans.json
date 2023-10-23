@@ -300,5 +300,21 @@
     "loanType": "jlg",
     "expectedDisbursementDate": "#(submittedOnDate)",
     "submittedOnDate": "#(submittedOnDate)"
-  }
+  },
+  "createGLIMAccountPayLoad":
+  [
+    {
+      "requestId": "0",
+      "relativeUrl": "loans",
+      "method": "POST",
+      "body": "{\"charges\":[],\"locale\":\"en\",\"dateFormat\":\"#(format)\",\"groupId\":\"#(groupId)\",\"clientId\":\"#(clientId_1)\",\"loanType\":\"glim\",\"productId\":\"#(loanProductId)\",\"numberOfRepayments\":\"#(loanTerm)\",\"repaymentEvery\":1,\"repaymentFrequencyType\":2,\"interestRatePerPeriod\":6,\"amortizationType\":1,\"interestType\":0,\"interestCalculationPeriodType\":1,\"transactionProcessingStrategyId\":1,\"loanTermFrequency\":\"#(loanTerm)\",\"loanTermFrequencyType\":2,\"principal\":\"#(loanAmount)\",\"totalLoan\":\"#(totalLoanAmount)\",\"isParentAccount\":true,\"expectedDisbursementDate\":\"#(submittedOnDate)\",\"submittedOnDate\":\"#(submittedOnDate)\",\"syncDisbursementWithMeeting\":false,\"lastApplication\":false,\"applicationId\":\"#(faker.lorem().characters(10))\"}"
+    },
+    {
+      "requestId": "1",
+      "relativeUrl": "loans",
+      "method": "POST",
+      "body": "{\"charges\":[],\"locale\":\"en\",\"dateFormat\":\"#(format)\",\"groupId\":\"#(groupId)\",\"clientId\":\"#(clientId_2)\",\"loanType\":\"glim\",\"productId\":\"#(loanProductId)\",\"numberOfRepayments\":\"#(loanTerm)\",\"repaymentEvery\":1,\"repaymentFrequencyType\":2,\"interestRatePerPeriod\":6,\"amortizationType\":1,\"interestType\":0,\"interestCalculationPeriodType\":1,\"transactionProcessingStrategyId\":1,\"loanTermFrequency\":\"#(loanTerm)\",\"loanTermFrequencyType\":2,\"principal\":\"#(loanAmount)\",\"totalLoan\":\"#(totalLoanAmount)\",\"isParentAccount\":true,\"expectedDisbursementDate\":\"#(submittedOnDate)\",\"submittedOnDate\":\"#(submittedOnDate)\",\"syncDisbursementWithMeeting\":false,\"lastApplication\":false,\"applicationId\":\"#(faker.lorem().characters(10))\"}"
+    }
+  ]
+
 }

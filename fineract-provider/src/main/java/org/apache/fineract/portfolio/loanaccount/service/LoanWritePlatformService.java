@@ -37,7 +37,7 @@ import org.apache.fineract.portfolio.loanaccount.loanschedule.data.OverdueLoanSc
 
 public interface LoanWritePlatformService {
 
-    CommandProcessingResult disburseLoan(Long loanId, JsonCommand command, Boolean isAccountTransfer);
+    CommandProcessingResult disburseLoan(Long loanId, JsonCommand command, Boolean isAccountTransfer, Boolean isGlimBulkDisbursement);
 
     Map<String, Object> bulkLoanDisbursal(JsonCommand command, CollectionSheetBulkDisbursalCommand bulkDisbursalCommand,
             Boolean isAccountTransfer);

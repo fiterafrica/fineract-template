@@ -29,7 +29,7 @@ public interface LoanApplicationWritePlatformService {
 
     CommandProcessingResult deleteApplication(Long loanId);
 
-    CommandProcessingResult approveApplication(Long loanId, JsonCommand command);
+    CommandProcessingResult approveApplication(Long loanId, JsonCommand command, Boolean isGlimBulkApproval);
 
     CommandProcessingResult undoApplicationApproval(Long loanId, JsonCommand command);
 

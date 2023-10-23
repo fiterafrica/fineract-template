@@ -33,6 +33,13 @@ public class WebCondition {
         this.value = value;
     }
 
+    // Constuctor used to check conditons with 2 fiels e.g {{client.mobileNo}} | NOT_EMPTY
+    public WebCondition(String field, String operator) {
+        this.field = field;
+        this.operator = operator;
+        this.value = null;
+    }
+
     public boolean isSatisfied() {
         if ("EQUALS".equalsIgnoreCase(operator)) {
             return field.equals(value);
