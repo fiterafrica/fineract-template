@@ -47,20 +47,28 @@ public interface FilterSelection {
 
     String TRANSACTION_TYPE = "TRANSACTION_TYPE";
 
+    String MOBILE_NUMBER = "MOBILE_NUMBER";
+
+    String ACCOUNT_NUMBER = "ACCOUNT_NUMBER";
+
+    String EXTERNAL_ID = "EXTERNAL_ID";
+
+    String PARENT_ACCOUNT_ID = "PARENT_ACCOUNT_ID";
+
     Map<String, String> SAVINGS_SEARCH_REQUEST_MAP = ImmutableMap.<String, String>builder().put(USER_ID, "au.id")
             .put(ACCOUNT_OWNER_ID, "mc.id").put(PRODUCT_ID, "sp.id").put(TRANSACTION_TYPE, "tr.transaction_type_enum")
-            .put(OFFICE_ID, "tr.office_id").put(CURRENCY_CODE, "sa.currency_code").put(WAS_REVERSED, "tr.is_reversal")
+            .put(OFFICE_ID, "tr.office_id").put(CURRENCY_CODE, "sa.currency_code").put(WAS_REVERSED, "tr.is_reversed")
             .put(TRANSACTION_ID, "tr.id").put(TRANSACTION_DATE, "tr.transaction_date ").put(AVAILABLE_BALANCE, "tr.running_balance_derived")
             .put(INTEREST_RATE, "sp.nominal_annual_interest_rate").put(OVERDRAFT_INTEREST_RATE, "sp.nominal_annual_interest_rate_overdraft")
             .put(OVERDRAFT_INTEREST_LIMIT, "sp.overdraft_limit").put(FEES_PAID, "feesPaid").put(PENALTY_PAID, "penaltyPaid")
-            .put(AMOUNT, "tr.amount").build();
+            .put(AMOUNT, "tr.amount").put(PARENT_ACCOUNT_ID, "sa.id").build();
     Map<String, String> LOAN_SEARCH_REQUEST_MAP = ImmutableMap.<String, String>builder().put(USER_ID, "au.id").put(PRODUCT_ID, "lp.id")
             .put(ACCOUNT_OWNER_ID, "mc.id").put(TRANSACTION_TYPE, "tr.transaction_type_enum").put(CURRENCY_CODE, "l.currency_code")
             .put(WAS_REVERSED, "tr.is_reversed").put(TRANSACTION_ID, "tr.id").put(TRANSACTION_DATE, "tr.transaction_date ")
             .put(AVAILABLE_BALANCE, "tr.outstanding_loan_balance_derived").put(OFFICE_ID, "tr.office_id")
             .put(INTEREST_PAID, "tr.interest_portion_derived").put(PRINCIPAL_BALANCE, "tr.principal_portion_derived")
             .put(FEES_PAID, "tr.fee_charges_portion_derived").put(PENALTY_PAID, "tr.penalty_charges_portion_derived")
-            .put(AMOUNT, "tr.amount").build();
+            .put(AMOUNT, "tr.amount").put(PARENT_ACCOUNT_ID, "l.id").build();
 
     Map<String, String> CLIENT_SEARCH_REQUEST_MAP = ImmutableMap.<String, String>builder().put("FIRST_NAME", "c.firstname")
             .put("LAST_NAME", "c.lastname").put("ID", "c.id").put("DAILY_WITHDRAW_LIMIT", "ctl.daily_withdraw_limit")

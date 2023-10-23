@@ -119,9 +119,9 @@ public class DatabaseSpecificSQLGenerator {
 
     public String currentTenantDateTime() {
         if (databaseTypeResolver.isMySQL()) {
-            return format("TIMESTAMP('%s')", DateUtils.getLocalDateTimeOfTenant().format(DateUtils.DEFAULT_DATETIME_FORMATER));
+            return format("TIMESTAMP('%s')", DateUtils.getLocalDateTimeOfTenant().format(DateUtils.DEFAULT_DATETIME_FORMATTER));
         } else if (databaseTypeResolver.isPostgreSQL()) {
-            return format("TIMESTAMP '%s'", DateUtils.getLocalDateTimeOfTenant().format(DateUtils.DEFAULT_DATETIME_FORMATER));
+            return format("TIMESTAMP '%s'", DateUtils.getLocalDateTimeOfTenant().format(DateUtils.DEFAULT_DATETIME_FORMATTER));
         } else {
             throw new IllegalStateException("Database type is not supported for current date time" + databaseTypeResolver.databaseType());
         }

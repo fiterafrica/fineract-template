@@ -33,6 +33,7 @@ import org.apache.fineract.portfolio.tax.domain.TaxGroupRepositoryWrapper;
 import org.apache.fineract.portfolio.tax.serialization.TaxValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class TaxWritePlatformServiceImpl implements TaxWritePlatformService {
@@ -68,13 +69,13 @@ public class TaxWritePlatformServiceImpl implements TaxWritePlatformService {
     }
 
     @Override
+    @Transactional
     public CommandProcessingResult updateTaxComponent(final Long id, final JsonCommand command) {
         this.validator.validateForTaxComponentUpdate(command.json());
         final TaxComponent taxComponent = this.taxComponentRepositoryWrapper.findOneWithNotFoundDetection(id);
         this.validator.validateStartDate(taxComponent.startDate(), command);
         Map<String, Object> changes = taxComponent.update(command);
         this.validator.validateTaxComponentForUpdate(taxComponent);
-        this.taxComponentRepository.saveAndFlush(taxComponent);
         return new CommandProcessingResultBuilder() //
                 .withEntityId(id) //
                 .with(changes).build();

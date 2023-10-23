@@ -123,6 +123,7 @@ import org.apache.fineract.portfolio.loanaccount.data.LoanTermVariationsData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanTransactionData;
 import org.apache.fineract.portfolio.loanaccount.data.PaidInAdvanceData;
 import org.apache.fineract.portfolio.loanaccount.data.RepaymentScheduleRelatedLoanData;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanStatus;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTermVariationType;
 import org.apache.fineract.portfolio.loanaccount.exception.LoanTemplateTypeRequiredException;
 import org.apache.fineract.portfolio.loanaccount.exception.NotSupportedLoanTemplateTypeException;
@@ -799,7 +800,6 @@ public class LoansApiResource {
                         .retrieveClientActiveLoanAccountSummary(loanBasicDetails.clientId());
             }
 
-            vendorClientOptions = this.clientReadPlatformService.retrieveAllForLookupByOfficeId(loanBasicDetails.officeId());
             if (linkedVendorAccount != null && linkedVendorAccount.getClientId() != null) {
                 vendorSavingsAccountOptions = this.loanReadPlatformService
                         .retrieveVendorSavingAccountsForBnplLoans(linkedVendorAccount.getClientId());
@@ -1057,9 +1057,22 @@ public class LoansApiResource {
     @Path("glimAccount/{glimId}")
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
-    public String getGlimRepaymentTemplate(@PathParam("glimId") final Long glimId, @Context final UriInfo uriInfo) {
+    public String getGlimRepaymentTemplate(@PathParam("glimId") final Long glimId,
+            @QueryParam("isRepayment") @Parameter(description = "isRepayment") final Boolean isRepayment, @Context final UriInfo uriInfo) {
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
-        Collection<GlimRepaymentTemplate> glimRepaymentTemplate = this.glimAccountInfoReadPlatformService.findglimRepaymentTemplate(glimId);
+        Collection<GlimRepaymentTemplate> glimRepaymentTemplate = this.glimAccountInfoReadPlatformService.findglimRepaymentTemplate(glimId,
+                isRepayment);
+        if (!CollectionUtils.isEmpty(glimRepaymentTemplate)) {
+            for (GlimRepaymentTemplate template : glimRepaymentTemplate) {
+
+                if (template.getLoanStatus() != null && template.getLoanStatus().id().intValue() == LoanStatus.ACTIVE.getValue()) {
+                    LoanTransactionData transactionData = this.loanReadPlatformService
+                            .retrieveLoanTransactionTemplate(template.getChildLoanId().longValue());
+                    template.setNextRepaymentAmount(transactionData.getAmount());
+                }
+
+            }
+        }
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.glimTemplateToApiJsonSerializer.serialize(settings, glimRepaymentTemplate, this.glimAccountsDataParameters);
     }

@@ -649,4 +649,8 @@ public class Calendar extends AbstractAuditableCustom {
     public void setRecurrence(String recurrence) {
         this.recurrence = recurrence;
     }
+
+    public void updateTitle(String title) {
+        this.title = title;
+    }
 }

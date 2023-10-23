@@ -1379,7 +1379,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                     + "     WHEN mlt.id IS not null and tr.transaction_type_enum = 1 and mlt.topup_amount <> tr.amount " + "       then 25 "
                     + "    ELSE tr.transaction_type_enum " + " END as transactionType," + " tr.transaction_date as "
                     + sqlGenerator.escape("date") + ", tr.amount as total, "
-                    + " tr.principal_portion_derived as principal, tr.interest_portion_derived as interest, "
+                    + " tr.principal_portion_derived as principal, tr.loan_id as accountId, l.external_id as loanExternalId, tr.interest_portion_derived as interest, "
                     + " tr.fee_charges_portion_derived as fees, tr.penalty_charges_portion_derived as penalties, "
                     + " tr.overpayment_portion_derived as overpayment, tr.outstanding_loan_balance_derived as outstandingLoanBalance, "
                     + " tr.unrecognized_income_portion as unrecognizedIncome,"
@@ -1419,6 +1419,8 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                     currencyDisplaySymbol, currencyNameCode);
 
             final Long id = rs.getLong("id");
+            final Long accountId = rs.getLong("accountId");
+            final String loanExternalId = rs.getString("loanExternalId");
             final Long officeId = rs.getLong("officeId");
             final String officeName = rs.getString("officeName");
             final int transactionTypeInt = JdbcSupport.getInteger(rs, "transactionType");
@@ -1476,10 +1478,12 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                 transfer = AccountTransferData.transferBasicDetails(toTransferId, currencyData, toTransferAmount, toTransferDate,
                         toTransferDescription, toTransferReversed);
             }
-            return new LoanTransactionData(id, officeId, officeName, transactionType, paymentDetailData, currencyData, date, totalAmount,
-                    netDisbursalAmount, principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion, overPaymentPortion,
-                    unrecognizedIncomePortion, externalId, transfer, null, outstandingLoanBalance, submittedOnDate, manuallyReversed,
-                    createDate);
+            LoanTransactionData loanTransactionData = new LoanTransactionData(id, officeId, officeName, transactionType, paymentDetailData,
+                    currencyData, date, totalAmount, netDisbursalAmount, principalPortion, interestPortion, feeChargesPortion,
+                    penaltyChargesPortion, overPaymentPortion, unrecognizedIncomePortion, externalId, transfer, null,
+                    outstandingLoanBalance, submittedOnDate, manuallyReversed, createDate, accountId);
+            loanTransactionData.setLoanExternalId(loanExternalId);
+            return loanTransactionData;
         }
     }
 
@@ -1570,12 +1574,9 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         final ClientData clientAccount = this.clientReadPlatformService.retrieveOne(clientId);
         final LocalDate expectedDisbursementDate = DateUtils.getBusinessLocalDate();
 
-        Collection<ClientData> vendorClientOptions = this.clientReadPlatformService
-                .retrieveAllForLookupByOfficeId(clientAccount.officeId());
-
         LoanAccountData loanAccountData = LoanAccountData.clientDefaults(clientAccount.id(), clientAccount.accountNo(),
                 clientAccount.displayName(), clientAccount.officeId(), expectedDisbursementDate);
-        loanAccountData.setVendorClientOptions(vendorClientOptions);
+
         return loanAccountData;
     }
 

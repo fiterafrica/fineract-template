@@ -70,4 +70,8 @@ public class CalendarInstance extends AbstractPersistableCustom {
         return this.entityTypeId;
     }
 
+    public void updateEntityId(final Long entityId) {
+        this.entityId = entityId;
+    }
+
 }

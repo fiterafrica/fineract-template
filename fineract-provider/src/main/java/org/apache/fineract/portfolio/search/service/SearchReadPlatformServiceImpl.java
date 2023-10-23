@@ -31,10 +31,12 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
 import org.apache.fineract.infrastructure.core.filters.FilterConstraint;
+import org.apache.fineract.infrastructure.core.filters.FilterType;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.organisation.office.data.OfficeData;
@@ -47,6 +49,7 @@ import org.apache.fineract.portfolio.loanproduct.data.LoanProductData;
 import org.apache.fineract.portfolio.loanproduct.service.LoanEnumerations;
 import org.apache.fineract.portfolio.loanproduct.service.LoanProductReadPlatformService;
 import org.apache.fineract.portfolio.savings.exception.UnsupportedFilterException;
+import org.apache.fineract.portfolio.savings.request.FilterSelection;
 import org.apache.fineract.portfolio.savings.service.SavingsEnumerations;
 import org.apache.fineract.portfolio.search.SearchConstants;
 import org.apache.fineract.portfolio.search.data.AdHocQuerySearchConditions;
@@ -231,22 +234,36 @@ public class SearchReadPlatformServiceImpl implements SearchReadPlatformService 
 
             switch (filterConstraint.getFilterElement()) {
                 case EQUALS:
-                    Object val = convertValue(filterConstraint.getValue());
+                    Object val = filterConstraint.getValue();
+                    FilterType filterType = filterConstraint.getFilterType();
+                    if (filterConstraint.getFilterSelection().contains("DATE")) {
+                        val = LocalDate.parse(val.toString());
+                    } else if (!filterConstraint.getFilterSelection().equalsIgnoreCase(FilterSelection.ACCOUNT_NUMBER)
+                            && !filterConstraint.getFilterSelection().equalsIgnoreCase(FilterSelection.MOBILE_NUMBER)
+                            && !filterConstraint.getFilterSelection().equalsIgnoreCase(FilterSelection.EXTERNAL_ID)) {
+                        val = convertValue(val);
+                    }
+
                     queryBuilder.append(" AND ");
                     String filterSelection = getFilterSelection(filterConstraint.getFilterSelection(), searchRequestMap);
-                    if (val instanceof String) {
+                    if (val instanceof String && filterType == null) {
                         val = ((String) val).toLowerCase();
                         queryBuilder.append("lower(" + filterSelection + ")");
                     } else {
                         queryBuilder.append(filterSelection);
                     }
                     queryBuilder.append(" = ? ");
-                    params.add(val);
+
+                    if (filterType != null && filterType.equals(FilterType.BOOLEAN) && val instanceof String) {
+                        params.add(getBoolean((String) val));
+                    } else {
+                        params.add(val);
+                    }
                 break;
 
                 case EQUALS_CASE_SENSITIVE:
                     queryBuilder.append(" AND ").append(getFilterSelection(filterConstraint.getFilterSelection(), searchRequestMap))
-                            .append(" COLLATE utf8mb4_bin = ? ");
+                            .append(" = ? ");
                     params.add(convertValue(filterConstraint.getValue()));
                 break;
 
@@ -266,7 +283,6 @@ public class SearchReadPlatformServiceImpl implements SearchReadPlatformService 
                 case NOT_EMPTY:
                     queryBuilder.append(" AND ").append(getFilterSelection(filterConstraint.getFilterSelection(), searchRequestMap))
                             .append(" is not null ");
-                    params.add(convertValue(filterConstraint.getValue()));
                 break;
 
                 case LESS_THAN:
@@ -310,7 +326,11 @@ public class SearchReadPlatformServiceImpl implements SearchReadPlatformService 
                     queryBuilder.append(" AND ").append(getFilterSelection(filterConstraint.getFilterSelection(), searchRequestMap))
                             .append(" IN (").append(String.join(",", Collections.nCopies(filterConstraint.getValues().size(), "?")))
                             .append(") ");
-                    params.addAll(filterConstraint.getValues());
+                    if (filterConstraint.getFilterSelection().equals(FilterSelection.TRANSACTION_TYPE)) {
+                        params.addAll(filterConstraint.getValues().stream().map(Integer::parseInt).collect(Collectors.toList()));
+                    } else {
+                        params.addAll(filterConstraint.getValues());
+                    }
                 break;
 
                 case STARTS_WITH:
@@ -490,6 +510,18 @@ public class SearchReadPlatformServiceImpl implements SearchReadPlatformService 
             return AdHocSearchQueryData.matchedResult(officeName, loanProductName, count, loanOutStanding, percentage);
         }
 
+    }
+
+    private boolean getBoolean(String value) {
+        if (value.equalsIgnoreCase("false") || value.equalsIgnoreCase("0")) {
+            return false;
+        }
+
+        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("1")) {
+            return true;
+        }
+
+        throw new UnsupportedFilterException("Unsupported boolean value: " + value);
     }
 
 }

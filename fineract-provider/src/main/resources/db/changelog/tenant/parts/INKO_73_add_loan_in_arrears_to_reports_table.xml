@@ -1,0 +1,99 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements. See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership. The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.6.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+    <changeSet author="moses@fiter.io" id="INKO_73_add_loan_in_arrears_to_reports_table_1" context="mysql">
+        <insert tableName="stretchy_report">
+            <column name="report_name" value="Loan in arrears Table"/>
+            <column name="report_type" value="Table"/>
+            <column name="report_subtype"/>
+            <column name="report_category" value="Loan"/>
+            <column name="report_sql" value="SELECT  mc.id AS 'ID', mc.firstname AS 'First Name', mc.middlename AS 'Middle Name', mc.lastname AS 'Last Name', mc.display_name AS 'Full Name',
+mc.mobile_no AS 'Mobile No', ml.principal_amount AS 'Loan Amount',
+(IFNULL(ml.principal_outstanding_derived, 0) + IFNULL(ml.interest_outstanding_derived, 0) + IFNULL(ml.fee_charges_outstanding_derived, 0) + IFNULL(ml.penalty_charges_outstanding_derived, 0)) AS 'Loan Outstanding',
+ml.principal_disbursed_derived AS 'Loan Disbursed',
+laa.overdue_since_date_derived AS 'Payment Due Date',
+IFNULL(laa.total_overdue_derived, 0) AS 'Total Due',
+ounder.id AS 'Office Number',
+ml.account_no AS 'Account Number',
+gua.lastname AS 'Guarantor Last Name',
+COUNT(gua.id) AS 'Number Of Guarantors',
+g.display_name AS 'Group Name',
+year(now()) - YEAR(mc.date_of_birth) as 'Age',
+mc.external_id as 'Client UID',
+cdg.code_value as 'Gender',
+cvc.code_value as 'Cohort',
+ml.loan_counter as 'Cycle',
+cvn.code_value as 'Nationality',
+cvl.code_value as 'Location',
+cvs.code_value as 'Strata'
+
+FROM m_office mo
+JOIN m_office ounder ON ounder.hierarchy LIKE CONCAT(mo.hierarchy, '%')
+INNER JOIN m_client mc ON mc.office_id=ounder.id
+INNER JOIN m_loan ml ON ml.client_id = mc.id
+INNER JOIN r_enum_value rev ON rev.enum_id=ml.loan_status_id AND rev.enum_name = 'loan_status_id'
+INNER JOIN m_loan_arrears_aging laa ON laa.loan_id=ml.id
+LEFT JOIN m_currency cur ON cur.code = ml.currency_code
+LEFT JOIN m_group_client gc ON gc.client_id = mc.id
+LEFT JOIN m_group g ON g.id = gc.group_id
+LEFT JOIN m_staff lo ON lo.id = ml.loan_officer_id
+LEFT JOIN m_guarantor gua ON gua.loan_id = ml.id
+left join m_client_other_info coi on coi.client_id = mc.id
+left join m_code_value cdg on cdg.id = mc.gender_cv_id
+left join m_client_recruitment_survey crs on crs.client_id = mc.id
+left join m_code_value cvc on cvc.id = crs.cohort_cv_id
+left join m_code_value cvn on cvn.id = coi.nationality_cv_id
+left join m_code_value cvl on cvl.id = crs.survey_location_cv_id
+left join m_code_value cvs on cvs.id = coi.strata_cv_id
+WHERE ml.loan_status_id=300 AND mo.id=${officeId} AND (IFNULL(ml.loan_officer_id, -10) = ${loanOfficerId} OR '-1' = '${loanOfficerId}') AND (DATEDIFF(CURDATE(), laa.overdue_since_date_derived) BETWEEN '${fromX}' AND '${toY}')
+GROUP BY ml.id, ounder.hierarchy, ml.currency_code, mc.account_no, ml.account_no
+ORDER BY ounder.hierarchy, ml.currency_code, mc.account_no, ml.account_no "/>
+            <column name="description" value="Loan in arrears Table Report"/>
+            <column name="core_report" valueBoolean="true"/>
+            <column name="use_report" valueBoolean="true"/>
+            <column name="self_service_user_report" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+    <changeSet author="moses@fiter.io" id="INKO_73_add_loan_in_arrears_to_reports_table_2" context="mysql">
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan in arrears Table')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'OfficeIdSelectOne')"/>
+            <column name="report_parameter_name" value="officeId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan in arrears Table')"/>
+            <column name="parameter_id" valueNumeric="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'loanOfficerIdSelectAll')"/>
+            <column name="report_parameter_name" value="loanOfficerId"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan in arrears Table')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'fromXSelect')"/>
+            <column name="report_parameter_name" value="fromX"/>
+        </insert>
+        <insert tableName="stretchy_report_parameter">
+            <column name="report_id" valueComputed="(select sr.id from stretchy_report sr where sr.report_name ='Loan in arrears Table')"/>
+            <column name="parameter_id" valueComputed="(select sp.id from stretchy_parameter sp where sp.parameter_name = 'toYSelect')"/>
+            <column name="report_parameter_name" value="toY"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>

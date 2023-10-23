@@ -240,6 +240,7 @@ public class GroupsApiResource {
             @QueryParam("officeId") @Parameter(description = "officeId") final Long officeId,
             @QueryParam("staffId") @Parameter(description = "staffId") final Long staffId,
             @QueryParam("externalId") @Parameter(description = "externalId") final String externalId,
+            @QueryParam("accountNo") @Parameter(description = "accountNo") final String accountNo,
             @QueryParam("name") @Parameter(description = "name") final String name,
             @QueryParam("underHierarchy") @Parameter(description = "underHierarchy") final String hierarchy,
             @QueryParam("paged") @Parameter(description = "paged") final Boolean paged,
@@ -253,8 +254,8 @@ public class GroupsApiResource {
         final PaginationParameters parameters = PaginationParameters.instance(paged, offset, limit, orderBy, sortOrder);
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
 
-        final SearchParameters searchParameters = SearchParameters.forGroups(officeId, staffId, externalId, name, hierarchy, offset, limit,
-                orderBy, sortOrder, orphansOnly);
+        final SearchParameters searchParameters = SearchParameters.forGroups(officeId, staffId, externalId, accountNo, name, hierarchy,
+                offset, limit, orderBy, sortOrder, orphansOnly);
         if (parameters.isPaged()) {
             final Page<GroupGeneralData> groups = this.groupReadPlatformService.retrievePagedAll(searchParameters, parameters);
             return this.toApiJsonSerializer.serialize(settings, groups, GroupingTypesApiConstants.GROUP_RESPONSE_DATA_PARAMETERS);
@@ -557,7 +558,7 @@ public class GroupsApiResource {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = GroupsApiResourceSwagger.GetGroupsGroupIdAccountsResponse.class))) })
     public String retrieveAccounts(@PathParam("groupId") @Parameter(description = "groupId") final Long groupId,
-            @Context final UriInfo uriInfo) {
+            @QueryParam("fields") String fields) {
 
         this.context.authenticatedUser().validateHasReadPermission("GROUP");
 
@@ -565,14 +566,11 @@ public class GroupsApiResource {
                 .retrieveGlobalConfiguration("Add-More-Stages-To-A-Loan-Life-Cycle");
         final Boolean isExtendLoanLifeCycleConfig = extendLoanLifeCycleConfig.isEnabled();
 
-        final AccountSummaryCollectionData groupAccount = this.accountDetailsReadPlatformService.retrieveGroupAccountDetails(groupId);
+        final AccountSummaryCollectionData groupAccount = this.accountDetailsReadPlatformService.retrieveGroupAccountDetails(groupId,
+                fields);
         groupAccount.setExtendLoanLifeCycleConfig(isExtendLoanLifeCycleConfig);
 
-        final Set<String> GROUP_ACCOUNTS_DATA_PARAMETERS = new HashSet<>(Arrays.asList("loanAccounts",
-                "groupLoanIndividualMonitoringAccounts", "savingsAccounts", "memberLoanAccounts", "memberSavingsAccounts"));
-
-        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
-        return this.groupSummaryToApiJsonSerializer.serialize(settings, groupAccount, GROUP_ACCOUNTS_DATA_PARAMETERS);
+        return this.groupSummaryToApiJsonSerializer.serialize(groupAccount);
     }
 
     @GET

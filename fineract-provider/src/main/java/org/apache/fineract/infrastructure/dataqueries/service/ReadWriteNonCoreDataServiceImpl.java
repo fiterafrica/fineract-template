@@ -1365,7 +1365,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
                     append.append(localDate);
                 } else if (columnHeader.getColumnType().equals("DATETIME")) {
                     final LocalDateTime localDateTime = LocalDateTime.parse(formatDateTimeValue(valueFilter),
-                            DateUtils.DEFAULT_DATETIME_FORMATER);
+                            DateUtils.DEFAULT_DATETIME_FORMATTER);
                     append.append(localDateTime);
                 } else {
                     append.append(sqlGenerator.escapeValue(valueFilter));

@@ -191,6 +191,7 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionRepositor
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionType;
 import org.apache.fineract.portfolio.loanaccount.exception.DateMismatchException;
 import org.apache.fineract.portfolio.loanaccount.exception.ExceedingTrancheCountException;
+import org.apache.fineract.portfolio.loanaccount.exception.GLIMLoanCannotBeDisbursedDirectlyException;
 import org.apache.fineract.portfolio.loanaccount.exception.InstallmentNotFoundException;
 import org.apache.fineract.portfolio.loanaccount.exception.InvalidLoanTransactionTypeException;
 import org.apache.fineract.portfolio.loanaccount.exception.InvalidPaidInAdvanceAmountException;
@@ -298,28 +299,50 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     @Override
     public CommandProcessingResult disburseGLIMLoan(final Long loanId, final JsonCommand command) {
         final Long parentLoanId = loanId;
+        Boolean isExtendLoanLifeCycleConfig = loanDecisionStateUtilService.isExtendLoanLifeCycleConfig();
+
         GroupLoanIndividualMonitoringAccount parentLoan = glimRepository.findById(parentLoanId).orElseThrow();
         List<Loan> childLoans = this.loanRepository.findByGlimId(loanId);
         CommandProcessingResult result = null;
         int count = 0;
         for (Loan loan : childLoans) {
-            result = disburseLoan(loan.getId(), command, false);
+            if (isExtendLoanLifeCycleConfig) {
+                result = disburseLoanApplicationAssociatedToGLIM(loan.getId(), command, false);
+            } else {
+                result = disburseLoan(loan.getId(), command, false, Boolean.TRUE);
+            }
             if (result.getLoanId() != null) {
                 count++;
                 // if all the child loans are approved, mark the parent loan as
                 // approved
+
                 if (count == parentLoan.getChildAccountsCount()) {
                     parentLoan.setLoanStatus(LoanStatus.ACTIVE.getValue());
                     glimRepository.save(parentLoan);
                 }
             }
         }
+        updateGlimActualPrincipal(parentLoan);
         return result;
+    }
+
+    private void updateGlimActualPrincipal(GroupLoanIndividualMonitoringAccount parentLoan) {
+        final Collection<Integer> loanStatuses = new ArrayList<>(Arrays.asList(LoanStatus.SUBMITTED_AND_PENDING_APPROVAL.getValue(),
+                LoanStatus.APPROVED.getValue(), LoanStatus.ACTIVE.getValue()));
+        List<Loan> activeChild = this.loanRepository.findLoanByGlimIdAndLoanStatus(parentLoan.getId(), loanStatuses);
+        if (!CollectionUtils.isEmpty(activeChild)) {
+            BigDecimal sum = activeChild.stream().map(Loan::getApprovedPrincipal).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            parentLoan.setActualPrincipalAmount(sum);
+            glimRepository.save(parentLoan);
+
+        }
     }
 
     @Transactional
     @Override
-    public CommandProcessingResult disburseLoan(final Long loanId, final JsonCommand command, Boolean isAccountTransfer) {
+    public CommandProcessingResult disburseLoan(final Long loanId, final JsonCommand command, Boolean isAccountTransfer,
+            Boolean isGlimBulkDisbursement) {
 
         final AppUser currentUser = getAppUserIfPresent();
 
@@ -331,6 +354,14 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         }
 
         final Loan loan = this.loanAssembler.assembleFrom(loanId);
+        final Boolean isExtendLoanLifeCycleConfig = this.loanDecisionStateUtilService.isExtendLoanLifeCycleConfig();
+
+        // block loan Disbursement if loan is associated to GLIM and is direct Disbursement not passing through bulk
+        // GLIM Operation call
+        if (isExtendLoanLifeCycleConfig && loan.getLoanType().equals(AccountType.GLIM.getValue()) && !isGlimBulkDisbursement) {
+            throw new GLIMLoanCannotBeDisbursedDirectlyException(loanId);
+        }
+
         this.loanDecisionStateUtilService.validateLoanReviewApplicationStateIsFiredBeforeDisbursal(loan, command);
         if (loan.loanProduct().isDisallowExpectedDisbursements()) {
             // create artificial 'tranche/expected disbursal' as current disburse code expects it for multi-disbursal
@@ -568,6 +599,21 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 .withLoanId(loanId) //
                 .with(changes) //
                 .build();
+    }
+
+    public CommandProcessingResult disburseLoanApplicationAssociatedToGLIM(final Long loanId, final JsonCommand command,
+            Boolean isAccountTransfer) {
+        final Loan loan = this.loanAssembler.assembleFrom(loanId);
+        if (loan.status().isRejected()) {
+            return new CommandProcessingResultBuilder() //
+                    .withCommandId(command.commandId()) //
+                    .withOfficeId(loan.getOfficeId()) //
+                    .withClientId(loan.getClientId()) //
+                    .withGroupId(loan.getGroupId()) //
+                    .withLoanId(loanId) //
+                    .build();
+        }
+        return disburseLoan(loan.getId(), command, isAccountTransfer, Boolean.TRUE);
     }
 
     private void addOverdueChargeToLoanAccountInArrears(Long loanId) {
@@ -914,6 +960,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         final Long parentLoanId = loanId;
 
         glimRepository.findById(parentLoanId).orElseThrow();
+        validateLoanRepaymentAmountsMustMatch(command);
 
         JsonArray repayments = command.arrayOfParameterNamed("formDataArray");
         JsonCommand childCommand = null;
@@ -932,6 +979,23 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             result = makeLoanRepayment(LoanTransactionType.REPAYMENT, childLoanId[j++], childCommand, false, false);
         }
         return result;
+    }
+
+    private static void validateLoanRepaymentAmountsMustMatch(JsonCommand command) {
+        final BigDecimal totalTransactionAmount = command.bigDecimalValueOfParameterNamed("totalTransactionAmount");
+        final BigDecimal derivedTotalTransactionAmount = command.bigDecimalValueOfParameterNamed("derivedTotalTransactionAmount");
+        if (totalTransactionAmount == null) {
+            throw new GeneralPlatformDomainRuleException("error.msg.totalTransactionAmount.is.required",
+                    "Field totalTransactionAmount is required ");
+        }
+        if (derivedTotalTransactionAmount == null) {
+            throw new GeneralPlatformDomainRuleException("error.msg.derivedTotalTransactionAmount.is.required",
+                    "Field derivedTotalTransactionAmount is required ");
+        }
+        if (totalTransactionAmount.compareTo(derivedTotalTransactionAmount) != 0) {
+            throw new GeneralPlatformDomainRuleException("error.msg.transactionAmount.not.equal.to.derivedTransactionAmount",
+                    "Transaction amount is not equal to derived transaction amount");
+        }
     }
 
     @Transactional
@@ -1001,6 +1065,11 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         if (loan.getTotalOverpaid() != null) {
             loanRepositoryWrapper.updateRedrawAmount(loan, currentUser, loanId, loan.getTotalOverpaid(), true, transactionDate,
                     paymentDetail);
+        }
+        if (loan.isGLIMLoan() && loan.getGlimId() != null) {
+            loan.setLastRepaymentDate(transactionDate);
+            loan.setLastRepaymentAmount(transactionAmount);
+            loanRepositoryWrapper.saveAndFlush(loan);
         }
         return commandProcessingResultBuilder.withCommandId(command.commandId()) //
                 .withLoanId(loanId) //

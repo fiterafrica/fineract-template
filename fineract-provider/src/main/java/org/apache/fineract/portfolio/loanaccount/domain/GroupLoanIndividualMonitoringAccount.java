@@ -59,11 +59,13 @@ public final class GroupLoanIndividualMonitoringAccount extends AbstractPersista
 
     @Column(name = "application_id", nullable = true)
     private BigDecimal applicationId;
+    @Column(name = "actual_principal_amount")
+    private BigDecimal actualPrincipalAmount;
 
     private GroupLoanIndividualMonitoringAccount() {}
 
     private GroupLoanIndividualMonitoringAccount(String accountNumber, Group group, BigDecimal principalAmount, Long childAccountsCount,
-            Boolean isAcceptingChild, Integer loanStatus, BigDecimal applicationId) {
+            Boolean isAcceptingChild, Integer loanStatus, BigDecimal applicationId, BigDecimal actualPrincipalAmount) {
         this.accountNumber = accountNumber;
         this.group = group;
         this.principalAmount = principalAmount;
@@ -71,12 +73,14 @@ public final class GroupLoanIndividualMonitoringAccount extends AbstractPersista
         this.isAcceptingChild = isAcceptingChild;
         this.loanStatus = loanStatus;
         this.applicationId = applicationId;
+        this.actualPrincipalAmount = actualPrincipalAmount;
     }
 
     public static GroupLoanIndividualMonitoringAccount getInstance(String accountNumber, Group group, BigDecimal principalAmount,
-            Long childAccountsCount, Boolean isAcceptingChild, Integer loanStatus, BigDecimal applicationId) {
+            Long childAccountsCount, Boolean isAcceptingChild, Integer loanStatus, BigDecimal applicationId,
+            BigDecimal actualPrincipalAmount) {
         return new GroupLoanIndividualMonitoringAccount(accountNumber, group, principalAmount, childAccountsCount, isAcceptingChild,
-                loanStatus, applicationId);
+                loanStatus, applicationId, actualPrincipalAmount);
     }
 
     public String getAccountNumber() {
@@ -141,5 +145,9 @@ public final class GroupLoanIndividualMonitoringAccount extends AbstractPersista
 
     public void setApplicationId(BigDecimal applicationId) {
         this.applicationId = applicationId;
+    }
+
+    public void setActualPrincipalAmount(BigDecimal actualPrincipalAmount) {
+        this.actualPrincipalAmount = actualPrincipalAmount;
     }
 }

@@ -35,6 +35,8 @@ public final class SearchParameters {
     private final String orderBy;
     private final String sortOrder;
     private final String accountNo;
+
+    private String mobileNo;
     private final String currencyCode;
 
     private final Long staffId;
@@ -72,7 +74,7 @@ public final class SearchParameters {
     public static SearchParameters forClients(final String sqlSearch, final Long officeId, final String externalId,
             final String displayName, final String firstname, final String lastname, final String status, final String hierarchy,
             final Integer offset, final Integer limit, final String orderBy, final String sortOrder, final Boolean orphansOnly,
-            final boolean isSelfUser, final String clientType, final String accountNo) {
+            final boolean isSelfUser, final String clientType, final String accountNo, String mobileNo) {
 
         final Integer maxLimitAllowed = getCheckedLimit(limit);
         final Long staffId = null;
@@ -81,15 +83,14 @@ public final class SearchParameters {
         final Long savingsId = null;
 
         return new SearchParameters(sqlSearch, officeId, externalId, displayName, hierarchy, firstname, lastname, status, offset,
-                maxLimitAllowed, orderBy, sortOrder, staffId, accountNo, loanId, savingsId, orphansOnly, isSelfUser, clientType);
+                maxLimitAllowed, orderBy, sortOrder, staffId, accountNo, loanId, savingsId, orphansOnly, isSelfUser, clientType, mobileNo);
     }
 
-    public static SearchParameters forGroups(final Long officeId, final Long staffId, final String externalId, final String name,
-            final String hierarchy, final Integer offset, final Integer limit, final String orderBy, final String sortOrder,
-            final Boolean orphansOnly) {
+    public static SearchParameters forGroups(final Long officeId, final Long staffId, final String externalId, final String accountNo,
+            final String name, final String hierarchy, final Integer offset, final Integer limit, final String orderBy,
+            final String sortOrder, final Boolean orphansOnly) {
 
         final Integer maxLimitAllowed = getCheckedLimit(limit);
-        final String accountNo = null;
         final Long loanId = null;
         final Long savingsId = null;
         final boolean isSelfUser = false;
@@ -188,12 +189,11 @@ public final class SearchParameters {
         return new SearchParameters(provisioningEntryId, officeId, productId, categoryId, offset, limit);
     }
 
-    public static SearchParameters forSavings(final String sqlSearch, final String externalId, final Integer offset, final Integer limit,
-            final String orderBy, final String sortOrder) {
+    public static SearchParameters forSavings(final String sqlSearch, final String externalId, final String accountNo, final Integer offset,
+            final Integer limit, final String orderBy, final String sortOrder) {
 
         final Integer maxLimitAllowed = getCheckedLimit(limit);
         final Long staffId = null;
-        final String accountNo = null;
         final Long loanId = null;
         final Long savingsId = null;
         final Boolean orphansOnly = false;
@@ -301,7 +301,8 @@ public final class SearchParameters {
     private SearchParameters(final String sqlSearch, final Long officeId, final String externalId, final String name,
             final String hierarchy, final String firstname, final String lastname, final String status, final Integer offset,
             final Integer limit, final String orderBy, final String sortOrder, final Long staffId, final String accountNo,
-            final Long loanId, final Long savingsId, final Boolean orphansOnly, boolean isSelfUser, final String clientType) {
+            final Long loanId, final Long savingsId, final Boolean orphansOnly, boolean isSelfUser, final String clientType,
+            final String mobileNo) {
         this.sqlSearch = sqlSearch;
         this.officeId = officeId;
         this.externalId = externalId;
@@ -315,6 +316,7 @@ public final class SearchParameters {
         this.sortOrder = sortOrder;
         this.staffId = staffId;
         this.accountNo = accountNo;
+        this.mobileNo = mobileNo;
         this.loanId = loanId;
         this.savingsId = savingsId;
         this.orphansOnly = orphansOnly;
@@ -651,5 +653,13 @@ public final class SearchParameters {
 
     public String getEndDueDate() {
         return endDueDate;
+    }
+
+    public String getMobileNo() {
+        return mobileNo;
+    }
+
+    public void setMobileNo(String mobileNo) {
+        this.mobileNo = mobileNo;
     }
 }

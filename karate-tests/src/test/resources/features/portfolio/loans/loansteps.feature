@@ -526,3 +526,19 @@ Feature: Create loan stapes
     Then status 200
     Then match $ contains { resourceId: '#notnull' }
     Then def loanId = response.resourceId
+
+  @ignore
+  @createGLIMLoanWithConfigurableProductAndLoanTermStep
+  Scenario: Create GLIM loan account With Configurable Product and Loan Term
+    Given configure ssl = true
+    * def loansData = read('classpath:templates/loans.json')
+    Given path 'batches?enclosingTransaction=true'
+    And header Accept = 'application/json'
+    And header Content-Type = 'application/json'
+    And header Authorization = authToken
+    And header fineract-platform-tenantid = tenantId
+    And request loansData.createGLIMAccountPayLoad
+    When method POST
+    Then status 200
+    Then match $ contains { resourceId: '#notnull' }
+    Then def loanId = response.resourceId

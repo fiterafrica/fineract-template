@@ -38,6 +38,6 @@ public class DisburseLoanToSavingsCommandHandler implements NewCommandSourceHand
     @Override
     public CommandProcessingResult processCommand(final JsonCommand command) {
 
-        return this.writePlatformService.disburseLoan(command.entityId(), command, true);
+        return this.writePlatformService.disburseLoan(command.entityId(), command, true, false);
     }
 }

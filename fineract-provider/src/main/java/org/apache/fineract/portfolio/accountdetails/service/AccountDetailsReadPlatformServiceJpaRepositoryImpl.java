@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.portfolio.accountdetails.service;
 
+import com.google.common.base.Splitter;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,6 +27,7 @@ import java.util.Collection;
 import java.util.List;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
+import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.apache.fineract.infrastructure.security.utils.ColumnValidator;
 import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.portfolio.accountdetails.data.AccountSummaryCollectionData;
@@ -49,6 +51,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements AccountDetailsReadPlatformService {
@@ -69,58 +72,166 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
     }
 
     @Override
-    public AccountSummaryCollectionData retrieveClientAccountDetails(final Long clientId) {
-        // Check if client exists
-        this.clientReadPlatformService.retrieveOne(clientId);
-        final String loanwhereClause = " where l.client_id = ?";
-        final String glimLoanClause = " where l.client_id = ? and l.loan_type_enum=4";
+    public AccountSummaryCollectionData retrieveClientAccountDetails(final Long clientId, String filter) {
 
-        // note to self: investigate the effect of have loans stored as another
-        // type especially given that we want to maintain how the system
-        // currently handles loans of exisiting types.
-        final String savingswhereClause = " where sa.client_id = ? order by sa.status_enum ASC, sa.account_no ASC";
+        // Supported search fields are "loanAccounts, savingsAccounts, shareAccounts, glimAccounts,
+        // guarantorLoanAccounts"
+        final List<String> requiredFilter = getRequiredAccountFilters(5, filter);
 
-        final String guarantorWhereClause = " where g.entity_id = ? and g.is_active = true order by l.account_no ASC";
+        this.clientReadPlatformService.validateClient(clientId);
+        String loanwhereClause = null;
+        String glimLoanClause = null;
+        String savingswhereClause = null;
+        String guarantorWhereClause = null;
+        String shareWhereClause = null;
 
-        final List<LoanAccountSummaryData> glimAccounts = retrieveLoanAccountDetails(glimLoanClause, new Object[] { clientId });
-        final List<LoanAccountSummaryData> loanAccounts = retrieveLoanAccountDetails(loanwhereClause, new Object[] { clientId });
-        final List<SavingsAccountSummaryData> savingsAccounts = retrieveAccountDetails(savingswhereClause, new Object[] { clientId });
-        final List<ShareAccountSummaryData> shareAccounts = retrieveShareAccountDetails(clientId);
-        final List<GuarantorAccountSummaryData> guarantorloanAccounts = retrieveGuarantorLoanAccountDetails(guarantorWhereClause,
-                new Object[] { clientId });
-        return new AccountSummaryCollectionData(loanAccounts, glimAccounts, savingsAccounts, shareAccounts, guarantorloanAccounts);
+        for (final String requiredAccount : requiredFilter) {
+            switch (requiredAccount.toLowerCase()) {
+
+                case "loanaccounts":
+                    loanwhereClause = " where l.client_id = ?";
+                break;
+                case "savingsaccounts":
+                    savingswhereClause = " where sa.client_id = ? order by sa.status_enum ASC, sa.account_no ASC";
+                break;
+                case "shareaccounts":
+                    shareWhereClause = " where sa.client_id = ? ";
+                break;
+                case "glimaccounts":
+                    glimLoanClause = " where l.client_id = ? and l.loan_type_enum=4";
+                break;
+                case "guarantorloanaccounts":
+                    guarantorWhereClause = " where g.entity_id = ? and g.is_active = true order by l.account_no ASC";
+                break;
+                default:
+                    throw new PlatformDataIntegrityException("error.msg.account.data.integrity.issue",
+                            "Invalid filter option: " + requiredAccount);
+
+            }
+        }
+
+        final AccountSummaryCollectionData.AccountSummaryCollectionDataBuilder builder = AccountSummaryCollectionData.builder();
+
+        if (glimLoanClause != null) {
+            final List<LoanAccountSummaryData> glimAccounts = retrieveLoanAccountDetails(glimLoanClause, new Object[] { clientId });
+            builder.groupLoanIndividualMonitoringAccounts(glimAccounts);
+        }
+
+        if (savingswhereClause != null) {
+            final List<SavingsAccountSummaryData> savingsAccounts = retrieveAccountDetails(savingswhereClause, new Object[] { clientId });
+            builder.savingsAccounts(savingsAccounts);
+        }
+
+        if (loanwhereClause != null) {
+            final List<LoanAccountSummaryData> loanAccounts = retrieveLoanAccountDetails(loanwhereClause, new Object[] { clientId });
+            builder.loanAccounts(loanAccounts);
+        }
+
+        if (shareWhereClause != null) {
+            final List<ShareAccountSummaryData> shareAccounts = retrieveShareAccountDetails(shareWhereClause, new Object[] { clientId });
+            builder.shareAccounts(shareAccounts);
+        }
+
+        if (guarantorWhereClause != null) {
+            final List<GuarantorAccountSummaryData> guarantorloanAccounts = retrieveGuarantorLoanAccountDetails(guarantorWhereClause,
+                    new Object[] { clientId });
+            builder.guarantorAccounts(guarantorloanAccounts);
+        }
+
+        return builder.build();
     }
 
     @Override
-    public AccountSummaryCollectionData retrieveGroupAccountDetails(final Long groupId) {
+    public AccountSummaryCollectionData retrieveGroupAccountDetails(final Long groupId, String fields) {
+
+        // Supported search fields are "loanAccounts, savingsAccounts, shareAccounts, glimAccounts,
+        // guarantorLoanAccounts"
+        final List<String> requiredFilter = getRequiredAccountFilters(7, fields);
         // Check if group exists
-        this.groupReadPlatformService.retrieveOne(groupId);
-        final String loanWhereClauseForGroup = " where l.group_id = ? and l.client_id is null";
-        final String loanWhereClauseForGroupAndLoanType = " where l.group_id = ? and l.loan_type_enum=4";
-        final String loanWhereClauseForMembers = " where l.group_id = ? and l.client_id is not null";
-        final String savingswhereClauseForGroup = " where sa.group_id = ? and sa.client_id is null order by sa.status_enum ASC, sa.account_no ASC";
-        final String savingswhereClauseForMembers = " where sa.group_id = ? and sa.client_id is not null order by sa.status_enum ASC, sa.account_no ASC";
+        this.groupReadPlatformService.validateGroup(groupId);
 
-        final String guarantorWhereClauseForGroup = " where l.group_id = ? and l.client_id is null and g.is_active = true order by l.account_no ASC";
-        final String guarantorWhereClauseForMembers = " where l.group_id = ? and l.client_id is not null and g.is_active = true order by l.account_no ASC";
-        final List<LoanAccountSummaryData> glimAccounts = retrieveLoanAccountDetails(loanWhereClauseForGroupAndLoanType,
-                new Object[] { groupId });
+        String loanWhereClauseForGroup = null;
+        String loanWhereClauseForGroupAndLoanType = null;
+        String loanWhereClauseForMembers = null;
+        String savingswhereClauseForGroup = null;
+        String savingswhereClauseForMembers = null;
 
-        final List<LoanAccountSummaryData> groupLoanAccounts = retrieveLoanAccountDetails(loanWhereClauseForGroup,
-                new Object[] { groupId });
-        final List<SavingsAccountSummaryData> groupSavingsAccounts = retrieveAccountDetails(savingswhereClauseForGroup,
-                new Object[] { groupId });
-        final List<GuarantorAccountSummaryData> groupGuarantorloanAccounts = retrieveGuarantorLoanAccountDetails(
-                guarantorWhereClauseForGroup, new Object[] { groupId });
-        final List<LoanAccountSummaryData> memberLoanAccounts = retrieveLoanAccountDetails(loanWhereClauseForMembers,
-                new Object[] { groupId });
-        final List<SavingsAccountSummaryData> memberSavingsAccounts = retrieveAccountDetails(savingswhereClauseForMembers,
-                new Object[] { groupId });
+        String guarantorWhereClauseForGroup = null;
+        String guarantorWhereClauseForMembers = null;
 
-        final List<GuarantorAccountSummaryData> memberGuarantorloanAccounts = retrieveGuarantorLoanAccountDetails(
-                guarantorWhereClauseForMembers, new Object[] { groupId });
-        return new AccountSummaryCollectionData(groupLoanAccounts, glimAccounts, groupSavingsAccounts, groupGuarantorloanAccounts,
-                memberLoanAccounts, memberSavingsAccounts, memberGuarantorloanAccounts);
+        for (String requiredAccount : requiredFilter) {
+            switch (requiredAccount.toLowerCase()) {
+                case "loanaccounts":
+                    loanWhereClauseForGroup = " where l.group_id = ? and l.client_id is null";
+                break;
+                case "grouploanindividualmonitoringaccounts":
+                    loanWhereClauseForGroupAndLoanType = " where l.group_id = ? and l.loan_type_enum=4";
+                break;
+                case "savingsaccounts":
+                    savingswhereClauseForGroup = " where sa.group_id = ? and sa.client_id is null order by sa.status_enum ASC, sa.account_no ASC";
+                break;
+                case "memberloanaccounts":
+                    loanWhereClauseForMembers = " where l.group_id = ? and l.client_id is not null";
+                break;
+                case "membersavingsaccounts":
+                    savingswhereClauseForMembers = " where sa.group_id = ? and sa.client_id is not null order by sa.status_enum ASC, sa.account_no ASC";
+                break;
+                case "guarantorloanaccounts":
+                    guarantorWhereClauseForGroup = " where l.group_id = ? and l.client_id is null and g.is_active = true order by l.account_no ASC";
+                break;
+                case "memberguarantorloanaccounts":
+                    guarantorWhereClauseForMembers = " where l.group_id = ? and l.client_id is not null and g.is_active = true order by l.account_no ASC";
+                break;
+                default:
+                    throw new PlatformDataIntegrityException("error.msg.account.data.integrity.issue",
+                            "Invalid filter option: " + requiredAccount);
+            }
+        }
+
+        final AccountSummaryCollectionData.AccountSummaryCollectionDataBuilder builder = AccountSummaryCollectionData.builder();
+        if (loanWhereClauseForGroupAndLoanType != null) {
+            final List<LoanAccountSummaryData> glimAccounts = retrieveLoanAccountDetails(loanWhereClauseForGroupAndLoanType,
+                    new Object[] { groupId });
+            builder.groupLoanIndividualMonitoringAccounts(glimAccounts);
+        }
+
+        if (loanWhereClauseForGroup != null) {
+            final List<LoanAccountSummaryData> groupLoanAccounts = retrieveLoanAccountDetails(loanWhereClauseForGroup,
+                    new Object[] { groupId });
+            builder.loanAccounts(groupLoanAccounts);
+        }
+
+        if (savingswhereClauseForGroup != null) {
+            final List<SavingsAccountSummaryData> groupSavingsAccounts = retrieveAccountDetails(savingswhereClauseForGroup,
+                    new Object[] { groupId });
+            builder.savingsAccounts(groupSavingsAccounts);
+        }
+
+        if (guarantorWhereClauseForGroup != null) {
+            final List<GuarantorAccountSummaryData> groupGuarantorloanAccounts = retrieveGuarantorLoanAccountDetails(
+                    guarantorWhereClauseForGroup, new Object[] { groupId });
+            builder.guarantorAccounts(groupGuarantorloanAccounts);
+        }
+
+        if (loanWhereClauseForMembers != null) {
+            final List<LoanAccountSummaryData> memberLoanAccounts = retrieveLoanAccountDetails(loanWhereClauseForMembers,
+                    new Object[] { groupId });
+            builder.memberLoanAccounts(memberLoanAccounts);
+        }
+
+        if (savingswhereClauseForMembers != null) {
+            final List<SavingsAccountSummaryData> memberSavingsAccounts = retrieveAccountDetails(savingswhereClauseForMembers,
+                    new Object[] { groupId });
+            builder.memberSavingsAccounts(memberSavingsAccounts);
+        }
+
+        if (guarantorWhereClauseForMembers != null) {
+            final List<GuarantorAccountSummaryData> memberGuarantorloanAccounts = retrieveGuarantorLoanAccountDetails(
+                    guarantorWhereClauseForMembers, new Object[] { groupId });
+            builder.memberGuarantorAccounts(memberGuarantorloanAccounts);
+        }
+
+        return builder.build();
 
     }
 
@@ -193,7 +304,8 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
     }
 
     /**
-     * @param entityId
+     * @param savingswhereClause
+     * @param inputs
      * @return
      */
     private List<SavingsAccountSummaryData> retrieveAccountDetails(final String savingswhereClause, final Object[] inputs) {
@@ -203,10 +315,10 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
         return this.jdbcTemplate.query(savingsSql, savingsAccountSummaryDataMapper, inputs); // NOSONAR
     }
 
-    private List<ShareAccountSummaryData> retrieveShareAccountDetails(final Long clientId) {
+    private List<ShareAccountSummaryData> retrieveShareAccountDetails(final String whereClause, final Object[] inputs) {
         final ShareAccountSummaryDataMapper mapper = new ShareAccountSummaryDataMapper();
-        final String query = "select " + mapper.schema() + " where sa.client_id = ?";
-        return this.jdbcTemplate.query(query, mapper, new Object[] { clientId }); // NOSONAR
+        final String query = "select " + mapper.schema() + whereClause;
+        return this.jdbcTemplate.query(query, mapper, inputs); // NOSONAR
     }
 
     private List<GuarantorAccountSummaryData> retrieveGuarantorLoanAccountDetails(final String loanwhereClause, final Object[] inputs) {
@@ -455,7 +567,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 
             final StringBuilder accountsSummary = new StringBuilder("l.id as id, l.account_no as accountNo, l.external_id as externalId,");
             accountsSummary.append(" l.product_id as productId, lp.name as productName, lp.short_name as shortProductName,")
-                    .append(" l.loan_status_id as statusId, l.loan_type_enum as loanType,")
+                    .append(" lp.description as loanProductDescription, l.loan_status_id as statusId, l.loan_type_enum as loanType,")
 
                     .append(" glim.account_number as parentAccountNumber,")
 
@@ -483,7 +595,8 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                     .append(" cbu.username as closedByUsername, cbu.firstname as closedByFirstname, cbu.lastname as closedByLastname,")
                     .append(" la.overdue_since_date_derived as overdueSinceDate,")
                     .append(" l.writtenoffon_date as writtenOffOnDate, l.expected_maturedon_date as expectedMaturityDate, ")
-                    .append(" ds.loan_decision_state as loanDecisionState ")
+                    .append(" ds.loan_decision_state as loanDecisionState , ")
+                    .append(" glim.actual_principal_amount as actualPrincipalAmount ")
 
                     .append(" from m_loan l ").append("LEFT JOIN m_product_loan AS lp ON lp.id = l.product_id")
                     .append(" left join m_appuser sbu on sbu.id = l.created_by")
@@ -509,6 +622,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
             final Long productId = JdbcSupport.getLong(rs, "productId");
             final String loanProductName = rs.getString("productName");
             final String shortLoanProductName = rs.getString("shortProductName");
+            final String loanProductDescription = rs.getString("loanProductDescription");
             final Integer loanStatusId = JdbcSupport.getInteger(rs, "statusId");
             final LoanStatusEnumData loanStatus = LoanEnumerations.status(loanStatusId);
             final Integer loanTypeId = JdbcSupport.getInteger(rs, "loanType");
@@ -549,6 +663,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
             final BigDecimal originalLoan = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "originalLoan");
             final BigDecimal loanBalance = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "loanBalance");
             final BigDecimal amountPaid = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "amountPaid");
+            final BigDecimal actualPrincipalAmount = JdbcSupport.getBigDecimalDefaultToNullIfZero(rs, "actualPrincipalAmount");
 
             final LocalDate writtenOffOnDate = JdbcSupport.getLocalDate(rs, "writtenOffOnDate");
 
@@ -573,9 +688,11 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                     disbursedByFirstname, disbursedByLastname, closedOnDate, closedByUsername, closedByFirstname, closedByLastname,
                     expectedMaturityDate, writtenOffOnDate, closedByUsername, closedByFirstname, closedByLastname);
 
-            return new LoanAccountSummaryData(id, accountNo, parentAccountNumber, externalId, productId, loanProductName,
-                    shortLoanProductName, loanStatus, loanType, loanCycle, timeline, inArrears, originalLoan, loanBalance, amountPaid,
-                    loanDecisionStateEnumData);
+            LoanAccountSummaryData loanAccountSummaryData = new LoanAccountSummaryData(id, accountNo, parentAccountNumber, externalId,
+                    productId, loanProductName, shortLoanProductName, loanStatus, loanType, loanCycle, timeline, inArrears, originalLoan,
+                    loanBalance, amountPaid, loanDecisionStateEnumData, actualPrincipalAmount);
+            loanAccountSummaryData.setLoanProductDescription(loanProductDescription);
+            return loanAccountSummaryData;
         }
 
     }
@@ -643,6 +760,22 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                     loanType, loanCycle, inArrears, originalLoan, loanBalance, amountPaid, isActive, relationship, onHoldAmount);
         }
 
+    }
+
+    private List<String> getRequiredAccountFilters(final Integer expectedParameters, String fields) {
+
+        if (StringUtils.isEmpty(fields)) {
+            throw new PlatformDataIntegrityException("error.msg.account.data.integrity.issue",
+                    "No fields specified to populate the account resource.");
+        }
+
+        final List<String> fieldList = Splitter.on(',').splitToList(fields);
+        if (fieldList.size() > expectedParameters) {
+            throw new IllegalArgumentException(
+                    "Invalid filter option, a maximum of " + expectedParameters + " filter options supported: " + fields);
+        }
+
+        return fieldList;
     }
 
 }

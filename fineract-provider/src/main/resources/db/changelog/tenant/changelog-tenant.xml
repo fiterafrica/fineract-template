@@ -87,5 +87,30 @@
     <include file="parts/OXY-138_add_on_hold_table_for_savings_account.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO-43_client_business_details.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO-69-modify-loan-account-and-product.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_71_add_client_statement_table_report_reports_table.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_72_update_report_sql_obligations_met_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_73_add_loan_in_arrears_to_reports_table.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_74_add_collateral_report_to_reports_table.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_76_update_client_id_select_all_report_parameter_query.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_75_update_loan_aging_summary_reports.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_77_add_loan_fully_paid_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_78_add_secured_and_non_secured_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_79_update_reschuled_loan_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_80_add_sectorial_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_81_add_group_loans_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_82_update_report_sql_secured_and_unsecured_loans_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_83_update_report_sql_obligations_met_loans_summary_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_84_update_report_sql_loan_arrears_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_85_update_report_sql_write-off-loans_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_86_update_report_sql_loan_fully_paid_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_87_update_report_sql_sectorial_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_88_update_report_sql_group_loans_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_90_created_fees_collection_pentaho_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_89_add_topup_loans_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_91_fix_sql_query_for_loan_aging_summary_table_reports.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_92_add_loan_product_pentaho_reports.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_93_add_portfolio_management_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_94_add_ic_minutes_table_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO_95_update_topup_report_parameters.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>

@@ -42,7 +42,6 @@ import org.apache.fineract.organisation.office.data.OfficeData;
 import org.apache.fineract.organisation.office.service.OfficeReadPlatformService;
 import org.apache.fineract.organisation.staff.data.StaffData;
 import org.apache.fineract.organisation.staff.service.StaffReadPlatformService;
-import org.apache.fineract.portfolio.client.data.ClientData;
 import org.apache.fineract.portfolio.group.api.GroupingTypesApiConstants;
 import org.apache.fineract.portfolio.group.data.CenterData;
 import org.apache.fineract.portfolio.group.data.GroupGeneralData;
@@ -125,10 +124,8 @@ public class GroupReadPlatformServiceImpl implements GroupReadPlatformService {
         final String centerName = null;
         final Long staffId = null;
         final String staffName = null;
-        final Collection<ClientData> clientOptions = null;
-
         return GroupGeneralData.template(defaultOfficeId, centerId, accountNo, centerName, staffId, staffName, centerOptions, officeOptions,
-                staffOptions, clientOptions, availableRoles);
+                staffOptions, availableRoles);
     }
 
     private Long defaultToUsersOfficeIfNull(final Long officeId) {
@@ -221,6 +218,8 @@ public class GroupReadPlatformServiceImpl implements GroupReadPlatformService {
 
         extraCriteria.addNonNullCriteria(" g.external_id =", searchCriteria.getExternalId());
 
+        extraCriteria.addNonNullCriteria(" g.account_no = ", searchCriteria.getAccountNo());
+
         final String name = searchCriteria.getName();
         if (name != null) {
             extraCriteria.addNonNullCriteria("g.display_name like", "%" + name + "%");
@@ -278,6 +277,16 @@ public class GroupReadPlatformServiceImpl implements GroupReadPlatformService {
         final List<CodeValueData> closureReasons = new ArrayList<>(
                 this.codeValueReadPlatformService.retrieveCodeValuesByCode(GroupingTypesApiConstants.GROUP_CLOSURE_REASON));
         return GroupGeneralData.withClosureReasons(closureReasons);
+    }
+
+    @Override
+    public void validateGroup(Long clientId) {
+        try {
+            final String sql = "SELECT cl.id FROM m_group cl WHERE cl.id =? ";
+            this.jdbcTemplate.queryForObject(sql, Long.class, clientId);
+        } catch (final EmptyResultDataAccessException e) {
+            throw new GroupNotFoundException(clientId, e);
+        }
     }
 
 }
