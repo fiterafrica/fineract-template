@@ -75,6 +75,9 @@ public final class LoanSchedulePeriodData {
     private final BigDecimal totalActualCostOfLoanForPeriod;
     private final BigDecimal totalInstallmentAmountForPeriod;
 
+    private final String externalId;
+    private final String accountNo;
+
     public static LoanSchedulePeriodData disbursementOnlyPeriod(final LocalDate disbursementDate, final BigDecimal principalDisbursed,
             final BigDecimal feeChargesDueAtTimeOfDisbursement, final boolean isDisbursed) {
         final Integer periodNumber = null;
@@ -148,7 +151,7 @@ public final class LoanSchedulePeriodData {
             final BigDecimal totalDueForPeriod, final BigDecimal totalPaid, final BigDecimal totalPaidInAdvanceForPeriod,
             final BigDecimal totalPaidLateForPeriod, final BigDecimal totalWaived, final BigDecimal totalWrittenOff,
             final BigDecimal totalOutstanding, final BigDecimal totalActualCostOfLoanForPeriod,
-            final BigDecimal totalInstallmentAmountForPeriod) {
+            final BigDecimal totalInstallmentAmountForPeriod, final String externalId, final String accountNo) {
 
         return new LoanSchedulePeriodData(loanId, installmentId, periodNumber, fromDate, dueDate, obligationsMetOnDate, complete,
                 principalOriginalDue, principalPaid, principalWrittenOff, principalOutstanding, outstandingPrincipalBalanceOfLoan,
@@ -156,7 +159,7 @@ public final class LoanSchedulePeriodData {
                 feeChargesPaid, feeChargesWaived, feeChargesWrittenOff, feeChargesOutstanding, penaltyChargesDue, penaltyChargesPaid,
                 penaltyChargesWaived, penaltyChargesWrittenOff, penaltyChargesOutstanding, totalDueForPeriod, totalPaid,
                 totalPaidInAdvanceForPeriod, totalPaidLateForPeriod, totalWaived, totalWrittenOff, totalOutstanding,
-                totalActualCostOfLoanForPeriod, totalInstallmentAmountForPeriod);
+                totalActualCostOfLoanForPeriod, totalInstallmentAmountForPeriod, externalId, accountNo);
     }
 
     /*
@@ -225,6 +228,8 @@ public final class LoanSchedulePeriodData {
         } else {
             this.totalOverdue = null;
         }
+        this.externalId = null;
+        this.accountNo = null;
     }
 
     /*
@@ -289,6 +294,9 @@ public final class LoanSchedulePeriodData {
         } else {
             this.totalOverdue = null;
         }
+        this.externalId = null;
+        this.accountNo = null;
+
     }
 
     /*
@@ -362,6 +370,8 @@ public final class LoanSchedulePeriodData {
         } else {
             this.totalOverdue = null;
         }
+        this.accountNo = null;
+        this.externalId = null;
     }
 
     /*
@@ -379,7 +389,8 @@ public final class LoanSchedulePeriodData {
             final BigDecimal penaltyChargesWrittenOff, final BigDecimal penaltyChargesOutstanding, final BigDecimal totalDueForPeriod,
             final BigDecimal totalPaid, final BigDecimal totalPaidInAdvanceForPeriod, final BigDecimal totalPaidLateForPeriod,
             final BigDecimal totalWaived, final BigDecimal totalWrittenOff, final BigDecimal totalOutstanding,
-            final BigDecimal totalActualCostOfLoanForPeriod, final BigDecimal totalInstallmentAmountForPeriod) {
+            final BigDecimal totalActualCostOfLoanForPeriod, final BigDecimal totalInstallmentAmountForPeriod, String externalId,
+            String accountNo) {
         this.loanId = loanId;
         this.installmentId = installmentId;
         this.period = periodNumber;
@@ -435,6 +446,8 @@ public final class LoanSchedulePeriodData {
         } else {
             this.totalOverdue = null;
         }
+        this.externalId = externalId;
+        this.accountNo = accountNo;
     }
 
     private BigDecimal defaultToZeroIfNull(final BigDecimal possibleNullValue) {

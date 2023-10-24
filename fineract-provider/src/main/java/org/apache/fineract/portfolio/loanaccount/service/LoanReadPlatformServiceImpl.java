@@ -2970,7 +2970,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         LoanRepaymentScheduleInstallmentMapper() {
             StringBuilder sb = new StringBuilder();
             sb.append(
-                    " lrs.loan_id as loanId, lrs.id as installmentId, lrs.fromdate as fromDate, lrs.dueDate as dueDate, lrs.installment as installment, "
+                    " lrs.loan_id as loanId,l.external_id as externalId,l.account_no as accountNo, lrs.id as installmentId, lrs.fromdate as fromDate, lrs.dueDate as dueDate, lrs.installment as installment, "
                             + " lrs.principal_amount as principalOriginalDue, lrs.principal_completed_derived as principalPaid, "
                             + " lrs.principal_writtenoff_derived as principalWrittenOff, lrs.interest_amount as interestAmount, "
                             + " lrs.interest_completed_derived as interestPaid, lrs.interest_writtenoff_derived as interestWrittenOff, "
@@ -3034,6 +3034,8 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
             final BigDecimal totalOutstanding = null;
             final BigDecimal totalPaid = null;
             final BigDecimal totalInstallmentAmount = null;
+            final String externalId = rs.getString("externalId");
+            final String accountNo = rs.getString("accountNo");
 
             return LoanSchedulePeriodData.repaymentPeriodFull(loanId, installmentId, installment, fromDate, dueDate, obligationsMetOnDate,
                     complete, principalOriginalDue, principalPaid, principalWrittenOff, principalOutstanding,
@@ -3041,7 +3043,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                     interestOutstanding, feeChargesDue, feeChargesPaid, feeChargesWaived, feeChargesWrittenOff, feeChargesOutstanding,
                     penaltyChargesDue, penaltyChargesPaid, penaltyChargesWaived, penaltyChargesWrittenOff, penaltyChargesOutstanding,
                     totalDueForPeriod, totalPaid, totalPaidInAdvanceForPeriod, totalPaidLateForPeriod, totalWaived, totalWrittenOff,
-                    totalOutstanding, totalActualCostOfLoanForPeriod, totalInstallmentAmount);
+                    totalOutstanding, totalActualCostOfLoanForPeriod, totalInstallmentAmount, externalId, accountNo);
         }
     }
 
