@@ -287,6 +287,14 @@ public class DepositAccountTermAndPreClosure extends AbstractPersistableCustom {
         this.depositAmount = depositAmount;
     }
 
+    public void setDepositPeriod(Integer depositPeriod) {
+        this.depositPeriod = depositPeriod;
+    }
+
+    public void setDepositPeriodFrequency(Integer depositPeriodFrequency) {
+        this.depositPeriodFrequency = depositPeriodFrequency;
+    }
+
     public LocalDate getMaturityLocalDate() {
         return this.maturityDate;
     }

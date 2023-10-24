@@ -139,4 +139,6 @@ public interface SavingsAccountWritePlatformService {
     void cleanUpSavingsAccounts();
 
     void cleanUpFixeDepositAccounts();
+
+    void cleanUpRDAs();
 }

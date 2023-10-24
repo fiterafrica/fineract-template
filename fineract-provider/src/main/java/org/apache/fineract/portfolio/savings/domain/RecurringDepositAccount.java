@@ -432,7 +432,8 @@ public class RecurringDepositAccount extends SavingsAccount {
     }
 
     public LocalDate depositStartDate() {
-        final LocalDate depositStartDate = accountTermAndPreClosure.getExpectedFirstDepositOnDate();
+        final LocalDate depositStartDate = accountTermAndPreClosure != null ? accountTermAndPreClosure.getExpectedFirstDepositOnDate()
+                : null;
         if (depositStartDate == null) {
             return accountSubmittedOrActivationDate();
         }

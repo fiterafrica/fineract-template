@@ -31,10 +31,17 @@ import static org.apache.fineract.portfolio.savings.SavingsApiConstants.withdraw
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,6 +53,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
@@ -87,13 +97,20 @@ import org.apache.fineract.portfolio.account.service.AccountTransfersReadPlatfor
 import org.apache.fineract.portfolio.businessevent.domain.savings.SavingsActivateBusinessEvent;
 import org.apache.fineract.portfolio.businessevent.domain.savings.SavingsCloseBusinessEvent;
 import org.apache.fineract.portfolio.businessevent.service.BusinessEventNotifierService;
+import org.apache.fineract.portfolio.calendar.domain.Calendar;
+import org.apache.fineract.portfolio.calendar.domain.CalendarEntityType;
+import org.apache.fineract.portfolio.calendar.domain.CalendarFrequencyType;
+import org.apache.fineract.portfolio.calendar.domain.CalendarInstance;
 import org.apache.fineract.portfolio.calendar.domain.CalendarInstanceRepository;
+import org.apache.fineract.portfolio.calendar.domain.CalendarType;
+import org.apache.fineract.portfolio.calendar.service.CalendarUtils;
 import org.apache.fineract.portfolio.charge.domain.Charge;
 import org.apache.fineract.portfolio.charge.domain.ChargeRepositoryWrapper;
 import org.apache.fineract.portfolio.charge.domain.ChargeTimeType;
 import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.client.exception.ClientNotActiveException;
 import org.apache.fineract.portfolio.common.domain.BusinessEventNotificationConstants;
+import org.apache.fineract.portfolio.common.domain.PeriodFrequencyType;
 import org.apache.fineract.portfolio.group.domain.Group;
 import org.apache.fineract.portfolio.group.exception.GroupNotActiveException;
 import org.apache.fineract.portfolio.note.domain.Note;
@@ -116,10 +133,13 @@ import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionDataV
 import org.apache.fineract.portfolio.savings.domain.DepositAccountAssembler;
 import org.apache.fineract.portfolio.savings.domain.DepositAccountOnHoldTransaction;
 import org.apache.fineract.portfolio.savings.domain.DepositAccountOnHoldTransactionRepository;
+import org.apache.fineract.portfolio.savings.domain.DepositAccountTermAndPreClosure;
 import org.apache.fineract.portfolio.savings.domain.FixedDepositAccount;
 import org.apache.fineract.portfolio.savings.domain.FixedDepositAccountRepository;
 import org.apache.fineract.portfolio.savings.domain.GSIMRepositoy;
 import org.apache.fineract.portfolio.savings.domain.GroupSavingsIndividualMonitoring;
+import org.apache.fineract.portfolio.savings.domain.RecurringDepositAccount;
+import org.apache.fineract.portfolio.savings.domain.RecurringDepositProduct;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountAssembler;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountCharge;
@@ -2551,7 +2571,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     }
 
     @Override
-    @CronTarget(jobName = JobName.GENERATE_ADHOCCLIENT_SCEHDULE)
+    // @CronTarget(jobName = JobName.GENERATE_ADHOCCLIENT_SCEHDULE)
     public void cleanUpFixeDepositAccounts() {
         LOG.info("Fixed Deposit Accounts are being cleaned up");
         this.refreshSavingsFDAccounts(SavingsAccountStatusType.ACTIVE.getValue());
@@ -2559,6 +2579,126 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         this.refreshSavingsFDAccounts(SavingsAccountStatusType.MATURED.getValue());
         this.refreshSavingsFDAccounts(SavingsAccountStatusType.PRE_MATURE_CLOSURE.getValue());
         LOG.info("Fixed Deposit Accounts are refreshed");
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.GENERATE_ADHOCCLIENT_SCEHDULE)
+    public void cleanUpRDAs() {
+        LOG.info("Recurring Deposit Accounts are being cleaned up");
+        final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
+                .isSavingsInterestPostingAtCurrentPeriodEnd();
+        final Integer financialYearBeginningMonth = this.configurationDomainService.retrieveFinancialYearBeginningMonth();
+        String filePath = "/tmp/staging.investmentAccount.csv"; // Path to the raw file
+        int accountIdIndex = 4;
+        int frequencyIndex = 5;
+        int depositAmountIndex = 6;
+        int firstDueDateIndex = 371; // this will change to 372 in production
+        try (CSVParser parser = new CSVParser(Files.newBufferedReader(Paths.get(filePath), Charset.defaultCharset()), CSVFormat.DEFAULT)) {
+            int row = 0;
+            for (CSVRecord record : parser) {
+                if (row == 0) {
+                    int i = 7;
+                    while(true) {
+                        i += 1;
+                        String value = record.get(i).trim();
+                        LOG.info("Value is {}", value);
+                        if (value.equalsIgnoreCase("instalments[0].dueDate")) {
+                            firstDueDateIndex = i;
+                            break;
+                        }
+                    }
+                    row += 1;
+                    continue; // Skip the header
+                }
+                // Process each line as necessary
+                String accountId = record.get(accountIdIndex);
+                String frequency = record.get(frequencyIndex);
+                BigDecimal depositAmount = record.get(depositAmountIndex).isEmpty() ? BigDecimal.ZERO
+                        : new BigDecimal(record.get(depositAmountIndex));
+                Instant instant = Instant.parse(record.get(firstDueDateIndex));
+                LocalDate firstDueDate = instant.atZone(ZoneId.systemDefault()).toLocalDate();
+                int tenure = 1;
+                while (!record.get(++firstDueDateIndex).isEmpty()) {
+                    tenure += 1;
+                }
+
+                // Insert the recurring detail if it doesn't exist
+                String recurringDetailSql = "INSERT INTO m_deposit_account_recurring_detail(\n"
+                        + "\tsavings_account_id, mandatory_recommended_deposit_amount, total_overdue_amount)\n" + "\tSELECT id, ?, 0\n"
+                        + "\tFROM m_savings_account WHERE account_no = ? AND id NOT IN (SELECT savings_account_id FROM m_deposit_account_recurring_detail)";
+                this.jdbcTemplate.update(recurringDetailSql, depositAmount, accountId);
+
+                // Get the account
+                SavingsAccount account = this.depositAccountAssembler.assembleFrom(accountId, DepositAccountType.RECURRING_DEPOSIT);
+                String sql = "SELECT COUNT(*) FROM m_calendar WHERE title = ?";
+                Integer count = this.jdbcTemplate.queryForObject(sql, Integer.class, "recurring_savings_" + account.getId());
+                if (count > 0) {
+                    continue; // this account has already been processed.
+                }
+
+                if (!account.getSavingsProductId().equals(33L)) {
+                    continue; //We are only processing Payvest Periodic (change to the approriate id in prod)
+                }
+
+                LocalDate calendarStartDate = ((RecurringDepositAccount) account).depositStartDate();
+
+                Integer freqType = 0;
+                if (frequency.equalsIgnoreCase("DAILY")) {
+                    freqType = 0;
+                } else if (frequency.equalsIgnoreCase("WEEKLY")) {
+                    freqType = 1;
+                } else if (frequency.equalsIgnoreCase("MONTHLY")) {
+                    freqType = 2;
+                } else if (frequency.equalsIgnoreCase("YEARLY")) {
+                    freqType = 3;
+                }
+
+                final PeriodFrequencyType periodFrequencyType = PeriodFrequencyType.fromInt(freqType);
+
+                DepositAccountTermAndPreClosure accountTermAndPreClosure = ((RecurringDepositAccount) account)
+                        .getAccountTermAndPreClosure();
+                if (accountTermAndPreClosure != null) {
+                    accountTermAndPreClosure.setDepositPeriod(tenure);
+                    accountTermAndPreClosure.updateDepositAmount(depositAmount);
+                    accountTermAndPreClosure.updateExpectedFirstDepositDate(firstDueDate);
+                    accountTermAndPreClosure.setDepositPeriodFrequency(freqType);
+                    if (accountTermAndPreClosure.getPreClosureDetail() == null) {
+                        // Let's generate this detail
+                        RecurringDepositProduct product = ((RecurringDepositAccount) account).getProduct();
+
+                    }
+                } else {
+                    // Skip these accounts with no term and pre closure records
+                    continue;
+                }
+                LOG.info("Recurring Deposit Account {} is being processed", account.getAccountNumber());
+                final Integer repeatsOnDay = calendarStartDate.get(ChronoField.DAY_OF_WEEK);
+
+                final String title = "recurring_savings_" + account.getId();
+
+                Calendar calendar = Calendar.createRepeatingCalendar(title, calendarStartDate, CalendarType.COLLECTION.getValue(),
+                        CalendarFrequencyType.from(periodFrequencyType), 1, repeatsOnDay, null);
+                CalendarInstance calendarInstance = CalendarInstance.from(calendar, account.getId(), CalendarEntityType.SAVINGS.getValue());
+                this.calendarInstanceRepository.saveAndFlush(calendarInstance);
+
+                final MathContext mc = MathContext.DECIMAL64;
+                calendar = calendarInstance.getCalendar();
+                PeriodFrequencyType frequencyType = CalendarFrequencyType.from(CalendarUtils.getFrequency(calendar.getRecurrence()));
+                Integer freq = CalendarUtils.getInterval(calendar.getRecurrence());
+                freq = freq == -1 ? 1 : freq;
+                ((RecurringDepositAccount) account).generateSchedule(frequencyType, freq, calendar);
+                final boolean isPreMatureClosure = false;
+                ((RecurringDepositAccount) account).updateMaturityDateAndAmount(mc, isPreMatureClosure,
+                        isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
+                ((RecurringDepositAccount) account).validateApplicableInterestRate();
+                this.savingAccountRepositoryWrapper.saveAndFlush(account);
+                LOG.info("Recurring Deposit Account {} has been processed", account.getAccountNumber());
+            }
+        } catch (IOException e) {
+            LOG.error("Error while reading the file {}", filePath, e);
+        }
+
+        LOG.info("Recurring Deposit Accounts are refreshed");
     }
 
     private void refreshSavingsAccounts(Integer status, List<Long> bigAccountIds) {
@@ -2669,27 +2809,9 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
                 .isSavingsInterestPostingAtCurrentPeriodEnd();
         final Integer financialYearBeginningMonth = this.configurationDomainService.retrieveFinancialYearBeginningMonth();
         if (account.getAccountTermAndPreClosure().depositPeriod() != null) {
-            account.updateMaturityDateAndAmountBeforeAccountActivation(MathContext.DECIMAL64, false, isSavingsInterestPostingAtCurrentPeriodEnd,
-                    financialYearBeginningMonth);
+            account.updateMaturityDateAndAmountBeforeAccountActivation(MathContext.DECIMAL64, false,
+                    isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
         }
         this.fixedDepositAccountRepository.saveAndFlush(account);
     }
-
-    // private void generateCalendarInstances(RecurringDepositAccount account) {
-    // LocalDate calendarStartDate = account.depositStartDate();
-    // final Integer frequencyType = command.integerValueSansLocaleOfParameterNamed(recurringFrequencyTypeParamName);
-    // final PeriodFrequencyType periodFrequencyType = PeriodFrequencyType.fromInt(frequencyType);
-    // final Integer frequency = command.integerValueSansLocaleOfParameterNamed(recurringFrequencyParamName);
-    //
-    // final Integer repeatsOnDay = calendarStartDate.get(ChronoField.DAY_OF_WEEK);
-    // final String title = "recurring_savings_" + account.getId();
-    //
-    // final Calendar calendar = Calendar.createRepeatingCalendar(title, calendarStartDate,
-    // CalendarType.COLLECTION.getValue(),
-    // CalendarFrequencyType.from(periodFrequencyType), frequency, repeatsOnDay, null);
-    // CalendarInstance calendarInstance = CalendarInstance.from(calendar, account.getId(),
-    // CalendarEntityType.SAVINGS.getValue());
-    // this.calendarInstanceRepository.save(calendarInstance);
-    // }
-
 }

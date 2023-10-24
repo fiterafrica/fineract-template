@@ -92,6 +92,16 @@ public class SavingsAccountRepositoryWrapper {
     }
 
     @Transactional(readOnly = true)
+    public SavingsAccount findOneWithNotFoundDetection(final String accountNo, final DepositAccountType depositAccountType) {
+        final SavingsAccount account = this.repository.findByIdAndDepositAccountType(accountNo, depositAccountType.getValue());
+        if (account == null) {
+            throw new SavingsAccountNotFoundException(accountNo);
+        }
+        account.loadLazyCollections();
+        return account;
+    }
+
+    @Transactional(readOnly = true)
     public List<SavingsAccount> findSavingAccountByClientId(@Param("clientId") Long clientId) {
         List<SavingsAccount> accounts = this.repository.findSavingAccountByClientId(clientId);
         loadLazyCollections(accounts);

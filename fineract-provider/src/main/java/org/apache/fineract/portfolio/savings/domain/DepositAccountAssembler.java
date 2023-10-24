@@ -378,6 +378,14 @@ public class DepositAccountAssembler {
         return account;
     }
 
+    public SavingsAccount assembleFrom(final String accountNo, DepositAccountType depositAccountType) {
+        final SavingsAccount account = this.savingsAccountRepository.findOneWithNotFoundDetection(accountNo, depositAccountType);
+        account.setHelpers(this.savingsAccountTransactionSummaryWrapper, this.savingsHelper);
+        SavingsAccountActionService.populateTransactions(account,
+                this.savingsAccountTransactionRepository.getTransactionsByAccountId(account.getId()));
+        return account;
+    }
+
     public void assignSavingAccountHelpers(final SavingsAccount savingsAccount) {
         savingsAccount.setHelpers(this.savingsAccountTransactionSummaryWrapper, this.savingsHelper);
     }
