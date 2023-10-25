@@ -41,6 +41,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -2592,107 +2593,115 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         int accountIdIndex = 4;
         int frequencyIndex = 5;
         int depositAmountIndex = 6;
-        int firstDueDateIndex = 371; // this will change to 372 in production
         try (CSVParser parser = new CSVParser(Files.newBufferedReader(Paths.get(filePath), Charset.defaultCharset()), CSVFormat.DEFAULT)) {
             int row = 0;
             for (CSVRecord record : parser) {
+                int firstDueDateIndex = 200;
                 if (row == 0) {
-                    int i = 7;
-                    while(true) {
-                        i += 1;
-                        String value = record.get(i).trim();
-                        LOG.info("Value is {}", value);
-                        if (value.equalsIgnoreCase("instalments[0].dueDate")) {
-                            firstDueDateIndex = i;
-                            break;
-                        }
-                    }
                     row += 1;
                     continue; // Skip the header
                 }
                 // Process each line as necessary
                 String accountId = record.get(accountIdIndex);
+                LOG.info("Processing account with id {}", accountId);
                 String frequency = record.get(frequencyIndex);
                 BigDecimal depositAmount = record.get(depositAmountIndex).isEmpty() ? BigDecimal.ZERO
                         : new BigDecimal(record.get(depositAmountIndex));
-                Instant instant = Instant.parse(record.get(firstDueDateIndex));
-                LocalDate firstDueDate = instant.atZone(ZoneId.systemDefault()).toLocalDate();
-                int tenure = 1;
-                while (!record.get(++firstDueDateIndex).isEmpty()) {
-                    tenure += 1;
-                }
-
+                LOG.info("Deposit amount is {}", depositAmount);
                 // Insert the recurring detail if it doesn't exist
                 String recurringDetailSql = "INSERT INTO m_deposit_account_recurring_detail(\n"
                         + "\tsavings_account_id, mandatory_recommended_deposit_amount, total_overdue_amount)\n" + "\tSELECT id, ?, 0\n"
                         + "\tFROM m_savings_account WHERE account_no = ? AND id NOT IN (SELECT savings_account_id FROM m_deposit_account_recurring_detail)";
                 this.jdbcTemplate.update(recurringDetailSql, depositAmount, accountId);
 
-                // Get the account
-                SavingsAccount account = this.depositAccountAssembler.assembleFrom(accountId, DepositAccountType.RECURRING_DEPOSIT);
-                String sql = "SELECT COUNT(*) FROM m_calendar WHERE title = ?";
-                Integer count = this.jdbcTemplate.queryForObject(sql, Integer.class, "recurring_savings_" + account.getId());
-                if (count > 0) {
-                    continue; // this account has already been processed.
-                }
-
-                if (!account.getSavingsProductId().equals(33L)) {
-                    continue; //We are only processing Payvest Periodic (change to the approriate id in prod)
-                }
-
-                LocalDate calendarStartDate = ((RecurringDepositAccount) account).depositStartDate();
-
-                Integer freqType = 0;
-                if (frequency.equalsIgnoreCase("DAILY")) {
-                    freqType = 0;
-                } else if (frequency.equalsIgnoreCase("WEEKLY")) {
-                    freqType = 1;
-                } else if (frequency.equalsIgnoreCase("MONTHLY")) {
-                    freqType = 2;
-                } else if (frequency.equalsIgnoreCase("YEARLY")) {
-                    freqType = 3;
-                }
-
-                final PeriodFrequencyType periodFrequencyType = PeriodFrequencyType.fromInt(freqType);
-
-                DepositAccountTermAndPreClosure accountTermAndPreClosure = ((RecurringDepositAccount) account)
-                        .getAccountTermAndPreClosure();
-                if (accountTermAndPreClosure != null) {
-                    accountTermAndPreClosure.setDepositPeriod(tenure);
-                    accountTermAndPreClosure.updateDepositAmount(depositAmount);
-                    accountTermAndPreClosure.updateExpectedFirstDepositDate(firstDueDate);
-                    accountTermAndPreClosure.setDepositPeriodFrequency(freqType);
-                    if (accountTermAndPreClosure.getPreClosureDetail() == null) {
-                        // Let's generate this detail
-                        RecurringDepositProduct product = ((RecurringDepositAccount) account).getProduct();
-
+                try {
+                    // Get the account
+                    SavingsAccount account = this.depositAccountAssembler.assembleFrom(accountId, DepositAccountType.RECURRING_DEPOSIT);
+                    String sql = "SELECT COUNT(*) FROM m_calendar WHERE title = ?";
+                    Integer count = this.jdbcTemplate.queryForObject(sql, Integer.class, "recurring_savings_" + account.getId());
+                    if (count > 0) {
+                        continue; // this account has already been processed.
                     }
-                } else {
-                    // Skip these accounts with no term and pre closure records
-                    continue;
+                    // Get the first due date
+                    Instant instant = null;
+                    while (true) {
+                        firstDueDateIndex += 1;
+                        String firstDueDateString = record.get(firstDueDateIndex);
+                        try {
+                            instant = Instant.parse(firstDueDateString);
+                            LOG.info("First due date string is {}", firstDueDateString);
+                            break;
+                        } catch (DateTimeParseException e) {
+                            LOG.error("Error while parsing the date string {} at index {}: {}", firstDueDateString, firstDueDateIndex, e.getMessage());
+                        }
+                    }
+
+                    LocalDate firstDueDate = instant.atZone(ZoneId.systemDefault()).toLocalDate();
+                    int tenure = 1;
+                    while (!record.get(++firstDueDateIndex).isEmpty()) {
+                        tenure += 1;
+                    }
+
+                    if (!account.getSavingsProductId().equals(33L)) {
+                        continue; //We are only processing Payvest Periodic (change to the approriate id in prod)
+                    }
+
+                    LocalDate calendarStartDate = ((RecurringDepositAccount) account).depositStartDate();
+
+                    Integer freqType = 0;
+                    if (frequency.equalsIgnoreCase("DAILY")) {
+                        freqType = 0;
+                    } else if (frequency.equalsIgnoreCase("WEEKLY")) {
+                        freqType = 1;
+                    } else if (frequency.equalsIgnoreCase("MONTHLY")) {
+                        freqType = 2;
+                    } else if (frequency.equalsIgnoreCase("YEARLY")) {
+                        freqType = 3;
+                    }
+
+                    final PeriodFrequencyType periodFrequencyType = PeriodFrequencyType.fromInt(freqType);
+
+                    DepositAccountTermAndPreClosure accountTermAndPreClosure = ((RecurringDepositAccount) account)
+                            .getAccountTermAndPreClosure();
+                    if (accountTermAndPreClosure != null) {
+                        accountTermAndPreClosure.setDepositPeriod(tenure);
+                        accountTermAndPreClosure.updateDepositAmount(depositAmount);
+                        accountTermAndPreClosure.updateExpectedFirstDepositDate(firstDueDate);
+                        accountTermAndPreClosure.setDepositPeriodFrequency(freqType);
+                        if (accountTermAndPreClosure.getPreClosureDetail() == null) {
+                            // Let's generate this detail
+                            RecurringDepositProduct product = ((RecurringDepositAccount) account).getProduct();
+                        }
+                    } else {
+                        // Skip these accounts with no term and pre closure records
+                        continue;
+                    }
+                    LOG.info("Recurring Deposit Account {} is being processed", account.getAccountNumber());
+                    final Integer repeatsOnDay = calendarStartDate.get(ChronoField.DAY_OF_WEEK);
+
+                    final String title = "recurring_savings_" + account.getId();
+
+                    Calendar calendar = Calendar.createRepeatingCalendar(title, calendarStartDate, CalendarType.COLLECTION.getValue(),
+                            CalendarFrequencyType.from(periodFrequencyType), 1, repeatsOnDay, null);
+                    CalendarInstance calendarInstance = CalendarInstance.from(calendar, account.getId(), CalendarEntityType.SAVINGS.getValue());
+                    this.calendarInstanceRepository.saveAndFlush(calendarInstance);
+
+                    final MathContext mc = MathContext.DECIMAL64;
+                    calendar = calendarInstance.getCalendar();
+                    PeriodFrequencyType frequencyType = CalendarFrequencyType.from(CalendarUtils.getFrequency(calendar.getRecurrence()));
+                    Integer freq = CalendarUtils.getInterval(calendar.getRecurrence());
+                    freq = freq == -1 ? 1 : freq;
+                    ((RecurringDepositAccount) account).generateSchedule(frequencyType, freq, calendar);
+                    final boolean isPreMatureClosure = false;
+                    ((RecurringDepositAccount) account).updateMaturityDateAndAmount(mc, isPreMatureClosure,
+                            isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
+                    ((RecurringDepositAccount) account).validateApplicableInterestRate();
+                    account.updateSummary();
+                    this.savingAccountRepositoryWrapper.saveAndFlush(account);
+                    LOG.info("Recurring Deposit Account {} has been processed", account.getAccountNumber());
+                } catch (Exception e) {
+                    LOG.error("Error while processing account with id {}: {}", accountId, e.getMessage());
                 }
-                LOG.info("Recurring Deposit Account {} is being processed", account.getAccountNumber());
-                final Integer repeatsOnDay = calendarStartDate.get(ChronoField.DAY_OF_WEEK);
-
-                final String title = "recurring_savings_" + account.getId();
-
-                Calendar calendar = Calendar.createRepeatingCalendar(title, calendarStartDate, CalendarType.COLLECTION.getValue(),
-                        CalendarFrequencyType.from(periodFrequencyType), 1, repeatsOnDay, null);
-                CalendarInstance calendarInstance = CalendarInstance.from(calendar, account.getId(), CalendarEntityType.SAVINGS.getValue());
-                this.calendarInstanceRepository.saveAndFlush(calendarInstance);
-
-                final MathContext mc = MathContext.DECIMAL64;
-                calendar = calendarInstance.getCalendar();
-                PeriodFrequencyType frequencyType = CalendarFrequencyType.from(CalendarUtils.getFrequency(calendar.getRecurrence()));
-                Integer freq = CalendarUtils.getInterval(calendar.getRecurrence());
-                freq = freq == -1 ? 1 : freq;
-                ((RecurringDepositAccount) account).generateSchedule(frequencyType, freq, calendar);
-                final boolean isPreMatureClosure = false;
-                ((RecurringDepositAccount) account).updateMaturityDateAndAmount(mc, isPreMatureClosure,
-                        isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
-                ((RecurringDepositAccount) account).validateApplicableInterestRate();
-                this.savingAccountRepositoryWrapper.saveAndFlush(account);
-                LOG.info("Recurring Deposit Account {} has been processed", account.getAccountNumber());
             }
         } catch (IOException e) {
             LOG.error("Error while reading the file {}", filePath, e);
