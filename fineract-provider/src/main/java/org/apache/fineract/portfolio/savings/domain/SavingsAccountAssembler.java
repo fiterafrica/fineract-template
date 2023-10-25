@@ -533,7 +533,7 @@ public class SavingsAccountAssembler {
     public SavingsAccount assembleWithMinimalTransactions(final Long savingsId) {
         final SavingsAccount account = this.savingsAccountRepository.findOneWithNotFoundDetection(savingsId);
         // Retrieve 100 most recent active transactions for an account
-        String sql = "SELECT t.id FROM (SELECT * FROM m_savings_account_transaction WHERE savings_account_id = ? AND is_reversed = false ORDER BY id DESC LIMIT 100) t ORDER BY transaction_date, created_date, id;";
+        String sql = "SELECT t.id FROM (SELECT * FROM m_savings_account_transaction WHERE savings_account_id = ? AND is_reversed = false ORDER BY id DESC LIMIT 10) t ORDER BY transaction_date, created_date, id;";
         List<Long> transactionIds = this.jdbcTemplate.queryForList(sql, Long.class, savingsId);
         List<SavingsAccountTransaction> transactions = new ArrayList<>();
         if (!transactionIds.isEmpty()) {

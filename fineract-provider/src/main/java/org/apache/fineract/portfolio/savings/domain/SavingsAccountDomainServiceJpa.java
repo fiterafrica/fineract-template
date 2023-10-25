@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.fineract.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.apache.fineract.infrastructure.configuration.domain.GlobalConfigurationRepositoryWrapper;
@@ -44,7 +43,6 @@ import org.apache.fineract.portfolio.businessevent.domain.savings.transaction.Sa
 import org.apache.fineract.portfolio.businessevent.domain.savings.transaction.SavingsWithdrawalBusinessEvent;
 import org.apache.fineract.portfolio.businessevent.service.BusinessEventNotifierService;
 import org.apache.fineract.portfolio.client.domain.LegalForm;
-import org.apache.fineract.portfolio.loanaccount.data.LoanAccountData;
 import org.apache.fineract.portfolio.loanaccount.service.LoanReadPlatformService;
 import org.apache.fineract.portfolio.paymentdetail.domain.PaymentDetail;
 import org.apache.fineract.portfolio.savings.SavingsAccountTransactionType;
@@ -102,21 +100,6 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         this.globalConfigurationRepository = globalConfigurationRepository;
     }
 
-    private BigDecimal getOverdueLoanAmountForClient(SavingsAccount savingsAccount, boolean isTransferToLoanAccount) {
-        BigDecimal overdueLoanAmountForClient = BigDecimal.ZERO;
-        if (this.configurationDomainService.enforceOverdueLoansForMinBalance() && !isTransferToLoanAccount) {
-            List<LoanAccountData> loanAccountDataList = this.loanReadPlatformService
-                    .retrieveOverDueLoansForClient(savingsAccount.getClient().getId(), savingsAccount.getId());
-            if (CollectionUtils.isNotEmpty(loanAccountDataList)) {
-                for (int i = 0; i < loanAccountDataList.size(); i++) {
-                    LoanAccountData loanAccountData = loanAccountDataList.get(i);
-                    overdueLoanAmountForClient = overdueLoanAmountForClient.add(loanAccountData.getTotalOverdueAmount());
-                }
-            }
-        }
-        return overdueLoanAmountForClient;
-    }
-
     @Transactional
     @Override
     public SavingsAccountTransaction handleWithdrawal(final SavingsAccount account, final DateTimeFormatter fmt,
@@ -149,16 +132,6 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         UUID refNo = UUID.randomUUID();
         final SavingsAccountTransaction withdrawal = account.withdraw(transactionDTO, transactionBooleanValues.isApplyWithdrawFee(),
                 backdatedTxnsAllowedTill, relaxingDaysConfigForPivotDate, refNo.toString());
-
-        List<DepositAccountOnHoldTransaction> depositAccountOnHoldTransactions = null;
-        if (account.getOnHoldFunds().compareTo(BigDecimal.ZERO) > 0) {
-            depositAccountOnHoldTransactions = this.depositAccountOnHoldTransactionRepository
-                    .findBySavingsAccountAndReversedFalseOrderByCreatedDateAsc(account);
-        }
-
-        // do check total loan overdue amount and consider is while applying min balance check
-        account.validateAccountBalanceDoesNotBecomeNegative(transactionAmount, transactionBooleanValues.isExceptionForBalanceCheck(),
-                depositAccountOnHoldTransactions, backdatedTxnsAllowedTill, getOverdueLoanAmountForClient(account, isAccountTransfer));
 
         List<SavingsAccountTransaction> newTransactions = this.extractNewTransactions(account);
         saveTransactionToGenerateTransactionId(newTransactions);
