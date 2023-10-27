@@ -2589,14 +2589,14 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
                 .isSavingsInterestPostingAtCurrentPeriodEnd();
         final Integer financialYearBeginningMonth = this.configurationDomainService.retrieveFinancialYearBeginningMonth();
-        String filePath = "/tmp/staging.investmentAccount.csv"; // Path to the raw file
+        String filePath = "/tmp/investments.investmentAccount.csv"; // Path to the raw file
         int accountIdIndex = 4;
         int frequencyIndex = 5;
         int depositAmountIndex = 6;
         try (CSVParser parser = new CSVParser(Files.newBufferedReader(Paths.get(filePath), Charset.defaultCharset()), CSVFormat.DEFAULT)) {
             int row = 0;
             for (CSVRecord record : parser) {
-                int firstDueDateIndex = 200;
+                int firstDueDateIndex = 368;
                 if (row == 0) {
                     row += 1;
                     continue; // Skip the header
@@ -2607,6 +2607,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
                 String frequency = record.get(frequencyIndex);
                 BigDecimal depositAmount = record.get(depositAmountIndex).isEmpty() ? BigDecimal.ZERO
                         : new BigDecimal(record.get(depositAmountIndex));
+                //Convert from Kobo to Naira
+                depositAmount = depositAmount.divide(BigDecimal.valueOf(100));
                 LOG.info("Deposit amount is {}", depositAmount);
                 // Insert the recurring detail if it doesn't exist
                 String recurringDetailSql = "INSERT INTO m_deposit_account_recurring_detail(\n"
@@ -2642,8 +2644,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
                         tenure += 1;
                     }
 
-                    if (!account.getSavingsProductId().equals(33L)) {
-                        continue; //We are only processing Payvest Periodic (change to the approriate id in prod)
+                    if (!account.getSavingsProductId().equals(7L)) {
+                        continue; //We are only processing PayVest Periodic (change to the appropriate id in prod)
                     }
 
                     LocalDate calendarStartDate = ((RecurringDepositAccount) account).depositStartDate();
