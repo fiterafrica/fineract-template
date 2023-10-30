@@ -28,6 +28,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.HashSet;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -113,6 +114,16 @@ public class LoanScheduleApiResource {
 
     private boolean is(final String commandParam, final String commandValue) {
         return StringUtils.isNotBlank(commandParam) && commandParam.trim().equalsIgnoreCase(commandValue);
+    }
+
+    @Path("/reprocess")
+    @GET
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public void reprocessLoan(@PathParam("loanId") @Parameter(description = "loanId") final Long loanId) {
+
+        this.context.authenticatedUser();
+        this.calculationPlatformService.reprocessLoan(loanId);
     }
 
 }

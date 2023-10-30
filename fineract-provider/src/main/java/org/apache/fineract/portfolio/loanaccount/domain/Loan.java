@@ -6825,6 +6825,57 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
         }
     }
 
+    public void restoreLoanScheduleAndTransactions(final ScheduleGeneratorDTO scheduleGeneratorDTO) {
+
+        if (this.isClosedWrittenOff() || this.isForeclosure()) {
+            return;
+        }
+
+        Collection<LoanTransaction> retainTransactions = new ArrayList<>();
+        Money totalAmountRepayed = Money.zero(getCurrency());
+        for (final LoanTransaction transaction : this.loanTransactions) {
+            transaction.getLoanTransactionToRepaymentScheduleMappings().clear();
+            if (!transaction.isAccrualTransaction()) {
+                retainTransactions.add(transaction);
+            }
+
+            if (!transaction.isDisbursement() && !transaction.isAccrualTransaction() && !transaction.isReversed() && !transaction.isRefund()) {
+                totalAmountRepayed = totalAmountRepayed.add(transaction.getAmount(getCurrency()));
+            }
+        }
+
+        this.loanTransactions.retainAll(retainTransactions);
+
+     //   regenerateRepaymentSchedule(scheduleGeneratorDTO);
+        for (LoanTermVariations variations : this.loanTermVariations) {
+            if (variations.getOnLoanStatus().equals(LoanStatus.ACTIVE.getValue())) {
+                variations.markAsInactive();
+            }
+        }
+        final LoanRepaymentScheduleProcessingWrapper wrapper = new LoanRepaymentScheduleProcessingWrapper();
+        wrapper.reprocess(getCurrency(), getDisbursementDate(), getRepaymentScheduleInstallments(), charges());
+
+        updateLoanSummaryDerivedFields();
+        ChangedTransactionDetail changedTransactionDetail = reprocessTransactions();
+        this.loanTransactions.addAll(changedTransactionDetail.getNewTransactionMappings().values());
+
+        Money totalExpectedRepayment = Money.of(getCurrency(), this.summary.getTotalExpectedRepayment());
+        if (totalAmountRepayed.isGreaterThan(totalExpectedRepayment)) {
+            this.loanStatus = LoanStatus.OVERPAID.getValue();
+        }
+
+        if (LoanStatus.CLOSED_OBLIGATIONS_MET.getValue().equals(this.loanStatus) && totalExpectedRepayment.isGreaterThan(totalAmountRepayed)
+                && !isForeclosure()) {
+            this.loanStatus = LoanStatus.ACTIVE.getValue();
+        }
+
+        if (LoanStatus.OVERPAID.getValue().equals(this.loanStatus) && totalExpectedRepayment.isGreaterThan(totalAmountRepayed)
+                && !isForeclosure()) {
+            this.loanStatus = LoanStatus.ACTIVE.getValue();
+        }
+
+    }
+
     public void updateLoanScheduleOnForeclosure(final Collection<LoanRepaymentScheduleInstallment> installments) {
         this.repaymentScheduleInstallments.clear();
         for (final LoanRepaymentScheduleInstallment installment : installments) {

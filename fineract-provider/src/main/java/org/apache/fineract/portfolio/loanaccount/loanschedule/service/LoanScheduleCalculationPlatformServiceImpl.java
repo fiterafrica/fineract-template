@@ -42,6 +42,7 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanDisbursementDetails;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallmentRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleTransactionProcessorFactory;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.transactionprocessor.LoanRepaymentScheduleTransactionProcessor;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanScheduleData;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanSchedulePeriodData;
@@ -83,6 +84,8 @@ public class LoanScheduleCalculationPlatformServiceImpl implements LoanScheduleC
     private final LoanUtilService loanUtilService;
     private final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository;
 
+    private final LoanRepository loanRepository;
+
     @Autowired
     public LoanScheduleCalculationPlatformServiceImpl(final CalculateLoanScheduleQueryFromApiJsonHelper fromApiJsonDeserializer,
             final LoanScheduleAssembler loanScheduleAssembler, final FromJsonHelper fromJsonHelper,
@@ -91,8 +94,8 @@ public class LoanScheduleCalculationPlatformServiceImpl implements LoanScheduleC
             final LoanAssembler loanAssembler,
             final LoanRepaymentScheduleTransactionProcessorFactory loanRepaymentScheduleTransactionProcessorFactory,
             final ConfigurationDomainService configurationDomainService, final CurrencyReadPlatformService currencyReadPlatformService,
-            final LoanUtilService loanUtilService,
-            final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository) {
+            final LoanUtilService loanUtilService, final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository,
+            final LoanRepository loanRepository) {
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
         this.loanScheduleAssembler = loanScheduleAssembler;
         this.fromJsonHelper = fromJsonHelper;
@@ -106,6 +109,7 @@ public class LoanScheduleCalculationPlatformServiceImpl implements LoanScheduleC
         this.currencyReadPlatformService = currencyReadPlatformService;
         this.loanUtilService = loanUtilService;
         this.repaymentScheduleInstallmentRepository = repaymentScheduleInstallmentRepository;
+        this.loanRepository = loanRepository;
     }
 
     @Override
@@ -314,5 +318,15 @@ public class LoanScheduleCalculationPlatformServiceImpl implements LoanScheduleC
             }
         }
         return new LoanTopUpData(schedulesToCarryForward);
+    }
+
+    @Override
+    @Transactional
+    public void reprocessLoan(Long loanId) {
+        final Loan loan = this.loanAssembler.assembleFrom(loanId);
+        final LocalDate recalculateFrom = null;
+        ScheduleGeneratorDTO scheduleGeneratorDTO = this.loanUtilService.buildScheduleGeneratorDTO(loan, recalculateFrom);
+        loan.restoreLoanScheduleAndTransactions(scheduleGeneratorDTO);
+        this.loanRepository.save(loan);
     }
 }
