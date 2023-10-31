@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.fineract.accounting.common.AccountingRuleType;
 import org.apache.fineract.infrastructure.codes.data.CodeValueData;
 import org.apache.fineract.infrastructure.codes.service.CodeValueReadPlatformService;
@@ -3136,4 +3137,10 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
 
     }
 
+    @Override
+    public List<Pair<Long, Long>> getLoansForReprocessing() {
+
+        final String sql = "select l.id as reprocessId, l.loan_id as loanId from m_loan_transaction_reprocess l where is_processed = false and l.loan_id is not null";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> Pair.of(rs.getLong("reprocessId"), rs.getLong("loanId")));
+    }
 }

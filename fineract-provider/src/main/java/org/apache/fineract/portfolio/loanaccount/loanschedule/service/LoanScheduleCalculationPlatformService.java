@@ -33,4 +33,6 @@ public interface LoanScheduleCalculationPlatformService {
 
     LoanTopUpData calculateTopUpCarryForwardSchedules(JsonQuery query);
 
+    void reprocessLoanTransactionsAndSchedule();
+
 }

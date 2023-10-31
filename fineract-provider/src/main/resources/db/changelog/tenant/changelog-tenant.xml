@@ -113,5 +113,6 @@
     <include file="parts/INKO_94_add_ic_minutes_table_report.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO_95_update_topup_report_parameters.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO_96_update_portfolio_management_and_ic_minutes_report.xml" relativeToChangelogFile="true" />
+    <include file="parts/CI18-347_loan_reprocess_table.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>

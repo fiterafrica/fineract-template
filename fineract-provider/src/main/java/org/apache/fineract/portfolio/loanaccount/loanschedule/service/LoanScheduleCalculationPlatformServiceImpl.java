@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.apache.fineract.infrastructure.core.api.JsonQuery;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
@@ -31,6 +32,10 @@ import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
+import org.apache.fineract.infrastructure.jobs.annotation.CronTarget;
+import org.apache.fineract.infrastructure.jobs.service.JobExecuter;
+import org.apache.fineract.infrastructure.jobs.service.JobName;
+import org.apache.fineract.infrastructure.jobs.service.JobRunner;
 import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
@@ -42,6 +47,9 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanDisbursementDetails;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallmentRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleTransactionProcessorFactory;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanRepository;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionReprocess;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionReprocessRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.transactionprocessor.LoanRepaymentScheduleTransactionProcessor;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanScheduleData;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanSchedulePeriodData;
@@ -83,6 +91,14 @@ public class LoanScheduleCalculationPlatformServiceImpl implements LoanScheduleC
     private final LoanUtilService loanUtilService;
     private final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository;
 
+    private final LoanRepository loanRepository;
+
+    @Autowired
+    private JobExecuter jobExecuter;
+
+    @Autowired
+    private LoanTransactionReprocessRepository loanTransactionReprocessRepository;
+
     @Autowired
     public LoanScheduleCalculationPlatformServiceImpl(final CalculateLoanScheduleQueryFromApiJsonHelper fromApiJsonDeserializer,
             final LoanScheduleAssembler loanScheduleAssembler, final FromJsonHelper fromJsonHelper,
@@ -91,8 +107,8 @@ public class LoanScheduleCalculationPlatformServiceImpl implements LoanScheduleC
             final LoanAssembler loanAssembler,
             final LoanRepaymentScheduleTransactionProcessorFactory loanRepaymentScheduleTransactionProcessorFactory,
             final ConfigurationDomainService configurationDomainService, final CurrencyReadPlatformService currencyReadPlatformService,
-            final LoanUtilService loanUtilService,
-            final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository) {
+            final LoanUtilService loanUtilService, final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository,
+            final LoanRepository loanRepository) {
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
         this.loanScheduleAssembler = loanScheduleAssembler;
         this.fromJsonHelper = fromJsonHelper;
@@ -106,6 +122,7 @@ public class LoanScheduleCalculationPlatformServiceImpl implements LoanScheduleC
         this.currencyReadPlatformService = currencyReadPlatformService;
         this.loanUtilService = loanUtilService;
         this.repaymentScheduleInstallmentRepository = repaymentScheduleInstallmentRepository;
+        this.loanRepository = loanRepository;
     }
 
     @Override
@@ -314,5 +331,52 @@ public class LoanScheduleCalculationPlatformServiceImpl implements LoanScheduleC
             }
         }
         return new LoanTopUpData(schedulesToCarryForward);
+    }
+
+    @Override
+    @CronTarget(jobName = JobName.REPROCESS_LOAN_TRANSACTIONS)
+    public void reprocessLoanTransactionsAndSchedule() {
+        // Get all loans
+        final List<Pair<Long, Long>> loanIds = this.loanReadPlatformService.getLoansForReprocessing();
+        jobExecuter.executeJob(loanIds, new LoanTransactionReprocessRunner());
+    }
+
+    private class LoanTransactionReprocessRunner implements JobRunner<List<Pair<Long, Long>>> {
+
+        @Override
+        public void runJob(List<Pair<Long, Long>> loanIds, StringBuilder sb) {
+
+            if (!loanIds.isEmpty()) {
+
+                loanIds.forEach(loanPair -> {
+                    final Long startTime = System.currentTimeMillis();
+                    final Long loanId = loanPair.getRight();
+                    final Long reprocessId = loanPair.getLeft();
+
+                    LoanTransactionReprocess reprocess = loanTransactionReprocessRepository.findById(reprocessId).get();
+                    String exceptionString = null;
+                    try {
+                        final Loan loan = loanAssembler.assembleFrom(loanId);
+                        ScheduleGeneratorDTO scheduleGeneratorDTO = loanUtilService.buildScheduleGeneratorDTO(loan, null);
+                        loan.restoreLoanScheduleAndTransactions(scheduleGeneratorDTO);
+                        loanRepository.save(loan);
+
+                    } catch (Exception e) {
+                        LOG.error("Error occured while reprocessing loan with id " + reprocessId + " and exception is " + e.getMessage());
+                        exceptionString = e.getMessage();
+                    } finally {
+                        final Long endTime = System.currentTimeMillis();
+                        final Long duration = endTime - startTime;
+                        reprocess.setExceptionMessage(exceptionString);
+                        reprocess.setProcessDuration(duration);
+                        reprocess.setProcessed(true);
+                        reprocess.setProcessedOnDate(DateUtils.getLocalDateTimeOfTenant());
+
+                    }
+                });
+
+            }
+
+        }
     }
 }
