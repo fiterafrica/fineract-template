@@ -18,6 +18,8 @@
  */
 package org.apache.fineract.infrastructure.dataqueries.data;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.List;
 
 /**
@@ -63,5 +65,15 @@ public final class GenericResultsetData {
 
     public boolean hasMoreThanOneEntry() {
         return this.data.size() > 1;
+    }
+
+    public void replaceWordInColumHeader(String wordToReplace, String wordToReplaceWith){
+        for (final ResultsetColumnHeaderData columnHeader : this.columnHeaders) {
+            if (columnHeader.getColumnName().contains(wordToReplace)) {
+                String columnName = columnHeader.getColumnName();
+                columnName = StringUtils.replace(columnName,wordToReplace, wordToReplaceWith);
+                columnHeader.setColumnName(columnName);
+            }
+        }
     }
 }

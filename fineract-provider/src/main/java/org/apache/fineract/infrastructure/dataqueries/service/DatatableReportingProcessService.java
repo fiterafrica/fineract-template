@@ -21,6 +21,7 @@ package org.apache.fineract.infrastructure.dataqueries.service;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
@@ -33,6 +34,8 @@ import org.apache.fineract.infrastructure.dataqueries.data.GenericResultsetData;
 import org.apache.fineract.infrastructure.dataqueries.data.ReportData;
 import org.apache.fineract.infrastructure.report.annotation.ReportService;
 import org.apache.fineract.infrastructure.report.service.ReportingProcessService;
+import org.apache.fineract.portfolio.loanproduct.domain.LoanProduct;
+import org.apache.fineract.portfolio.loanproduct.domain.LoanProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -44,12 +47,16 @@ public class DatatableReportingProcessService implements ReportingProcessService
     private final ToApiJsonSerializer<ReportData> toApiJsonSerializer;
     private final GenericDataService genericDataService;
 
+    private final LoanProductRepository loanProductRepository;
+
     @Autowired
     public DatatableReportingProcessService(final ReadReportingService readExtraDataAndReportingService,
-            final GenericDataService genericDataService, final ToApiJsonSerializer<ReportData> toApiJsonSerializer) {
+            final GenericDataService genericDataService, final ToApiJsonSerializer<ReportData> toApiJsonSerializer,
+                                            final LoanProductRepository loanProductRepository) {
         this.readExtraDataAndReportingService = readExtraDataAndReportingService;
         this.toApiJsonSerializer = toApiJsonSerializer;
         this.genericDataService = genericDataService;
+        this.loanProductRepository = loanProductRepository;
     }
 
     @Override
@@ -83,6 +90,11 @@ public class DatatableReportingProcessService implements ReportingProcessService
             final GenericResultsetData result = this.readExtraDataAndReportingService.retrieveGenericResultset(reportName,
                     parameterTypeValue, reportParams, isSelfServiceUserReport);
 
+            //INKO-202
+            if(reportParams.containsKey("${loanProductId}")){
+                modifyColumnHeaderForProduct(result, Long.valueOf(reportParams.get("${loanProductId}")));
+            }
+
             String json;
             final boolean genericResultSetIsPassed = ApiParameterHelper.genericResultSetPassed(queryParams);
             final boolean genericResultSet = ApiParameterHelper.genericResultSet(queryParams);
@@ -106,5 +118,16 @@ public class DatatableReportingProcessService implements ReportingProcessService
 
         return Response.ok().entity(result).type("text/csv")
                 .header("Content-Disposition", "attachment;filename=" + reportName.replaceAll(" ", "") + ".csv").build();
+    }
+
+    // INKO-202 If loan product is Islamic product we replace column name Interest with Profit
+    private void modifyColumnHeaderForProduct(GenericResultsetData result, Long loanProductId){
+        Optional<LoanProduct> productOptional = loanProductRepository.findById(loanProductId);
+        if(productOptional.isPresent()){
+            LoanProduct product = productOptional.get();
+            if(product.isIslamic()){
+                result.replaceWordInColumHeader("Interest", "Profit");
+            }
+        }
     }
 }

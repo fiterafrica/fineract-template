@@ -1766,4 +1766,8 @@ public class LoanProduct extends AbstractPersistableCustom {
     public void setProductType(CodeValue productType) {
         this.productType = productType;
     }
+
+    public Boolean isIslamic() {
+        return isIslamic;
+    }
 }
