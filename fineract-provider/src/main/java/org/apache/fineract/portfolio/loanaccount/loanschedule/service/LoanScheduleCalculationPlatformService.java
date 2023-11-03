@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.portfolio.loanaccount.loanschedule.service;
 
+import java.util.Map;
 import org.apache.fineract.infrastructure.core.api.JsonQuery;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanScheduleData;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanTopUpData;
@@ -33,6 +34,6 @@ public interface LoanScheduleCalculationPlatformService {
 
     LoanTopUpData calculateTopUpCarryForwardSchedules(JsonQuery query);
 
-    void reprocessLoanTransactionsAndSchedule();
+    void reprocessLoanTransactionsAndSchedule(Map<String, Object> jobParameters);
 
 }
