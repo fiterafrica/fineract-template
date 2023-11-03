@@ -55,6 +55,7 @@ import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidati
 import org.apache.fineract.infrastructure.core.exception.PlatformServiceUnavailableException;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
+import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.dataqueries.data.EntityTables;
 import org.apache.fineract.infrastructure.dataqueries.data.StatusEnum;
 import org.apache.fineract.infrastructure.dataqueries.service.EntityDatatableChecksWritePlatformService;
@@ -3326,25 +3327,20 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     @Override
     @CronTarget(jobName = JobName.GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY)
     public void cleanUpLoans() {
-        // final Integer totalLoans = this.jdbcTemplate
-        // .queryForObject("SELECT COUNT(*) FROM m_loan l JOIN loanaccount_v17 la ON l.external_id = la.encodedkey",
-        // Integer.class);
-        // final int totalToProcess = 3000000;
-        //
-        // LoanCleanUpRunner runner1 = new LoanCleanUpRunner(1, ThreadLocalContextUtil.getTenant(), this.jdbcTemplate,
-        // 0, totalToProcess,
-        // this.loanAssembler, this.aprCalculator, this.installmentRepository, this.loanRepository);
-        // LoanCleanUpRunner runner2 = new LoanCleanUpRunner(2, ThreadLocalContextUtil.getTenant(), this.jdbcTemplate,
-        // totalToProcess,
-        // totalToProcess, this.loanAssembler, this.aprCalculator, this.installmentRepository, this.loanRepository);
-        // LoanCleanUpRunner runner3 = new LoanCleanUpRunner(3, ThreadLocalContextUtil.getTenant(), this.jdbcTemplate,
-        // (totalToProcess * 2),
-        // (totalLoans - (totalToProcess * 2)), this.loanAssembler, this.aprCalculator, this.installmentRepository,
-        // this.loanRepository);
-        // runner1.start();
-        // runner2.start();
-        // runner3.start();
-        this.recalculateInterest(8485685L);
+        final Integer totalLoans = this.jdbcTemplate
+                .queryForObject("SELECT COUNT(*) FROM m_loan l JOIN loanaccount_v17 la ON l.external_id = la.encodedkey", Integer.class);
+        final int totalToProcess = 3000000;
+
+        LoanCleanUpRunner runner1 = new LoanCleanUpRunner(1, ThreadLocalContextUtil.getTenant(), this.jdbcTemplate, 0, totalToProcess,
+                this.loanAssembler, this.aprCalculator, this.installmentRepository, this.loanRepository);
+        LoanCleanUpRunner runner2 = new LoanCleanUpRunner(2, ThreadLocalContextUtil.getTenant(), this.jdbcTemplate, totalToProcess,
+                totalToProcess, this.loanAssembler, this.aprCalculator, this.installmentRepository, this.loanRepository);
+        LoanCleanUpRunner runner3 = new LoanCleanUpRunner(3, ThreadLocalContextUtil.getTenant(), this.jdbcTemplate, (totalToProcess * 2),
+                (totalLoans - (totalToProcess * 2)), this.loanAssembler, this.aprCalculator, this.installmentRepository,
+                this.loanRepository);
+        runner1.start();
+        runner2.start();
+        runner3.start();
     }
 
     @Override
