@@ -2566,7 +2566,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         String sql = "SELECT x.savings_account_id FROM (SELECT COUNT(savings_account_id) trxn_count, savings_account_id FROM m_savings_account_transaction GROUP BY savings_account_id HAVING COUNT(savings_account_id) > 5000) x";
         List<Long> bigAccountIds = this.jdbcTemplate.queryForList(sql, Long.class);
         this.refreshSavingsAccounts(SavingsAccountStatusType.ACTIVE.getValue(), bigAccountIds);
-        this.refreshSavingsAccounts(SavingsAccountStatusType.CLOSED.getValue(), bigAccountIds);
+        //this.refreshSavingsAccounts(SavingsAccountStatusType.CLOSED.getValue(), bigAccountIds);
         bigAccountIds.forEach(this::recalculateRunningBalances);
         LOG.info("Savings Accounts are refreshed");
     }
@@ -2756,30 +2756,35 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         Money runningBalance = Money.zero(currency);
         List<SavingsAccountTransaction> transactions;
 
-        LOG.info("Recalculating balances for BIG Savings Account {}", accountId);
-        do {
-            Pageable pageRequest = PageRequest.of(offset, pageSize, sort);
-            transactions = this.savingsAccountTransactionRepository.findAllBySavingsAccount_IdAndReversed(accountId, false, pageRequest)
-                    .getContent();
+        try {
 
-            for (final SavingsAccountTransaction transaction : transactions) {
-                Money transactionRunningBalance = transaction.getRunningBalance(currency);
-                if (transaction.isCredit()) {
-                    runningBalance = transaction.getAmount(currency).plus(runningBalance);
-                } else if (transaction.isDebit()) {
-                    runningBalance = runningBalance.minus(transaction.getAmount(currency));
-                }
-                if (!runningBalance.isEqualTo(transactionRunningBalance)) {
-                    transaction.updateRunningBalance(runningBalance);
-                    this.savingsAccountTransactionRepository.save(transaction);
-                }
-            }
-            account.updateSummaryCumulative(transactions);
+            LOG.info("Recalculating balances for BIG Savings Account {}", accountId);
+            do {
+                Pageable pageRequest = PageRequest.of(offset, pageSize, sort);
+                transactions = this.savingsAccountTransactionRepository.findAllBySavingsAccount_IdAndReversed(accountId, false, pageRequest)
+                        .getContent();
 
-            offset += 1; // next page
-        } while (!transactions.isEmpty());
-        this.savingAccountRepositoryWrapper.save(account);
-        LOG.info("Balances recalculated for BIG Savings Account {}", accountId);
+                for (final SavingsAccountTransaction transaction : transactions) {
+                    Money transactionRunningBalance = transaction.getRunningBalance(currency);
+                    if (transaction.isCredit()) {
+                        runningBalance = transaction.getAmount(currency).plus(runningBalance);
+                    } else if (transaction.isDebit()) {
+                        runningBalance = runningBalance.minus(transaction.getAmount(currency));
+                    }
+                    if (!runningBalance.isEqualTo(transactionRunningBalance)) {
+                        transaction.updateRunningBalance(runningBalance);
+                        this.savingsAccountTransactionRepository.save(transaction);
+                    }
+                }
+                account.updateSummaryCumulative(transactions);
+
+                offset += 1; // next page
+            } while (!transactions.isEmpty());
+            this.savingAccountRepositoryWrapper.save(account);
+            LOG.info("Balances recalculated for BIG Savings Account {}", accountId);
+        } catch (Exception e) {
+            LOG.error("Error while recalculating balances for BIG Savings Account {}: {}", accountId, e.getMessage());
+        }
     }
 
     private void refreshSavingsFDAccounts(Integer status) {

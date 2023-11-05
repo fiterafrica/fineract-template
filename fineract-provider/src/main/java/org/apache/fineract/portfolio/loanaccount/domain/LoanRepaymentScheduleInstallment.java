@@ -859,4 +859,8 @@ public final class LoanRepaymentScheduleInstallment extends AbstractAuditableCus
     public void setFromDate(LocalDate fromDate) {
         this.fromDate = fromDate;
     }
+
+    public void setPenaltyCharges(BigDecimal penaltyCharges) {
+        this.penaltyCharges = penaltyCharges;
+    }
 }

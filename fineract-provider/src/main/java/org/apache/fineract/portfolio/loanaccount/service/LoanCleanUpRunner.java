@@ -18,8 +18,11 @@
  */
 package org.apache.fineract.portfolio.loanaccount.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
@@ -65,7 +68,7 @@ public class LoanCleanUpRunner implements Runnable {
     @Override
     public void run() {
         ThreadLocalContextUtil.setTenant(this.tenant);
-        this.cleanUpLoans();
+        this.populateOverdueInstallmentCharge();
     }
 
     public void start() {
@@ -122,5 +125,55 @@ public class LoanCleanUpRunner implements Runnable {
             loanIds = this.jdbcTemplate.queryForList(sql, Long.class, limit, this.offset);
         } while (processed < this.maxLoansToProcess);
         LOG.info("Finished LoanCleanUpRunner {}...", threadId);
+    }
+
+    public void populateOverdueInstallmentCharge() {
+        // 1. get all loans with overdue installments
+        List<Long> loanIds = this.jdbcTemplate.queryForList("SELECT DISTINCT loan_id FROM m_loan_charge\n"
+                + "WHERE id NOT IN (SELECT loan_charge_id FROM m_loan_overdue_installment_charge)\n"
+                + "AND charge_id IN (SELECT id FROM m_charge WHERE charge_time_enum = 9)", Long.class);
+        // 2. for each loan, get the overdue installments
+        for (Long loanId : loanIds) {
+            Loan loan = this.loanAssembler.assembleFrom(loanId);
+            Integer arrearTolorence = loan.loanProduct().getLoanProductRelatedDetail().getGraceOnArrearsAgeing();
+            if (arrearTolorence == null) {
+                arrearTolorence = 0;
+            }
+            List<LoanRepaymentScheduleInstallment> installments = loan.getRepaymentScheduleInstallments();
+            int index = 0;
+            Map<Long, BigDecimal> installmentPenalties = new HashMap<>();
+            for (LoanRepaymentScheduleInstallment installment : installments) {
+                List<Map<String, Object>> results;
+                LocalDate endDate = index < installments.size() - 1 ? installments.get(index + 1).getDueDate().plusDays(arrearTolorence)
+                        : null;
+                String sql = "SELECT * FROM m_loan_charge WHERE loan_id = ? AND id NOT IN (SELECT loan_charge_id FROM m_loan_overdue_installment_charge) AND due_for_collection_as_of_date >= ? ";
+                if (endDate != null) {
+                    sql += " AND due_for_collection_as_of_date <= ?";
+                    results = this.jdbcTemplate.queryForList(sql, loanId, installment.getDueDate().plusDays(arrearTolorence), endDate);
+                } else {
+                    results = this.jdbcTemplate.queryForList(sql, loanId, installment.getDueDate().plusDays(arrearTolorence));
+                }
+                // for each result, create a loan_overdue_installment_charge
+                int frequencyNumber = 1;
+                BigDecimal totalChargeAmount = BigDecimal.ZERO;
+                for (Map<String, Object> result : results) {
+                    // insert the overdue installment charge
+                    this.jdbcTemplate.update(
+                            "INSERT INTO m_loan_overdue_installment_charge (loan_charge_id, loan_schedule_id, frequency_number) VALUES (?, ?, ?)",
+                            result.get("id"), installment.getId(), frequencyNumber);
+                    frequencyNumber += 1;
+                    totalChargeAmount = totalChargeAmount.add((BigDecimal) result.get("amount"));
+                }
+
+                installmentPenalties.put(installment.getId(), totalChargeAmount);
+                index += 1;
+            }
+            loan = this.loanAssembler.assembleFrom(loanId);
+            for (LoanRepaymentScheduleInstallment installment : loan.getRepaymentScheduleInstallments()) {
+                installment.setPenaltyCharges(installmentPenalties.get(installment.getId()));
+            }
+            loan.updateLoanSummaryDerivedFields();
+            this.loanRepository.saveAndFlush(loan);
+        }
     }
 }

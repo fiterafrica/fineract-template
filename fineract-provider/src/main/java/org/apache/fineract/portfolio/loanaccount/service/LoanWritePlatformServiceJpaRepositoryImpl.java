@@ -3339,8 +3339,8 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 (totalLoans - (totalToProcess * 2)), this.loanAssembler, this.aprCalculator, this.installmentRepository,
                 this.loanRepository);
         runner1.start();
-        runner2.start();
-        runner3.start();
+        // runner2.start();
+        // runner3.start();
     }
 
     @Override
