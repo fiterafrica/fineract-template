@@ -6825,11 +6825,7 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
         }
     }
 
-    public void restoreLoanScheduleAndTransactions(final ScheduleGeneratorDTO scheduleGeneratorDTO) {
-
-        if (this.isClosedWrittenOff() || this.isForeclosure()) {
-            return;
-        }
+    public void restoreLoanScheduleAndTransactions() {
 
         Collection<LoanTransaction> retainTransactions = new ArrayList<>();
         for (final LoanTransaction transaction : this.loanTransactions) {

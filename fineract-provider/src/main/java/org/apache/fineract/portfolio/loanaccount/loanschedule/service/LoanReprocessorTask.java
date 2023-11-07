@@ -27,7 +27,6 @@ import org.apache.fineract.infrastructure.businessdate.domain.BusinessDateType;
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
-import org.apache.fineract.portfolio.loanaccount.data.ScheduleGeneratorDTO;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionReprocess;
@@ -95,8 +94,7 @@ public class LoanReprocessorTask implements Callable<String> {
     @Transactional
     private void handleLoan(Long loanId) {
         final Loan loan = loanAssembler.assembleFrom(loanId);
-        ScheduleGeneratorDTO scheduleGeneratorDTO = loanUtilService2.buildScheduleGeneratorDTO(loan, null);
-        loan.restoreLoanScheduleAndTransactions(scheduleGeneratorDTO);
+        loan.restoreLoanScheduleAndTransactions();
         this.loanRepository2.saveAndFlush(loan);
     }
 }
