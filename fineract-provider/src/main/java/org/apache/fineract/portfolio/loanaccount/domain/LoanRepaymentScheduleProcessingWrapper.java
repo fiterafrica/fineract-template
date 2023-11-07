@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
+import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
 
@@ -40,19 +41,27 @@ public class LoanRepaymentScheduleProcessingWrapper {
             totalPrincipal = totalPrincipal.plus(installment.getPrincipal(currency));
         }
         LocalDate startDate = disbursementDate;
+        int installment = 1;
         for (final LoanRepaymentScheduleInstallment period : repaymentPeriods) {
+            LocalDate endDate = period.getDueDate();
+            if (installment == repaymentPeriods.size()) {
+                // This is the last installment, so let's set endDate to current date if loan is past maturity date
+                if (endDate.isBefore(DateUtils.getLocalDateOfTenant())) {
+                    endDate = DateUtils.getLocalDateOfTenant();
+                }
+            }
 
-            final Money feeChargesDueForRepaymentPeriod = cumulativeFeeChargesDueWithin(startDate, period.getDueDate(), loanCharges,
-                    currency, period, totalPrincipal, totalInterest, !period.isRecalculatedInterestComponent());
+            final Money feeChargesDueForRepaymentPeriod = cumulativeFeeChargesDueWithin(startDate, endDate, loanCharges, currency, period,
+                    totalPrincipal, totalInterest, !period.isRecalculatedInterestComponent());
             final Money feeChargesWaivedForRepaymentPeriod = cumulativeFeeChargesWaivedWithin(startDate, period.getDueDate(), loanCharges,
                     currency, !period.isRecalculatedInterestComponent());
-            final Money feeChargesWrittenOffForRepaymentPeriod = cumulativeFeeChargesWrittenOffWithin(startDate, period.getDueDate(),
-                    loanCharges, currency, !period.isRecalculatedInterestComponent());
+            final Money feeChargesWrittenOffForRepaymentPeriod = cumulativeFeeChargesWrittenOffWithin(startDate, endDate, loanCharges,
+                    currency, !period.isRecalculatedInterestComponent());
 
-            final Money penaltyChargesDueForRepaymentPeriod = cumulativePenaltyChargesDueWithin(startDate, period.getDueDate(), loanCharges,
-                    currency, period, totalPrincipal, totalInterest, !period.isRecalculatedInterestComponent());
-            final Money penaltyChargesWaivedForRepaymentPeriod = cumulativePenaltyChargesWaivedWithin(startDate, period.getDueDate(),
-                    loanCharges, currency, !period.isRecalculatedInterestComponent());
+            final Money penaltyChargesDueForRepaymentPeriod = cumulativePenaltyChargesDueWithin(startDate, endDate, loanCharges, currency,
+                    period, totalPrincipal, totalInterest, !period.isRecalculatedInterestComponent());
+            final Money penaltyChargesWaivedForRepaymentPeriod = cumulativePenaltyChargesWaivedWithin(startDate, endDate, loanCharges,
+                    currency, !period.isRecalculatedInterestComponent());
             final Money penaltyChargesWrittenOffForRepaymentPeriod = cumulativePenaltyChargesWrittenOffWithin(startDate,
                     period.getDueDate(), loanCharges, currency, !period.isRecalculatedInterestComponent());
 
@@ -61,6 +70,7 @@ public class LoanRepaymentScheduleProcessingWrapper {
                     penaltyChargesWrittenOffForRepaymentPeriod);
 
             startDate = period.getDueDate();
+            installment += 1;
         }
     }
 
