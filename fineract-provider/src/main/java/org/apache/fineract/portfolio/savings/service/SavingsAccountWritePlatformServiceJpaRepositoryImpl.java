@@ -2566,7 +2566,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         String sql = "SELECT x.savings_account_id FROM (SELECT COUNT(savings_account_id) trxn_count, savings_account_id FROM m_savings_account_transaction GROUP BY savings_account_id HAVING COUNT(savings_account_id) > 5000) x";
         List<Long> bigAccountIds = this.jdbcTemplate.queryForList(sql, Long.class);
         this.refreshSavingsAccounts(SavingsAccountStatusType.ACTIVE.getValue(), bigAccountIds);
-        //this.refreshSavingsAccounts(SavingsAccountStatusType.CLOSED.getValue(), bigAccountIds);
+        // this.refreshSavingsAccounts(SavingsAccountStatusType.CLOSED.getValue(), bigAccountIds);
         bigAccountIds.forEach(this::recalculateRunningBalances);
         LOG.info("Savings Accounts are refreshed");
     }
@@ -2607,7 +2607,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
                 String frequency = record.get(frequencyIndex);
                 BigDecimal depositAmount = record.get(depositAmountIndex).isEmpty() ? BigDecimal.ZERO
                         : new BigDecimal(record.get(depositAmountIndex));
-                //Convert from Kobo to Naira
+                // Convert from Kobo to Naira
                 depositAmount = depositAmount.divide(BigDecimal.valueOf(100));
                 LOG.info("Deposit amount is {}", depositAmount);
                 // Insert the recurring detail if it doesn't exist
@@ -2634,7 +2634,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
                             LOG.info("First due date string is {}", firstDueDateString);
                             break;
                         } catch (DateTimeParseException e) {
-                            LOG.error("Error while parsing the date string {} at index {}: {}", firstDueDateString, firstDueDateIndex, e.getMessage());
+                            LOG.error("Error while parsing the date string {} at index {}: {}", firstDueDateString, firstDueDateIndex,
+                                    e.getMessage());
                         }
                     }
 
@@ -2645,7 +2646,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
                     }
 
                     if (!account.getSavingsProductId().equals(7L)) {
-                        continue; //We are only processing PayVest Periodic (change to the appropriate id in prod)
+                        continue; // We are only processing PayVest Periodic (change to the appropriate id in prod)
                     }
 
                     LocalDate calendarStartDate = ((RecurringDepositAccount) account).depositStartDate();
@@ -2685,7 +2686,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
                     Calendar calendar = Calendar.createRepeatingCalendar(title, calendarStartDate, CalendarType.COLLECTION.getValue(),
                             CalendarFrequencyType.from(periodFrequencyType), 1, repeatsOnDay, null);
-                    CalendarInstance calendarInstance = CalendarInstance.from(calendar, account.getId(), CalendarEntityType.SAVINGS.getValue());
+                    CalendarInstance calendarInstance = CalendarInstance.from(calendar, account.getId(),
+                            CalendarEntityType.SAVINGS.getValue());
                     this.calendarInstanceRepository.saveAndFlush(calendarInstance);
 
                     final MathContext mc = MathContext.DECIMAL64;

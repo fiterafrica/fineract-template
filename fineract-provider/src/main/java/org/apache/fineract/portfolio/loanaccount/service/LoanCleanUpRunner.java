@@ -68,7 +68,7 @@ public class LoanCleanUpRunner implements Runnable {
     @Override
     public void run() {
         ThreadLocalContextUtil.setTenant(this.tenant);
-        this.populateOverdueInstallmentCharge();
+        this.populateOverdueInstallmentChargeFix();
     }
 
     public void start() {
@@ -171,6 +171,33 @@ public class LoanCleanUpRunner implements Runnable {
             loan = this.loanAssembler.assembleFrom(loanId);
             for (LoanRepaymentScheduleInstallment installment : loan.getRepaymentScheduleInstallments()) {
                 installment.setPenaltyCharges(installmentPenalties.get(installment.getId()));
+            }
+            loan.updateLoanSummaryDerivedFields();
+            this.loanRepository.saveAndFlush(loan);
+        }
+    }
+
+    public void populateOverdueInstallmentChargeFix() {
+        // 1. get all loans with overdue installments
+        // List<Long> loanIds = this.jdbcTemplate.queryForList("SELECT DISTINCT loan_id FROM m_loan_charge\n"
+        // + "WHERE id NOT IN (SELECT loan_charge_id FROM m_loan_overdue_installment_charge)\n"
+        // + "AND charge_id IN (SELECT id FROM m_charge WHERE charge_time_enum = 9)", Long.class);
+        List<Long> loanIds = List.of(8406019L);
+        // 2. for each loan, get the overdue installments
+        for (Long loanId : loanIds) {
+            Loan loan = this.loanAssembler.assembleFrom(loanId);
+            List<LoanRepaymentScheduleInstallment> installments = loan.getRepaymentScheduleInstallments();
+            for (LoanRepaymentScheduleInstallment installment : installments) {
+                List<Map<String, Object>> results;
+                String sql = "SELECT * FROM m_loan_charge WHERE loan_id = ? AND id IN (SELECT loan_charge_id FROM m_loan_overdue_installment_charge WHERE loan_schedule_id = ?) ";
+                results = this.jdbcTemplate.queryForList(sql, loanId, installment.getId());
+                // for each result, create a loan_overdue_installment_charge
+                BigDecimal totalChargeAmount = BigDecimal.ZERO;
+                for (Map<String, Object> result : results) {
+                    // insert the overdue installment charge
+                    totalChargeAmount = totalChargeAmount.add((BigDecimal) result.get("amount"));
+                }
+                installment.setPenaltyCharges(totalChargeAmount);
             }
             loan.updateLoanSummaryDerivedFields();
             this.loanRepository.saveAndFlush(loan);
