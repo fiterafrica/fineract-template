@@ -488,4 +488,11 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
         }
         return property.getValue();
     }
+
+    @Override
+    public LocalDate retrievePenaltyStartDate() {
+        final String propertyName = "penalty-start-date";
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
+        return property.getDateValue();
+    }
 }

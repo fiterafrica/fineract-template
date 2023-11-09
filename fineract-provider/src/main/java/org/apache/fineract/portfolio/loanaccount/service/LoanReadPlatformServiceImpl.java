@@ -1646,17 +1646,18 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
     public Collection<OverdueLoanScheduleData> retrieveAllLoansWithOverdueInstallments(final Long penaltyWaitPeriod,
             final Boolean backdatePenalties, Long startLoanId, Long endLoanId) {
         final MusoniOverdueLoanScheduleMapper rm = new MusoniOverdueLoanScheduleMapper();
+        final LocalDate penaltyStartDate = configurationDomainService.retrievePenaltyStartDate();
 
         final StringBuilder sqlBuilder = new StringBuilder(400);
         sqlBuilder.append("select ").append(rm.schema())
-                .append(" where " + sqlGenerator.subDate(sqlGenerator.currentBusinessDate(), "?", "day") + " > ls.duedate ")
+                .append(" where ls.duedate >= ? and " + sqlGenerator.subDate(sqlGenerator.currentBusinessDate(), "?", "day") + " > ls.duedate ")
                 .append(" and ls.completed_derived <> true and mc.charge_applies_to_enum =1 ")
                 .append(" and ls.recalculated_interest_component <> true ")
                 .append(" and mc.charge_time_enum = 9 and ml.loan_status_id = 300 ")
                 .append(" and ml.id >= ? and ml.id <= ? order by ls.installment asc");
 
         if (backdatePenalties) {
-            return this.jdbcTemplate.query(sqlBuilder.toString(), rm, penaltyWaitPeriod, startLoanId, endLoanId);
+            return this.jdbcTemplate.query(sqlBuilder.toString(), rm, penaltyStartDate ,penaltyWaitPeriod, startLoanId, endLoanId);
         }
         // Only apply for duedate = yesterday (so that we don't apply
         // penalties on the duedate itself)
@@ -1669,12 +1670,13 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
     public List<Long> retrieveAllLoanIdsWithOverdueInstallments(final Long penaltyWaitPeriod, final Boolean backdatePenalties,
             Long maxLoanIdInList, int pageSize) {
         final MusoniOverdueLoanScheduleMapper rm = new MusoniOverdueLoanScheduleMapper();
+        final LocalDate penaltyStartDate = configurationDomainService.retrievePenaltyStartDate();
 
         final StringBuilder sqlBuilder = new StringBuilder(400);
         sqlBuilder.append("select distinct ml.id from m_loan_repayment_schedule ls ").append(" inner join m_loan ml on ml.id = ls.loan_id ")
                 .append(" join m_product_loan_charge plc on plc.product_loan_id = ml.product_id ")
                 .append(" join m_charge mc on mc.id = plc.charge_id ")
-                .append(" where " + sqlGenerator.subDate(sqlGenerator.currentBusinessDate(), "?", "day") + " > ls.duedate ")
+                .append(" where ls.duedate >= ? and " + sqlGenerator.subDate(sqlGenerator.currentBusinessDate(), "?", "day") + " > ls.duedate ")
                 .append(" and ml.id > ? ").append(" and ls.completed_derived <> true and mc.charge_applies_to_enum =1 ")
                 .append(" and ls.recalculated_interest_component <> true ")
                 .append(" and mc.charge_time_enum = 9 and ml.loan_status_id = 300 ").append(" order by ml.id asc limit ? ");
@@ -1682,7 +1684,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         if (backdatePenalties) {
             try {
                 return Collections.synchronizedList(
-                        this.jdbcTemplate.queryForList(sqlBuilder.toString(), Long.class, penaltyWaitPeriod, maxLoanIdInList, pageSize));
+                        this.jdbcTemplate.queryForList(sqlBuilder.toString(), Long.class, penaltyStartDate, penaltyWaitPeriod, maxLoanIdInList, pageSize));
             } catch (final EmptyResultDataAccessException e) {
                 return new ArrayList<Long>();
             }

@@ -128,4 +128,6 @@ public interface ConfigurationDomainService {
     boolean isMaxActiveLoansEnabled();
 
     Long getMaxActiveLoans();
+
+    LocalDate retrievePenaltyStartDate();
 }
