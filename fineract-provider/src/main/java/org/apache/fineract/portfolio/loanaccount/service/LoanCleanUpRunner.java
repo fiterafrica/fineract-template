@@ -68,7 +68,7 @@ public class LoanCleanUpRunner implements Runnable {
     @Override
     public void run() {
         ThreadLocalContextUtil.setTenant(this.tenant);
-        this.populateOverdueInstallmentChargeFix();
+        this.populateOverdueInstallmentCharge();
     }
 
     public void start() {
@@ -133,7 +133,10 @@ public class LoanCleanUpRunner implements Runnable {
                 + "WHERE id NOT IN (SELECT loan_charge_id FROM m_loan_overdue_installment_charge)\n"
                 + "AND charge_id IN (SELECT id FROM m_charge WHERE charge_time_enum = 9)", Long.class);
         // 2. for each loan, get the overdue installments
+        int count = loanIds.size();
+        int i = 1;
         for (Long loanId : loanIds) {
+            LOG.info("Processing loan {}, which is {} of {}", loanId, i, count);
             Loan loan = this.loanAssembler.assembleFrom(loanId);
             Integer arrearTolorence = loan.loanProduct().getLoanProductRelatedDetail().getGraceOnArrearsAgeing();
             if (arrearTolorence == null) {
@@ -174,6 +177,8 @@ public class LoanCleanUpRunner implements Runnable {
             }
             loan.updateLoanSummaryDerivedFields();
             this.loanRepository.saveAndFlush(loan);
+            LOG.info("Processed loan {}, which is {} of {}", loanId, i, count);
+            i += 1;
         }
     }
 
