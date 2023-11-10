@@ -75,9 +75,7 @@ public interface SavingsAccountReadPlatformService {
 
     List<Long> retrieveActiveSavingsAccrualAccounts(Long maxSavingsAccountId, int pageSize);
 
-    List<Long> retrieveActiveSavingAccountsWithZeroInterest();
-
-    List<Long> retrieveActiveOverdraftSavingAccounts();
+    List<Long> retrieveActiveSavingAccountsForInterestPosting(Long maxSavingsIdInList, int pageSize);
 
     RecurringMissedTargetData findRecurringDepositAccountWithMissedTarget(Long savingsAccountId);
 

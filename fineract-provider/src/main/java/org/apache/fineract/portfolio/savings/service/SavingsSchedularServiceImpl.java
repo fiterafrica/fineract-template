@@ -22,27 +22,27 @@ import static org.apache.fineract.portfolio.savings.domain.SavingsAccountStatusT
 
 import java.time.LocalDate;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.fineract.accounting.journalentry.exception.JournalEntryInvalidException;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
-import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
-import org.apache.fineract.infrastructure.core.exception.ExceptionHelper;
+import org.apache.fineract.infrastructure.core.domain.FineractContext;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.jobs.annotation.CronTarget;
 import org.apache.fineract.infrastructure.jobs.exception.JobExecutionException;
 import org.apache.fineract.infrastructure.jobs.service.JobExecuter;
 import org.apache.fineract.infrastructure.jobs.service.JobName;
-import org.apache.fineract.infrastructure.jobs.service.JobRunner;
-import org.apache.fineract.portfolio.client.domain.Client;
-import org.apache.fineract.portfolio.client.exception.ClientNotActiveException;
-import org.apache.fineract.portfolio.group.domain.Group;
-import org.apache.fineract.portfolio.group.exception.GroupNotActiveException;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountData;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountAssembler;
@@ -52,18 +52,16 @@ import org.apache.fineract.portfolio.savings.domain.SavingsProductRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.util.CollectionUtils;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class SavingsSchedularServiceImpl implements SavingsSchedularService {
+    private final int queueSize = 1;
 
     private final SavingsAccountAssembler savingAccountAssembler;
     private final SavingsAccountWritePlatformService savingsAccountWritePlatformService;
@@ -134,146 +132,146 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
 
     @Override
     @CronTarget(jobName = JobName.POST_INTEREST_FOR_SAVINGS)
-    public void postInterestForAccountsThreaded(Map<String, String> jobParameters) throws JobExecutionException {
+    public void postInterestForSavings(Map<String, String> jobParameters) throws JobExecutionException {
 
+        final Queue<List<Long>> queue = new ArrayDeque<>();
+        final ApplicationContext applicationContext;
+        final int threadPoolSize = Integer.parseInt(jobParameters.get("thread-pool-size"));
+        final int batchSize = Integer.parseInt(jobParameters.get("batch-size"));
+        final int pageSize = batchSize * threadPoolSize;
+        Long maxSavingsIdInList = 0L;
+        final List<Long> activeSavingsAccounts = savingAccountReadPlatformService.retrieveActiveSavingAccountsForInterestPosting(maxSavingsIdInList, pageSize);
+        final ExecutorService executorService = Executors.newFixedThreadPool(threadPoolSize);
+        if (activeSavingsAccounts != null && !activeSavingsAccounts.isEmpty()) {
+            queue.add(activeSavingsAccounts.stream().toList());
+            if (!CollectionUtils.isEmpty(queue)) {
+                do {
+                    log.info("Starting Job Post Interest For Savings Accounts" );
+                    List<Long> queueElement = queue.element();
+                    maxSavingsIdInList = queueElement.get(queueElement.size() - 1);
+                    postInterestForSavings(queue.remove(), queue, threadPoolSize, executorService, pageSize, maxSavingsIdInList);
+                } while (!CollectionUtils.isEmpty(queue));
+            }
+            // shutdown the executor when done
+            executorService.shutdownNow();
+        }
+    }
+
+    private void postInterestForSavings(List<Long> activeSavingsAccounts, Queue<List<Long>> queue, int threadPoolSize,
+                                            ExecutorService executorService, int pageSize, Long maxSavingsIdInList) {
+        List<Callable<Void>> posters = new ArrayList<>();
+        int fromIndex = 0;
+        int size = activeSavingsAccounts.size();
+        int batchSize = (int) Math.ceil((double) size / threadPoolSize);
+        if (batchSize == 0) {
+            return;
+        }
+        int toIndex = (batchSize > size - 1) ? size : batchSize;
+        while (toIndex < size && activeSavingsAccounts.get(toIndex - 1).equals(activeSavingsAccounts.get(toIndex))) {
+            toIndex++;
+        }
+        boolean lastBatch = false;
+        int loopCount = size / batchSize + 1;
+
+        FineractContext context = ThreadLocalContextUtil.getContext();
+
+        Callable<Void> fetchData = () -> {
+            ThreadLocalContextUtil.init(context);
+            Long maxId = maxSavingsIdInList;
+            if (!queue.isEmpty()) {
+                maxId = Math.max(maxSavingsIdInList, queue.element().get(queue.element().size() - 1));
+            }
+            while (queue.size() <= queueSize) {
+                log.info("Fetching while threads are running!");
+                final List<Long> savingsAccounts = savingAccountReadPlatformService.retrieveActiveSavingAccountsForInterestPosting(maxId, pageSize);
+                if (savingsAccounts.isEmpty()) {
+                    break;
+                }
+                maxId = savingsAccounts.get(savingsAccounts.size() - 1);
+                queue.add(savingsAccounts);
+            }
+            return null;
+        };
+        posters.add(fetchData);
+
+        for (long i = 0; i < loopCount; i++) {
+            List<Long> subList = safeSubList(activeSavingsAccounts, fromIndex, toIndex);
+            PostInterestToSavingsAccountsPoster poster = (PostInterestToSavingsAccountsPoster) applicationContext
+                    .getBean("postInterestToSavingsAccountsPoster");
+            poster.setSavingsAccountIds(subList);
+            poster.setSavingsAccountWritePlatformService(this.savingsAccountWritePlatformService);
+            poster.setSavingAccountAssembler (this.savingAccountAssembler);
+            poster.setContext(ThreadLocalContextUtil.getContext());
+
+            posters.add(poster);
+            if (lastBatch) {
+                break;
+            }
+            if (toIndex + batchSize > size - 1) {
+                lastBatch = true;
+            }
+            fromIndex = fromIndex + (toIndex - fromIndex);
+            toIndex = (toIndex + batchSize > size - 1) ? size : toIndex + batchSize;
+            while (toIndex < size && activeSavingsAccounts.get(toIndex - 1).equals(activeSavingsAccounts.get(toIndex))) {
+                toIndex++;
+            }
+        }
         try {
-            Thread nonInterestRecalculationThread = new Thread(new SavingsInterestRunnable());
-            nonInterestRecalculationThread.start();
-            nonInterestRecalculationThread.join();
-        } catch (InterruptedException e) {
-            logger.error("Thread Interrupted for Post  : " + e.getMessage());
+            List<Future<Void>> responses = executorService.invokeAll(posters);
+            Long maxId = maxSavingsIdInList;
+            if (!queue.isEmpty()) {
+                maxId = Math.max(maxSavingsIdInList, queue.element().get(queue.element().size() - 1));
+            }
+            while (queue.size() <= queueSize) {
+                log.info("Fetching while threads are running!..:: this is not supposed to run........");
+                activeSavingsAccounts = savingAccountReadPlatformService.retrieveActiveSavingAccountsForInterestPosting(maxId, pageSize);
+
+                if (activeSavingsAccounts.isEmpty()) {
+                    break;
+                }
+                maxId = activeSavingsAccounts.get(activeSavingsAccounts.size() - 1);
+                log.info("Add to the Queue");
+                queue.add(activeSavingsAccounts);
+            }
+            checkTaskCompletion(responses);
+            log.info("Queue size {}", queue.size());
+        } catch (InterruptedException e1) {
+            log.error("Interrupted while AddPenalty", e1);
         }
     }
 
-    private class SavingsInterestRunnable implements Runnable {
-
-        final FineractPlatformTenant tenant;
-        final Authentication auth;
-        final Map<String, Object> jobParams;
-        final LocalDate jobRunDate;
-
-        public SavingsInterestRunnable() {
-            this.tenant = ThreadLocalContextUtil.getTenant();
-            if (SecurityContextHolder.getContext() == null) {
-                this.auth = null;
-            } else {
-                this.auth = SecurityContextHolder.getContext().getAuthentication();
-            }
-
-            this.jobParams = ThreadLocalContextUtil.getJobParams();
-            this.jobRunDate = DateUtils.getLocalDateOfTenant();
+    private <T> List<T> safeSubList(List<T> list, int fromIndex, int toIndex) {
+        int size = list.size();
+        if (fromIndex >= size || toIndex <= 0 || fromIndex >= toIndex) {
+            return Collections.emptyList();
         }
 
-        @Override
-        public void run() {
-            ThreadLocalContextUtil.setTenant(tenant);
-            ThreadLocalContextUtil.setJobParams(jobParams);
-            if (this.auth != null) {
-                SecurityContextHolder.getContext().setAuthentication(this.auth);
-            }
-            final List<Long> activeSavingsAccounts = savingAccountReadPlatformService.retrieveActiveSavingAccountsWithZeroInterest();
-            activeSavingsAccounts.addAll(savingAccountReadPlatformService.retrieveActiveOverdraftSavingAccounts());
-            JobRunner<List<Long>> runner = new SavingsInterestJobRunner(jobRunDate);
-            jobExecuter.executeJob(activeSavingsAccounts, runner);
-        }
+        fromIndex = Math.max(0, fromIndex);
+        toIndex = Math.min(size, toIndex);
+
+        return list.subList(fromIndex, toIndex);
     }
 
-    private class SavingsInterestJobRunner implements JobRunner<List<Long>> {
-
-        final Integer maxNumberOfRetries;
-        final Integer maxIntervalBetweenRetries;
-        final LocalDate jobRunDate;
-
-        public SavingsInterestJobRunner(final LocalDate jobRunDate) {
-            this.jobRunDate = jobRunDate;
-            maxNumberOfRetries = ThreadLocalContextUtil.getTenant().getConnection().getMaxRetriesOnDeadlock();
-            maxIntervalBetweenRetries = ThreadLocalContextUtil.getTenant().getConnection().getMaxIntervalBetweenRetries();
-        }
-
-        @Override
-        public void runJob(final List<Long> savingIds, StringBuilder sb) {
-            postInterest(sb, this.maxNumberOfRetries, this.maxIntervalBetweenRetries, savingIds, this.jobRunDate);
-        }
-
-    }
-
-    private void postInterest(final StringBuilder sb, Integer maxNumberOfRetries, Integer maxIntervalBetweenRetries, List<Long> savingIds,
-            LocalDate jobRunDate) {
-        final String errorMessage = "Post Interest failed for account:";
-
-        for (Long savingAccountId : savingIds) {
-            if (savingAccountId == 0) {
-                continue;
+    private void checkTaskCompletion(List<Future<Void>> responses) {
+        try {
+            for (Future<Void> f : responses) {
+                f.get();
             }
-            logger.info("Interest Saving ID " + savingAccountId + " which is " + savingIds.indexOf(savingAccountId) + " of "
-                    + savingIds.size());
-            Integer numberOfRetries = 0;
-            String savingsAccountNumber = "";
-            while (numberOfRetries <= maxNumberOfRetries) {
-                try {
-                    final SavingsAccount savingAccount = this.savingAccountAssembler.assembleFrom(savingAccountId);
-                    savingsAccountNumber = savingAccount.getAccountNumber();
-                    checkClientOrGroupActive(savingAccount);
-                    if (!savingAccount.isPostOverdraftInterestOnDeposit()) {
-                        this.savingsAccountWritePlatformService.postInterest(savingAccount, false, jobRunDate);
-                    }
-                    numberOfRetries = maxNumberOfRetries + 1;
-                } catch (CannotAcquireLockException | ObjectOptimisticLockingFailureException exception) {
-                    logger.info("Recalulate interest job has been retried  " + numberOfRetries + " time(s)");
-                    /***
-                     * Fail if the transaction has been retired for maxNumberOfRetries
-                     **/
-                    if (numberOfRetries >= maxNumberOfRetries) {
-                        logger.warn("Post interest job has been retried for the max allowed attempts of " + numberOfRetries
-                                + " and will be rolled back. ");
-                        sb.append("Post interest job has been retried for the max allowed attempts of " + numberOfRetries
-                                + " and will be rolled back. ");
-                        break;
-                    }
-                    /***
-                     * Else sleep for a random time (between 1 to 10 seconds) and continue
-                     **/
-                    try {
-                        Random random = new Random();
-                        int randomNum = random.nextInt(maxIntervalBetweenRetries + 1);
-                        Thread.sleep(1000 + (randomNum * 1000));
-                        numberOfRetries = numberOfRetries + 1;
-                    } catch (InterruptedException e) {
-                        sb.append("Post interest for savings failed " + exception.getMessage());
-                        break;
-                    }
-                } catch (Exception e) {
-                    if (e instanceof JournalEntryInvalidException) {
-                        Throwable realCause = e;
-                        if (e.getCause() != null) {
-                            realCause = e.getCause();
-                        }
-                        String message = realCause.getMessage();
-                        if (message == null && realCause instanceof JournalEntryInvalidException) {
-                            message = ((JournalEntryInvalidException) realCause).getDefaultUserMessage();
-                        }
-                        sb.append(" Failed to post interest for Savings with id " + savingsAccountNumber + " with message " + message);
-                    } else {
-                        ExceptionHelper.handleExceptions(e, sb, errorMessage, savingAccountId, logger);
-                    }
-                    numberOfRetries = maxNumberOfRetries + 1;
+            boolean allThreadsExecuted;
+            int noOfThreadsExecuted = 0;
+            for (Future<Void> future : responses) {
+                if (future.isDone()) {
+                    noOfThreadsExecuted++;
                 }
             }
-        }
-    }
-
-    private void checkClientOrGroupActive(final SavingsAccount account) {
-        final Client client = account.getClient();
-        if (client != null) {
-            if (client.isNotActive()) {
-                throw new ClientNotActiveException(client.getId());
+            allThreadsExecuted = noOfThreadsExecuted == responses.size();
+            if (!allThreadsExecuted) {
+                log.error("All threads could not execute.");
             }
-        }
-        final Group group = account.group();
-        if (group != null) {
-            if (group.isNotActive()) {
-                throw new GroupNotActiveException(group.getId());
-            }
+        } catch (InterruptedException e1) {
+            log.error("Interrupted while interest posting entries", e1);
+        } catch (ExecutionException e2) {
+            log.error("Execution exception while interest posting entries", e2);
         }
     }
 }

@@ -701,16 +701,16 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
     }
 
     @Override
-    public List<Long> retrieveActiveSavingAccountsWithZeroInterest() {
-        String sql = "select id from m_savings_account where status_enum = 300 and nominal_annual_interest_rate != 0 and deposit_type_enum != 200";
-        return this.jdbcTemplate.queryForList(sql, Long.class);
+    public List<Long> retrieveActiveSavingAccountsForInterestPosting(Long maxSavingsIdInList, int pageSize) {
+        String sql = "select id from m_savings_account where status_enum = 300 and (nominal_annual_interest_rate != 0 or (allow_overdraft = true or account_balance_derived <= 0)) "
+                + " and id > ? order by id asc limit ?";
+        try {
+            return Collections.synchronizedList(this.jdbcTemplate.queryForList(sql, Long.class, maxSavingsIdInList, pageSize));
+        } catch (final EmptyResultDataAccessException e) {
+            return new ArrayList<Long>();
+        }
     }
 
-    @Override
-    public List<Long> retrieveActiveOverdraftSavingAccounts() {
-        String sql = "select id from m_savings_account where status_enum = 300 and (allow_overdraft = true or account_balance_derived <= 0) and deposit_type_enum != 200";
-        return this.jdbcTemplate.queryForList(sql, Long.class, true);
-    }
 
     @Override
     public RecurringMissedTargetData findRecurringDepositAccountWithMissedTarget(Long savingsAccountId) {
