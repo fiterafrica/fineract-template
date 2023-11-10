@@ -72,6 +72,10 @@ public class LoanRepaymentScheduleProcessingWrapper {
             startDate = period.getDueDate();
             installment += 1;
         }
+        // reset charge processed flag to false
+        for (final LoanCharge loanCharge : loanCharges) {
+            loanCharge.setProcessed(false);
+        }
     }
 
     private Money cumulativeFeeChargesDueWithin(final LocalDate periodStart, final LocalDate periodEnd, final Set<LoanCharge> loanCharges,
@@ -80,6 +84,9 @@ public class LoanRepaymentScheduleProcessingWrapper {
 
         Money cumulative = Money.zero(monetaryCurrency);
         for (final LoanCharge loanCharge : loanCharges) {
+            if (loanCharge.isProcessed()) {
+                continue;
+            }
             if (loanCharge.isFeeCharge() && !loanCharge.isDueAtDisbursement()) {
                 if (loanCharge.isInstalmentFee() && isInstallmentChargeApplicable) {
                     if (loanCharge.getChargeCalculation().isPercentageBased()) {
@@ -94,14 +101,17 @@ public class LoanRepaymentScheduleProcessingWrapper {
                         }
                         BigDecimal loanChargeAmt = amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100));
                         cumulative = cumulative.plus(loanChargeAmt);
+                        loanCharge.setProcessed(true);
                     } else {
                         cumulative = cumulative.plus(loanCharge.amountOrPercentage());
+                        loanCharge.setProcessed(true);
                     }
                 } else if (loanCharge.isOverdueInstallmentCharge()
                         && (loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)
                                 || loanCharge.isDueForCollectionForDisburseToSavingsAndIncluding(periodStart))
                         && loanCharge.getChargeCalculation().isPercentageBased()) {
                     cumulative = cumulative.plus(loanCharge.chargeAmount());
+                    loanCharge.setProcessed(true);
                 } else if ((loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)
                         || loanCharge.isDueForCollectionForDisburseToSavingsAndIncluding(periodStart))
                         && loanCharge.getChargeCalculation().isPercentageBased()) {
@@ -128,9 +138,11 @@ public class LoanRepaymentScheduleProcessingWrapper {
                     }
                     BigDecimal loanChargeAmt = amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100));
                     cumulative = cumulative.plus(loanChargeAmt);
+                    loanCharge.setProcessed(true);
                 } else if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)
                         || loanCharge.isDueForCollectionForDisburseToSavingsAndIncluding(periodStart)) {
                     cumulative = cumulative.plus(loanCharge.amount());
+                    loanCharge.setProcessed(true);
                 }
             }
         }

@@ -38,6 +38,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
@@ -129,6 +130,9 @@ public class LoanCharge extends AbstractPersistableCustom {
 
     @Column(name = "external_id")
     private String externalId;
+
+    @Transient
+    private boolean processed;
 
     @OneToOne(mappedBy = "loancharge", cascade = CascadeType.ALL, optional = true, orphanRemoval = true, fetch = FetchType.EAGER)
     private LoanOverdueInstallmentCharge overdueInstallmentCharge;
@@ -1109,4 +1113,11 @@ public class LoanCharge extends AbstractPersistableCustom {
         return ChargeTimeType.fromInt(this.chargeTime).equals(ChargeTimeType.DISBURSE_TO_SAVINGS);
     }
 
+    public boolean isProcessed() {
+        return processed;
+    }
+
+    public void setProcessed(boolean processed) {
+        this.processed = processed;
+    }
 }
