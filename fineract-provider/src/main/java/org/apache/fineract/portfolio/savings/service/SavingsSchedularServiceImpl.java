@@ -32,7 +32,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
@@ -61,6 +60,7 @@ import org.springframework.util.CollectionUtils;
 @Slf4j
 @RequiredArgsConstructor
 public class SavingsSchedularServiceImpl implements SavingsSchedularService {
+
     private final int queueSize = 1;
 
     private final SavingsAccountAssembler savingAccountAssembler;
@@ -140,13 +140,14 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
         final int batchSize = Integer.parseInt(jobParameters.get("batch-size"));
         final int pageSize = batchSize * threadPoolSize;
         Long maxSavingsIdInList = 0L;
-        final List<Long> activeSavingsAccounts = savingAccountReadPlatformService.retrieveActiveSavingAccountsForInterestPosting(maxSavingsIdInList, pageSize);
+        final List<Long> activeSavingsAccounts = savingAccountReadPlatformService
+                .retrieveActiveSavingAccountsForInterestPosting(maxSavingsIdInList, pageSize);
         final ExecutorService executorService = Executors.newFixedThreadPool(threadPoolSize);
         if (activeSavingsAccounts != null && !activeSavingsAccounts.isEmpty()) {
             queue.add(activeSavingsAccounts.stream().toList());
             if (!CollectionUtils.isEmpty(queue)) {
                 do {
-                    log.info("Starting Job Post Interest For Savings Accounts" );
+                    log.info("Starting Job Post Interest For Savings Accounts");
                     List<Long> queueElement = queue.element();
                     maxSavingsIdInList = queueElement.get(queueElement.size() - 1);
                     postInterestForSavings(queue.remove(), queue, threadPoolSize, executorService, pageSize, maxSavingsIdInList);
@@ -158,7 +159,7 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
     }
 
     private void postInterestForSavings(List<Long> activeSavingsAccounts, Queue<List<Long>> queue, int threadPoolSize,
-                                            ExecutorService executorService, int pageSize, Long maxSavingsIdInList) {
+            ExecutorService executorService, int pageSize, Long maxSavingsIdInList) {
         List<Callable<Void>> posters = new ArrayList<>();
         int fromIndex = 0;
         int size = activeSavingsAccounts.size();
@@ -183,7 +184,8 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
             }
             while (queue.size() <= queueSize) {
                 log.info("Fetching while threads are running!");
-                final List<Long> savingsAccounts = savingAccountReadPlatformService.retrieveActiveSavingAccountsForInterestPosting(maxId, pageSize);
+                final List<Long> savingsAccounts = savingAccountReadPlatformService.retrieveActiveSavingAccountsForInterestPosting(maxId,
+                        pageSize);
                 if (savingsAccounts.isEmpty()) {
                     break;
                 }
@@ -200,7 +202,7 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
                     .getBean("postInterestToSavingsAccountsPoster");
             poster.setSavingsAccountIds(subList);
             poster.setSavingsAccountWritePlatformService(this.savingsAccountWritePlatformService);
-            poster.setSavingAccountAssembler (this.savingAccountAssembler);
+            poster.setSavingAccountAssembler(this.savingAccountAssembler);
             poster.setContext(ThreadLocalContextUtil.getContext());
 
             posters.add(poster);

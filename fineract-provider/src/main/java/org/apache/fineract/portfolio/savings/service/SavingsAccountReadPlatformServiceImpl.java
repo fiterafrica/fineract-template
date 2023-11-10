@@ -711,7 +711,6 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
         }
     }
 
-
     @Override
     public RecurringMissedTargetData findRecurringDepositAccountWithMissedTarget(Long savingsAccountId) {
         RecurringMissedTargetData result = null;

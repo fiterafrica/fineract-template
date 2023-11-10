@@ -24,7 +24,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
-
 import org.apache.fineract.accounting.journalentry.exception.JournalEntryInvalidException;
 import org.apache.fineract.infrastructure.core.domain.FineractContext;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
@@ -115,7 +114,9 @@ public class PostInterestToSavingsAccountsPoster implements Callable<Void> {
                             Thread.sleep(1000 + (randomNum * 1000));
                             numberOfRetries = numberOfRetries + 1;
                         } catch (InterruptedException e) {
-                            LOG.error("Post Interest For Savings failed for account " + savingsAccountNumber + "due to InterruptedException", e);
+                            LOG.error(
+                                    "Post Interest For Savings failed for account " + savingsAccountNumber + "due to InterruptedException",
+                                    e);
                             errors.add(e);
                             break;
                         }
