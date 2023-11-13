@@ -26,8 +26,8 @@
         <insert tableName="c_configuration">
             <column name="name" value="penalty-start-date"/>
             <column name="date_value" value="2023-11-09"/>
-            <column name="enabled" valueNumeric="1"/>
-            <column name="is_trap_door" valueNumeric="0"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="is_trap_door" valueBoolean="false"/>
             <column name="description" value="Defines the Penalty calculation start date from Nov 9"/>
         </insert>
     </changeSet>
