@@ -356,9 +356,9 @@ public class FixedDepositAccount extends SavingsAccount {
                 allPostingPeriods.get(0).getCompoundingPeriods().clear();
                 allPostingPeriods.get(0).getCompoundingPeriods().add(compoundingPeriod);
                 if (compoundingPeriod instanceof AnnualCompoundingPeriod
-                        && !((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().isEmpty()) {
-                    ((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().get(0)
-                            .setNumberOfDays(compoundingPeriod.getPeriodInterval().daysInPeriodInclusiveOfEndDate());
+                        && !compoundingPeriod.getEndOfDayBalances().isEmpty()) {
+                    compoundingPeriod.getEndOfDayBalances().get(0)
+                            .setNumberOfDays(1);
                 }
             }
         }

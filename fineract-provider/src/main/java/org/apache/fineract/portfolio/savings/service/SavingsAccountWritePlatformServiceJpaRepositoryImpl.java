@@ -2572,18 +2572,18 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     }
 
     @Override
-    // @CronTarget(jobName = JobName.GENERATE_ADHOCCLIENT_SCEHDULE)
+    @CronTarget(jobName = JobName.GENERATE_ADHOCCLIENT_SCEHDULE)
     public void cleanUpFixeDepositAccounts() {
         LOG.info("Fixed Deposit Accounts are being cleaned up");
         this.refreshSavingsFDAccounts(SavingsAccountStatusType.ACTIVE.getValue());
-        this.refreshSavingsFDAccounts(SavingsAccountStatusType.CLOSED.getValue());
-        this.refreshSavingsFDAccounts(SavingsAccountStatusType.MATURED.getValue());
-        this.refreshSavingsFDAccounts(SavingsAccountStatusType.PRE_MATURE_CLOSURE.getValue());
+//        this.refreshSavingsFDAccounts(SavingsAccountStatusType.CLOSED.getValue());
+//        this.refreshSavingsFDAccounts(SavingsAccountStatusType.MATURED.getValue());
+//        this.refreshSavingsFDAccounts(SavingsAccountStatusType.PRE_MATURE_CLOSURE.getValue());
         LOG.info("Fixed Deposit Accounts are refreshed");
     }
 
     @Override
-    @CronTarget(jobName = JobName.GENERATE_ADHOCCLIENT_SCEHDULE)
+    //@CronTarget(jobName = JobName.GENERATE_ADHOCCLIENT_SCEHDULE)
     public void cleanUpRDAs() {
         LOG.info("Recurring Deposit Accounts are being cleaned up");
         final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
@@ -2827,7 +2827,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
                 .isSavingsInterestPostingAtCurrentPeriodEnd();
         final Integer financialYearBeginningMonth = this.configurationDomainService.retrieveFinancialYearBeginningMonth();
         if (account.getAccountTermAndPreClosure().depositPeriod() != null) {
-            account.updateMaturityDateAndAmountBeforeAccountActivation(MathContext.DECIMAL64, false,
+            account.updateMaturityDateAndAmount(MathContext.DECIMAL64, false,
                     isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
         }
         this.fixedDepositAccountRepository.saveAndFlush(account);
