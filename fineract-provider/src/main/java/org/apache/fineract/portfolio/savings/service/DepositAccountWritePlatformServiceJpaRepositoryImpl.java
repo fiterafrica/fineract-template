@@ -20,7 +20,6 @@ package org.apache.fineract.portfolio.savings.service;
 
 import static org.apache.fineract.portfolio.savings.DepositsApiConstants.FIXED_DEPOSIT_ACCOUNT_RESOURCE_NAME;
 import static org.apache.fineract.portfolio.savings.DepositsApiConstants.RECURRING_DEPOSIT_ACCOUNT_RESOURCE_NAME;
-import static org.apache.fineract.portfolio.savings.DepositsApiConstants.changeTenureParamName;
 import static org.apache.fineract.portfolio.savings.DepositsApiConstants.closedOnDateParamName;
 import static org.apache.fineract.portfolio.savings.DepositsApiConstants.depositAmountParamName;
 import static org.apache.fineract.portfolio.savings.DepositsApiConstants.depositPeriodFrequencyIdParamName;
@@ -36,7 +35,6 @@ import com.google.gson.JsonElement;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.LocalDate;
-import java.time.Year;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -124,7 +122,6 @@ import org.apache.fineract.portfolio.savings.DepositAccountType;
 import org.apache.fineract.portfolio.savings.DepositsApiConstants;
 import org.apache.fineract.portfolio.savings.SavingsAccountTransactionType;
 import org.apache.fineract.portfolio.savings.SavingsApiConstants;
-import org.apache.fineract.portfolio.savings.SavingsInterestCalculationDaysInYearType;
 import org.apache.fineract.portfolio.savings.SavingsPeriodFrequencyType;
 import org.apache.fineract.portfolio.savings.data.DepositAccountData;
 import org.apache.fineract.portfolio.savings.data.DepositAccountTransactionDataValidator;
@@ -172,6 +169,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -221,6 +219,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
     private final PaymentTypeRepositoryWrapper repositoryWrapper;
 
+    private final JdbcTemplate jdbcTemplate;
+
     @Autowired
     public DepositAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
             final SavingsAccountRepositoryWrapper savingAccountRepositoryWrapper,
@@ -247,7 +247,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             AccountingProcessorHelper helper, RecurringDepositProductRepository recurringDepositProductRepository,
             SavingsAccountWritePlatformService savingsAccountWritePlatformService, SavingsAccountRepository savingsAccountRepository,
             ChargeSlabRepository chargeSlabRepository, SavingsAccountReadPlatformService savingsAccountReadPlatformService,
-            ChargeReadPlatformService chargeReadPlatformService, PaymentTypeRepositoryWrapper repositoryWrapper) {
+            ChargeReadPlatformService chargeReadPlatformService, PaymentTypeRepositoryWrapper repositoryWrapper,
+            JdbcTemplate jdbcTemplate) {
 
         this.context = context;
         this.savingAccountRepositoryWrapper = savingAccountRepositoryWrapper;
@@ -285,6 +286,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         this.savingsAccountReadPlatformService = savingsAccountReadPlatformService;
         this.chargeReadPlatformService = chargeReadPlatformService;
         this.repositoryWrapper = repositoryWrapper;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Transactional
@@ -1733,14 +1735,27 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         account.postAccrualInterest(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth,
                 today, account.maturityDate());
         fixedDepositApplicationReq.setInterestCarriedForward(this.calculateInterestCarriedForward(account));
-        boolean changeTenure = command.booleanPrimitiveValueOfParameterNamed(changeTenureParamName);
-        if (!changeTenure) {
-            this.setEffectiveInterestRate(account, fixedDepositApplicationReq);
-        }
+        // Maintain the interest rate
+        fixedDepositApplicationReq.setInterestRateSet(true);
+        fixedDepositApplicationReq.setInterestRate(account.getNominalAnnualInterestRate());
         FixedDepositAccount newFD = this.autoCreateNewFD(command, account, accountAssociations, fixedDepositApplicationReq);
-
+        // Copy any data tables to the new account
+        this.copyAccountDataTableToNewAccount(account, newFD);
         return new CommandProcessingResultBuilder().withEntityId(accountId).withOfficeId(account.officeId())
                 .withClientId(account.clientId()).withGroupId(account.groupId()).withSavingsId(newFD.getId()).build();
+    }
+
+    private void copyAccountDataTableToNewAccount(FixedDepositAccount account, FixedDepositAccount newFD) {
+        // 1. Get list of data table names
+        String sql = "SELECT registered_table_name FROM x_registered_table where application_table_name = 'm_savings_account'";
+        List<String> tables = this.jdbcTemplate.queryForList(sql, String.class);
+        if (!tables.isEmpty()) {
+            // 2. Copy the data from the old account to the new account
+            for (String tableName : tables) {
+                sql = "UPDATE \"" + tableName + "\" SET savings_account_id = ? WHERE savings_account_id = ?";
+                this.jdbcTemplate.update(sql, newFD.getId(), account.getId());
+            }
+        }
     }
 
     private FixedDepositAccount autoCreateNewFD(JsonCommand command, FixedDepositAccount account, AccountAssociations accountAssociations,
@@ -1862,52 +1877,6 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                     : account.getAccountTermAndPreClosure().getInterestCarriedForwardOnTopUp();
         }
         return interestCarriedForward;
-    }
-
-    /**
-     * In order to make the interest earned by the customer accurate, an effective rate will be computed and used in the
-     * new topped up FD account. This will be achieved as follows: - Calculate interest to be earned by the existing
-     * principal (a) at the existing rate (c) - Calculate interest to be earned by the new principal (b) amount at the
-     * rate in the rate chart (d) - Add find the effective rate using this formula (c+d)/(a+b)*days in year/FD term -
-     * Use effective rate as interest rate in the topped up FD account
-     *
-     * @param account
-     * @param fixedDepositApplicationReq
-     */
-    private void setEffectiveInterestRate(FixedDepositAccount account, FixedDepositApplicationReq fixedDepositApplicationReq) {
-        SavingsInterestCalculationDaysInYearType daysInYearType = account.getProduct().interestCalculationDaysInYearType();
-        if (daysInYearType.isActual()) {
-            Year year;
-            if (account.getAccountTermAndPreClosure().getMaturityLocalDate() != null) {
-                year = Year.of(account.getAccountTermAndPreClosure().getMaturityLocalDate().getYear());
-            } else {
-                year = Year.of(DateUtils.getLocalDateOfTenant().getYear());
-            }
-            daysInYearType = SavingsInterestCalculationDaysInYearType.fromInt(year.length());
-        }
-        BigDecimal topUpAmount = fixedDepositApplicationReq.getDepositAmount()
-                .subtract(account.getAccountTermAndPreClosure().depositAmount());
-        BigDecimal interestEarnedOnExisting = this.calculateInterest(account.getAccountTermAndPreClosure().depositAmount(),
-                account.getNominalAnnualInterestRate(), fixedDepositApplicationReq.getDepositPeriod(), daysInYearType.getValue());
-        BigDecimal applicableInterestRate = account.getChart().getApplicableInterestRate(fixedDepositApplicationReq.getDepositAmount(),
-                fixedDepositApplicationReq.getSubmittedOnDate(),
-                fixedDepositApplicationReq.getSubmittedOnDate().plusDays(fixedDepositApplicationReq.getDepositPeriod()),
-                account.getClient());
-        BigDecimal interestEarnedOnNew = this.calculateInterest(topUpAmount, applicableInterestRate,
-                fixedDepositApplicationReq.getDepositPeriod(), daysInYearType.getValue());
-        BigDecimal interestSum = interestEarnedOnExisting.add(interestEarnedOnNew);
-        BigDecimal principalSum = account.getAccountTermAndPreClosure().depositAmount().add(topUpAmount);
-        BigDecimal effectiveRate = interestSum.divide(principalSum, MathContext.DECIMAL64)
-                .multiply(BigDecimal.valueOf(daysInYearType.getValue()))
-                .divide(BigDecimal.valueOf(fixedDepositApplicationReq.getDepositPeriod()), MathContext.DECIMAL64)
-                .multiply(BigDecimal.valueOf(100));
-        fixedDepositApplicationReq.setInterestRateSet(true);
-        fixedDepositApplicationReq.setInterestRate(effectiveRate);
-    }
-
-    private BigDecimal calculateInterest(BigDecimal principal, BigDecimal interestRate, int depositPeriod, int daysInYear) {
-        return interestRate.divide(BigDecimal.valueOf(100L), MathContext.DECIMAL64).multiply(principal)
-                .multiply(BigDecimal.valueOf(depositPeriod)).divide(BigDecimal.valueOf(daysInYear), MathContext.DECIMAL64);
     }
 
     private void preCloseAccount(JsonCommand command, Map<String, Object> changes, FixedDepositAccount account,
