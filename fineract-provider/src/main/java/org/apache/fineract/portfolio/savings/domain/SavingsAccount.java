@@ -979,7 +979,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
                 if (backdatedTxnsAllowedTill) {
                     addTransactionToExisting(withholdTransaction);
                 } else {
-                    addTransaction(withholdTransaction);
+                    addNewTransaction(withholdTransaction);
                 }
                 isTaxAdded = true;
             }

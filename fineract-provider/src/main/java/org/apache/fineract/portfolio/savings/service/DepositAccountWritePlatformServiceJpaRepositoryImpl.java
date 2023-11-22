@@ -1548,13 +1548,15 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         final Integer financialYearBeginningMonth = this.configurationDomainService.retrieveFinancialYearBeginningMonth();
         final boolean postReversals = false;
         final SavingsAccount account = this.depositAccountAssembler.assembleFrom(depositAccount.id(), depositAccountType);
+        account.setSavingsAccountTransactionRepository(this.savingsAccountTransactionRepository);
         final Set<Long> existingTransactionIds = new HashSet<>();
         final Set<Long> existingReversedTransactionIds = new HashSet<>();
         updateExistingTransactionsDetails(account, existingTransactionIds, existingReversedTransactionIds);
 
         if (depositAccountType.isFixedDeposit()) {
-            ((FixedDepositAccount) account).updateMaturityStatus(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
             FixedDepositAccount fdAccount = ((FixedDepositAccount) account);
+            fdAccount.updateMaturityStatus(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
+
             // handle maturity instructions
 
             if (fdAccount.isMatured() && (fdAccount.isReinvestOnClosure() || fdAccount.isTransferToSavingsOnClosure())) {
@@ -1585,7 +1587,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                     financialYearBeginningMonth, postReversals);
 
             applyChargeOnRecurringDepositAccountWhenSavingsTargetIsMissed(account);
-            account.setStatus(800);
+            account.setStatus(SavingsAccountStatusType.MATURED.getValue());
 
         }
         this.savingAccountRepositoryWrapper.saveAndFlush(account);

@@ -362,7 +362,9 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
             }
             this.accountTransfersWritePlatformService.transferFunds(accountTransferDTO);
             updateAlreadyPostedTransactions(existingTransactionIds, account);
+            account.updateSummary();
             account.updateClosedStatus();
+            account.setClosedOnDate(closedDate);
             account.updateOnAccountClosureStatus(onClosureType);
         } else {
             final SavingsAccountTransaction withdrawal = this.handleWithdrawal(account, fmt, closedDate, account.getAccountBalance(),
@@ -518,6 +520,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         final Locale locale = command.extractLocale();
         final DateTimeFormatter fmt = DateTimeFormatter.ofPattern(command.dateFormat()).withLocale(locale);
         Long savingsTransactionId = null;
+        account.setSavingsAccountTransactionRepository(this.savingsAccountTransactionRepository);
 
         // post interest
         account.postPreMaturityInterest(closedDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
