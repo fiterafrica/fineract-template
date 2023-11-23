@@ -59,7 +59,7 @@ public class LoanSummaryData {
     private final BigDecimal totalCostOfLoan;
     private final BigDecimal totalWaived;
     private final BigDecimal totalWrittenOff;
-    private final BigDecimal totalOutstanding;
+    BigDecimal totalOutstanding;
     private final BigDecimal totalOverdue;
     private final BigDecimal totalRecovered;
     private final LocalDate overdueSinceDate;
@@ -127,5 +127,12 @@ public class LoanSummaryData {
 
     public BigDecimal getTotalOverdue() {
         return totalOverdue;
+    }
+
+    public void updateOutstandingBalanceConsideringWriterOff(){
+        if(this.totalOutstanding.compareTo(BigDecimal.ZERO) == 0 && this.totalWrittenOff != null){
+            final BigDecimal recoveredAmount = this.totalRecovered != null ? this.totalRecovered : BigDecimal.ZERO;
+            this.totalOutstanding = this.totalWrittenOff.subtract(recoveredAmount);
+        }
     }
 }

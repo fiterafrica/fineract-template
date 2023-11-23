@@ -581,6 +581,8 @@ public class LoansApiResource {
                 loanBasicDetails = LoanAccountData.withLoanCalendarData(loanBasicDetails, calendarData);
             }
         }
+
+        loanBasicDetails.getSummaryData().updateOutstandingBalanceConsideringWriterOff();
         Collection<InterestRatePeriodData> interestRatesPeriods = this.loanReadPlatformService
                 .retrieveLoanInterestRatePeriodData(loanBasicDetails);
         Collection<LoanTransactionData> loanRepayments = null;

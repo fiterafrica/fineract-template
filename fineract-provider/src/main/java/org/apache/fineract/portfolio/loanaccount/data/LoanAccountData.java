@@ -2161,4 +2161,8 @@ public final class LoanAccountData {
     public void setNextLoanIcReviewDecisionState(EnumOptionData nextLoanIcReviewDecisionState) {
         this.nextLoanIcReviewDecisionState = nextLoanIcReviewDecisionState;
     }
+
+    public LoanSummaryData getSummaryData(){
+        return this.summary;
+    }
 }
