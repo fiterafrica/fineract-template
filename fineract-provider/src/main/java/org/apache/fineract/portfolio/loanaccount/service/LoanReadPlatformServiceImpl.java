@@ -969,6 +969,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                         penaltyChargesOverdue, totalExpectedRepayment, totalRepayment, totalExpectedCostOfLoan, totalCostOfLoan,
                         totalWaived, totalWrittenOff, totalOutstanding, totalOverdue, overdueSinceDate, writeoffReasonId, writeoffReason,
                         totalRecovered);
+                loanSummary.updateOutstandingBalanceConsideringWriterOff();
             }
 
             GroupGeneralData groupData = null;

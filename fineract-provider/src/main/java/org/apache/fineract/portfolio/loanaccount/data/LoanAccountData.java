@@ -2162,7 +2162,7 @@ public final class LoanAccountData {
         this.nextLoanIcReviewDecisionState = nextLoanIcReviewDecisionState;
     }
 
-    public LoanSummaryData getSummaryData(){
+    public LoanSummaryData getSummaryData() {
         return this.summary;
     }
 }
