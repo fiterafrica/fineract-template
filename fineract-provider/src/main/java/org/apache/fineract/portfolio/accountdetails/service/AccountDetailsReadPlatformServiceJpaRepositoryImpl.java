@@ -28,6 +28,7 @@ import java.util.List;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
+import org.apache.fineract.infrastructure.core.service.database.DatabaseSpecificSQLGenerator;
 import org.apache.fineract.infrastructure.security.utils.ColumnValidator;
 import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.portfolio.accountdetails.data.AccountSummaryCollectionData;
@@ -39,6 +40,7 @@ import org.apache.fineract.portfolio.client.service.ClientReadPlatformService;
 import org.apache.fineract.portfolio.group.service.GroupReadPlatformService;
 import org.apache.fineract.portfolio.loanaccount.data.LoanApplicationTimelineData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanStatusEnumData;
+import org.apache.fineract.portfolio.loanaccount.data.LoanSummaryData;
 import org.apache.fineract.portfolio.loanproduct.service.LoanEnumerations;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountApplicationTimelineData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountStatusEnumData;
@@ -61,14 +63,17 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
     private final GroupReadPlatformService groupReadPlatformService;
     private final ColumnValidator columnValidator;
 
+    private final DatabaseSpecificSQLGenerator sqlGenerator;
+
     @Autowired
     public AccountDetailsReadPlatformServiceJpaRepositoryImpl(final ClientReadPlatformService clientReadPlatformService,
-            final JdbcTemplate jdbcTemplate, final GroupReadPlatformService groupReadPlatformService,
-            final ColumnValidator columnValidator) {
+            final JdbcTemplate jdbcTemplate, final GroupReadPlatformService groupReadPlatformService, final ColumnValidator columnValidator,
+            DatabaseSpecificSQLGenerator sqlGenerator) {
         this.clientReadPlatformService = clientReadPlatformService;
         this.jdbcTemplate = jdbcTemplate;
         this.groupReadPlatformService = groupReadPlatformService;
         this.columnValidator = columnValidator;
+        this.sqlGenerator = sqlGenerator;
     }
 
     @Override
@@ -284,7 +289,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
     @Override
     public List<LoanAccountSummaryData> retrieveLoanAccountDetailsByGroupIdAndGlimAccountNumber(final Long groupId,
             final String glimAccount) {
-        final LoanAccountSummaryDataMapper rm = new LoanAccountSummaryDataMapper();
+        final LoanAccountSummaryDataMapper rm = new LoanAccountSummaryDataMapper(this.sqlGenerator);
         final String loanWhereClauseForGroupAndLoanType = " where l.group_id =? and glim.account_number=? and l.loan_type_enum=4";
         final String sql = "select " + rm.loanAccountSummarySchema() + loanWhereClauseForGroupAndLoanType;
         return this.jdbcTemplate.query(sql, rm, new Object[] { groupId, glimAccount }); // NOSONAR
@@ -297,7 +302,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
     }
 
     private List<LoanAccountSummaryData> retrieveLoanAccountDetails(final String loanwhereClause, final Object[] inputs) {
-        final LoanAccountSummaryDataMapper rm = new LoanAccountSummaryDataMapper();
+        final LoanAccountSummaryDataMapper rm = new LoanAccountSummaryDataMapper(this.sqlGenerator);
         final String sql = "select " + rm.loanAccountSummarySchema() + loanwhereClause;
         this.columnValidator.validateSqlInjection(rm.loanAccountSummarySchema(), loanwhereClause);
         return this.jdbcTemplate.query(sql, rm, inputs); // NOSONAR
@@ -563,6 +568,12 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
 
     private static final class LoanAccountSummaryDataMapper implements RowMapper<LoanAccountSummaryData> {
 
+        private final DatabaseSpecificSQLGenerator sqlGenerator;
+
+        LoanAccountSummaryDataMapper(DatabaseSpecificSQLGenerator sqlGenerator) {
+            this.sqlGenerator = sqlGenerator;
+        }
+
         public String loanAccountSummarySchema() {
 
             final StringBuilder accountsSummary = new StringBuilder("l.id as id, l.account_no as accountNo, l.external_id as externalId,");
@@ -588,14 +599,47 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                     .append(" l.approvedon_date as approvedOnDate,")
                     .append(" abu.username as approvedByUsername, abu.firstname as approvedByFirstname, abu.lastname as approvedByLastname,")
 
+                    // Currency
+                    .append(" l.currency_code as currencyCode, l.currency_digits as currencyDigits, l.currency_multiplesof as inMultiplesOf, rc.")
+                    .append(sqlGenerator.escape("name"))
+                    .append(" as currencyName, rc.display_symbol as currencyDisplaySymbol, rc.internationalized_name_code as currencyNameCode, ")
+
+                    // Loan summary
                     .append(" l.expected_disbursedon_date as expectedDisbursementDate, l.disbursedon_date as actualDisbursementDate,")
                     .append(" dbu.username as disbursedByUsername, dbu.firstname as disbursedByFirstname, dbu.lastname as disbursedByLastname,")
+                    .append(" l.principal_disbursed_derived as principalDisbursed, l.principal_repaid_derived as principalPaid,")
+                    .append(" l.principal_writtenoff_derived as principalWrittenOff,")
+                    .append(" l.principal_outstanding_derived as principalOutstanding, l.interest_charged_derived as interestCharged,")
+                    .append(" l.interest_repaid_derived as interestPaid, l.interest_waived_derived as interestWaived,")
+                    .append(" l.interest_writtenoff_derived as interestWrittenOff, l.interest_outstanding_derived as interestOutstanding,")
+                    .append(" l.fee_charges_charged_derived as feeChargesCharged,")
+                    .append(" l.total_charges_due_at_disbursement_derived as feeChargesDueAtDisbursementCharged,")
+                    .append(" l.fee_charges_repaid_derived as feeChargesPaid, l.fee_charges_waived_derived as feeChargesWaived,")
+                    .append(" l.fee_charges_writtenoff_derived as feeChargesWrittenOff,")
+                    .append(" l.fee_charges_outstanding_derived as feeChargesOutstanding,")
+                    .append(" l.penalty_charges_charged_derived as penaltyChargesCharged,")
+                    .append(" l.penalty_charges_repaid_derived as penaltyChargesPaid,")
+                    .append(" l.penalty_charges_waived_derived as penaltyChargesWaived,")
+                    .append(" l.penalty_charges_writtenoff_derived as penaltyChargesWrittenOff,")
+                    .append(" l.penalty_charges_outstanding_derived as penaltyChargesOutstanding,")
+                    .append(" l.total_expected_repayment_derived as totalExpectedRepayment,")
+                    .append(" l.total_repayment_derived as totalRepayment,")
+                    .append(" l.total_expected_costofloan_derived as totalExpectedCostOfLoan,")
+                    .append(" l.total_costofloan_derived as totalCostOfLoan,").append(" l.total_waived_derived as totalWaived,")
+                    .append(" l.total_writtenoff_derived as totalWrittenOff,").append(" l.writeoff_reason_cv_id as writeoffReasonId,")
+                    .append(" codev.code_value as writeoffReason,").append(" l.total_outstanding_derived as totalOutstanding,")
+                    .append(" l.total_overpaid_derived as totalOverpaid,")
+                    .append(" l.max_outstanding_loan_balance as outstandingLoanBalance,")
+                    .append(" la.principal_overdue_derived as principalOverdue,").append(" la.interest_overdue_derived as interestOverdue,")
+                    .append(" la.fee_charges_overdue_derived as feeChargesOverdue,")
+                    .append(" la.penalty_charges_overdue_derived as penaltyChargesOverdue,")
+                    .append(" la.total_overdue_derived as totalOverdue,").append(" l.total_recovered_derived as totalRecovered,")
 
                     .append(" l.closedon_date as closedOnDate,")
                     .append(" cbu.username as closedByUsername, cbu.firstname as closedByFirstname, cbu.lastname as closedByLastname,")
                     .append(" la.overdue_since_date_derived as overdueSinceDate,")
                     .append(" l.writtenoffon_date as writtenOffOnDate, l.expected_maturedon_date as expectedMaturityDate, ")
-                    .append(" ds.loan_decision_state as loanDecisionState , ")
+                    .append(" ds.loan_decision_state as loanDecisionState , ").append(" l.loan_status_id as lifeCycleStatusId, ")
                     .append(" glim.actual_principal_amount as actualPrincipalAmount ")
 
                     .append(" from m_loan l ").append("LEFT JOIN m_product_loan AS lp ON lp.id = l.product_id")
@@ -607,7 +651,9 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                     .append(" left join m_appuser cbu on cbu.id = l.closedon_userid")
                     .append(" left join m_loan_arrears_aging la on la.loan_id = l.id")
                     .append(" left join glim_accounts glim on glim.id=l.glim_id")
-                    .append(" left join m_loan_decision as ds on l.id = ds.loan_id");
+                    .append(" left join m_loan_decision as ds on l.id = ds.loan_id")
+                    .append(" left join m_code_value codev on codev.id = l.writeoff_reason_cv_id")
+                    .append(" join m_currency rc on rc." + sqlGenerator.escape("code") + " = l.currency_code");
 
             return accountsSummary.toString();
         }
@@ -628,6 +674,15 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
             final Integer loanTypeId = JdbcSupport.getInteger(rs, "loanType");
             final EnumOptionData loanType = AccountEnumerations.loanType(loanTypeId);
             final Integer loanCycle = JdbcSupport.getInteger(rs, "loanCycle");
+
+            final String currencyCode = rs.getString("currencyCode");
+            final String currencyName = rs.getString("currencyName");
+            final String currencyNameCode = rs.getString("currencyNameCode");
+            final String currencyDisplaySymbol = rs.getString("currencyDisplaySymbol");
+            final Integer currencyDigits = JdbcSupport.getInteger(rs, "currencyDigits");
+            final Integer inMultiplesOf = JdbcSupport.getInteger(rs, "inMultiplesOf");
+            final CurrencyData currencyData = new CurrencyData(currencyCode, currencyName, currencyDigits, inMultiplesOf,
+                    currencyDisplaySymbol, currencyNameCode);
 
             final LocalDate submittedOnDate = JdbcSupport.getLocalDate(rs, "submittedOnDate");
             final String submittedByUsername = rs.getString("submittedByUsername");
@@ -675,6 +730,63 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                 inArrears = false;
             }
 
+            final BigDecimal feeChargesDueAtDisbursementCharged = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs,
+                    "feeChargesDueAtDisbursementCharged");
+            final Integer lifeCycleStatusId = JdbcSupport.getInteger(rs, "lifeCycleStatusId");
+            final LoanStatusEnumData status = LoanEnumerations.status(lifeCycleStatusId);
+            LoanSummaryData loanSummary = null;
+            if (status.id().intValue() >= 300) {
+
+                // loan summary
+                final BigDecimal principalDisbursed = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "principalDisbursed");
+                final BigDecimal principalPaid = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "principalPaid");
+                final BigDecimal principalWrittenOff = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "principalWrittenOff");
+                final BigDecimal principalOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "principalOutstanding");
+                final BigDecimal principalOverdue = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "principalOverdue");
+
+                final BigDecimal interestCharged = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "interestCharged");
+                final BigDecimal interestPaid = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "interestPaid");
+                final BigDecimal interestWaived = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "interestWaived");
+                final BigDecimal interestWrittenOff = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "interestWrittenOff");
+                final BigDecimal interestOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "interestOutstanding");
+                final BigDecimal interestOverdue = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "interestOverdue");
+
+                final BigDecimal feeChargesCharged = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "feeChargesCharged");
+                final BigDecimal feeChargesPaid = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "feeChargesPaid");
+                final BigDecimal feeChargesWaived = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "feeChargesWaived");
+                final BigDecimal feeChargesWrittenOff = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "feeChargesWrittenOff");
+                final BigDecimal feeChargesOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "feeChargesOutstanding");
+                final BigDecimal feeChargesOverdue = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "feeChargesOverdue");
+
+                final BigDecimal penaltyChargesCharged = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "penaltyChargesCharged");
+                final BigDecimal penaltyChargesPaid = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "penaltyChargesPaid");
+                final BigDecimal penaltyChargesWaived = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "penaltyChargesWaived");
+                final BigDecimal penaltyChargesWrittenOff = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "penaltyChargesWrittenOff");
+                final BigDecimal penaltyChargesOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "penaltyChargesOutstanding");
+                final BigDecimal penaltyChargesOverdue = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "penaltyChargesOverdue");
+
+                final BigDecimal totalExpectedRepayment = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "totalExpectedRepayment");
+                final BigDecimal totalRepayment = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "totalRepayment");
+                final BigDecimal totalExpectedCostOfLoan = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "totalExpectedCostOfLoan");
+                final BigDecimal totalCostOfLoan = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "totalCostOfLoan");
+                final BigDecimal totalWaived = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "totalWaived");
+                final BigDecimal totalWrittenOff = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "totalWrittenOff");
+                final BigDecimal totalOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "totalOutstanding");
+                final BigDecimal totalOverdue = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "totalOverdue");
+                final BigDecimal totalRecovered = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "totalRecovered");
+                final Long writeOffReasonId = JdbcSupport.getLong(rs, "writeOffReasonId");
+                final String writeOffReason = rs.getString("writeOffReason");
+
+                loanSummary = new LoanSummaryData(currencyData, principalDisbursed, principalPaid, principalWrittenOff,
+                        principalOutstanding, principalOverdue, interestCharged, interestPaid, interestWaived, interestWrittenOff,
+                        interestOutstanding, interestOverdue, feeChargesCharged, feeChargesDueAtDisbursementCharged, feeChargesPaid,
+                        feeChargesWaived, feeChargesWrittenOff, feeChargesOutstanding, feeChargesOverdue, penaltyChargesCharged,
+                        penaltyChargesPaid, penaltyChargesWaived, penaltyChargesWrittenOff, penaltyChargesOutstanding,
+                        penaltyChargesOverdue, totalExpectedRepayment, totalRepayment, totalExpectedCostOfLoan, totalCostOfLoan,
+                        totalWaived, totalWrittenOff, totalOutstanding, totalOverdue, overdueSinceDate, writeOffReasonId, writeOffReason,
+                        totalRecovered);
+            }
+
             final Long loanDecisionStateId = JdbcSupport.getLong(rs, "loanDecisionState");
             EnumOptionData loanDecisionStateEnumData = null;
             if (loanDecisionStateId != null) {
@@ -692,6 +804,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                     productId, loanProductName, shortLoanProductName, loanStatus, loanType, loanCycle, timeline, inArrears, originalLoan,
                     loanBalance, amountPaid, loanDecisionStateEnumData, actualPrincipalAmount);
             loanAccountSummaryData.setLoanProductDescription(loanProductDescription);
+            loanAccountSummaryData.setSummary(loanSummary);
             return loanAccountSummaryData;
         }
 

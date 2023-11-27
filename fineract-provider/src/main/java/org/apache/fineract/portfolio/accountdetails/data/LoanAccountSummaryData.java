@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanApplicationTimelineData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanStatusEnumData;
+import org.apache.fineract.portfolio.loanaccount.data.LoanSummaryData;
 
 /**
  * Immutable data object for loan accounts.
@@ -48,6 +49,8 @@ public class LoanAccountSummaryData {
     private final BigDecimal amountPaid;
     private final BigDecimal actualPrincipalAmount;
     private EnumOptionData loanDecisionState;
+
+    private LoanSummaryData summary;
 
     public LoanAccountSummaryData(final Long id, final String accountNo, final String externalId, final Long productId,
             final String loanProductName, final String shortLoanProductName, final LoanStatusEnumData loanStatus,
@@ -102,5 +105,9 @@ public class LoanAccountSummaryData {
 
     public void setLoanProductDescription(String loanProductDescription) {
         this.loanProductDescription = loanProductDescription;
+    }
+
+    public void setSummary(LoanSummaryData summary) {
+        this.summary = summary;
     }
 }
