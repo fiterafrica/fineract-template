@@ -4279,7 +4279,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
             this.sub_status = SavingsAccountSubStatusEnum.BLOCK_CREDIT.getValue();
         }
         SavingsAccountBlockNarrationHistory savingsAccountBlockNarrationHistory = SavingsAccountBlockNarrationHistory.createNew(this,
-                blockNarration.getId(), pndComment, "BLOCK CREDIT");
+                blockNarration == null? null : blockNarration.getId(), pndComment, "BLOCK CREDIT");
         this.savingsAccountBlockNarrationHistory.add(savingsAccountBlockNarrationHistory);
         actualChanges.put(SavingsApiConstants.subStatusParamName, SavingsEnumerations.subStatus(this.sub_status));
 
@@ -4321,7 +4321,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
             this.sub_status = SavingsAccountSubStatusEnum.NONE.getValue();
         }
         SavingsAccountBlockNarrationHistory savingsAccountBlockNarrationHistory = SavingsAccountBlockNarrationHistory.createNew(this,
-                blockNarration.getId(), pndComment, "UNBLOCK CREDIT");
+                blockNarration == null? null : blockNarration.getId(), pndComment, "UNBLOCK CREDIT");
         this.savingsAccountBlockNarrationHistory.add(savingsAccountBlockNarrationHistory);
         actualChanges.put(SavingsApiConstants.subStatusParamName, SavingsEnumerations.subStatus(this.sub_status));
         // set narration
@@ -4364,7 +4364,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
         // set narration
         this.blockNarration = blockNarration;
         SavingsAccountBlockNarrationHistory savingsAccountBlockNarrationHistory = SavingsAccountBlockNarrationHistory.createNew(this,
-                blockNarration.getId(), pndComment, "BLOCK DEBIT");
+                blockNarration == null? null : blockNarration.getId(), pndComment, "BLOCK DEBIT");
         this.savingsAccountBlockNarrationHistory.add(savingsAccountBlockNarrationHistory);
         actualChanges.put(SavingsApiConstants.subStatusParamName, SavingsEnumerations.subStatus(this.sub_status));
         if (blockNarration != null) {
@@ -4408,7 +4408,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
         // set narration
         this.blockNarration = blockNarration;
         SavingsAccountBlockNarrationHistory savingsAccountBlockNarrationHistory = SavingsAccountBlockNarrationHistory.createNew(this,
-                blockNarration.getId(), pndComment, "UNBLOCK DEBIT");
+                blockNarration == null? null : blockNarration.getId(), pndComment, "UNBLOCK DEBIT");
         this.savingsAccountBlockNarrationHistory.add(savingsAccountBlockNarrationHistory);
         if (blockNarration != null) {
 
