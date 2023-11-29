@@ -749,10 +749,10 @@ public class RecurringDepositAccount extends SavingsAccount {
                 isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
 
         Money interestOnMaturity = Money.zero(this.currency);
-
-        for (final PostingPeriod interestPostingPeriod : postingPeriods) {
-            final Money interestEarnedForPeriod = interestPostingPeriod.getInterestEarned();
-            interestOnMaturity = interestOnMaturity.plus(interestEarnedForPeriod);
+        for (PostingPeriod period : postingPeriods) {
+            Money interestAccrued = this.getTotalInterestAccruedBetween(period.getPeriodInterval().startDate(),
+                    period.getPeriodInterval().endDate());
+            interestOnMaturity = interestOnMaturity.plus(interestAccrued);
         }
         this.summary.updateFromInterestPeriodSummaries(this.currency, postingPeriods);
         return interestOnMaturity;

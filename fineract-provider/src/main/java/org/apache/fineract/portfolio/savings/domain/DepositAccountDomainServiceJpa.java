@@ -578,6 +578,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         boolean isRegularTransaction = false;
         final Set<Long> existingTransactionIds = new HashSet<>();
         final Set<Long> existingReversedTransactionIds = new HashSet<>();
+        account.setSavingsAccountTransactionRepository(this.savingsAccountTransactionRepository);
         /***
          * Update account transactionIds for post journal entries.
          */
@@ -588,6 +589,8 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         final DateTimeFormatter fmt = DateTimeFormatter.ofPattern(command.dateFormat()).withLocale(locale);
         Long savingsTransactionId = null;
         // post interest
+        account.postAccrualInterest(MathContext.DECIMAL64, closedDate, false, isSavingsInterestPostingAtCurrentPeriodEnd,
+                financialYearBeginningMonth, closedDate, null);
         account.postPreMaturityInterest(closedDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
                 financialYearBeginningMonth, postReversals);
 

@@ -5078,7 +5078,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
 
     }
 
-    private Money getTotalInterestAccruedBetween(LocalDate startDate, LocalDate endDate) {
+    protected Money getTotalInterestAccruedBetween(LocalDate startDate, LocalDate endDate) {
         Money total = Money.zero(currency);
         List<SavingsAccountTransaction> accruals = retrieveListOfTransactions().stream()
                 .filter(t -> t.isAccrualInterestPostingAndNotReversed() && !t.transactionLocalDate().isBefore(startDate)
