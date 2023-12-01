@@ -1337,7 +1337,8 @@ public class SavingsAccount extends AbstractPersistableCustom {
         final List<SavingsAccountTransaction> orderedNonInterestPostingTransactions = new ArrayList<>();
 
         for (final SavingsAccountTransaction transaction : listOfTransactionsSorted) {
-            if (!(transaction.isInterestPostingAndNotReversed() || transaction.isOverdraftInterestAndNotReversed())
+            if (!(transaction.isInterestPostingAndNotReversed() || transaction.isOverdraftInterestAndNotReversed()
+                    || transaction.isAccrualInterestPostingAndNotReversed() || transaction.isOverdraftAccrualInterestAndNotReversed())
                     && transaction.isNotReversed() && !transaction.isReversalTransaction()) {
                 orderedNonInterestPostingTransactions.add(transaction);
             }
