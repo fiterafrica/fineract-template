@@ -32,5 +32,5 @@ public interface GenericDataService {
 
     String wrapSQL(String sql);
 
-    List<ResultsetColumnHeaderData> fillResultsetColumnHeaders(String datatable, boolean fieldsSkip);
+    List<ResultsetColumnHeaderData> fillResultsetColumnHeaders(String datatable);
 }

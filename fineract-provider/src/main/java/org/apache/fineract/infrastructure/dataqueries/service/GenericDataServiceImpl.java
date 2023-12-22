@@ -205,7 +205,7 @@ public class GenericDataServiceImpl implements GenericDataService {
     }
 
     @Override
-    public List<ResultsetColumnHeaderData> fillResultsetColumnHeaders(final String datatable, boolean fieldsSkip) {
+    public List<ResultsetColumnHeaderData> fillResultsetColumnHeaders(final String datatable) {
         final SqlRowSet columnDefinitions = getDatatableMetaData(datatable);
 
         final List<ResultsetColumnHeaderData> columnHeaders = new ArrayList<>();
@@ -230,16 +230,8 @@ public class GenericDataServiceImpl implements GenericDataService {
                     columnValues = retreiveColumnValues(codeName);
                 }
             }
-            if ((columnName.equals("created_at") || columnName.equals("updated_at"))) {
-                if (!fieldsSkip) {
-                    columnHeaders.add(ResultsetColumnHeaderData.detailed(columnName, columnType, columnLength, columnNullable,
-                            columnIsPrimaryKey, columnValues, codeName));
-                }
-            } else {
-                columnHeaders.add(ResultsetColumnHeaderData.detailed(columnName, columnType, columnLength, columnNullable,
-                        columnIsPrimaryKey, columnValues, codeName));
-            }
-
+            columnHeaders.add(ResultsetColumnHeaderData.detailed(columnName, columnType, columnLength, columnNullable, columnIsPrimaryKey,
+                    columnValues, codeName));
         }
 
         return columnHeaders;
