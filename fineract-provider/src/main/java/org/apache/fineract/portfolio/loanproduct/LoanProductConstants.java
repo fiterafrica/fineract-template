@@ -157,4 +157,5 @@ public interface LoanProductConstants {
 
     String LOAN_PRODUCT_TYPE = "productTypeId";
     String maintainInterestOnLoanTermExtensionParamName = "maintainInterestOnLoanTermExtension";
+    String allowableDSCR = "allowableDSCR";
 }

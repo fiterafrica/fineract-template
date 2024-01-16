@@ -148,8 +148,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final String appTableName = rowSet.getString("application_table_name");
             final String registeredDatatableName = rowSet.getString("registered_table_name");
             final String entitySubType = rowSet.getString("entity_subtype");
-            final List<ResultsetColumnHeaderData> columnHeaderData = genericDataService.fillResultsetColumnHeaders(registeredDatatableName,
-                    true);
+            final List<ResultsetColumnHeaderData> columnHeaderData = genericDataService.fillResultsetColumnHeaders(registeredDatatableName);
 
             datatables.add(DatatableData.create(appTableName, registeredDatatableName, entitySubType, columnHeaderData));
         }
@@ -177,7 +176,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final String registeredDatatableName = rowSet.getString("registered_table_name");
             final String entitySubType = rowSet.getString("entity_subtype");
             final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService
-                    .fillResultsetColumnHeaders(registeredDatatableName, true);
+                    .fillResultsetColumnHeaders(registeredDatatableName);
 
             datatableData = DatatableData.create(appTableName, registeredDatatableName, entitySubType, columnHeaderData);
         }
@@ -381,7 +380,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final String appTable = queryForApplicationTableName(dataTableName);
             CommandProcessingResult commandProcessingResult = checkMainResourceExistsWithinScope(appTable, appTableId);
 
-            final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName, false);
+            final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName);
 
             final boolean multiRow = isMultirowDatatable(columnHeaders);
 
@@ -449,7 +448,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final String appTable = queryForApplicationTableName(dataTableName);
             final CommandProcessingResult commandProcessingResult = checkMainResourceExistsWithinScope(appTable, appTableId);
 
-            final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName, false);
+            final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName);
 
             final Type typeOfMap = new TypeToken<Map<String, String>>() {}.getType();
             final Map<String, String> dataParams = this.fromJsonHelper.extractDataMap(typeOfMap, command.json());
@@ -972,8 +971,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
             validateDatatableName(datatableName);
             int rowCount = getRowCount(datatableName);
-            final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService.fillResultsetColumnHeaders(datatableName,
-                    false);
+            final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService.fillResultsetColumnHeaders(datatableName);
             final Map<String, ResultsetColumnHeaderData> mapColumnNameDefinition = new HashMap<>();
             for (final ResultsetColumnHeaderData columnHeader : columnHeaderData) {
                 mapColumnNameDefinition.put(columnHeader.getColumnName(), columnHeader);
@@ -1314,7 +1312,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
         checkMainResourceExistsWithinScope(appTable, appTableId);
 
-        final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName, true);
+        final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName);
 
         final boolean multiRow = isMultirowDatatable(columnHeaders);
 
@@ -1390,7 +1388,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     private GenericResultsetData retrieveDataTableGenericResultSetForUpdate(final String appTable, final String dataTableName,
             final Long appTableId, final Long id) {
 
-        final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName, false);
+        final List<ResultsetColumnHeaderData> columnHeaders = this.genericDataService.fillResultsetColumnHeaders(dataTableName);
 
         final boolean multiRow = isMultirowDatatable(columnHeaders);
 
@@ -2051,7 +2049,7 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
             final String registeredDatatableName = rowSet.getString("registered_table_name");
             final String entitySubType = rowSet.getString("entity_subtype");
             final List<ResultsetColumnHeaderData> columnHeaderData = this.genericDataService
-                    .fillResultsetColumnHeaders(registeredDatatableName, true);
+                    .fillResultsetColumnHeaders(registeredDatatableName);
 
             datatableData = DatatableData.create(appTableName, registeredDatatableName, entitySubType, columnHeaderData);
         }

@@ -243,7 +243,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                     + "lp.is_bnpl_loan_product as isBnplLoanProduct, " + "lp.requires_equity_contribution as requiresEquityContribution, "
                     + "lp.equity_contribution_loan_percentage as equityContributionLoanPercentage, "
                     + "lp.is_account_level_arrears_tolerance_enable as isAccountLevelArrearsToleranceEnable, "
-                    + " lp.is_islamic as isIslamic " + " from m_product_loan lp " + " left join m_fund f on f.id = lp.fund_id "
+                    + " lp.is_islamic as isIslamic, lp.allowable_dscr as allowableDSCR " + " from m_product_loan lp " + " left join m_fund f on f.id = lp.fund_id "
                     + " left join m_product_loan_recalculation_details lpr on lpr.product_id=lp.id "
                     + " left join m_product_loan_guarantee_details lpg on lpg.loan_product_id=lp.id "
                     + " left join ref_loan_transaction_processing_strategy ltps on ltps.id = lp.loan_transaction_strategy_id"
@@ -483,6 +483,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
             final Boolean isBnplLoanProduct = rs.getBoolean("isBnplLoanProduct");
             final Boolean requiresEquityContribution = rs.getBoolean("requiresEquityContribution");
             final BigDecimal equityContributionLoanPercentage = rs.getBigDecimal("equityContributionLoanPercentage");
+            final BigDecimal allowableDSCR = rs.getBigDecimal("allowableDSCR");
 
             LoanProductData loanProductData = new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal,
                     maxPrincipal, tolerance, numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery,
@@ -503,7 +504,7 @@ public class LoanProductReadPlatformServiceImpl implements LoanProductReadPlatfo
                     maximumGap, syncExpectedWithDisbursementDate, canUseForTopup, isEqualAmortization, rateOptions, this.rates,
                     isRatesEnabled, fixedPrincipalPercentagePerInstallment, maxNumberOfLoanExtensionsAllowed,
                     loanTermIncludesToppedUpLoanTerm, isAccountLevelArrearsToleranceEnable, productCategoryId, productTypeId,
-                    maintainInterestRate, isIslamic);
+                    maintainInterestRate, isIslamic, allowableDSCR);
             loanProductData.setBnplLoanProduct(isBnplLoanProduct);
             loanProductData.setRequiresEquityContribution(requiresEquityContribution);
             loanProductData.setEquityContributionLoanPercentage(equityContributionLoanPercentage);

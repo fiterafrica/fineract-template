@@ -116,6 +116,7 @@ import org.apache.fineract.portfolio.loanaccount.data.DisbursementData;
 import org.apache.fineract.portfolio.loanaccount.data.GlimRepaymentTemplate;
 import org.apache.fineract.portfolio.loanaccount.data.LoanAccountData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanApprovalData;
+import org.apache.fineract.portfolio.loanaccount.data.LoanFinancialRatioData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanCashFlowData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanChargeData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanCollateralManagementData;
@@ -286,6 +287,7 @@ public class LoansApiResource {
 
     private final DefaultToApiJsonSerializer<LoanTransactionData> loanTransactionApiJsonSerializer;
     private final DefaultToApiJsonSerializer<LoanCashFlowData> loanCashFlowDataDefaultToApiJsonSerializer;
+    private final DefaultToApiJsonSerializer<LoanFinancialRatioData> loanFinancialRatioDataDefaultToApiJsonSerializer;
     private final ConfigurationReadPlatformService configurationReadPlatformService;
 
     private final DefaultToApiJsonSerializer<LoanSchedulePeriodData> loanRepaymentScheduleInstallmentDataDefaultToApiJsonSerializer;
@@ -318,7 +320,8 @@ public class LoansApiResource {
             DefaultToApiJsonSerializer<LoanTransactionData> loanTransactionApiJsonSerializer,
             final ConfigurationReadPlatformService configurationReadPlatformService,
             final DefaultToApiJsonSerializer<LoanSchedulePeriodData> loanRepaymentScheduleInstallmentDataDefaultToApiJsonSerializer,
-            final DefaultToApiJsonSerializer<LoanCashFlowData> loanCashFlowDataDefaultToApiJsonSerializer) {
+            final DefaultToApiJsonSerializer<LoanCashFlowData> loanCashFlowDataDefaultToApiJsonSerializer,
+            final DefaultToApiJsonSerializer<LoanFinancialRatioData> loanFinancialRatioDataDefaultToApiJsonSerializer) {
         this.context = context;
         this.loanReadPlatformService = loanReadPlatformService;
         this.loanProductReadPlatformService = loanProductReadPlatformService;
@@ -356,6 +359,7 @@ public class LoansApiResource {
         this.configurationReadPlatformService = configurationReadPlatformService;
         this.loanRepaymentScheduleInstallmentDataDefaultToApiJsonSerializer = loanRepaymentScheduleInstallmentDataDefaultToApiJsonSerializer;
         this.loanCashFlowDataDefaultToApiJsonSerializer = loanCashFlowDataDefaultToApiJsonSerializer;
+        this.loanFinancialRatioDataDefaultToApiJsonSerializer = loanFinancialRatioDataDefaultToApiJsonSerializer;
     }
 
     /*
@@ -1257,5 +1261,32 @@ public class LoansApiResource {
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.loanCashFlowDataDefaultToApiJsonSerializer.serialize(settings, cashFlowData, this.loanDataParameters);
     }
+
+    @GET
+    @Path("/retrieveFinancialRatio/{loanId}")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String retrieveFinancialRatio(@PathParam("loanId") @Parameter(description = "loanId") final Long loanId,
+                                   @Context final UriInfo uriInfo) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+        LoanFinancialRatioData balanceSheetData = this.loanReadPlatformService.retrieveLoanFinancialRatioData(loanId);
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.loanFinancialRatioDataDefaultToApiJsonSerializer.serialize(settings, balanceSheetData, this.loanDataParameters);
+    }
+
+    @POST
+    @Path("/generateFinancialRatio/{loanId}")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String generateFinancialRatio(@PathParam("loanId") @Parameter(description = "loanId") final Long loanId) {
+
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().generateFinancialRatio(loanId).build();
+
+        final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
+
+        return this.toApiJsonSerializer.serialize(result);
+    }
+
 
 }

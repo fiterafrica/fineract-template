@@ -23,6 +23,8 @@ import static org.apache.fineract.portfolio.loanproduct.service.LoanEnumerations
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -43,6 +45,7 @@ import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDoma
 import org.apache.fineract.infrastructure.configuration.service.ConfigurationReadPlatformService;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
+import org.apache.fineract.infrastructure.core.exception.GeneralPlatformDomainRuleException;
 import org.apache.fineract.infrastructure.core.filters.FilterConstraint;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.core.service.Page;
@@ -58,6 +61,7 @@ import org.apache.fineract.organisation.monetary.domain.ApplicationCurrencyRepos
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.organisation.monetary.service.CurrencyReadPlatformService;
+import org.apache.fineract.organisation.monetary.domain.MoneyHelper;
 import org.apache.fineract.organisation.staff.data.StaffData;
 import org.apache.fineract.organisation.staff.service.StaffReadPlatformService;
 import org.apache.fineract.portfolio.account.PortfolioAccountType;
@@ -94,6 +98,7 @@ import org.apache.fineract.portfolio.loanaccount.data.DisbursementData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanAccountData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanApplicationTimelineData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanApprovalData;
+import org.apache.fineract.portfolio.loanaccount.data.LoanFinancialRatioData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanCashFlowData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanDecisionData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanDueDiligenceData;
@@ -109,6 +114,7 @@ import org.apache.fineract.portfolio.loanaccount.data.PaidInAdvanceData;
 import org.apache.fineract.portfolio.loanaccount.data.RepaymentScheduleRelatedLoanData;
 import org.apache.fineract.portfolio.loanaccount.data.ScheduleGeneratorDTO;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanDecisionState;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanDueDiligenceInfo;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanDueDiligenceInfoRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
@@ -3171,17 +3177,17 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         }
 
         public String loanCashFlow() {
-            return "   cf.id as id, "
-                    + " cf.loan_id as loanId,  "
-                    + " cashFlowT.code_value as cashFlowType,"
-                    + " particularT.code_value as particularType,"
-                    + "                           cf.\"Name\"                                     as name,"
-                    + "                           cf.\"PreviousMonth2\"                           as previousMonth2,"
-                    + "                           cf.\"PreviousMonth1\"                           as previousMonth1,"
-                    + "                           cf.\"Month0\"                                   as month0"
+            return "                            cf.id                                           as id,          "
+                    + "                           cf.loan_id                                      as loanId,  "
+                    + "                           cashFlowT.code_value                            as cashFlowType,"
+                    + "                           particularT.code_value                          as particularType,"
+                    + " cf." + sqlGenerator.escape("Name") + " as name,"
+                    + " cf." + sqlGenerator.escape("PreviousMonth2") + " as previousMonth2,"
+                    + " cf." + sqlGenerator.escape("PreviousMonth1") + " as previousMonth1,"
+                    + " cf." + sqlGenerator.escape("Month0") + " as month0 "
                     + "  FROM loan_cashflow_information cf"
-                    + "  INNER JOIN m_code_value cashFlowT ON cf.\"CashFlowType_cd_CashFlowType\"   = cashFlowT.id"
-                    + "  INNER JOIN m_code_value particularT ON cf.\"ParticularType_cd_ParticularType\"   = particularT.id\n"
+                    + "  INNER JOIN m_code_value cashFlowT ON cf." + sqlGenerator.escape("CashFlowType_cd_CashFlowType") + "   = cashFlowT.id"
+                    + "  INNER JOIN m_code_value particularT ON cf." + sqlGenerator.escape("ParticularType_cd_ParticularType") + "   = particularT.id"
                     + "  WHERE loan_id = ? ";
         }
 
@@ -3245,4 +3251,128 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
 
     }
 
+   @Override
+    public LoanFinancialRatioData retrieveLoanFinancialRatioData(Long loanId) {
+        List<LoanCashFlowData> cashFlowData = retrieveCashFlow(loanId);
+        if (CollectionUtils.isEmpty(cashFlowData)) {
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.cashflow.data.is.not.available.financialratio.cannot.be.generated",
+                    "Financial Ratio report cannot be created. CashFlow data not available.");
+        }
+        LoanFinancialRatioData financialRatioData = findLoanFinancialRatioDataByLoanId(loanId);
+        if (financialRatioData == null) {
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.balancesheet.data.is.not.available.financialratio.cannot.be.generated",
+                    "Financial Ratio report cannot be created. Balance Sheet data not available.");
+        }
+
+        Loan loan = this.loanRepositoryWrapper.findOneWithNotFoundDetection(loanId);
+        generateFinancialRatioData(loan, cashFlowData, financialRatioData);
+
+        return financialRatioData;
+    }
+
+    private void generateFinancialRatioData(Loan loan, List<LoanCashFlowData> cashFlowData, LoanFinancialRatioData financialRatioData) {
+        final RoundingMode roundingMode = MoneyHelper.getRoundingMode();
+        final MathContext mc = new MathContext(8, roundingMode);
+        List<String> incomeParticularTypes = Arrays.asList("Sales Income", "Other Income");
+        List<String> expenseParticularTypes = Arrays.asList("Purchases", "Business Expenses","Household Expenses");
+        BigDecimal totalIncome = cashFlowData.stream()
+                .filter(cashFlow ->
+                        cashFlow.getCashFlowType().equals("INCOME") && incomeParticularTypes.contains(cashFlow.getParticularType()))
+                .map(LoanCashFlowData::getMonth0)
+                .reduce(BigDecimal.ZERO, (a, b) -> a.add(b));
+
+        BigDecimal totalExpense = cashFlowData.stream()
+                .filter(cashFlow ->
+                        cashFlow.getCashFlowType().equals("EXPENSE") && expenseParticularTypes.contains(cashFlow.getParticularType()))
+                .map(LoanCashFlowData::getMonth0)
+                .reduce(BigDecimal.ZERO, (a, b) -> a.add(b));
+
+        BigDecimal netCashFlow = totalIncome.subtract(totalExpense);
+        BigDecimal purchases = cashFlowData.stream()
+                .filter(cashFlow ->
+                        cashFlow.getCashFlowType().equals("EXPENSE") && cashFlow.getParticularType().equals("Purchases"))
+                .map(LoanCashFlowData::getMonth0)
+                .reduce(BigDecimal.ZERO, (a, b) -> a.add(b));
+
+        BigDecimal netMargin = netCashFlow.divide(purchases, mc);
+
+        BigDecimal rotation = netCashFlow.divide(financialRatioData.getInventoryStock(), mc);
+        BigDecimal liquidity = financialRatioData.getTotalCurrentAssets().divide(financialRatioData.getTotalShortTerm(), mc);
+        BigDecimal leverage = financialRatioData.getTotalShortTerm().divide(financialRatioData.getEquity(), mc);
+        BigDecimal capitalization = financialRatioData.getEquity().divide(financialRatioData.getTotalFixedAssets(), mc);
+        BigDecimal dscr = null;
+        if (loan.getLoanDecisionState().equals(LoanDecisionState.PREPARE_AND_SIGN_CONTRACT.getValue())) {
+            LoanRepaymentScheduleInstallment installment = loan.getRepaymentScheduleInstallments().get(0);
+            BigDecimal emi = installment.getTotalPrincipalAndInterest(loan.getCurrency()).getAmount();
+             dscr = emi.divide(netCashFlow, mc);
+        }
+
+        financialRatioData.setNetMargin(netMargin);
+        financialRatioData.setRotation(rotation);
+        financialRatioData.setLiquidity(liquidity);
+        financialRatioData.setLeverage(leverage);
+        financialRatioData.setCapitalization(capitalization);
+        financialRatioData.setDscr(dscr);
+    }
+    @Override
+    public LoanFinancialRatioData findLoanFinancialRatioDataByLoanId(Long loanId) {
+        this.context.authenticatedUser();
+        final LoanFinancialRatioMapper rm = new LoanFinancialRatioMapper();
+
+        final String sql = "select id, loan_id, cash as cash, inventory_stock as inventory_stock, receivables as receivables, chama_tontines as chama_tontines, " +
+                "  other_current_assets as other_current_assets, total_current_assets as total_current_assets,  " +
+                "  goods_bought_on_credit as goods_bought_on_credit, any_other_pending_payables as any_other_pending_payables, total_short_term as total_short_term, " +
+                "  equipment_tools as equipment_tools, furniture as furniture, business_premises as business_premises,  " +
+                "  other_fixed_assets as other_fixed_assets, total_fixed_assets as total_fixed_assets, total_assets as total_assets, equity as equity, " +
+                "  unsecured_loans as unsecured_loans, asset_financing as asset_financing, total_long_term as total_long_term,  " +
+                "  total_liabilities as total_liabilities, bss_deposits as bss_deposits, bss_withdrawals as bss_withdrawals, " +
+                "  bss_monthly_turn_over as bss_monthly_turn_over  " +
+                " FROM loan_balancesheet  " +
+                " WHERE loan_id= ? " +
+                " order by id desc limit 1 ";
+
+        List<LoanFinancialRatioData> data = this.jdbcTemplate.query(sql, rm, loanId);
+        if (!data.isEmpty()) {
+            return data.get(0);
+        } else {
+            return null;
+        }
+    }
+
+    private static final class LoanFinancialRatioMapper implements RowMapper<LoanFinancialRatioData> {
+
+        @Override
+        public LoanFinancialRatioData mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
+            final Long id = null;
+            final Long loanId = rs.getLong("loan_id");
+
+            final BigDecimal cash = rs.getBigDecimal("cash");
+            final BigDecimal inventory_stock = rs.getBigDecimal("inventory_stock");
+            final BigDecimal receivables = rs.getBigDecimal("receivables");
+            final BigDecimal chama_tontines = rs.getBigDecimal("chama_tontines");
+            final BigDecimal other_current_assets = rs.getBigDecimal("other_current_assets");
+            final BigDecimal total_current_assets = rs.getBigDecimal("total_current_assets");
+            final BigDecimal goods_bought_on_credit = rs.getBigDecimal("goods_bought_on_credit");
+            final BigDecimal any_other_pending_payables = rs.getBigDecimal("any_other_pending_payables");
+            final BigDecimal total_short_term = rs.getBigDecimal("total_short_term");
+            final BigDecimal equipment_tools = rs.getBigDecimal("equipment_tools");
+            final BigDecimal furniture = rs.getBigDecimal("furniture");
+            final BigDecimal business_premises = rs.getBigDecimal("business_premises");
+            final BigDecimal other_fixed_assets = rs.getBigDecimal("other_fixed_assets");
+            final BigDecimal total_fixed_assets = rs.getBigDecimal("total_fixed_assets");
+            final BigDecimal total_assets = rs.getBigDecimal("total_assets");
+            final BigDecimal equity = rs.getBigDecimal("equity");
+            final BigDecimal unsecured_loans = rs.getBigDecimal("unsecured_loans");
+            final BigDecimal asset_financing = rs.getBigDecimal("asset_financing");
+            final BigDecimal total_long_term = rs.getBigDecimal("total_long_term");
+            final BigDecimal total_liabilities = rs.getBigDecimal("total_liabilities");
+            final BigDecimal bss_deposits = rs.getBigDecimal("bss_deposits");
+            final BigDecimal bss_withdrawals = rs.getBigDecimal("bss_withdrawals");
+            final BigDecimal bss_monthly_turn_over = rs.getBigDecimal("bss_monthly_turn_over");
+
+            return new LoanFinancialRatioData(id, loanId, cash, inventory_stock, receivables, chama_tontines, other_current_assets, total_current_assets,
+                    goods_bought_on_credit, any_other_pending_payables, total_short_term, equipment_tools, furniture, business_premises, other_fixed_assets, total_fixed_assets,
+                    total_assets, equity, unsecured_loans, asset_financing,  total_long_term, total_liabilities, bss_deposits, bss_withdrawals, bss_monthly_turn_over);
+        }
+    }
 }

@@ -230,6 +230,8 @@ public class LoanProduct extends AbstractPersistableCustom {
     private Boolean maintainInterestRateOnLoanTermExtension;
     @Column(name = "is_islamic")
     private Boolean isIslamic;
+    @Column(name = "allowable_dscr")
+    private BigDecimal allowableDSCR;
 
     public static LoanProduct assembleFromJson(final Fund fund, final LoanTransactionProcessingStrategy loanTransactionProcessingStrategy,
             final List<Charge> productCharges, final JsonCommand command, final AprCalculator aprCalculator, FloatingRate floatingRate,
@@ -424,6 +426,8 @@ public class LoanProduct extends AbstractPersistableCustom {
         final BigDecimal equityContributionLoanPercentage = command
                 .bigDecimalValueOfParameterNamed(LoanProductConstants.equityContributionLoanPercentageParamName);
 
+        final BigDecimal allowableDSCR = command.bigDecimalValueOfParameterNamed(LoanProductConstants.allowableDSCR);
+
         return new LoanProduct(fund, loanTransactionProcessingStrategy, name, shortName, description, currency, principal, minPrincipal,
                 maxPrincipal, interestRatePerPeriod, minInterestRatePerPeriod, maxInterestRatePerPeriod, interestFrequencyType,
                 annualInterestRate, interestMethod, interestCalculationPeriodMethod, allowPartialPeriodInterestCalcualtion, repaymentEvery,
@@ -441,7 +445,7 @@ public class LoanProduct extends AbstractPersistableCustom {
                 isEqualAmortization, productRates, fixedPrincipalPercentagePerInstallment, disallowExpectedDisbursements,
                 allowApprovedDisbursedAmountsOverApplied, overAppliedCalculationType, overAppliedNumber, maxNumberOfLoanExtensionsAllowed,
                 loanTermIncludesToppedUpLoanTerm, isAccountLevelArrearsToleranceEnable, isBnplLoanProduct, requiresEquityContribution,
-                equityContributionLoanPercentage, maintainInterest, isIslamic);
+                equityContributionLoanPercentage, maintainInterest, isIslamic, allowableDSCR);
 
     }
 
@@ -680,7 +684,7 @@ public class LoanProduct extends AbstractPersistableCustom {
             final boolean allowApprovedDisbursedAmountsOverApplied, final String overAppliedCalculationType,
             final Integer overAppliedNumber, final Integer maxNumberOfLoanExtensionsAllowed, final boolean loanTermIncludesToppedUpLoanTerm,
             final boolean isAccountLevelArrearsToleranceEnable, Boolean isBnplLoanProduct, Boolean requiresEquityContribution,
-            BigDecimal equityContributionLoanPercentage, Boolean maintainInterest, final Boolean isIslamic) {
+            BigDecimal equityContributionLoanPercentage, Boolean maintainInterest, final Boolean isIslamic, final BigDecimal allowableDSCR) {
         this.fund = fund;
         this.transactionProcessingStrategy = transactionProcessingStrategy;
         this.name = name.trim();
@@ -766,6 +770,7 @@ public class LoanProduct extends AbstractPersistableCustom {
         this.equityContributionLoanPercentage = equityContributionLoanPercentage;
         this.maintainInterestRateOnLoanTermExtension = maintainInterest;
         this.isIslamic = isIslamic;
+        this.allowableDSCR = allowableDSCR;
 
         if (rates != null) {
             this.rates = rates;
@@ -1202,6 +1207,11 @@ public class LoanProduct extends AbstractPersistableCustom {
                     LoanProductConstants.ACCOUNT_MOVES_OUT_OF_NPA_ONLY_ON_ARREARS_COMPLETION_PARAM_NAME);
             actualChanges.put(LoanProductConstants.ACCOUNT_MOVES_OUT_OF_NPA_ONLY_ON_ARREARS_COMPLETION_PARAM_NAME, newValue);
             this.accountMovesOutOfNPAOnlyOnArrearsCompletion = newValue;
+        }
+        if (command.isChangeInBigDecimalParameterNamed(LoanProductConstants.allowableDSCR, this.allowableDSCR)) {
+            final BigDecimal newValue = command.bigDecimalValueOfParameterNamed(LoanProductConstants.allowableDSCR);
+            actualChanges.put(LoanProductConstants.allowableDSCR, newValue);
+            this.allowableDSCR = newValue;
         }
         if (command.isChangeInBooleanParameterNamed(LoanProductConstants.canDefineEmiAmountParamName, this.canDefineInstallmentAmount)) {
             final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(LoanProductConstants.canDefineEmiAmountParamName);

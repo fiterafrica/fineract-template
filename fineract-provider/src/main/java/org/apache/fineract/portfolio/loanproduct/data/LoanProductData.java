@@ -223,6 +223,7 @@ public class LoanProductData implements Serializable {
 
     private Boolean maintainInterestOnLoanTermExtension;
     private Boolean isIslamic;
+    private BigDecimal allowableDSCR;
 
     /**
      * Used when returning lookup information about loan product for dropdowns.
@@ -315,6 +316,7 @@ public class LoanProductData implements Serializable {
         final Long productTypeId = null;
         final Boolean maintainInterestOnLoanTermExtension = null;
         final Boolean isIslamic = null;
+        final BigDecimal allowableDSCR = null;
         return new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal, maxPrincipal, tolerance,
                 numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery, interestRatePerPeriod,
                 minInterestRatePerPeriod, maxInterestRatePerPeriod, annualInterestRate, repaymentFrequencyType, interestRateFrequencyType,
@@ -332,7 +334,7 @@ public class LoanProductData implements Serializable {
                 maxDifferentialLendingRate, isFloatingInterestRateCalculationAllowed, isVariableInstallmentsAllowed, minimumGap, maximumGap,
                 syncExpectedWithDisbursementDate, canUseForTopup, isEqualAmortization, rateOptions, rates, isRatesEnabled,
                 fixedPrincipalPercentagePerInstallment, maxNumberOfLoanExtensionsAllowed, loanTermIncludesToppedUpLoanTerm,
-                isAccountLevelArrearsToleranceEnable, productCategoryId, productTypeId, maintainInterestOnLoanTermExtension, isIslamic);
+                isAccountLevelArrearsToleranceEnable, productCategoryId, productTypeId, maintainInterestOnLoanTermExtension, isIslamic, allowableDSCR);
 
     }
 
@@ -425,6 +427,8 @@ public class LoanProductData implements Serializable {
         final Long productTypeId = null;
         final Boolean maintainInterestOnLoanTermExtension = null;
         final Boolean isIslamic = null;
+        final BigDecimal allowableDSCR = null;
+
         return new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal, maxPrincipal, tolerance,
                 numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery, interestRatePerPeriod,
                 minInterestRatePerPeriod, maxInterestRatePerPeriod, annualInterestRate, repaymentFrequencyType, interestRateFrequencyType,
@@ -442,7 +446,7 @@ public class LoanProductData implements Serializable {
                 maxDifferentialLendingRate, isFloatingInterestRateCalculationAllowed, isVariableInstallmentsAllowed, minimumGap, maximumGap,
                 syncExpectedWithDisbursementDate, canUseForTopup, isEqualAmortization, rateOptions, rates, isRatesEnabled,
                 fixedPrincipalPercentagePerInstallment, maxNumberOfLoanExtensionsAllowed, loanTermIncludesToppedUpLoanTerm,
-                isAccountLevelArrearsToleranceEnable, productCategoryId, productTypeId, maintainInterestOnLoanTermExtension, isIslamic);
+                isAccountLevelArrearsToleranceEnable, productCategoryId, productTypeId, maintainInterestOnLoanTermExtension, isIslamic, allowableDSCR);
 
     }
 
@@ -542,6 +546,7 @@ public class LoanProductData implements Serializable {
         final Long productTypeId = null;
         final Boolean maintainInterestOnLoanTermExtension = null;
         final Boolean isIslamic = null;
+        final BigDecimal allowableDSCR = null;
 
         return new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal, maxPrincipal, tolerance,
                 numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery, interestRatePerPeriod,
@@ -560,7 +565,7 @@ public class LoanProductData implements Serializable {
                 maxDifferentialLendingRate, isFloatingInterestRateCalculationAllowed, isVariableInstallmentsAllowed, minimumGap, maximumGap,
                 syncExpectedWithDisbursementDate, canUseForTopup, isEqualAmortization, rateOptions, rates, isRatesEnabled,
                 fixedPrincipalPercentagePerInstallment, maxNumberOfLoanExtensionsAllowed, loanTermIncludesToppedUpLoanTerm,
-                isAccountLevelArrearsToleranceEnable, productCategoryId, productTypeId, maintainInterestOnLoanTermExtension, isIslamic);
+                isAccountLevelArrearsToleranceEnable, productCategoryId, productTypeId, maintainInterestOnLoanTermExtension, isIslamic, allowableDSCR);
 
     }
 
@@ -654,6 +659,8 @@ public class LoanProductData implements Serializable {
         final Long productTypeId = null;
         final Boolean maintainInterestOnLoanTermExtension = null;
         final Boolean isIslamic = null;
+        final BigDecimal allowableDSCR = null;
+
         return new LoanProductData(id, name, shortName, description, currency, principal, minPrincipal, maxPrincipal, tolerance,
                 numberOfRepayments, minNumberOfRepayments, maxNumberOfRepayments, repaymentEvery, interestRatePerPeriod,
                 minInterestRatePerPeriod, maxInterestRatePerPeriod, annualInterestRate, repaymentFrequencyType, interestRateFrequencyType,
@@ -671,7 +678,7 @@ public class LoanProductData implements Serializable {
                 maxDifferentialLendingRate, isFloatingInterestRateCalculationAllowed, isVariableInstallmentsAllowed, minimumGap, maximumGap,
                 syncExpectedWithDisbursementDate, canUseForTopup, isEqualAmortization, rateOptions, rates, isRatesEnabled,
                 fixedPrincipalPercentagePerInstallment, maxNumberOfLoanExtensionsAllowed, loanTermIncludesToppedUpLoanTerm,
-                isAccountLevelArrearsToleranceEnable, productCategoryId, productTypeId, maintainInterestOnLoanTermExtension, isIslamic);
+                isAccountLevelArrearsToleranceEnable, productCategoryId, productTypeId, maintainInterestOnLoanTermExtension, isIslamic, allowableDSCR);
 
     }
 
@@ -719,7 +726,7 @@ public class LoanProductData implements Serializable {
             final BigDecimal fixedPrincipalPercentagePerInstallment, final Integer maxNumberOfLoanExtensionsAllowed,
             final boolean loanTermIncludesToppedUpLoanTerm, final boolean isAccountLevelArrearsToleranceEnable,
             final Long productCategoryId, final Long productTypeId, final Boolean maintainInterestOnLoanTermExtension,
-            final Boolean isIslamic) {
+            final Boolean isIslamic, final BigDecimal allowableDSCR) {
         this.id = id;
         this.name = name;
         this.shortName = shortName;
@@ -840,7 +847,7 @@ public class LoanProductData implements Serializable {
         this.isAccountLevelArrearsToleranceEnable = isAccountLevelArrearsToleranceEnable;
         this.maintainInterestOnLoanTermExtension = maintainInterestOnLoanTermExtension;
         this.isIslamic = isIslamic;
-
+        this.allowableDSCR = allowableDSCR;
     }
 
     public LoanProductData(final LoanProductData productData, final Collection<ChargeData> chargeOptions,
@@ -997,6 +1004,7 @@ public class LoanProductData implements Serializable {
         this.loanTermIncludesToppedUpLoanTerm = productData.loanTermIncludesToppedUpLoanTerm;
         this.isAccountLevelArrearsToleranceEnable = productData.isAccountLevelArrearsToleranceEnable;
         this.isIslamic = productData.isIslamic;
+        this.allowableDSCR = productData.allowableDSCR;
     }
 
     private Collection<ChargeData> nullIfEmpty(final Collection<ChargeData> charges) {

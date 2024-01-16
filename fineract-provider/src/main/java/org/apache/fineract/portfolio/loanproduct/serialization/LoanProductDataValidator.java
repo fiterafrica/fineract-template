@@ -119,7 +119,7 @@ public final class LoanProductDataValidator {
             LoanProductConstants.isBnplLoanProductParamName, LoanProductConstants.requiresEquityContributionParamName,
             LoanProductConstants.equityContributionLoanPercentageParamName, LoanProductConstants.LOAN_PRODUCT_CATEGORY,
             LoanProductConstants.LOAN_PRODUCT_TYPE, LoanProductConstants.maintainInterestOnLoanTermExtensionParamName,
-            LoanProductConstants.IS_ISLAMIC));
+            LoanProductConstants.IS_ISLAMIC, LoanProductConstants.allowableDSCR));
 
     private static final String[] supportedloanConfigurableAttributes = { LoanProductConstants.amortizationTypeParamName,
             LoanProductConstants.interestTypeParamName, LoanProductConstants.transactionProcessingStrategyIdParamName,
@@ -327,6 +327,11 @@ public final class LoanProductDataValidator {
                     .extractBooleanNamed(LoanProductConstants.ACCOUNT_MOVES_OUT_OF_NPA_ONLY_ON_ARREARS_COMPLETION_PARAM_NAME, element);
             baseDataValidator.reset().parameter(LoanProductConstants.ACCOUNT_MOVES_OUT_OF_NPA_ONLY_ON_ARREARS_COMPLETION_PARAM_NAME)
                     .value(npaChangeConfig).notNull().isOneOfTheseValues(true, false);
+        }
+
+        if (this.fromApiJsonHelper.parameterExists(LoanProductConstants.allowableDSCR, element)) {
+            BigDecimal allowableDSCR = this.fromApiJsonHelper.extractBigDecimalNamed(LoanProductConstants.allowableDSCR, element, Locale.US);
+            baseDataValidator.reset().parameter(LoanProductConstants.allowableDSCR).value(allowableDSCR).notNull();
         }
 
         // Interest recalculation settings
@@ -1209,6 +1214,11 @@ public final class LoanProductDataValidator {
                     .extractBooleanNamed(LoanProductConstants.ACCOUNT_MOVES_OUT_OF_NPA_ONLY_ON_ARREARS_COMPLETION_PARAM_NAME, element);
             baseDataValidator.reset().parameter(LoanProductConstants.ACCOUNT_MOVES_OUT_OF_NPA_ONLY_ON_ARREARS_COMPLETION_PARAM_NAME)
                     .value(npaChangeConfig).notNull().isOneOfTheseValues(true, false);
+        }
+
+        if (this.fromApiJsonHelper.parameterExists(LoanProductConstants.allowableDSCR, element)) {
+            BigDecimal allowableDSCR = this.fromApiJsonHelper.extractBigDecimalNamed(LoanProductConstants.allowableDSCR, element, Locale.US);
+            baseDataValidator.reset().parameter(LoanProductConstants.allowableDSCR).value(allowableDSCR).notNull();
         }
 
         boolean isEqualAmortization = loanProduct.isEqualAmortization();

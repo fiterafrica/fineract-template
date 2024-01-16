@@ -1279,4 +1279,30 @@ public final class LoanDecisionTransitionApiJsonValidator {
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
     }
+
+    public void validatePrepareAndSignContractStage(final String json) {
+
+        if (StringUtils.isBlank(json)) {
+            throw new InvalidJsonException();
+        }
+
+        final Set<String> reviewParameters = new HashSet<>(
+                Arrays.asList(LoanApiConstants.loanId, LoanApiConstants.icReviewOnDateParameterName, LoanApiConstants.noteParameterName,
+                        LoanApiConstants.localeParameterName, LoanApiConstants.dateFormatParameterName));
+
+        final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, reviewParameters);
+
+        final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("loanDecisionEngine");
+
+        final JsonElement element = this.fromApiJsonHelper.parse(json);
+
+        final LocalDate icReviewOn = this.fromApiJsonHelper.extractLocalDateNamed(LoanApiConstants.icReviewOnDateParameterName, element);
+        baseDataValidator.reset().parameter(LoanApiConstants.icReviewOnDateParameterName).value(icReviewOn).notNull();
+        final String note = this.fromApiJsonHelper.extractStringNamed(LoanApiConstants.noteParameterName, element);
+        baseDataValidator.reset().parameter(LoanApiConstants.noteParameterName).value(note).notExceedingLengthOf(1000).notNull();
+
+        throwExceptionIfValidationWarningsExist(dataValidationErrors);
+    }
 }

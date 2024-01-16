@@ -344,6 +344,14 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                     String.format("Loan Approval Matrix with Currency [ %s ] doesn't exist. Approval matrix is expected to continue ",
                             loan.getCurrencyCode()));
         }
+
+        /* TODO Get max loan amount from cash flow calculation */
+        final BigDecimal maxLoanAmount = BigDecimal.valueOf(100000);
+        final int comparisonResult = maxLoanAmount.compareTo(recommendedAmount);
+        if(comparisonResult < 0) {
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.must.be.lower.than.max.loan.amount",
+                    String.format("IC Review recommended value must be lower than Loan maximum amount from cash flow calculation"));
+        }
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
         // Determine the Next Level or stage to review
@@ -406,6 +414,14 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             throw new GeneralPlatformDomainRuleException("error.msg.loan.approval.matrix.with.this.currency.does.not.exist.",
                     String.format("Loan Approval Matrix with Currency [ %s ] doesn't exist. Approval matrix is expected to continue ",
                             loan.getCurrencyCode()));
+        }
+
+        /* TODO Get max loan amount from cash flow calculation */
+        final BigDecimal maxLoanAmount = BigDecimal.valueOf(100000);
+        final int comparisonResult = maxLoanAmount.compareTo(recommendedAmount);
+        if(comparisonResult < 0) {
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.must.be.lower.than.max.loan.amount",
+                    String.format("IC Review recommended value must be lower than Loan maximum amount from cash flow calculation"));
         }
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
@@ -470,6 +486,14 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                     String.format("Loan Approval Matrix with Currency [ %s ] doesn't exist. Approval matrix is expected to continue ",
                             loan.getCurrencyCode()));
         }
+
+        /* TODO Get max loan amount from cash flow calculation */
+        final BigDecimal maxLoanAmount = BigDecimal.valueOf(100000);
+        final int comparisonResult = maxLoanAmount.compareTo(recommendedAmount);
+        if(comparisonResult < 0) {
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.must.be.lower.than.max.loan.amount",
+                    String.format("IC Review recommended value must be lower than Loan maximum amount from cash flow calculation"));
+        }
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
         // Determine the Next Level or stage to review
@@ -532,6 +556,14 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             throw new GeneralPlatformDomainRuleException("error.msg.loan.approval.matrix.with.this.currency.does.not.exist.",
                     String.format("Loan Approval Matrix with Currency [ %s ] doesn't exist. Approval matrix is expected to continue ",
                             loan.getCurrencyCode()));
+        }
+
+        /* TODO Get max loan amount from cash flow calculation */
+        final BigDecimal maxLoanAmount = BigDecimal.valueOf(100000);
+        final int comparisonResult = maxLoanAmount.compareTo(recommendedAmount);
+        if(comparisonResult < 0) {
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.must.be.lower.than.max.loan.amount",
+                    String.format("IC Review recommended value must be lower than Loan maximum amount from cash flow calculation"));
         }
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
@@ -596,6 +628,14 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                     String.format("Loan Approval Matrix with Currency [ %s ] doesn't exist. Approval matrix is expected to continue ",
                             loan.getCurrencyCode()));
         }
+
+        /* TODO Get max loan amount from cash flow calculation */
+        final BigDecimal maxLoanAmount = BigDecimal.valueOf(100000);
+        final int comparisonResult = maxLoanAmount.compareTo(recommendedAmount);
+        if(comparisonResult < 0) {
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.must.be.lower.than.max.loan.amount",
+                    String.format("IC Review recommended value must be lower than Loan maximum amount from cash flow calculation"));
+        }
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
         // Determine the Next Level or stage to review
@@ -644,7 +684,7 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                     "Loan contract document not found. Please upload loan document with type Contract");
         }
 
-        this.loanDecisionTransitionApiJsonValidator.validateIcReviewStage(command.json());
+        this.loanDecisionTransitionApiJsonValidator.validatePrepareAndSignContractStage(command.json());
 
         final Loan loan = this.loanRepositoryWrapper.findOneWithNotFoundDetection(loanId, true);
         final LoanDecision loanDecision = this.loanDecisionRepository.findLoanDecisionByLoanId(loan.getId());

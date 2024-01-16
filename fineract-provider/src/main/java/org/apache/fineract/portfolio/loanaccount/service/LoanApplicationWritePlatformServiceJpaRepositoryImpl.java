@@ -106,6 +106,7 @@ import org.apache.fineract.portfolio.group.exception.GroupNotActiveException;
 import org.apache.fineract.portfolio.loanaccount.api.LoanApiConstants;
 import org.apache.fineract.portfolio.loanaccount.data.LoanCashFlowData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanChargeData;
+import org.apache.fineract.portfolio.loanaccount.data.LoanFinancialRatioData;
 import org.apache.fineract.portfolio.loanaccount.data.ScheduleGeneratorDTO;
 import org.apache.fineract.portfolio.loanaccount.domain.DefaultLoanLifecycleStateMachine;
 import org.apache.fineract.portfolio.loanaccount.domain.GLIMAccountInfoRepository;
@@ -2272,6 +2273,27 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
             throw new GeneralPlatformDomainRuleException("error.msg.loan.cashflow.data.is.not.available.so.cashflow.cannot.be.generated",
                     "Loan CashFlow data is not available so CashFlow cannot be generated");
         }
+
+        return new CommandProcessingResultBuilder() //
+                .withCommandId(command.commandId()) //
+                .withEntityId(loan.getId()) //
+                .withOfficeId(loan.getOfficeId()) //
+                .withClientId(loan.getClientId()) //
+                .withGroupId(loan.getGroupId()) //
+                .withLoanId(loanId).build();
+    }
+
+    @Override
+    public CommandProcessingResult generateFinancialRatios(Long loanId, JsonCommand command) {
+        final Loan loan = retrieveLoanBy(loanId);
+
+        if (loan.getLoanDecisionState() == null || !loan.status().isSubmittedAndPendingApproval()
+                || !loan.getLoanDecisionState().equals(LoanDecisionState.REVIEW_APPLICATION.getValue())) {
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.not.in.due.diligence.stage.so.cashflow.cannot.be.generated",
+                    "Loan is not in Due Diligence Stage so CashFlow cannot be generated");
+        }
+        LoanFinancialRatioData financialRatioData = this.loanReadPlatformService.retrieveLoanFinancialRatioData(loanId);
+
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //

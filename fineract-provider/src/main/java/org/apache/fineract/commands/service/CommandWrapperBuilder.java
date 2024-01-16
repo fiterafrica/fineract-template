@@ -3970,4 +3970,13 @@ public class CommandWrapperBuilder {
         this.href = "/loans/" + loanId;
         return this;
     }
+
+    public CommandWrapperBuilder generateFinancialRatio(final Long loanId) {
+        this.actionName = "GENERATE_FINANCIALRATIO";
+        this.entityName = "LOAN";
+        this.entityId = loanId;
+        this.loanId = loanId;
+        this.href = "/loans/" + loanId;
+        return this;
+    }
 }

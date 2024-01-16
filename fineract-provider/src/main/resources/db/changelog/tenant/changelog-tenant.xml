@@ -120,6 +120,7 @@
     <include file="parts/INKO-250_loan_document_type.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO-257_add_cashflow_data.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO-258_add_balancesheet_data.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO-272_financial_ratio_permission.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO-217-modify-due-diligence-approval-details.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>
