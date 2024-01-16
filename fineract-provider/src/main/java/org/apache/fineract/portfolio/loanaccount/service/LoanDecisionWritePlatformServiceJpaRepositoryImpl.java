@@ -51,7 +51,6 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanCollateralManagement
 import org.apache.fineract.portfolio.loanaccount.domain.LoanDecision;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanDecisionRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanDecisionState;
-import org.apache.fineract.portfolio.loanaccount.domain.LoanDueDiligenceInfo;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanDueDiligenceInfoRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
 import org.apache.fineract.portfolio.loanaccount.domain.MetropolCrbIdentityReport;
@@ -211,9 +210,6 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         Loan loanObj = loan;
         loanObj.setLoanDecisionState(LoanDecisionState.DUE_DILIGENCE.getValue());
         this.loanRepositoryWrapper.saveAndFlush(loanObj);
-
-        LoanDueDiligenceInfo loanDueDiligenceInfo = loanDecisionAssembler.assembleDueDiligenceDetailsFrom(command, savedObj, loanObj);
-        loanDueDiligenceInfoRepository.saveAndFlush(loanDueDiligenceInfo);
 
         if (StringUtils.isNotBlank(loanDecisionObj.getDueDiligenceNote())) {
             final Note note = Note.loanNote(loanObj, "Due Diligence : " + loanDecisionObj.getDueDiligenceNote());
