@@ -54,6 +54,10 @@ public interface LoanApiConstants {
     String cohortParameterName = "cohort";
     String programParameterName = "program";
     String countryParameterName = "country";
+    String recommendedLoanTermFrequencyParameterName = "recommendedLoanTermFrequency";
+    String recommendedLoanTermFrequencyTypeParameterName = "recommendedLoanTermFrequencyType";
+    String dueDiligenceRecommendedAmountParameterName = "recommendedAmount";
+    String isIdeaClientParamName = "isIdeaClient";
     String localeParameterName = "locale";
     String dateFormatParameterName = "dateFormat";
     String rejectedOnDateParameterName = "rejectedOnDate";

@@ -64,6 +64,13 @@ public class LoanDecision extends AbstractAuditableCustom {
     @ManyToOne(optional = true, fetch = FetchType.LAZY)
     @JoinColumn(name = "due_diligence_by")
     private AppUser dueDiligenceBy;
+    @Column(name = "due_diligence_recommended_amount")
+    private BigDecimal dueDiligenceRecommendedAmount;
+    @Column(name = "due_diligence_term_frequency")
+    private Integer dueDiligenceTermFrequency;
+    @Column(name = "due_diligence_term_period_frequency_type")
+    private Integer dueDiligenceTermFrequencyType;
+
 
     // collateral review
     @Column(name = "collateral_review_note")

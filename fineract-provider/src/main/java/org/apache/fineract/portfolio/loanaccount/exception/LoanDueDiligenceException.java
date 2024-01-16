@@ -16,19 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.portfolio.loanaccount.domain;
+package org.apache.fineract.portfolio.loanaccount.exception;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.apache.fineract.infrastructure.core.exception.AbstractPlatformDomainRuleException;
 
-import java.util.List;
+public class LoanDueDiligenceException extends AbstractPlatformDomainRuleException {
 
-public interface MetropolCrbIdentityVerificationRepository
-        extends JpaRepository<MetropolCrbIdentityReport, Long>, JpaSpecificationExecutor<MetropolCrbIdentityReport> {
-
-    @Query("from MetropolCrbIdentityReport m where m.loanId.id=:loanId ")
-    List<MetropolCrbIdentityReport> findByLoanId(@Param("loanId") Long loanId);
+    public LoanDueDiligenceException(final String defaultUserMessage, final Object... defaultUserMessageArgs) {
+        super("error.msg.required.crb.verification", defaultUserMessage, defaultUserMessageArgs);
+    }
 
 }
+

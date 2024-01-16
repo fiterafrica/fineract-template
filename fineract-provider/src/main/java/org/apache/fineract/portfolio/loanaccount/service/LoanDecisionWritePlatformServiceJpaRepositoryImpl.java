@@ -48,6 +48,11 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanDecisionState;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanDueDiligenceInfo;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanDueDiligenceInfoRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
+import org.apache.fineract.portfolio.loanaccount.domain.MetropolCrbIdentityReport;
+import org.apache.fineract.portfolio.loanaccount.domain.MetropolCrbIdentityVerificationRepository;
+import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbHeader;
+import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbHeaderRepository;
+import org.apache.fineract.portfolio.loanaccount.exception.LoanDueDiligenceException;
 import org.apache.fineract.portfolio.loanaccount.serialization.LoanDecisionTransitionApiJsonValidator;
 import org.apache.fineract.portfolio.note.domain.Note;
 import org.apache.fineract.portfolio.note.domain.NoteRepository;
@@ -73,6 +78,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
     private final LoanCollateralManagementRepository loanCollateralManagementRepository;
     private final LoanDecisionStateUtilService loanDecisionStateUtilService;
     private final DocumentReadPlatformService documentReadPlatformService;
+    private final MetropolCrbIdentityVerificationRepository metropolCrbIdentityVerificationRepository;
+    private final TransunionCrbHeaderRepository transunionCrbHeaderRepository;
 
     @Override
     public CommandProcessingResult acceptLoanApplicationReview(final Long loanId, final JsonCommand command) {
@@ -142,8 +149,26 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         final AppUser currentUser = getAppUserIfPresent();
 
         this.loanDecisionTransitionApiJsonValidator.validateDueDiligence(command.json());
-
         final Loan loan = this.loanRepositoryWrapper.findOneWithNotFoundDetection(loanId, true);
+        Boolean isIdeaClient = command.booleanObjectValueOfParameterNamed(LoanApiConstants.isIdeaClientParamName);
+
+        //Check CRB Verification has been executed
+        if (loan.getCurrencyCode().equalsIgnoreCase("KES")) {
+            List<MetropolCrbIdentityReport> metropolCrbIdentityReportList = metropolCrbIdentityVerificationRepository.findByLoanId(loan.getId());
+            if (metropolCrbIdentityReportList.isEmpty()) {
+                throw new LoanDueDiligenceException("CRB Verification required.");
+            }
+        } else if (loan.getCurrencyCode().equalsIgnoreCase("RWF")) {
+            //transunion
+            List<TransunionCrbHeader> transunionCrbHeaderList = transunionCrbHeaderRepository.findByLoanId(loan.getId());
+            if (transunionCrbHeaderList.isEmpty()) {
+                throw new LoanDueDiligenceException("CRB Verification required.");
+            }
+        }
+
+        if (!isIdeaClient) {
+            //check for cashflow and financial ration. Idea Client does not have a cashflow/ balancesheet
+        }
         final LoanDecision loanDecision = this.loanDecisionRepository.findLoanDecisionByLoanId(loan.getId());
 
         validateDueDiligenceBusinessRule(command, loan, loanDecision);
@@ -672,8 +697,6 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         loanDecisionStateUtilService.validateLoanDisbursementDataWithMeetingDate(loan);
         loanDecisionStateUtilService.validateLoanTopUp(loan);
         LocalDate dueDiligenceOn = command.localDateValueOfParameterNamed(LoanApiConstants.dueDiligenceOnDateParameterName);
-        LocalDate startDate = command.localDateValueOfParameterNamed(LoanApiConstants.startDateParameterName);
-        LocalDate endDate = command.localDateValueOfParameterNamed(LoanApiConstants.endDateParameterName);
         // Review Loan Application should not be before Due Diligence date
         if (dueDiligenceOn.isBefore(loanDecision.getReviewApplicationOn())) {
             throw new GeneralPlatformDomainRuleException("error.msg.loan.due.diligence.date.should.be.after.review.application.date",
@@ -699,11 +722,7 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             throw new GeneralPlatformDomainRuleException("error.msg.loan.decision.state.does.not.reconcile",
                     "Loan Account Decision state Does not reconcile . Operation is terminated");
         }
-        if (startDate.isAfter(endDate)) {
-            throw new GeneralPlatformDomainRuleException(
-                    "error.msg.loan.due.diligence.startDate.should.not.be.before.endDate.operation.terminated",
-                    "Due Diligence startDate " + startDate + " should not be after endDate " + endDate);
-        }
+
     }
 
     private AppUser getAppUserIfPresent() {

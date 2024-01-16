@@ -149,7 +149,7 @@ public final class LoanAccountData {
     private final Collection<StaffData> loanOfficerOptions;
     private final Collection<CodeValueData> loanPurposeOptions;
     private final Collection<FundData> fundOptions;
-    private final Collection<EnumOptionData> termFrequencyTypeOptions;
+    private Collection<EnumOptionData> termFrequencyTypeOptions;
     private final Collection<EnumOptionData> repaymentFrequencyTypeOptions;
     private final Collection<EnumOptionData> repaymentFrequencyNthDayTypeOptions;
     private final Collection<EnumOptionData> repaymentFrequencyDaysOfWeekTypeOptions;
@@ -2205,5 +2205,9 @@ public final class LoanAccountData {
 
     public Long getId() {
         return id;
+    }
+
+    public void setTermFrequencyTypeOptions(Collection<EnumOptionData> termFrequencyTypeOptions) {
+        this.termFrequencyTypeOptions = termFrequencyTypeOptions;
     }
 }
