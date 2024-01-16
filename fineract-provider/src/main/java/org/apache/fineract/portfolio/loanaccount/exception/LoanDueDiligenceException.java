@@ -22,8 +22,8 @@ import org.apache.fineract.infrastructure.core.exception.AbstractPlatformDomainR
 
 public class LoanDueDiligenceException extends AbstractPlatformDomainRuleException {
 
-    public LoanDueDiligenceException(final String defaultUserMessage, final Object... defaultUserMessageArgs) {
-        super("error.msg.required.crb.verification", defaultUserMessage, defaultUserMessageArgs);
+    public LoanDueDiligenceException(String errorCode, final String defaultUserMessage, final Object... defaultUserMessageArgs) {
+        super(errorCode, defaultUserMessage, defaultUserMessageArgs);
     }
 
 }

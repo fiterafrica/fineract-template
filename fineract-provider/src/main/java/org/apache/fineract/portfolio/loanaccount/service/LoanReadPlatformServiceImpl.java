@@ -3270,7 +3270,8 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         return financialRatioData;
     }
 
-    private void generateFinancialRatioData(Loan loan, List<LoanCashFlowData> cashFlowData, LoanFinancialRatioData financialRatioData) {
+    @Override
+    public void generateFinancialRatioData(Loan loan, List<LoanCashFlowData> cashFlowData, LoanFinancialRatioData financialRatioData) {
         final RoundingMode roundingMode = MoneyHelper.getRoundingMode();
         final MathContext mc = new MathContext(8, roundingMode);
         List<String> incomeParticularTypes = Arrays.asList("Sales Income", "Other Income");
@@ -3313,6 +3314,9 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         financialRatioData.setLeverage(leverage);
         financialRatioData.setCapitalization(capitalization);
         financialRatioData.setDscr(dscr);
+        financialRatioData.setTotalIncome(totalIncome);
+        financialRatioData.setTotalExpense(totalExpense);
+        financialRatioData.setNetCashFlow(netCashFlow);
     }
     @Override
     public LoanFinancialRatioData findLoanFinancialRatioDataByLoanId(Long loanId) {

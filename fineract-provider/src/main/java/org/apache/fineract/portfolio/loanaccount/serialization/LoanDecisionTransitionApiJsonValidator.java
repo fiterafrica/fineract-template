@@ -126,7 +126,9 @@ public final class LoanDecisionTransitionApiJsonValidator {
         baseDataValidator.reset().parameter(LoanApiConstants.recommendedLoanTermFrequencyTypeParameterName).value(recommendedLoanTermFrequencyType).notNull()
                 .integerGreaterThanZero();
 
-        final Boolean isIdeaClient = this.fromApiJsonHelper.extractBooleanNamed(LoanApiConstants.isIdeaClientParamName, element);
+        Boolean isIdeaClient = this.fromApiJsonHelper.extractBooleanNamed(LoanApiConstants.isIdeaClientParamName, element);
+        if (isIdeaClient == null)
+            isIdeaClient = Boolean.FALSE;
         baseDataValidator.reset().parameter(LoanApiConstants.isIdeaClientParamName).value(isIdeaClient).notNull()
                 .validateForBooleanValue();
 

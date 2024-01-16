@@ -42,6 +42,7 @@ import org.apache.fineract.portfolio.loanaccount.data.LoanTermVariationsData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanTransactionData;
 import org.apache.fineract.portfolio.loanaccount.data.PaidInAdvanceData;
 import org.apache.fineract.portfolio.loanaccount.data.RepaymentScheduleRelatedLoanData;
+import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionType;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanOverdueReminderData;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanRepaymentConfirmationData;
@@ -199,6 +200,8 @@ public interface LoanReadPlatformService {
     List<LoanCashFlowData> retrieveCashFlow(Long loanId);
     LoanDecisionData retrieveLoanDecisionByLoanId(Long loanId);
     LoanFinancialRatioData retrieveLoanFinancialRatioData(Long loanId);
+
+    void generateFinancialRatioData(Loan loan, List<LoanCashFlowData> cashFlowData, LoanFinancialRatioData financialRatioData);
 
     LoanFinancialRatioData findLoanFinancialRatioDataByLoanId(Long loanId);
 
