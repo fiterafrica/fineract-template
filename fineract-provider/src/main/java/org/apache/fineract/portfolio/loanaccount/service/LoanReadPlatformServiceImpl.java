@@ -3344,6 +3344,9 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                 .filter(cashFlow -> cashFlow.getCashFlowType().equals("EXPENSE") && cashFlow.getParticularType().equals("Purchases"))
                 .map(LoanCashFlowData::getMonth0).reduce(BigDecimal.ZERO, (a, b) -> a.add(b));
 
+        if (purchases == null || purchases.compareTo(BigDecimal.ZERO) == 0) {
+            purchases = BigDecimal.ONE;
+        }
         BigDecimal netMargin = netCashFlow.divide(purchases, mc);
 
         BigDecimal rotation = netCashFlow.divide(financialRatioData.getInventoryStock(), mc);

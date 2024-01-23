@@ -70,6 +70,8 @@ public class LoanDecision extends AbstractAuditableCustom {
     private Integer dueDiligenceTermFrequency;
     @Column(name = "due_diligence_term_period_frequency_type")
     private Integer dueDiligenceTermFrequencyType;
+    @Column(name = "is_idea_client")
+    private Boolean ideaClient;
 
     // collateral review
     @Column(name = "collateral_review_note")

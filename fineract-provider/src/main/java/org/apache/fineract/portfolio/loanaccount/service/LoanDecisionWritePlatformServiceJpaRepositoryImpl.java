@@ -42,7 +42,7 @@ import org.apache.fineract.organisation.monetary.domain.MoneyHelper;
 import org.apache.fineract.portfolio.common.domain.PeriodFrequencyType;
 import org.apache.fineract.portfolio.loanaccount.api.LoanApiConstants;
 import org.apache.fineract.portfolio.loanaccount.api.LoanApprovalMatrixConstants;
-import org.apache.fineract.portfolio.loanaccount.data.LoanCashFlowData;
+import org.apache.fineract.portfolio.loanaccount.data.LoanCashFlowReport;
 import org.apache.fineract.portfolio.loanaccount.data.LoanFinancialRatioData;
 import org.apache.fineract.portfolio.loanaccount.data.ScheduleGeneratorDTO;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
@@ -178,23 +178,23 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             }
         }
 
+        final LoanDecision loanDecision = this.loanDecisionRepository.findLoanDecisionByLoanId(loan.getId());
         if (!isIdeaClient) {
             // check for cashflow and financial ratio. Idea Client does not have a cashflow/ balancesheet
             final RoundingMode roundingMode = MoneyHelper.getRoundingMode();
             final MathContext mc = new MathContext(8, roundingMode);
 
-            List<LoanCashFlowData> cashFlowData = this.loanReadPlatformService.retrieveCashFlow(loanId);
-            if (CollectionUtils.isEmpty(cashFlowData)) {
+            LoanCashFlowReport cashFlowReport = this.loanReadPlatformService.retrieveCashFlowReport(loanId);
+            if (CollectionUtils.isEmpty(cashFlowReport.getCashFlowProjectionDataList())) {
                 throw new LoanDueDiligenceException("error.msg.loan.required.cashflow.data", "CashFlow data not available.");
             }
             LoanFinancialRatioData financialRatioData = this.loanReadPlatformService.findLoanFinancialRatioDataByLoanId(loanId);
             if (financialRatioData == null) {
                 throw new LoanDueDiligenceException("error.msg.loan.required.financialRatio.data", "Financial Ratio data not available.");
             }
-            this.loanReadPlatformService.generateFinancialRatioData(loan, cashFlowData, financialRatioData);
 
-            BigDecimal maxEMI = financialRatioData.getNetCashFlow().divide(loan.getLoanProduct().getAllowableDSCR(), mc);
-            BigDecimal calculatedAmount = maxEMI.multiply(BigDecimal.valueOf(loan.getNumberOfRepayments()), mc);
+            //Get calculated amount from CashFlow Projection Report
+            BigDecimal calculatedAmount = this.loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
             final BigDecimal recommendedAmount = command
                     .bigDecimalValueOfParameterNamed(LoanApiConstants.dueDiligenceRecommendedAmountParameterName);
             if (recommendedAmount.compareTo(calculatedAmount) > 0) {
@@ -202,8 +202,10 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                         "Recommended amount cannot be greater than the calculated amount", calculatedAmount);
             }
 
+        } else {
+            loanDecision.setIdeaClient(true);
         }
-        final LoanDecision loanDecision = this.loanDecisionRepository.findLoanDecisionByLoanId(loan.getId());
+
 
         validateDueDiligenceBusinessRule(command, loan, loanDecision);
 
@@ -376,10 +378,12 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                             loan.getCurrencyCode()));
         }
 
-        final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
-        if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
-            throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
-                    "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
+        if (!loanDecision.getIdeaClient()) {
+            final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
+            if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
+                throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
+                        "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
+            }
         }
 
         // Get Loan Matrix
@@ -456,10 +460,12 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                             loan.getCurrencyCode()));
         }
 
-        final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
-        if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
-            throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
-                    "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
+        if (!loanDecision.getIdeaClient()) {
+            final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
+            if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
+                throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
+                        "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
+            }
         }
 
         // Get Loan Matrix
@@ -536,10 +542,12 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                             loan.getCurrencyCode()));
         }
 
-        final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
-        if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
-            throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
-                    "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
+        if (!loanDecision.getIdeaClient()) {
+            final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
+            if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
+                throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
+                        "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
+            }
         }
 
         // Get Loan Matrix
@@ -616,10 +624,12 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                             loan.getCurrencyCode()));
         }
 
-        final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
-        if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
-            throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
-                    "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
+        if (!loanDecision.getIdeaClient()) {
+            final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
+            if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
+                throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
+                        "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
+            }
         }
 
         // Get Loan Matrix
@@ -696,10 +706,12 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                             loan.getCurrencyCode()));
         }
 
-        final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
-        if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
-            throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
-                    "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
+        if (!loanDecision.getIdeaClient()) {
+            final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
+            if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
+                throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
+                        "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
+            }
         }
 
         // Get Loan Matrix
