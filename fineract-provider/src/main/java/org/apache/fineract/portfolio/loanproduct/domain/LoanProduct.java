@@ -445,7 +445,7 @@ public class LoanProduct extends AbstractPersistableCustom {
                 isEqualAmortization, productRates, fixedPrincipalPercentagePerInstallment, disallowExpectedDisbursements,
                 allowApprovedDisbursedAmountsOverApplied, overAppliedCalculationType, overAppliedNumber, maxNumberOfLoanExtensionsAllowed,
                 loanTermIncludesToppedUpLoanTerm, isAccountLevelArrearsToleranceEnable, isBnplLoanProduct, requiresEquityContribution,
-                equityContributionLoanPercentage, maintainInterest, isIslamic, allowableDSCR);
+                equityContributionLoanPercentage, maintainInterest, isIslamic, allowableDSCR, productCategory, productType);
 
     }
 
@@ -685,7 +685,7 @@ public class LoanProduct extends AbstractPersistableCustom {
             final Integer overAppliedNumber, final Integer maxNumberOfLoanExtensionsAllowed, final boolean loanTermIncludesToppedUpLoanTerm,
             final boolean isAccountLevelArrearsToleranceEnable, Boolean isBnplLoanProduct, Boolean requiresEquityContribution,
             BigDecimal equityContributionLoanPercentage, Boolean maintainInterest, final Boolean isIslamic,
-            final BigDecimal allowableDSCR) {
+            final BigDecimal allowableDSCR, final CodeValue productCategory, final CodeValue productType) {
         this.fund = fund;
         this.transactionProcessingStrategy = transactionProcessingStrategy;
         this.name = name.trim();
@@ -772,6 +772,8 @@ public class LoanProduct extends AbstractPersistableCustom {
         this.maintainInterestRateOnLoanTermExtension = maintainInterest;
         this.isIslamic = isIslamic;
         this.allowableDSCR = allowableDSCR;
+        this.productCategory = productCategory;
+        this.productType = productType;
 
         if (rates != null) {
             this.rates = rates;
@@ -1322,6 +1324,24 @@ public class LoanProduct extends AbstractPersistableCustom {
             final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(LoanProductConstants.IS_ISLAMIC);
             actualChanges.put(LoanProductConstants.IS_ISLAMIC, newValue);
             this.isIslamic = newValue;
+        }
+
+        Long existingCategoryId = null;
+        if (this.productCategory != null) {
+            existingCategoryId = this.productCategory.getId();
+        }
+        if (command.isChangeInLongParameterNamed(LoanProductConstants.LOAN_PRODUCT_CATEGORY, existingCategoryId)) {
+            final Long newValue = command.longValueOfParameterNamed(LoanProductConstants.LOAN_PRODUCT_CATEGORY);
+            actualChanges.put(LoanProductConstants.LOAN_PRODUCT_CATEGORY, newValue);
+        }
+
+        Long existingTypeId = null;
+        if (this.productType != null) {
+            existingTypeId = this.productType.getId();
+        }
+        if (command.isChangeInLongParameterNamed(LoanProductConstants.LOAN_PRODUCT_TYPE, existingTypeId)) {
+            final Long newValue = command.longValueOfParameterNamed(LoanProductConstants.LOAN_PRODUCT_TYPE);
+            actualChanges.put(LoanProductConstants.LOAN_PRODUCT_TYPE, newValue);
         }
 
         return actualChanges;
