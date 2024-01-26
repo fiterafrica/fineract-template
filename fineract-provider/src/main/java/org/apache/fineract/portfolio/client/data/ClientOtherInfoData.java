@@ -129,4 +129,8 @@ public final class ClientOtherInfoData implements Serializable {
                 incomeGeneratingActivity, incomeGeneratingActivityMonthlyAmount, telephoneNumber);
     }
 
+    public CodeValueData getStrata() {
+        return strata;
+    }
+
 }

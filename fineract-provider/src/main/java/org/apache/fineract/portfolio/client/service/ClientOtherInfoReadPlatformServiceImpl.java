@@ -100,6 +100,18 @@ public class ClientOtherInfoReadPlatformServiceImpl implements ClientOtherInfoRe
     }
 
     @Override
+    public ClientOtherInfoData retrieveByClientId(long clientId) {
+        this.context.authenticatedUser();
+        final ClientOtherInfoMapper rm = new ClientOtherInfoMapper();
+        final String sql = "select " + rm.schema() + " where co.client_id=?";
+        try {
+            return this.jdbcTemplate.queryForObject(sql, rm, new Object[]{clientId}); // NOSONAR
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
     public ClientOtherInfoData retrieveOne(Long id) {
 
         this.context.authenticatedUser();

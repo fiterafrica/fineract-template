@@ -25,6 +25,8 @@ public interface ClientOtherInfoReadPlatformService {
 
     public Collection<ClientOtherInfoData> retrieveAll(long clientId);
 
+    ClientOtherInfoData retrieveByClientId(long clientId);
+
     public ClientOtherInfoData retrieveOne(Long id);
 
     public ClientOtherInfoData retrieveTemplate();

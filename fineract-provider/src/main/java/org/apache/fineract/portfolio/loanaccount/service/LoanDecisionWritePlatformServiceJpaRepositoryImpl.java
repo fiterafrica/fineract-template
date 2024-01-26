@@ -39,6 +39,8 @@ import org.apache.fineract.infrastructure.documentmanagement.data.DocumentData;
 import org.apache.fineract.infrastructure.documentmanagement.service.DocumentReadPlatformService;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.organisation.monetary.domain.MoneyHelper;
+import org.apache.fineract.portfolio.client.data.ClientOtherInfoData;
+import org.apache.fineract.portfolio.client.service.ClientOtherInfoReadPlatformService;
 import org.apache.fineract.portfolio.common.domain.PeriodFrequencyType;
 import org.apache.fineract.portfolio.loanaccount.api.LoanApiConstants;
 import org.apache.fineract.portfolio.loanaccount.api.LoanApprovalMatrixConstants;
@@ -88,6 +90,7 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
     private final MetropolCrbIdentityVerificationRepository metropolCrbIdentityVerificationRepository;
     private final TransunionCrbHeaderRepository transunionCrbHeaderRepository;
     private final LoanUtilService loanUtilService;
+    private final ClientOtherInfoReadPlatformService clientOtherInfoReadPlatformService;
 
     @Override
     public CommandProcessingResult acceptLoanApplicationReview(final Long loanId, final JsonCommand command) {
@@ -164,17 +167,26 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         }
 
         // Check CRB Verification has been executed
-        if (loan.getCurrencyCode().equalsIgnoreCase("KES")) {
-            List<MetropolCrbIdentityReport> metropolCrbIdentityReportList = metropolCrbIdentityVerificationRepository
-                    .findByLoanId(loan.getId());
-            if (metropolCrbIdentityReportList.isEmpty()) {
-                throw new LoanDueDiligenceException("error.msg.required.crb.verification", "CRB Verification required.");
-            }
-        } else if (loan.getCurrencyCode().equalsIgnoreCase("RWF")) {
-            // transunion
-            List<TransunionCrbHeader> transunionCrbHeaderList = transunionCrbHeaderRepository.findByLoanId(loan.getId());
-            if (transunionCrbHeaderList.isEmpty()) {
-                throw new LoanDueDiligenceException("error.msg.required.crb.verification", "CRB Verification required.");
+        boolean crbVerification =  true;
+        ClientOtherInfoData clientOtherInfoData = this.clientOtherInfoReadPlatformService.retrieveByClientId(loan.getClientId());
+        if (clientOtherInfoData != null && clientOtherInfoData.getStrata() != null &&
+                (clientOtherInfoData.getStrata().getName().equalsIgnoreCase("Refugees") ||
+                        clientOtherInfoData.getStrata().getName().equalsIgnoreCase("Refugee")) ) {
+            crbVerification = false;
+        }
+        if(crbVerification) {
+            if (loan.getCurrencyCode().equalsIgnoreCase("KES")) {
+                List<MetropolCrbIdentityReport> metropolCrbIdentityReportList = metropolCrbIdentityVerificationRepository
+                        .findByLoanId(loan.getId());
+                if (metropolCrbIdentityReportList.isEmpty()) {
+                    throw new LoanDueDiligenceException("error.msg.required.crb.verification", "CRB Verification required.");
+                }
+            } else if (loan.getCurrencyCode().equalsIgnoreCase("RWF")) {
+                // transunion
+                List<TransunionCrbHeader> transunionCrbHeaderList = transunionCrbHeaderRepository.findByLoanId(loan.getId());
+                if (transunionCrbHeaderList.isEmpty()) {
+                    throw new LoanDueDiligenceException("error.msg.required.crb.verification", "CRB Verification required.");
+                }
             }
         }
 
