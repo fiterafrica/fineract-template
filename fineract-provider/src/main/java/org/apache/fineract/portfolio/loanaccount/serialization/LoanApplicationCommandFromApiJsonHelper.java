@@ -1156,6 +1156,11 @@ public final class LoanApplicationCommandFromApiJsonHelper {
             baseDataValidator.reset().parameter(LoanApiConstants.DEPARTMENT_PARAM).value(departmentId).zeroOrPositiveAmount();
         }
 
+        final String loanPurposeIdParameterName = "loanPurposeId";
+        final Long loanPurposeId = this.fromApiJsonHelper.extractLongNamed(loanPurposeIdParameterName, element);
+        baseDataValidator.reset().parameter(loanPurposeIdParameterName).value(loanPurposeId).notNull().integerGreaterThanZero();
+
+
         if (!dataValidationErrors.isEmpty()) {
             throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
                     dataValidationErrors);
