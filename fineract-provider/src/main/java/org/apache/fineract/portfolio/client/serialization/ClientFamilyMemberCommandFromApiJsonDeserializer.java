@@ -34,6 +34,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.exception.InvalidJsonException;
+import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -98,7 +99,7 @@ public final class ClientFamilyMemberCommandFromApiJsonDeserializer {
             baseDataValidator.reset().parameter("firstName").value(firstName).notNull().notBlank().notExceedingLengthOf(100);
         } else {
             baseDataValidator.reset().parameter("firstName").value(this.fromApiJsonHelper.extractStringNamed("firstName", element))
-                    .notNull().notBlank().notExceedingLengthOf(100);
+                    .notNull().notExceedingLengthOf(100);
         }
 
         if (this.fromApiJsonHelper.extractStringNamed("lastName", element) != null) {
@@ -165,6 +166,8 @@ public final class ClientFamilyMemberCommandFromApiJsonDeserializer {
                     .validateDateBefore(DateUtils.getBusinessLocalDate());
 
         }
+
+        throwExceptionIfValidationWarningsExist(dataValidationErrors);
 
     }
 
@@ -244,6 +247,13 @@ public final class ClientFamilyMemberCommandFromApiJsonDeserializer {
         // final JsonElement element = this.fromApiJsonHelper.parse(json);
 
         baseDataValidator.reset().value(familyMemberId).notBlank().integerGreaterThanZero();
+    }
+
+    private void throwExceptionIfValidationWarningsExist(final List<ApiParameterError> dataValidationErrors) {
+        if (!dataValidationErrors.isEmpty()) {
+            //
+            throw new PlatformApiDataValidationException(dataValidationErrors);
+        }
     }
 
 }
