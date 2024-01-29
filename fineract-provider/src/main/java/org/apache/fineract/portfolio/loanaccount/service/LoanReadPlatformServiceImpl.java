@@ -3347,7 +3347,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         }
         BigDecimal netMargin = netCashFlow.divide(purchases, mc);
 
-        BigDecimal rotation = netCashFlow.divide(financialRatioData.getInventoryStock(), mc);
+        BigDecimal rotation = purchases.divide(financialRatioData.getInventoryStock(), mc);
         BigDecimal liquidity = financialRatioData.getTotalCurrentAssets().divide(financialRatioData.getTotalShortTerm(), mc);
         BigDecimal leverage = financialRatioData.getTotalShortTerm().divide(financialRatioData.getEquity(), mc);
         BigDecimal capitalization = financialRatioData.getEquity().divide(financialRatioData.getTotalFixedAssets(), mc);
