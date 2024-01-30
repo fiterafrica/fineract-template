@@ -1,0 +1,4 @@
+
+
+SAVING_PRODUCT_ID = -1
+CLIENT_ID = -1
