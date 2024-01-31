@@ -21,8 +21,6 @@ package org.apache.fineract.portfolio.loanaccount.domain;
 import java.math.BigDecimal;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import org.apache.fineract.infrastructure.core.domain.AbstractAuditableCustom;
 import org.springframework.stereotype.Component;
@@ -32,9 +30,8 @@ import org.springframework.stereotype.Component;
 @Table(name = "m_loan_cashflow_projection")
 public class LoanCashFlowProjection extends AbstractAuditableCustom {
 
-    @ManyToOne
-    @JoinColumn(name = "schedule_id")
-    private LoanRepaymentScheduleInstallment scheduleInstallment;
+    @Column(name = "schedule_id")
+    private Integer installmentNumber;
 
     @Column(name = "cashflow_info_id")
     private Long cashflowInfoId;
@@ -46,9 +43,9 @@ public class LoanCashFlowProjection extends AbstractAuditableCustom {
 
     public LoanCashFlowProjection() {}
 
-    public LoanCashFlowProjection(LoanRepaymentScheduleInstallment scheduleInstallment, Long cashflowInfoId, Integer projectionRate,
+    public LoanCashFlowProjection(Integer installmentNumber, Long cashflowInfoId, Integer projectionRate,
             BigDecimal amount) {
-        this.scheduleInstallment = scheduleInstallment;
+        this.installmentNumber = installmentNumber;
         this.cashflowInfoId = cashflowInfoId;
         this.projectionRate = projectionRate;
         this.amount = amount;

@@ -2385,7 +2385,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
 
     private void saveCashFlowProjection(Integer projectionRate, BigDecimal amount, LoanRepaymentScheduleInstallment installment,
             LoanCashFlowData cashFlow) {
-        LoanCashFlowProjection projection = new LoanCashFlowProjection(installment, cashFlow.getId(), projectionRate, amount);
+        LoanCashFlowProjection projection = new LoanCashFlowProjection(installment.getInstallmentNumber(), cashFlow.getId(), projectionRate, amount);
         this.loanCashFlowProjectionRepository.saveAndFlush(projection);
     }
 

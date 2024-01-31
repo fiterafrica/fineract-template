@@ -123,5 +123,6 @@
     <include file="parts/INKO-272_financial_ratio_permission.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO-217-modify-due-diligence-approval-details.xml" relativeToChangelogFile="true" />
     <include file="parts/INKO-261-add-idea-client.xml" relativeToChangelogFile="true" />
+    <include file="parts/INKO-308-drop-repayment-schedule-foriegn-key-from-cashflow.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>
