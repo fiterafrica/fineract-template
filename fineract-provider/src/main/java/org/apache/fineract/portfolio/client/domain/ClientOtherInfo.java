@@ -139,14 +139,14 @@ public class ClientOtherInfo extends AbstractPersistableCustom {
 
     public static ClientOtherInfo createNewForEntity(JsonCommand command, Client client, final CodeValue strata) {
 
-        final String coSignors = command.stringValueOfParameterNamed(ClientApiConstants.coSignors);
-        final String guarantor = command.stringValueOfParameterNamed(ClientApiConstants.guarantor);
-        final String businessLocation = command.stringValueOfParameterNamed(ClientApiConstants.businessLocationParamName);
+        final String coSignors = command.stringValueOfParameterNamedAllowingNull(ClientApiConstants.coSignors);
+        final String guarantor = command.stringValueOfParameterNamedAllowingNull(ClientApiConstants.guarantor);
+        final String businessLocation = command.stringValueOfParameterNamedAllowingNull(ClientApiConstants.businessLocationParamName);
         final Long taxIdentificationNumber = command.longValueOfParameterNamed(ClientApiConstants.taxIdentificationNumberParamName);
         final Long incomeGeneratingActivity = command.longValueOfParameterNamed(ClientApiConstants.incomeGeneratingActivityParamName);
         final BigDecimal incomeGeneratingActivityMonthlyAmount = command
                 .bigDecimalValueOfParameterNamed(ClientApiConstants.incomeGeneratingActivityMonthlyAmountParamName);
-        final String telephoneNo = command.stringValueOfParameterNamed(ClientApiConstants.telephoneNoParamName);
+        final String telephoneNo = command.stringValueOfParameterNamedAllowingNull(ClientApiConstants.telephoneNoParamName);
 
         return new ClientOtherInfo(client, strata, businessLocation, taxIdentificationNumber, incomeGeneratingActivity,
                 incomeGeneratingActivityMonthlyAmount, telephoneNo, coSignors, guarantor);
