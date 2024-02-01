@@ -117,7 +117,7 @@ public class ClientCollateralManagementReadPlatformServiceImpl implements Client
                 .findByCollateralId(clientCollateralManagement);
         ClientCollateralManagementData data = ClientCollateralManagementData.instance(clientCollateralManagement.getCollaterals().getName(),
                 clientCollateralManagement.getQuantity(), total, totalCollateral, clientCollateralManagement.getClient().getId(),
-                loanTransactionDataList, clientCollateralManagement.getId());
+                loanTransactionDataList, clientCollateralManagement.getId(), clientCollateralManagement.getCollaterals().getPctToBase(), basePrice);
         final GlobalConfigurationPropertyData clientCollateralAdditionalDataConfig = this.configurationReadPlatformService
                 .retrieveGlobalConfiguration("Enable-Client-Collateral-Addition_Details");
         final Boolean isClientCollateralAdditionalDataConfigEnable = clientCollateralAdditionalDataConfig.isEnabled();
