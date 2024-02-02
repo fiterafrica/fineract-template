@@ -156,7 +156,7 @@ public class ClientOtherInfoWritePlatformServiceImpl implements ClientOtherInfoW
                     if (yearArrivedInHostCountryId != null) {
 
                         yearArrivedInHostCountryCodeValue = this.codeValueRepository.findOneByCodeNameAndIdWithNotFoundDetection(
-                                ClientApiConstants.yearArrivedInHostCountry, yearArrivedInHostCountryId);
+                                ClientApiConstants.YEAR_ARRIVED_IN_HOST_COUNTRY, yearArrivedInHostCountryId);
                     }
                     clientOtherInfo.setYearArrivedInHostCountry(yearArrivedInHostCountryCodeValue);
                 }
