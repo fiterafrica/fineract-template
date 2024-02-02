@@ -71,12 +71,14 @@ public class ClientCollateralManagementRepositoryWrapper {
             BigDecimal quantity = clientCollateralManagement.getQuantity();
             BigDecimal total = clientCollateralManagement.getTotal();
             BigDecimal totalCollateralValue = clientCollateralManagement.getTotalCollateral(total);
+            BigDecimal pctToBase = clientCollateralManagement.getCollaterals().getPctToBase();
+            BigDecimal basePrice = clientCollateralManagement.getCollaterals().getBasePrice();
             if (prodId != null && clientCollateralManagement.getCollaterals().getCurrency().getCode().equals(currency)) {
                 ClientCollateralManagementAdditionalDetails details = this.clientCollateralManagementAdditionalDetailsRepository
                         .findByCollateralId(clientCollateralManagement);
                 ClientCollateralManagementData data = ClientCollateralManagementData.instance(
                         clientCollateralManagement.getCollaterals().getName(), quantity, total, totalCollateralValue, clientId, null,
-                        clientCollateralManagement.getId());
+                        clientCollateralManagement.getId(), pctToBase, basePrice);
                 if (details != null) {
                     data.setAdditionalDetails(prepareAdditionalData(details));
                 }

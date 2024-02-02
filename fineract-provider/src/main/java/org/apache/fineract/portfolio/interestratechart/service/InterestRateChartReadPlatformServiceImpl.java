@@ -461,12 +461,12 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
                     .append(" iri.condition_type as conditionType, iri.attribute_value as attributeValue, ")
                     .append(" iri.incentive_type as incentiveType, iri.amount as amount, ").append("code.code_value as attributeValueDesc ")
                     .append("from ")
-                    .append("m_interest_rate_chart irc left join m_interest_rate_slab ircd on irc.id=ircd.interest_rate_chart_id ")
-                    .append(" left join m_interest_incentives iri on iri.interest_rate_slab_id = ircd.id ")
-                    .append(" left join m_code_value code on " + sqlGenerator.castChar("code.id") + " = iri.attribute_value ")
-                    .append("left join m_currency curr on ircd.currency_code= curr.code ")
-                    .append("left join m_product_loan_interest_rate_chart dpirc on irc.id=dpirc.interest_rate_chart_id ")
-                    .append("left join m_product_loan sp on sp.id=dpirc.loan_product_id ");
+                    .append("m_interest_rate_chart irc left join m_interest_rate_slab ircd on irc.id COLLATE utf8mb4_general_ci=ircd.interest_rate_chart_id ")
+                    .append(" left join m_interest_incentives iri on iri.interest_rate_slab_id COLLATE utf8mb4_general_ci = ircd.id ")
+                    .append(" left join m_code_value code on " + sqlGenerator.castChar("code.id") + " COLLATE utf8mb4_general_ci  = iri.attribute_value ")
+                    .append("left join m_currency curr on ircd.currency_code COLLATE utf8mb4_general_ci  = curr.code ")
+                    .append("left join m_product_loan_interest_rate_chart dpirc on irc.id COLLATE utf8mb4_general_ci =dpirc.interest_rate_chart_id ")
+                    .append("left join m_product_loan sp on sp.id COLLATE utf8mb4_general_ci =dpirc.loan_product_id ");
 
             this.schemaSql = sqlBuilder.toString();
         }

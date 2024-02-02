@@ -41,8 +41,12 @@ public final class ClientCollateralManagementData {
 
     private boolean additionalDetailsEnabled;
 
+    private BigDecimal pctToBase;
+    private BigDecimal basePrice;
+
     private ClientCollateralManagementData(final String name, final BigDecimal quantity, final BigDecimal total,
-            final BigDecimal totalCollateral, final Long clientId, final List<LoanTransactionData> loanTransactionData, final Long id) {
+            final BigDecimal totalCollateral, final Long clientId, final List<LoanTransactionData> loanTransactionData, final Long id,
+            final BigDecimal pctToBase, final BigDecimal basePrice) {
         this.clientId = clientId;
         this.totalCollateral = totalCollateral;
         this.total = total;
@@ -50,11 +54,14 @@ public final class ClientCollateralManagementData {
         this.quantity = quantity;
         this.loanTransactionData = loanTransactionData;
         this.id = id;
+        this.pctToBase = pctToBase;
+        this.basePrice = basePrice;
     }
 
     public static ClientCollateralManagementData instance(final String name, final BigDecimal quantity, final BigDecimal total,
-            final BigDecimal totalCollateral, final Long clientId, final List<LoanTransactionData> loanTransactionData, final Long id) {
-        return new ClientCollateralManagementData(name, quantity, total, totalCollateral, clientId, loanTransactionData, id);
+            final BigDecimal totalCollateral, final Long clientId, final List<LoanTransactionData> loanTransactionData, final Long id,
+            final BigDecimal pctToBase, final BigDecimal basePrice) {
+        return new ClientCollateralManagementData(name, quantity, total, totalCollateral, clientId, loanTransactionData, id, pctToBase, basePrice);
     }
 
     public String getName() {
