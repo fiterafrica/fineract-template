@@ -29,6 +29,8 @@ public interface ClientCollateralManagementReadPlatformService {
 
     List<ClientCollateralManagementData> getClientCollaterals(Long clientId, Long prodId);
 
+    List<ClientCollateralManagementData> getClientCollaterals(Long clientId);
+
     List<LoanCollateralTemplateData> getLoanCollateralTemplate(Long clientId);
 
     ClientCollateralManagementAdditionalData getClientCollateralAdditionalTemplate(Long clientId);
