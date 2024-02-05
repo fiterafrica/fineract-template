@@ -87,6 +87,7 @@ public class LoanCollateralAssembler {
                     if (loanCollateralManagement.getQuantity().compareTo(quantity) != 0) {
                         updatedClientQuantity = clientCollateral.getQuantity().add(loanCollateralManagement.getQuantity())
                                 .subtract(quantity);
+                        loanCollateralManagement.setQuantity(quantity);
                         if (BigDecimal.ZERO.compareTo(updatedClientQuantity) > 0) {
                             throw new InvalidAmountOfCollateralQuantity(quantity);
                         }
@@ -96,8 +97,7 @@ public class LoanCollateralAssembler {
 
                     clientCollateral.updateQuantity(updatedClientQuantity);
                     collateralItems
-                            .add(LoanCollateralManagement.fromExisting(clientCollateral, quantity, loanCollateralManagement.getLoanData(),
-                                    loanCollateralManagement.getLoanTransaction(), loanCollateralManagement.getId()));
+                            .add(loanCollateralManagement);
                 }
             }
         }

@@ -292,7 +292,9 @@ public class ClientCollateralManagementWritePlatformServiceImpl implements Clien
                 .getCollateral(collateralId);
         validateForDeletion(clientCollateralManagement, collateralId);
         ClientCollateralManagementAdditionalDetails details = this.clientCollateralManagementAdditionalDetailsRepository.findByCollateralId(clientCollateralManagement);
-        this.clientCollateralManagementAdditionalDetailsRepository.delete(details);;
+        if (details != null) {
+            this.clientCollateralManagementAdditionalDetailsRepository.delete(details);;
+        }
 
         this.clientCollateralManagementRepositoryWrapper.deleteClientCollateralProduct(collateralId);
         return new CommandProcessingResultBuilder().withEntityId(collateralId).build();
