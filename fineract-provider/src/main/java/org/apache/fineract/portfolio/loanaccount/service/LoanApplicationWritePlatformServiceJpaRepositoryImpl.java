@@ -1021,7 +1021,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
 
                 if (!StringUtils.isBlank(loanTypeStr) && loanType.isIndividualAccount()) {
                     final String collateralParamName = "collateral";
-                    if (changes.containsKey(collateralParamName)) {
+                    if (changes.containsKey(collateralParamName) || possiblyModifedLoanCollateralItems.isEmpty()) {
                         existingLoanApplication.updateLoanCollateral(possiblyModifedLoanCollateralItems);
                     }
                 }
