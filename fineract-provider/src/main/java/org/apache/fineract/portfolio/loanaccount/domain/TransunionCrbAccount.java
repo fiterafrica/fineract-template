@@ -25,12 +25,13 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import lombok.Data;
-import org.apache.fineract.infrastructure.core.domain.AbstractAuditableWithUTCDateTimeCustom;
+import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
+import org.apache.fineract.portfolio.loanaccount.data.AccountListData;
 
 @Data
 @Entity
 @Table(name = "m_transunion_crb_account")
-public class TransunionCrbAccount extends AbstractAuditableWithUTCDateTimeCustom {
+public class TransunionCrbAccount extends AbstractPersistableCustom {
 
     private static final long serialVersionUID = 9181640245194392646L;
 
@@ -76,4 +77,28 @@ public class TransunionCrbAccount extends AbstractAuditableWithUTCDateTimeCustom
     @Column(name = "worst_arrear")
     private Integer worstArrear;
 
+    public TransunionCrbAccount() {}
+
+    public TransunionCrbAccount(TransunionCrbHeader headerId, AccountListData ac) {
+        this.headerId = headerId;
+        this.accountNo = ac.getAccountNo();
+        this.accountOpeningDate = ac.getAccountOpeningDate();
+        this.accountOwner = ac.getAccountOwner();
+        this.accountStatus = ac.getAccountStatus();
+        this.accountType = ac.getAccountType();
+        this.arrearAmount = ac.getArrearAmount();
+        this.arrearDays = ac.getArrearDays();
+        this.balanceAmount = ac.getBalanceAmount();
+        this.currency = ac.getCurrency();
+        this.disputed = ac.getDisputed();
+        this.isMyAccount = ac.getMyAccount();
+        this.lastPaymentDate = ac.getLastPaymentDate();
+        this.listingDate = ac.getListingDate();
+        this.principalAmount = ac.getPrincipalAmount();
+        this.repaymentDuration = ac.getRepaymentDuration();
+        this.repaymentTerm = ac.getRepaymentTerm();
+        this.scheduledPaymentAmount = ac.getScheduledPaymentAmount();
+        this.tradeSector = ac.getTradeSector();
+        this.worstArrear = ac.getWorstArrear();
+    }
 }

@@ -1764,7 +1764,8 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
 
         final Boolean loanWithAnotherInstitution = command.booleanObjectValueOfParameterNamed(LoanApiConstants.loanWithAnotherInstitution);
         if (loanWithAnotherInstitution) {
-            if (command.isChangeInBigDecimalParameterNamed(LoanApiConstants.loanWithAnotherInstitutionAmount, this.loanWithAnotherInstitutionAmount)) {
+            if (command.isChangeInBigDecimalParameterNamed(LoanApiConstants.loanWithAnotherInstitutionAmount,
+                    this.loanWithAnotherInstitutionAmount)) {
                 final BigDecimal newValue = command.bigDecimalValueOfParameterNamed(LoanApiConstants.loanWithAnotherInstitutionAmount);
                 this.loanWithAnotherInstitutionAmount = newValue;
                 actualChanges.put(LoanApiConstants.loanWithAnotherInstitutionAmount, newValue);
@@ -1773,7 +1774,6 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
             this.loanWithAnotherInstitutionAmount = null;
             actualChanges.put(LoanApiConstants.loanWithAnotherInstitutionAmount, null);
         }
-
 
         return actualChanges;
     }
@@ -2346,7 +2346,8 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
 
     public Map<String, Object> loanApplicationApproval(final AppUser currentUser, final JsonCommand command,
             final JsonArray disbursementDataArray, final LoanLifecycleStateMachine loanLifecycleStateMachine,
-            Boolean isBnplEquityContributionLoan, BigDecimal amountToDisburseForBnplEquityContributionLoan, Boolean isExtendLoanLifeCycleConfig) {
+            Boolean isBnplEquityContributionLoan, BigDecimal amountToDisburseForBnplEquityContributionLoan,
+            Boolean isExtendLoanLifeCycleConfig) {
 
         validateAccountStatus(LoanEvent.LOAN_APPROVED);
 
@@ -2508,8 +2509,8 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
     private void compareApprovedToICReviewAmount(BigDecimal approvedLoanAmount) {
         if (approvedLoanAmount.compareTo(this.approvedICReview) > 0) {
             final String errorMessage = "Loan approved amount can't be greater than the last IC recommended amount.";
-            throw new InvalidLoanStateTransitionException("approval", "amount.can't.be.greater.than.ic.review.recommended.amount", errorMessage,
-                    this.approvedICReview, approvedLoanAmount);
+            throw new InvalidLoanStateTransitionException("approval", "amount.can't.be.greater.than.ic.review.recommended.amount",
+                    errorMessage, this.approvedICReview, approvedLoanAmount);
         }
     }
 

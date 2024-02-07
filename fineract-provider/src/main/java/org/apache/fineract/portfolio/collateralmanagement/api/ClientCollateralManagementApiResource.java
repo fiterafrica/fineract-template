@@ -113,6 +113,26 @@ public class ClientCollateralManagementApiResource {
     }
 
     @GET
+    @Path("list")
+    @Produces({ MediaType.APPLICATION_JSON })
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Operation(summary = "Get Clients Collateral List", description = "Get Collateral Lists of a Client")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ClientCollateralManagementApiResourceSwagger.GetClientCollateralManagementsResponse.class)))) })
+    public String getClientCollateralList(@PathParam("clientId") @Parameter(description = "clientId") final Long clientId,
+                                      @Context final UriInfo uriInfo) {
+
+        this.context.authenticatedUser()
+                .validateHasReadPermission(CollateralManagementJsonInputParams.CLIENT_COLLATERAL_PRODUCT_READ_PERMISSION.getValue());
+
+        List<ClientCollateralManagementData> collateralProductList = null;
+
+        collateralProductList = this.clientCollateralManagementReadPlatformService.getClientCollaterals(clientId);
+
+        return this.apiJsonSerializerDataService.serialize(collateralProductList);
+    }
+
+    @GET
     @Path("{clientCollateralId}")
     @Produces({ MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_JSON })

@@ -167,14 +167,14 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         }
 
         // Check CRB Verification has been executed
-        boolean crbVerification =  true;
+        boolean crbVerification = true;
         ClientOtherInfoData clientOtherInfoData = this.clientOtherInfoReadPlatformService.retrieveByClientId(loan.getClientId());
-        if (clientOtherInfoData != null && clientOtherInfoData.getStrata() != null &&
-                (clientOtherInfoData.getStrata().getName().equalsIgnoreCase("Refugees") ||
-                        clientOtherInfoData.getStrata().getName().equalsIgnoreCase("Refugee")) ) {
+        if (clientOtherInfoData != null && clientOtherInfoData.getStrata() != null
+                && (clientOtherInfoData.getStrata().getName().equalsIgnoreCase("Refugees")
+                        || clientOtherInfoData.getStrata().getName().equalsIgnoreCase("Refugee"))) {
             crbVerification = false;
         }
-        if(crbVerification) {
+        if (crbVerification) {
             if (loan.getCurrencyCode().equalsIgnoreCase("KES")) {
                 List<MetropolCrbIdentityReport> metropolCrbIdentityReportList = metropolCrbIdentityVerificationRepository
                         .findByLoanId(loan.getId());
@@ -194,7 +194,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         final BigDecimal recommendedAmount = command
                 .bigDecimalValueOfParameterNamed(LoanApiConstants.dueDiligenceRecommendedAmountParameterName);
         final Integer termFrequency = command.integerValueOfParameterNamed(LoanApiConstants.recommendedLoanTermFrequencyParameterName);
-        final Integer termPeriodFrequencyEnum = command.integerValueOfParameterNamed(LoanApiConstants.recommendedLoanTermFrequencyTypeParameterName);
+        final Integer termPeriodFrequencyEnum = command
+                .integerValueOfParameterNamed(LoanApiConstants.recommendedLoanTermFrequencyTypeParameterName);
 
         if (!isIdeaClient) {
             loanDecision.setIdeaClient(false);
@@ -211,7 +212,7 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                 throw new LoanDueDiligenceException("error.msg.loan.required.financialRatio.data", "Financial Ratio data not available.");
             }
 
-            //Get calculated amount from CashFlow Projection Report
+            // Get calculated amount from CashFlow Projection Report
             BigDecimal calculatedAmount = this.loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
             if (recommendedAmount.compareTo(calculatedAmount) > 0) {
                 throw new PlatformDataIntegrityException("error.msg.loan.recommended.amount.cannot.be.greater.than.calculated.amount",
@@ -221,7 +222,6 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         } else {
             loanDecision.setIdeaClient(true);
         }
-
 
         validateDueDiligenceBusinessRule(command, loan, loanDecision);
 
@@ -233,9 +233,10 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         this.loanRepositoryWrapper.saveAndFlush(loanObj);
 
         if (StringUtils.isNotBlank(loanDecisionObj.getDueDiligenceNote())) {
-            final Note note = Note.loanNote(loanObj, "Due Diligence : " + loanDecisionObj.getDueDiligenceNote()
-                + " Recommended Amount : " + recommendedAmount + " " + loan.getCurrencyCode()
-                + " Loan Term : " + termFrequency + " " + PeriodFrequencyType.fromInt(termPeriodFrequencyEnum));
+            final Note note = Note.loanNote(loanObj,
+                    "Due Diligence : " + loanDecisionObj.getDueDiligenceNote() + " Recommended Amount : " + recommendedAmount + " "
+                            + loan.getCurrencyCode() + " Loan Term : " + termFrequency + " "
+                            + PeriodFrequencyType.fromInt(termPeriodFrequencyEnum));
             this.noteRepository.save(note);
         }
 
@@ -399,7 +400,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         if (!loanDecision.getIdeaClient()) {
             final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
             if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
-                throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
+                throw new GeneralPlatformDomainRuleException(
+                        "error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
                         "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
             }
         }
@@ -482,7 +484,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         if (!loanDecision.getIdeaClient()) {
             final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
             if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
-                throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
+                throw new GeneralPlatformDomainRuleException(
+                        "error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
                         "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
             }
         }
@@ -565,7 +568,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         if (!loanDecision.getIdeaClient()) {
             final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
             if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
-                throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
+                throw new GeneralPlatformDomainRuleException(
+                        "error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
                         "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
             }
         }
@@ -648,7 +652,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         if (!loanDecision.getIdeaClient()) {
             final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
             if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
-                throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
+                throw new GeneralPlatformDomainRuleException(
+                        "error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
                         "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
             }
         }
@@ -731,7 +736,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         if (!loanDecision.getIdeaClient()) {
             final BigDecimal maxLoanAmountFromCashFlow = loanDecisionStateUtilService.getMaxLoanAmountFromCashFlow(loan);
             if (recommendedAmount.compareTo(maxLoanAmountFromCashFlow) > 0) {
-                throw new GeneralPlatformDomainRuleException("error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
+                throw new GeneralPlatformDomainRuleException(
+                        "error.msg.loan.ic.review.recommended.amount.can.not.greater.than.auto.computed.amount",
                         "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
             }
         }

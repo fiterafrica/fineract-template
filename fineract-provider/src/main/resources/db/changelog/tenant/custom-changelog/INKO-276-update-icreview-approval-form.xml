@@ -88,4 +88,73 @@
             </column>
         </addColumn>
     </changeSet>
+
+    <changeSet author="tabrez@fiter.io" id="INKO-276-update-icreview-approval-form-2" context="postgresql">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_one_recommended_amount"/>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_one_term_frequency"/>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_one_term_period_frequency_enum"/>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_two_recommended_amount"/>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_two_term_frequency"/>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_two_term_period_frequency_enum"/>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_three_recommended_amount"/>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_three_term_frequency"/>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_three_term_period_frequency_enum"/>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_four_recommended_amount"/>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_four_term_frequency"/>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_four_term_period_frequency_enum"/>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_five_recommended_amount"/>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_five_term_frequency"/>
+                <columnExists tableName="m_loan_decision" columnName="ic_review_decision_level_five_term_period_frequency_enum"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="m_loan_decision">
+            <column name="ic_review_decision_level_one_recommended_amount" type="BIGINT" >
+                <constraints nullable="true"/>
+            </column>
+            <column name="ic_review_decision_level_one_term_frequency" type="SMALLINT" >
+                <constraints nullable="true"/>
+            </column>
+            <column name="ic_review_decision_level_one_term_period_frequency_enum" type="SMALLINT" >
+                <constraints nullable="true"/>
+            </column>
+            <column name="ic_review_decision_level_two_recommended_amount" type="BIGINT" >
+                <constraints nullable="true"/>
+            </column>
+            <column name="ic_review_decision_level_two_term_frequency" type="SMALLINT" >
+                <constraints nullable="true"/>
+            </column>
+            <column name="ic_review_decision_level_two_term_period_frequency_enum" type="SMALLINT" >
+                <constraints nullable="true"/>
+            </column>
+            <column name="ic_review_decision_level_three_recommended_amount" type="BIGINT" >
+                <constraints nullable="true"/>
+            </column>
+            <column name="ic_review_decision_level_three_term_frequency" type="SMALLINT" >
+                <constraints nullable="true"/>
+            </column>
+            <column name="ic_review_decision_level_three_term_period_frequency_enum" type="SMALLINT" >
+                <constraints nullable="true"/>
+            </column>
+            <column name="ic_review_decision_level_four_recommended_amount" type="BIGINT" >
+                <constraints nullable="true"/>
+            </column>
+            <column name="ic_review_decision_level_four_term_frequency" type="SMALLINT" >
+                <constraints nullable="true"/>
+            </column>
+            <column name="ic_review_decision_level_four_term_period_frequency_enum" type="SMALLINT" >
+                <constraints nullable="true"/>
+            </column>
+            <column name="ic_review_decision_level_five_recommended_amount" type="BIGINT" >
+                <constraints nullable="true"/>
+            </column>
+            <column name="ic_review_decision_level_five_term_frequency" type="SMALLINT" >
+                <constraints nullable="true"/>
+            </column>
+            <column name="ic_review_decision_level_five_term_period_frequency_enum" type="SMALLINT" >
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

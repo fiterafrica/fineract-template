@@ -106,8 +106,8 @@ public final class ClientFamilyMemberCommandFromApiJsonDeserializer {
             final String lastName = this.fromApiJsonHelper.extractStringNamed("lastName", element);
             baseDataValidator.reset().parameter("lastName").value(lastName).notNull().notBlank().notExceedingLengthOf(100);
         } else {
-            baseDataValidator.reset().parameter("lastName").value(this.fromApiJsonHelper.extractStringNamed("lastName", element))
-                    .notNull().notExceedingLengthOf(100);
+            baseDataValidator.reset().parameter("lastName").value(this.fromApiJsonHelper.extractStringNamed("lastName", element)).notNull()
+                    .notExceedingLengthOf(100);
         }
 
         if (this.fromApiJsonHelper.extractStringNamed("middleName", element) != null) {
@@ -153,8 +153,8 @@ public final class ClientFamilyMemberCommandFromApiJsonDeserializer {
             baseDataValidator.reset().parameter("genderId").value(genderId).notBlank().longGreaterThanZero();
 
         } else {
-            baseDataValidator.reset().parameter("genderId").value(this.fromApiJsonHelper.extractStringNamed("genderId", element))
-                    .notBlank().longGreaterThanZero();
+            baseDataValidator.reset().parameter("genderId").value(this.fromApiJsonHelper.extractStringNamed("genderId", element)).notBlank()
+                    .longGreaterThanZero();
         }
 
         if (this.fromApiJsonHelper.extractLongNamed("age", element) != null) {
@@ -162,8 +162,8 @@ public final class ClientFamilyMemberCommandFromApiJsonDeserializer {
             baseDataValidator.reset().parameter("age").value(age).notBlank().longGreaterThanZero();
 
         } else {
-            baseDataValidator.reset().parameter("age").value(this.fromApiJsonHelper.extractStringNamed("age", element))
-                    .notBlank().longGreaterThanZero();
+            baseDataValidator.reset().parameter("age").value(this.fromApiJsonHelper.extractStringNamed("age", element)).notBlank()
+                    .longGreaterThanZero();
         }
 
         if (this.fromApiJsonHelper.extractLongNamed("professionId", element) != null) {
@@ -225,8 +225,8 @@ public final class ClientFamilyMemberCommandFromApiJsonDeserializer {
             final String lastName = this.fromApiJsonHelper.extractStringNamed("lastName", element);
             baseDataValidator.reset().parameter("lastName").value(lastName).notNull().notBlank().notExceedingLengthOf(100);
         } else {
-            baseDataValidator.reset().parameter("lastName").value(this.fromApiJsonHelper.extractStringNamed("lastName", element))
-                    .notNull().notExceedingLengthOf(100);
+            baseDataValidator.reset().parameter("lastName").value(this.fromApiJsonHelper.extractStringNamed("lastName", element)).notNull()
+                    .notExceedingLengthOf(100);
         }
 
         if (this.fromApiJsonHelper.extractStringNamed("middleName", element) != null) {
@@ -244,8 +244,8 @@ public final class ClientFamilyMemberCommandFromApiJsonDeserializer {
             baseDataValidator.reset().parameter("relationshipId").value(relationShipId).notBlank().longGreaterThanZero();
 
         } else {
-            baseDataValidator.reset().parameter("relationshipId").value(this.fromApiJsonHelper.extractStringNamed("relationshipId", element))
-                    .notBlank().longGreaterThanZero();
+            baseDataValidator.reset().parameter("relationshipId")
+                    .value(this.fromApiJsonHelper.extractStringNamed("relationshipId", element)).notBlank().longGreaterThanZero();
         }
 
         if (this.fromApiJsonHelper.extractLongNamed("maritalStatusId", element) != null) {
@@ -259,8 +259,8 @@ public final class ClientFamilyMemberCommandFromApiJsonDeserializer {
             baseDataValidator.reset().parameter("genderId").value(genderId).longGreaterThanZero();
 
         } else {
-            baseDataValidator.reset().parameter("genderId").value(this.fromApiJsonHelper.extractStringNamed("genderId", element))
-                    .notBlank().longGreaterThanZero();
+            baseDataValidator.reset().parameter("genderId").value(this.fromApiJsonHelper.extractStringNamed("genderId", element)).notBlank()
+                    .longGreaterThanZero();
         }
 
         if (this.fromApiJsonHelper.extractLongNamed("professionId", element) != null) {
@@ -285,8 +285,8 @@ public final class ClientFamilyMemberCommandFromApiJsonDeserializer {
             baseDataValidator.reset().parameter("age").value(age).notBlank().longGreaterThanZero();
 
         } else {
-            baseDataValidator.reset().parameter("age").value(this.fromApiJsonHelper.extractStringNamed("age", element))
-                    .notBlank().longGreaterThanZero();
+            baseDataValidator.reset().parameter("age").value(this.fromApiJsonHelper.extractStringNamed("age", element)).notBlank()
+                    .longGreaterThanZero();
         }
 
         if (this.fromApiJsonHelper.extractStringNamed("mobileNumber", element) != null) {

@@ -61,7 +61,8 @@ public final class ClientCollateralManagementData {
     public static ClientCollateralManagementData instance(final String name, final BigDecimal quantity, final BigDecimal total,
             final BigDecimal totalCollateral, final Long clientId, final List<LoanTransactionData> loanTransactionData, final Long id,
             final BigDecimal pctToBase, final BigDecimal basePrice) {
-        return new ClientCollateralManagementData(name, quantity, total, totalCollateral, clientId, loanTransactionData, id, pctToBase, basePrice);
+        return new ClientCollateralManagementData(name, quantity, total, totalCollateral, clientId, loanTransactionData, id, pctToBase,
+                basePrice);
     }
 
     public String getName() {

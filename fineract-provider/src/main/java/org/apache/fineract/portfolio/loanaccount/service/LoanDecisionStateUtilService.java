@@ -491,8 +491,8 @@ public class LoanDecisionStateUtilService {
         if ((numberOfRepayment < currentStageMatrixMinTerm || numberOfRepayment > currentStageMatrixMaxTerm)) {
             throw new GeneralPlatformDomainRuleException(errorMsg, String.format(
                     "This Loan Account Principal [ %s ] vs Approval Matrix Max Amount [%s] , does not qualify for IC-Review  [%s] with Terms Min [%s] Max [%s] Vs Loan Term [%s]",
-                    dueDiligenceRecommendedAmount, currentStageMatrixMaxAmount, stateMsg, currentStageMatrixMinTerm, currentStageMatrixMaxTerm,
-                    numberOfRepayment));
+                    dueDiligenceRecommendedAmount, currentStageMatrixMaxAmount, stateMsg, currentStageMatrixMinTerm,
+                    currentStageMatrixMaxTerm, numberOfRepayment));
         }
     }
 
@@ -504,8 +504,8 @@ public class LoanDecisionStateUtilService {
                 && (numberOfRepayment < currentStageMatrixMinTerm || numberOfRepayment > currentStageMatrixMaxTerm)) {
             throw new GeneralPlatformDomainRuleException(errorMsg, String.format(
                     "This Loan Account Principal [ %s ] vs Approval Matrix Min [%s] and Max Amount [%s] , does not qualify for IC-Review  [%s] with Terms Min [%s] Max [%s] Vs Loan Term [%s]",
-                    dueDiligenceRecommendedAmount, minAmount, currentStageMatrixMaxAmount, stateMsg, currentStageMatrixMinTerm, currentStageMatrixMaxTerm,
-                    numberOfRepayment));
+                    dueDiligenceRecommendedAmount, minAmount, currentStageMatrixMaxAmount, stateMsg, currentStageMatrixMinTerm,
+                    currentStageMatrixMaxTerm, numberOfRepayment));
         }
     }
 
@@ -513,12 +513,13 @@ public class LoanDecisionStateUtilService {
             BigDecimal currentStageMatrixMaxAmount, Integer numberOfRepayment, Integer currentStageMatrixMinTerm,
             Integer currentStageMatrixMaxTerm, String errorMsg, String stateMsg, BigDecimal previousStageMatrixMaxAmount) {
         BigDecimal minAmount = previousStageMatrixMaxAmount.add(BigDecimal.ONE);
-        if ((dueDiligenceRecommendedAmount.compareTo(minAmount) < 0 || dueDiligenceRecommendedAmount.compareTo(currentStageMatrixMaxAmount) <= 0)
+        if ((dueDiligenceRecommendedAmount.compareTo(minAmount) < 0
+                || dueDiligenceRecommendedAmount.compareTo(currentStageMatrixMaxAmount) <= 0)
                 && (numberOfRepayment < currentStageMatrixMinTerm || numberOfRepayment > currentStageMatrixMaxTerm)) {
             throw new GeneralPlatformDomainRuleException(errorMsg, String.format(
                     "This Loan Account Principal [ %s ] vs Approval Matrix Min [%s] and Max Amount [%s] , does not qualify for IC-Review  [%s] with Terms Min [%s] Max [%s] Vs Loan Term [%s]",
-                    dueDiligenceRecommendedAmount, minAmount, currentStageMatrixMaxAmount, stateMsg, currentStageMatrixMinTerm, currentStageMatrixMaxTerm,
-                    numberOfRepayment));
+                    dueDiligenceRecommendedAmount, minAmount, currentStageMatrixMaxAmount, stateMsg, currentStageMatrixMinTerm,
+                    currentStageMatrixMaxTerm, numberOfRepayment));
         }
     }
 
@@ -526,19 +527,24 @@ public class LoanDecisionStateUtilService {
             Boolean isLoanUnsecure, LoanDecisionState currentStage, BigDecimal dueDiligenceRecommendedAmount) {
         switch (currentStage) {
             case IC_REVIEW_LEVEL_ONE:
-                validateLoanAccountToComplyToApprovalMatrixLevelOne(loan, approvalMatrix, isLoanFirstCycle, isLoanUnsecure, dueDiligenceRecommendedAmount);
+                validateLoanAccountToComplyToApprovalMatrixLevelOne(loan, approvalMatrix, isLoanFirstCycle, isLoanUnsecure,
+                        dueDiligenceRecommendedAmount);
             break;
             case IC_REVIEW_LEVEL_TWO:
-                validateLoanAccountToComplyToApprovalMatrixLevelTwo(loan, approvalMatrix, isLoanFirstCycle, isLoanUnsecure, dueDiligenceRecommendedAmount);
+                validateLoanAccountToComplyToApprovalMatrixLevelTwo(loan, approvalMatrix, isLoanFirstCycle, isLoanUnsecure,
+                        dueDiligenceRecommendedAmount);
             break;
             case IC_REVIEW_LEVEL_THREE:
-                validateLoanAccountToComplyToApprovalMatrixLevelThree(loan, approvalMatrix, isLoanFirstCycle, isLoanUnsecure, dueDiligenceRecommendedAmount);
+                validateLoanAccountToComplyToApprovalMatrixLevelThree(loan, approvalMatrix, isLoanFirstCycle, isLoanUnsecure,
+                        dueDiligenceRecommendedAmount);
             break;
             case IC_REVIEW_LEVEL_FOUR:
-                validateLoanAccountToComplyToApprovalMatrixLevelFour(loan, approvalMatrix, isLoanFirstCycle, isLoanUnsecure, dueDiligenceRecommendedAmount);
+                validateLoanAccountToComplyToApprovalMatrixLevelFour(loan, approvalMatrix, isLoanFirstCycle, isLoanUnsecure,
+                        dueDiligenceRecommendedAmount);
             break;
             case IC_REVIEW_LEVEL_FIVE:
-                validateLoanAccountToComplyToApprovalMatrixLevelFive(loan, approvalMatrix, isLoanFirstCycle, isLoanUnsecure, dueDiligenceRecommendedAmount);
+                validateLoanAccountToComplyToApprovalMatrixLevelFive(loan, approvalMatrix, isLoanFirstCycle, isLoanUnsecure,
+                        dueDiligenceRecommendedAmount);
             break;
             default:
                 throw new GeneralPlatformDomainRuleException("error.msg.invalid.loan.decision.stage",
@@ -1007,8 +1013,8 @@ public class LoanDecisionStateUtilService {
         }
     }
 
-    private void generateTheNextIcReviewStageFive(BigDecimal dueDiligenceRecommendedAmount, BigDecimal nextStageMatrixMaxAmount, Integer numberOfRepayment,
-            Integer nextStageMatrixMinTerm, Integer nextStageMatrixMaxTerm, LoanDecision loanDecision,
+    private void generateTheNextIcReviewStageFive(BigDecimal dueDiligenceRecommendedAmount, BigDecimal nextStageMatrixMaxAmount,
+            Integer numberOfRepayment, Integer nextStageMatrixMinTerm, Integer nextStageMatrixMaxTerm, LoanDecision loanDecision,
             LoanDecisionState nextStageIcReview) {
 
         if ((dueDiligenceRecommendedAmount.compareTo(nextStageMatrixMaxAmount) > 0)
@@ -1019,12 +1025,13 @@ public class LoanDecisionStateUtilService {
         }
     }
 
-    private void generateTheNextIcReviewStage(BigDecimal dueDiligenceRecommendedAmount, BigDecimal nextStageMatrixMaxAmount, Integer numberOfRepayment,
-            Integer nextStageMatrixMinTerm, Integer nextStageMatrixMaxTerm, LoanDecision loanDecision, LoanDecisionState nextStageIcReview,
-            BigDecimal currentStageMaximumLoanAmount) {
+    private void generateTheNextIcReviewStage(BigDecimal dueDiligenceRecommendedAmount, BigDecimal nextStageMatrixMaxAmount,
+            Integer numberOfRepayment, Integer nextStageMatrixMinTerm, Integer nextStageMatrixMaxTerm, LoanDecision loanDecision,
+            LoanDecisionState nextStageIcReview, BigDecimal currentStageMaximumLoanAmount) {
 
         if ((dueDiligenceRecommendedAmount.compareTo(currentStageMaximumLoanAmount.add(BigDecimal.ONE)) >= 0
-                && (dueDiligenceRecommendedAmount.compareTo(nextStageMatrixMaxAmount) <= 0 || dueDiligenceRecommendedAmount.compareTo(nextStageMatrixMaxAmount) > 0))
+                && (dueDiligenceRecommendedAmount.compareTo(nextStageMatrixMaxAmount) <= 0
+                        || dueDiligenceRecommendedAmount.compareTo(nextStageMatrixMaxAmount) > 0))
                 && (numberOfRepayment > nextStageMatrixMinTerm && numberOfRepayment <= nextStageMatrixMaxTerm)) {
             loanDecision.setNextLoanIcReviewDecisionState(nextStageIcReview.getValue());
         } else {
@@ -1036,16 +1043,20 @@ public class LoanDecisionStateUtilService {
             Boolean isLoanFirstCycle, Boolean isLoanUnsecure, LoanDecisionState currentStage, BigDecimal dueDiligenceRecommendedAmount) {
         switch (currentStage) {
             case IC_REVIEW_LEVEL_ONE:
-                determineTheNextDecisionStateAfterLevelOne(loan, loanDecision, approvalMatrix, isLoanFirstCycle, isLoanUnsecure, dueDiligenceRecommendedAmount);
+                determineTheNextDecisionStateAfterLevelOne(loan, loanDecision, approvalMatrix, isLoanFirstCycle, isLoanUnsecure,
+                        dueDiligenceRecommendedAmount);
             break;
             case IC_REVIEW_LEVEL_TWO:
-                determineTheNextDecisionStateAfterLevelTwo(loan, loanDecision, approvalMatrix, isLoanFirstCycle, isLoanUnsecure, dueDiligenceRecommendedAmount);
+                determineTheNextDecisionStateAfterLevelTwo(loan, loanDecision, approvalMatrix, isLoanFirstCycle, isLoanUnsecure,
+                        dueDiligenceRecommendedAmount);
             break;
             case IC_REVIEW_LEVEL_THREE:
-                determineTheNextDecisionStateAfterLevelThree(loan, loanDecision, approvalMatrix, isLoanFirstCycle, isLoanUnsecure, dueDiligenceRecommendedAmount);
+                determineTheNextDecisionStateAfterLevelThree(loan, loanDecision, approvalMatrix, isLoanFirstCycle, isLoanUnsecure,
+                        dueDiligenceRecommendedAmount);
             break;
             case IC_REVIEW_LEVEL_FOUR:
-                determineTheNextDecisionStateAfterLevelFour(loan, loanDecision, approvalMatrix, isLoanFirstCycle, isLoanUnsecure, dueDiligenceRecommendedAmount);
+                determineTheNextDecisionStateAfterLevelFour(loan, loanDecision, approvalMatrix, isLoanFirstCycle, isLoanUnsecure,
+                        dueDiligenceRecommendedAmount);
             break;
             default:
                 throw new GeneralPlatformDomainRuleException("error.msg.invalid.loan.decision.stage",

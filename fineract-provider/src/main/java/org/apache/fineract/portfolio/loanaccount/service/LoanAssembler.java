@@ -368,9 +368,11 @@ public class LoanAssembler {
         loanApplication.setEquityContributionLoanPercentage(equityContributionLoanPercentage);
         loanApplication.setKivaId(kivaId);
         loanApplication.setDescription(description);
-        final Boolean loanWithAnotherInstitution = this.fromApiJsonHelper.extractBooleanNamed(LoanApiConstants.loanWithAnotherInstitution, element);
+        final Boolean loanWithAnotherInstitution = this.fromApiJsonHelper.extractBooleanNamed(LoanApiConstants.loanWithAnotherInstitution,
+                element);
         if (loanWithAnotherInstitution) {
-            final BigDecimal loanWithAnotherInstitutionAmount = this.fromApiJsonHelper.extractBigDecimalWithLocaleNamed(LoanApiConstants.loanWithAnotherInstitutionAmount, element);
+            final BigDecimal loanWithAnotherInstitutionAmount = this.fromApiJsonHelper
+                    .extractBigDecimalWithLocaleNamed(LoanApiConstants.loanWithAnotherInstitutionAmount, element);
             loanApplication.setLoanWithAnotherInstitutionAmount(loanWithAnotherInstitutionAmount);
         }
         return loanApplication;

@@ -75,6 +75,24 @@ public class ClientCollateralManagementReadPlatformServiceImpl implements Client
     }
 
     @Override
+    public List<ClientCollateralManagementData> getClientCollaterals(final Long clientId) {
+        final Collection<ClientCollateralManagement> clientCollateralManagements = this.clientCollateralManagementRepositoryWrapper
+                .getCollateralsPerClient(clientId);
+        final List<ClientCollateralManagementData> clientCollateralManagementDataList = new ArrayList<>();
+
+        for (ClientCollateralManagement clientCollateralManagement : clientCollateralManagements) {
+            BigDecimal total = clientCollateralManagement.getTotal();
+            BigDecimal totalCollateral = clientCollateralManagement.getTotalCollateral(total);
+            clientCollateralManagementDataList
+                    .add(ClientCollateralManagementData.instance(clientCollateralManagement.getCollaterals().getName(), clientCollateralManagement.getQuantity(),
+                            total, totalCollateral, clientId, null, clientCollateralManagement.getId(),
+                            clientCollateralManagement.getCollaterals().getPctToBase(), clientCollateralManagement.getCollaterals().getBasePrice()));
+        }
+
+        return clientCollateralManagementDataList;
+    }
+
+    @Override
     public List<LoanCollateralTemplateData> getLoanCollateralTemplate(Long clientId) {
         this.context.authenticatedUser();
         Collection<ClientCollateralManagement> clientCollateralManagements = this.clientCollateralManagementRepositoryWrapper
@@ -117,7 +135,8 @@ public class ClientCollateralManagementReadPlatformServiceImpl implements Client
                 .findByCollateralId(clientCollateralManagement);
         ClientCollateralManagementData data = ClientCollateralManagementData.instance(clientCollateralManagement.getCollaterals().getName(),
                 clientCollateralManagement.getQuantity(), total, totalCollateral, clientCollateralManagement.getClient().getId(),
-                loanTransactionDataList, clientCollateralManagement.getId(), clientCollateralManagement.getCollaterals().getPctToBase(), basePrice);
+                loanTransactionDataList, clientCollateralManagement.getId(), clientCollateralManagement.getCollaterals().getPctToBase(),
+                basePrice);
         final GlobalConfigurationPropertyData clientCollateralAdditionalDataConfig = this.configurationReadPlatformService
                 .retrieveGlobalConfiguration("Enable-Client-Collateral-Addition_Details");
         final Boolean isClientCollateralAdditionalDataConfigEnable = clientCollateralAdditionalDataConfig.isEnabled();

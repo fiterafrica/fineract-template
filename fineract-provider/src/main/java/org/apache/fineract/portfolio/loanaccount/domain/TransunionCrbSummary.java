@@ -24,12 +24,13 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import lombok.Data;
-import org.apache.fineract.infrastructure.core.domain.AbstractAuditableWithUTCDateTimeCustom;
+import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
+import org.apache.fineract.portfolio.loanaccount.data.SummaryData;
 
 @Data
 @Entity
 @Table(name = "m_transunion_crb_summary")
-public class TransunionCrbSummary extends AbstractAuditableWithUTCDateTimeCustom {
+public class TransunionCrbSummary extends AbstractPersistableCustom {
 
     private static final long serialVersionUID = 9181640245194392646L;
     @ManyToOne
@@ -162,4 +163,72 @@ public class TransunionCrbSummary extends AbstractAuditableWithUTCDateTimeCustom
     @Column(name = "insurance_policies_other_sectors")
     private Integer insurancePoliciesOtherSectors;
 
+    public TransunionCrbSummary() {}
+
+    public TransunionCrbSummary(TransunionCrbHeader headerId, SummaryData summary) {
+        this.headerId = headerId;
+        this.bcAllSectors = summary.getBouncedCheques().getAllSectors();
+        this.bcMySector = summary.getBouncedCheques().getMySector();
+        this.bcOtherSectors = summary.getBouncedCheques().getOtherSectors();
+        this.bc180AllSectors = summary.getBouncedCheques180Days().getAllSectors();
+        this.bc180MySector = summary.getBouncedCheques180Days().getMySector();
+        this.bc180OtherSectors = summary.getBouncedCheques180Days().getOtherSectors();
+        this.bc90AllSectors = summary.getBouncedCheques90Days().getAllSectors();
+        this.bc90MySector = summary.getBouncedCheques90Days().getMySector();
+        this.bc90OtherSectors = summary.getBouncedCheques90Days().getOtherSectors();
+        this.bc365AllSectors = summary.getBouncedCheques365Days().getAllSectors();
+        this.bc365MySector = summary.getBouncedCheques365Days().getMySector();
+        this.bc365OtherSectors = summary.getBouncedCheques365Days().getOtherSectors();
+        this.fcAllSectors = summary.getFraudulentCases().getAllSectors();
+        this.fcMySector = summary.getFraudulentCases().getMySector();
+        this.fcOtherSectors = summary.getFraudulentCases().getOtherSectors();
+        this.lastBouncedChequeDate = summary.getLastBouncedChequeDate();
+        this.lastCreditApplicationDate = summary.getLastCreditApplicationDate();
+        this.lastFraudDate = summary.getLastFraudDate();
+        this.lastNPAListingDate = summary.getLastNPAListingDate();
+        this.lastPAListingDate = summary.getLastPAListingDate();
+        this.lastInsurancePolicyDate = summary.getLastInsurancePolicyDate();
+        this.npaAccountsAllSectors = summary.getNpaAccounts().getAllSectors();
+        this.npaAccountsMySector = summary.getNpaAccounts().getMySector();
+        this.npaAccountsOtherSectors = summary.getNpaAccounts().getOtherSectors();
+        this.openAccountsAllSectors = summary.getOpenAccounts().getAllSectors();
+        this.openAccountsMySector = summary.getOpenAccounts().getMySector();
+        this.openAccountsOtherSectors = summary.getOpenAccounts().getOtherSectors();
+        this.paAccountsAllSectors = summary.getPaAccounts().getAllSectors();
+        this.paAccountsMySector = summary.getPaAccounts().getMySector();
+        this.paAccountsOtherSectors = summary.getPaAccounts().getOtherSectors();
+        this.paAccountsWithDhAllSectors = summary.getPaAccountsWithDh().getAllSectors();
+        this.paAccountsWithDhMySector = summary.getPaAccountsWithDh().getMySector();
+        this.paAccountsWithDhOtherSectors = summary.getPaAccountsWithDh().getOtherSectors();
+        this.closedAccountsAllSectors = summary.getClosedAccounts().getAllSectors();
+        this.closedAccountsMySector = summary.getClosedAccounts().getMySector();
+        this.closedAccountsOtherSectors = summary.getClosedAccounts().getOtherSectors();
+        this.caAllSectors = summary.getCreditApplications().getAllSectors();
+        this.caMySector = summary.getCreditApplications().getMySector();
+        this.caOtherSectors = summary.getCreditApplications().getOtherSectors();
+        this.chAllSectors = summary.getCreditHistory().getAllSectors();
+        this.chMySector = summary.getCreditHistory().getMySector();
+        this.chOtherSectors = summary.getCreditHistory().getOtherSectors();
+        this.enq31to60DaysAllSectors = summary.getEnquiries31to60Days().getAllSectors();
+        this.enq31to60DaysMySector = summary.getEnquiries31to60Days().getMySector();
+        this.enq31to60DaysOtherSectors = summary.getEnquiries31to60Days().getOtherSectors();
+        this.enq61to90DaysAllSectors = summary.getEnquiries61to90Days().getAllSectors();
+        this.enq61to90DaysMySector = summary.getEnquiries61to90Days().getMySector();
+        this.enq61to90DaysOtherSectors = summary.getEnquiries61to90Days().getOtherSectors();
+        this.enq91to180DaysAllSectors = summary.getEnquiries91Days().getAllSectors();
+        this.enq91to180DaysMySector = summary.getEnquiries91Days().getMySector();
+        this.enq91to180DaysOtherSectors = summary.getEnquiries91Days().getOtherSectors();
+        this.enqLast30DaysAllSectors = summary.getEnquiriesLast30Days().getAllSectors();
+        this.enqLast30DaysMySector = summary.getEnquiriesLast30Days().getMySector();
+        this.enqLast30DaysOtherSectors = summary.getEnquiriesLast30Days().getOtherSectors();
+        this.paClosedAccountsAllSectors = summary.getPaClosedAccounts().getAllSectors();
+        this.paClosedAccountsMySector = summary.getPaClosedAccounts().getMySector();
+        this.paClosedAccountsOtherSectors = summary.getPaClosedAccounts().getOtherSectors();
+        this.paClosedAccountsWithDhAllSectors = summary.getPaClosedAccountsWithDh().getAllSectors();
+        this.paClosedAccountsWithDhMySector = summary.getPaClosedAccountsWithDh().getMySector();
+        this.paClosedAccountsWithDhOtherSectors = summary.getPaClosedAccountsWithDh().getOtherSectors();
+        this.insurancePoliciesAllSectors = summary.getInsurancePolicies().getAllSectors();
+        this.insurancePoliciesMySector = summary.getInsurancePolicies().getMySector();
+        this.insurancePoliciesOtherSectors = summary.getInsurancePolicies().getOtherSectors();
+    }
 }

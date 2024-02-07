@@ -19,9 +19,14 @@
 package org.apache.fineract.portfolio.loanaccount.data;
 
 import java.time.LocalDate;
+import java.util.List;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 @Data
+@Getter
+@Setter
 public class TransUnionRwandaCrbReportData {
 
     private Integer id;
@@ -54,6 +59,8 @@ public class TransUnionRwandaCrbReportData {
     private String reasonCodeAarc3;
     private String reasonCodeAarc4;
     private Integer clientType;
+    private TransUnionRwandaCrbSummaryReportData transUnionRwandaCrbSummaryReportData;
+    private List<TransUnionRwandaCrbAccountReportData> accountReportDataList;
 
     public TransUnionRwandaCrbReportData(Integer id, String crbName, String pdfId, String productDisplayName, String reportDate,
             String reportType, String requestNo, String requester, LocalDate createdOnDate, String personalCrn, String dateOfBirth,
@@ -92,4 +99,5 @@ public class TransUnionRwandaCrbReportData {
         this.reasonCodeAarc4 = reasonCodeAarc4;
         this.clientType = clientType;
     }
+
 }

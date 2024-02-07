@@ -684,8 +684,8 @@ public class LoanProduct extends AbstractPersistableCustom {
             final boolean allowApprovedDisbursedAmountsOverApplied, final String overAppliedCalculationType,
             final Integer overAppliedNumber, final Integer maxNumberOfLoanExtensionsAllowed, final boolean loanTermIncludesToppedUpLoanTerm,
             final boolean isAccountLevelArrearsToleranceEnable, Boolean isBnplLoanProduct, Boolean requiresEquityContribution,
-            BigDecimal equityContributionLoanPercentage, Boolean maintainInterest, final Boolean isIslamic,
-            final BigDecimal allowableDSCR, final CodeValue productCategory, final CodeValue productType) {
+            BigDecimal equityContributionLoanPercentage, Boolean maintainInterest, final Boolean isIslamic, final BigDecimal allowableDSCR,
+            final CodeValue productCategory, final CodeValue productType) {
         this.fund = fund;
         this.transactionProcessingStrategy = transactionProcessingStrategy;
         this.name = name.trim();

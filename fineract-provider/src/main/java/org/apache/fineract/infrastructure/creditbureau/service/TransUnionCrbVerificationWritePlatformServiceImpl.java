@@ -64,6 +64,8 @@ import org.apache.fineract.portfolio.loanaccount.data.TransUnionRwandaCorporateV
 import org.apache.fineract.portfolio.loanaccount.data.TransUnionRwandaCorporateVerificationResponseData;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
+import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbAccount;
+import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbAccountRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbCorporateProfile;
 import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbCorporateProfileRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbHeader;
@@ -72,12 +74,15 @@ import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbPersonalPro
 import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbPersonalProfileRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbScoreOutput;
 import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbScoreOutputRepository;
+import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbSummary;
+import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbSummaryRepository;
 import org.apache.fineract.portfolio.loanaccount.service.TransUnionCrbConsumerVerificationReadPlatformService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -96,6 +101,8 @@ public class TransUnionCrbVerificationWritePlatformServiceImpl implements TransU
     private final TransunionCrbPersonalProfileRepository transunionCrbPersonalProfileRepository;
     private final TransunionCrbCorporateProfileRepository transunionCrbCorporateProfileRepository;
     private final TransunionCrbScoreOutputRepository transunionCrbScoreOutputRepository;
+    private final TransunionCrbSummaryRepository transunionCrbSummaryRepository;
+    private final TransunionCrbAccountRepository transunionCrbAccountRepository;
     private final LoanRepositoryWrapper loanRepositoryWrapper;
 
     @Autowired
@@ -171,6 +178,8 @@ public class TransUnionCrbVerificationWritePlatformServiceImpl implements TransU
             HeaderData headerData = clientVerificationResponseData.getHeader();
             PersonalProfileData personalProfileData = clientVerificationResponseData.getPersonalProfile();
             ScoreOutputData scoreOutputData = clientVerificationResponseData.getScoreOutput();
+            SummaryData summaryData = clientVerificationResponseData.getSummaryData();
+            List<AccountListData> accountListData = clientVerificationResponseData.getAccountListData();
             if (headerData != null) {
                 transunionCrbHeader = new TransunionCrbHeader(clientObj, loan, headerData);
                 transunionCrbHeaderRepository.saveAndFlush(transunionCrbHeader);
@@ -182,6 +191,17 @@ public class TransUnionCrbVerificationWritePlatformServiceImpl implements TransU
                 if (scoreOutputData != null) {
                     TransunionCrbScoreOutput scoreOutput = new TransunionCrbScoreOutput(transunionCrbHeader, scoreOutputData);
                     transunionCrbScoreOutputRepository.saveAndFlush(scoreOutput);
+                }
+
+                if (summaryData != null) {
+                    TransunionCrbSummary scoreOutput = new TransunionCrbSummary(transunionCrbHeader, summaryData);
+                    transunionCrbSummaryRepository.saveAndFlush(scoreOutput);
+                }
+                if (!CollectionUtils.isEmpty(accountListData)) {
+                    for (AccountListData account : accountListData) {
+                        TransunionCrbAccount transunionCrbAccount = new TransunionCrbAccount(transunionCrbHeader, account);
+                        transunionCrbAccountRepository.saveAndFlush(transunionCrbAccount);
+                    }
                 }
             }
 
@@ -196,6 +216,8 @@ public class TransUnionCrbVerificationWritePlatformServiceImpl implements TransU
             HeaderData headerData = corporateVerificationResponseData.getHeader();
             CorporateProfileData corporateProfileData = corporateVerificationResponseData.getCorporateProfile();
             ScoreOutputData scoreOutputData = corporateVerificationResponseData.getScoreOutput();
+            SummaryData summaryData = corporateVerificationResponseData.getSummaryData();
+            List<AccountListData> accountListData = corporateVerificationResponseData.getAccountListData();
             if (headerData != null) {
                 transunionCrbHeader = new TransunionCrbHeader(clientObj, loan, headerData);
                 transunionCrbHeaderRepository.saveAndFlush(transunionCrbHeader);
@@ -207,6 +229,17 @@ public class TransUnionCrbVerificationWritePlatformServiceImpl implements TransU
                 if (scoreOutputData != null) {
                     TransunionCrbScoreOutput scoreOutput = new TransunionCrbScoreOutput(transunionCrbHeader, scoreOutputData);
                     transunionCrbScoreOutputRepository.saveAndFlush(scoreOutput);
+                }
+
+                if (summaryData != null) {
+                    TransunionCrbSummary scoreOutput = new TransunionCrbSummary(transunionCrbHeader, summaryData);
+                    transunionCrbSummaryRepository.saveAndFlush(scoreOutput);
+                }
+                if (!CollectionUtils.isEmpty(accountListData)) {
+                    for (AccountListData account : accountListData) {
+                        TransunionCrbAccount transunionCrbAccount = new TransunionCrbAccount(transunionCrbHeader, account);
+                        transunionCrbAccountRepository.saveAndFlush(transunionCrbAccount);
+                    }
                 }
             }
 
@@ -385,6 +418,7 @@ public class TransUnionCrbVerificationWritePlatformServiceImpl implements TransU
                     product168Response.setHeader(extractHeader(getProduct168ResponseElement));
                     product168Response.setCorporateProfile(extractCorporateProfile(getProduct168ResponseElement));
                     product168Response.setSummaryData(extractSummaryData(getProduct168ResponseElement));
+                    product168Response.setAccountListData(extractAccountList(getProduct168ResponseElement));
                     LOG.info("Response from TransUnion Rwanda  product168Response:: >> " + product168Response.toString());
                     return product168Response;
                 } else {

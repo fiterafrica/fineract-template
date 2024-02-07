@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.portfolio.loanaccount.data;
 
+import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -29,6 +30,7 @@ public class TransUnionRwandaCorporateVerificationResponseData {
     private Integer responseCode;
     private ScoreOutputData scoreOutput;
     private SummaryData summaryData;
+    private List<AccountListData> accountListData;
 
     @XmlElement(name = "header")
     public HeaderData getHeader() {
@@ -75,9 +77,19 @@ public class TransUnionRwandaCorporateVerificationResponseData {
         this.summaryData = summaryData;
     }
 
+    @XmlElement(name = "accountList")
+    public List<AccountListData> getAccountListData() {
+        return accountListData;
+    }
+
+    public void setAccountListData(List<AccountListData> accountListData) {
+        this.accountListData = accountListData;
+    }
+
     @Override
     public String toString() {
         return "TransUnionRwandaCorporateVerificationResponseData{" + "header=" + header + ", corporateProfile=" + corporateProfile
-                + ", responseCode='" + responseCode + '\'' + ", scoreOutput=" + scoreOutput + ", summaryData=" + summaryData + '}';
+                + ", responseCode=" + responseCode + ", scoreOutput=" + scoreOutput + ", summaryData=" + summaryData + ", accountListData="
+                + accountListData + '}';
     }
 }

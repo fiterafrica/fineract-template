@@ -55,7 +55,9 @@ import org.apache.fineract.infrastructure.security.service.PlatformSecurityConte
 import org.apache.fineract.portfolio.loanaccount.data.CrbKenyaMetropolRequestData;
 import org.apache.fineract.portfolio.loanaccount.data.MetropolAccountInfoData;
 import org.apache.fineract.portfolio.loanaccount.data.MetropolCrbCreditInfoEnchancedData;
+import org.apache.fineract.portfolio.loanaccount.data.TransUnionRwandaCrbAccountReportData;
 import org.apache.fineract.portfolio.loanaccount.data.TransUnionRwandaCrbReportData;
+import org.apache.fineract.portfolio.loanaccount.data.TransUnionRwandaCrbSummaryReportData;
 import org.apache.fineract.portfolio.loanaccount.service.MetropolCrbReadPlatformService;
 import org.apache.fineract.portfolio.loanaccount.service.TransUnionCrbConsumerVerificationReadPlatformService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -312,8 +314,17 @@ public class CreditBureauConfigurationAPI {
     public String fetchCrbReportForTransUnion(@PathParam("loanId") final Integer loanId) {
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
 
-        final TransUnionRwandaCrbReportData crbReportData = this.transUnionCrbClientVerificationReadPlatformService
+        TransUnionRwandaCrbReportData crbReportData = this.transUnionCrbClientVerificationReadPlatformService
                 .fetchCrbReportForTransUnion(loanId);
+        if (crbReportData != null) {
+            TransUnionRwandaCrbSummaryReportData summary = this.transUnionCrbClientVerificationReadPlatformService
+                    .fetchCrbReportSummaryTransUnion(crbReportData.getId());
+            crbReportData.setTransUnionRwandaCrbSummaryReportData(summary);
+
+            List<TransUnionRwandaCrbAccountReportData> accountList = this.transUnionCrbClientVerificationReadPlatformService
+                    .fetchCrbReportAccountTransUnion(crbReportData.getId());
+            crbReportData.setAccountReportDataList(accountList);
+        }
 
         return this.toApiJsonSerializerCreditBureauLoanProduct.serialize(crbReportData);
     }

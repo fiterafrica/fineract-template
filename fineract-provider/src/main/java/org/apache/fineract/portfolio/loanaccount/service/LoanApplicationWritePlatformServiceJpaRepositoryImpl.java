@@ -1539,7 +1539,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
         }
 
         final Map<String, Object> changes = loan.loanApplicationApproval(currentUser, command, disbursementDataArray,
-                defaultLoanLifecycleStateMachine(), isBnplEquityContributionLoan, amountToDisburseForBnplEquityContributionLoan, isExtendLoanLifeCycleConfig);
+                defaultLoanLifecycleStateMachine(), isBnplEquityContributionLoan, amountToDisburseForBnplEquityContributionLoan,
+                isExtendLoanLifeCycleConfig);
 
         entityDatatableChecksWritePlatformService.runTheCheckForProduct(loanId, EntityTables.LOAN.getName(),
                 StatusEnum.APPROVE.getCode().longValue(), EntityTables.LOAN.getForeignKeyColumnNameOnDatatable(), loan.productId());
@@ -2323,7 +2324,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                 if (cashFlow.getCashFlowType().equals("INCOME") && cashFlow.getParticularType().equals("Sales Income")) {
                     LOG.info("INCOME -- cashflow Data :- " + cashFlow.getName() + " " + cashFlow.getMonth0() + "    * *"
                             + cashFlow.getCashFlowType());
-                    if (cashFlowType != null && cashFlowType == 1 && month != null && Objects.equals(month, installment.getInstallmentNumber())) {
+                    if (cashFlowType != null && cashFlowType == 1 && month != null
+                            && Objects.equals(month, installment.getInstallmentNumber())) {
                         incomeProjectionRate = updatedProjectionRate;
                     }
                     if (installment.getInstallmentNumber() == 1) {
@@ -2341,7 +2343,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                 if (cashFlow.getCashFlowType().equals("EXPENSE") && cashFlow.getParticularType().equals("Purchases")) {
                     LOG.info("EXPENSE -- cashflow Data :- " + cashFlow.getName() + " " + cashFlow.getMonth0() + "    * *"
                             + cashFlow.getCashFlowType());
-                    if (cashFlowType != null && cashFlowType == 2 && month != null && Objects.equals(month, installment.getInstallmentNumber())) {
+                    if (cashFlowType != null && cashFlowType == 2 && month != null
+                            && Objects.equals(month, installment.getInstallmentNumber())) {
                         expenseProjectionRate = updatedProjectionRate;
                     }
 
@@ -2390,7 +2393,8 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
 
     private void saveCashFlowProjection(Integer projectionRate, BigDecimal amount, LoanRepaymentScheduleInstallment installment,
             LoanCashFlowData cashFlow) {
-        LoanCashFlowProjection projection = new LoanCashFlowProjection(installment.getInstallmentNumber(), cashFlow.getId(), projectionRate, amount);
+        LoanCashFlowProjection projection = new LoanCashFlowProjection(installment.getInstallmentNumber(), cashFlow.getId(), projectionRate,
+                amount);
         this.loanCashFlowProjectionRepository.saveAndFlush(projection);
     }
 

@@ -284,16 +284,14 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
             if (changes.containsKey(LoanProductConstants.LOAN_PRODUCT_CATEGORY)) {
                 final Long categoryId = (Long) changes.get(LoanProductConstants.LOAN_PRODUCT_CATEGORY);
                 CodeValue val = null;
-                if (categoryId != null)
-                    val = this.codeValueRepository.findOneWithNotFoundDetection(categoryId);
+                if (categoryId != null) val = this.codeValueRepository.findOneWithNotFoundDetection(categoryId);
                 product.setProductCategory(val);
             }
 
             if (changes.containsKey(LoanProductConstants.LOAN_PRODUCT_TYPE)) {
                 final Long typeId = (Long) changes.get(LoanProductConstants.LOAN_PRODUCT_TYPE);
                 CodeValue val = null;
-                if (typeId != null)
-                    val = this.codeValueRepository.findOneWithNotFoundDetection(typeId);
+                if (typeId != null) val = this.codeValueRepository.findOneWithNotFoundDetection(typeId);
                 product.setProductType(val);
             }
 

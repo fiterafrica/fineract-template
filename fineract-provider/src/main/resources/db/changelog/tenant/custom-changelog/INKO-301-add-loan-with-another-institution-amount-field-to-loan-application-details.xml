@@ -32,4 +32,16 @@
             </column>
         </addColumn>
     </changeSet>
+    <changeSet author="tabrez@fiter.io" id="INKO-301-add-loan-with-another-institution-amount-field-to-loan-application-details-2" context="postgresql">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="m_loan" columnName="loan_with_another_institution_amount"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="m_loan">
+            <column name="loan_with_another_institution_amount" type="DECIMAL(19, 6)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

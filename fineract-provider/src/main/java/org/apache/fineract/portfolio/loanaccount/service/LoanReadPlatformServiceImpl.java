@@ -210,7 +210,8 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
             final AccountDetailsReadPlatformService accountDetailsReadPlatformService, final LoanRepositoryWrapper loanRepositoryWrapper,
             final ColumnValidator columnValidator, DatabaseSpecificSQLGenerator sqlGenerator, PaginationHelper paginationHelper,
             SearchReadPlatformService searchReadPlatformService, final LoanDueDiligenceInfoRepository loanDueDiligenceInfoRepository,
-            final ConfigurationReadPlatformService configurationReadPlatformService, final CurrencyReadPlatformService currencyReadPlatformService) {
+            final ConfigurationReadPlatformService configurationReadPlatformService,
+            final CurrencyReadPlatformService currencyReadPlatformService) {
         this.context = context;
         this.loanRepositoryWrapper = loanRepositoryWrapper;
         this.applicationCurrencyRepository = applicationCurrencyRepository;
@@ -608,7 +609,8 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         final Loan loan = this.loanRepositoryWrapper.findOneWithNotFoundDetection(loanId, true);
         final String currencyCode = loan.getCurrencyCode();
         final CurrencyData currency = currencyReadPlatformService.retrieveCurrency(currencyCode);
-        final Collection<EnumOptionData> termFrequencyTypeOptions = this.loanDropdownReadPlatformService.retrieveLoanTermFrequencyTypeOptions();
+        final Collection<EnumOptionData> termFrequencyTypeOptions = this.loanDropdownReadPlatformService
+                .retrieveLoanTermFrequencyTypeOptions();
         final LoanDecisionData loanDecisionData = this.retrieveLoanDecisionByLoanId(loan.getId());
         return new LoanApprovalData(loan.getProposedPrincipal(), DateUtils.getBusinessLocalDate(), loan.getNetDisbursalAmount(),
                 termFrequencyTypeOptions, currency, loanDecisionData);
@@ -756,8 +758,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                     + " topup.topup_amount as topupAmount ,l.department_cv_id as departmentId,departmentV.code_value as departmentCode, "
                     + " ds.loan_decision_state as loanDecisionState , ds.next_loan_ic_review_decision_state as nextLoanIcReviewDecisionState, "
                     + " l.description as description , l.kiva_id as kivaId , l.kiva_uuid as kivaUUId , lp.allowable_dscr as allowableDscr, "
-                    + " l.loan_with_another_institution_amount as loanWithAnotherInstitutionAmount "
-                    + " from m_loan l" //
+                    + " l.loan_with_another_institution_amount as loanWithAnotherInstitutionAmount " + " from m_loan l" //
                     + " join m_product_loan lp on lp.id = l.product_id" //
                     + " left join m_loan_recalculation_details lir on lir.loan_id = l.id " + " join m_currency rc on rc."
                     + sqlGenerator.escape("code") + " = l.currency_code" //
@@ -2658,7 +2659,8 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
 
         final LoanAccountData loanAccountData = retrieveOne(loanId);
 
-        final Collection<EnumOptionData> termFrequencyTypeOptions = this.loanDropdownReadPlatformService.retrieveLoanTermFrequencyTypeOptions();
+        final Collection<EnumOptionData> termFrequencyTypeOptions = this.loanDropdownReadPlatformService
+                .retrieveLoanTermFrequencyTypeOptions();
 
         loanAccountData.setTermFrequencyTypeOptions(termFrequencyTypeOptions);
         return loanAccountData;
@@ -3185,7 +3187,8 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
 
     @Override
     public Integer retrieveProjectionRate(Long loanId) {
-        final String sql = "SELECT rate." + sqlGenerator.escape("DefaultRate") + " as rate FROM " + sqlGenerator.escape("ProjectionRate") + " rate WHERE rate.loan_id = ? ORDER BY rate.id DESC LIMIT 1";
+        final String sql = "SELECT rate." + sqlGenerator.escape("DefaultRate") + " as rate FROM " + sqlGenerator.escape("ProjectionRate")
+                + " rate WHERE rate.loan_id = ? ORDER BY rate.id DESC LIMIT 1";
         return this.jdbcTemplate.queryForObject(sql, new Object[] { loanId }, Integer.class);
     }
 
@@ -3222,19 +3225,14 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         }
 
         public String loanCashFlow() {
-            return "   cf.id as id, "
-                    + " cf.loan_id as loanId,  "
-                    + " cashFlowT.code_value as cashFlowType,"
-                    + " particularT.code_value as particularType,"
-                    + " cf." + sqlGenerator.escape("Name") + " as name,"
-                    + " cf." + sqlGenerator.escape("PreviousMonth2") + " as previousMonth2,"
-                    + " cf." + sqlGenerator.escape("PreviousMonth1") + " as previousMonth1,"
-                    + " cf." + sqlGenerator.escape("Month0") + " as month0 "
-                    + "  FROM loan_cashflow_information cf"
-                    + "  INNER JOIN m_code_value cashFlowT ON cf." + sqlGenerator.escape("CashFlowType_cd_CashFlowType") + "   = cashFlowT.id"
-                    + "  INNER JOIN m_code_value particularT ON cf." + sqlGenerator.escape("ParticularType_cd_ParticularType") + "   = particularT.id"
-                    + "  WHERE loan_id = ? ";
-       }
+            return "   cf.id as id, " + " cf.loan_id as loanId,  " + " cashFlowT.code_value as cashFlowType,"
+                    + " particularT.code_value as particularType," + " cf." + sqlGenerator.escape("Name") + " as name," + " cf."
+                    + sqlGenerator.escape("PreviousMonth2") + " as previousMonth2," + " cf." + sqlGenerator.escape("PreviousMonth1")
+                    + " as previousMonth1," + " cf." + sqlGenerator.escape("Month0") + " as month0 " + "  FROM loan_cashflow_information cf"
+                    + "  INNER JOIN m_code_value cashFlowT ON cf." + sqlGenerator.escape("CashFlowType_cd_CashFlowType")
+                    + "   = cashFlowT.id" + "  INNER JOIN m_code_value particularT ON cf."
+                    + sqlGenerator.escape("ParticularType_cd_ParticularType") + "   = particularT.id" + "  WHERE loan_id = ? ";
+        }
 
         @Override
         public LoanCashFlowData mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
@@ -3445,9 +3443,10 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                     + "        cashFlowT.code_value   as cashFlowType, " + "       particularT.code_value as particularType, "
                     + "       info." + sqlGenerator.escape("Name") + "              as name " + " FROM m_loan_cashflow_projection proj "
                     + "         INNER JOIN loan_cashflow_information info ON proj.cashflow_info_id = info.id "
-                    + "         INNER JOIN m_code_value cashFlowT ON info." + sqlGenerator.escape("CashFlowType_cd_CashFlowType") + " = cashFlowT.id "
-                    + "         INNER JOIN m_code_value particularT ON info." + sqlGenerator.escape("ParticularType_cd_ParticularType") + " = particularT.id "
-                    + " WHERE info.loan_id = ? " + " ORDER BY proj.id ASC ";
+                    + "         INNER JOIN m_code_value cashFlowT ON info." + sqlGenerator.escape("CashFlowType_cd_CashFlowType")
+                    + " = cashFlowT.id " + "         INNER JOIN m_code_value particularT ON info."
+                    + sqlGenerator.escape("ParticularType_cd_ParticularType") + " = particularT.id " + " WHERE info.loan_id = ? "
+                    + " ORDER BY proj.id ASC ";
         }
 
         @Override

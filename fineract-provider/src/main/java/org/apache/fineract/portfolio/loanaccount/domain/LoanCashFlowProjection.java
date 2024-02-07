@@ -43,8 +43,7 @@ public class LoanCashFlowProjection extends AbstractAuditableCustom {
 
     public LoanCashFlowProjection() {}
 
-    public LoanCashFlowProjection(Integer installmentNumber, Long cashflowInfoId, Integer projectionRate,
-            BigDecimal amount) {
+    public LoanCashFlowProjection(Integer installmentNumber, Long cashflowInfoId, Integer projectionRate, BigDecimal amount) {
         this.installmentNumber = installmentNumber;
         this.cashflowInfoId = cashflowInfoId;
         this.projectionRate = projectionRate;

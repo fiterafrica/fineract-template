@@ -1317,4 +1317,280 @@ WHERE l.loan_status_id IN (300, 600, 601, 700)
             <column name="action_name" value="VERIFYLOANCREDITINFOENHANCEDONMETROPOLCRBKENYA_LOAN" />
         </insert>
     </changeSet>
+    <changeSet id="create-m_transunion_crb_summary" author="bosco@fiter.io">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="m_transunion_crb_summary"/>
+            </not>
+        </preConditions>
+        <createTable tableName="m_transunion_crb_summary">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true"  />
+            </column>
+            <column name="header_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="FK_m_transunion_crb_summary_header_id" references="m_transunion_crb_header(id)"/>
+            </column>
+            <column name="bc_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="bc_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="bc_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="bc_180_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="bc_180_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="bc_180_other_sectors" type="int">
+            <constraints nullable="true" />
+            </column>
+            <column name="bc_90_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="bc_90_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="bc_90_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="bc_365_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="bc_365_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="bc_365_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="fc_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="fc_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="fc_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="last_bounced_cheque_date" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="last_credit_application_date" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="last_fraud_date" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="last_npa_listing_date" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="last_pa_listing_date" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="last_insurance_policy_date" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="npa_accounts_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="npa_accounts_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="npa_accounts_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="open_accounts_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="open_accounts_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="open_accounts_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="pa_accounts_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="pa_accounts_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="pa_accounts_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="pa_accounts_with_dh_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="pa_accounts_with_dh_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="pa_accounts_with_dh_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="closed_accounts_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="closed_accounts_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="closed_accounts_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="ca_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="ca_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="ca_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="ch_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="ch_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="ch_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="enq_31_to_60_days_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="enq_31_to_60_days_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="enq_31_to_60_days_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="enq_61_to_90_days_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="enq_61_to_90_days_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="enq_61_to_90_days_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="enq_91_to_180_days_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="enq_91_to_180_days_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="enq_91_to_180_days_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="enq_last_30_days_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="enq_last_30_days_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="enq_last_30_days_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="pa_closed_accounts_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="pa_closed_accounts_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="pa_closed_accounts_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="pa_closed_accounts_with_dh_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="pa_closed_accounts_with_dh_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="pa_closed_accounts_with_dh_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="insurance_policies_all_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="insurance_policies_my_sector" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="insurance_policies_other_sectors" type="int">
+                <constraints nullable="true" />
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="create-m_transunion_crb_account" author="bosco@fiter.io">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="m_transunion_crb_account"/>
+            </not>
+        </preConditions>
+        <createTable tableName="m_transunion_crb_account">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true"  />
+            </column>
+            <column name="header_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="FK_m_transunion_crb_account_header_id" references="m_transunion_crb_header(id)"/>
+            </column>
+            <column name="account_no" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="account_opening_date" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="account_owner" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="account_status" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="account_type" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="arrear_amount" type="DECIMAL(19, 6)">
+                <constraints nullable="true" />
+            </column>
+            <column name="arrear_days" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="balance_amount" type="DECIMAL(19, 6)">
+                <constraints nullable="true" />
+            </column>
+            <column name="currency" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="disputed" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false" />
+            </column>
+            <column name="is_my_account" type="boolean" defaultValueBoolean="false">
+                <constraints nullable="false" />
+            </column>
+            <column name="last_payment_date" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="listing_date" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="principal_amount" type="DECIMAL(19, 6)">
+                <constraints nullable="true" />
+            </column>
+            <column name="repayment_duration" type="int">
+                <constraints nullable="true" />
+            </column>
+            <column name="repayment_term" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="scheduled_payment_amount" type="DECIMAL(19, 6)">
+                <constraints nullable="true" />
+            </column>
+            <column name="trade_sector" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="worst_arrear" type="int">
+            <constraints nullable="true" />
+            </column>
+        </createTable>
+    </changeSet>
 </databaseChangeLog>

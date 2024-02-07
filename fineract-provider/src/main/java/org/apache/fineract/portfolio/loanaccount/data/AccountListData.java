@@ -119,6 +119,9 @@ public class AccountListData {
 
     @XmlElement(name = "disputed")
     public Boolean getDisputed() {
+        if (disputed == null) {
+            disputed = false;
+        }
         return disputed;
     }
 
@@ -128,6 +131,9 @@ public class AccountListData {
 
     @XmlElement(name = "isMyAccount")
     public Boolean getMyAccount() {
+        if (isMyAccount == null) {
+            isMyAccount = false;
+        }
         return isMyAccount;
     }
 

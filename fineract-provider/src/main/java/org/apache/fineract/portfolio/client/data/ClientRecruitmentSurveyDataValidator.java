@@ -87,7 +87,7 @@ public final class ClientRecruitmentSurveyDataValidator {
         baseDataValidator.reset().parameter(ClientApiConstants.startDateParamName).value(startDate).notNull();
 
         final LocalDate endDate = this.fromApiJsonHelper.extractLocalDateNamed(ClientApiConstants.endDateParamName, element);
-        baseDataValidator.reset().parameter(ClientApiConstants.endDateParamName).value(endDate).notNull();
+        baseDataValidator.reset().parameter(ClientApiConstants.endDateParamName).value(endDate).notNull().validateDateAfter(startDate);
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
 
@@ -143,8 +143,9 @@ public final class ClientRecruitmentSurveyDataValidator {
         }
         if (this.fromApiJsonHelper.parameterExists(ClientApiConstants.endDateParamName, element)) {
             atLeastOneParameterPassedForUpdate = true;
+            final LocalDate startDate = this.fromApiJsonHelper.extractLocalDateNamed(ClientApiConstants.startDateParamName, element);
             final LocalDate endDate = this.fromApiJsonHelper.extractLocalDateNamed(ClientApiConstants.endDateParamName, element);
-            baseDataValidator.reset().parameter(ClientApiConstants.endDateParamName).value(endDate).notNull();
+            baseDataValidator.reset().parameter(ClientApiConstants.endDateParamName).value(endDate).notNull().validateDateAfter(startDate);
         }
         if (!atLeastOneParameterPassedForUpdate) {
             final Object forceError = null;

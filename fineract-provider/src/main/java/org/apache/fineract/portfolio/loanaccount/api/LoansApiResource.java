@@ -1238,7 +1238,8 @@ public class LoansApiResource {
     @Path("/generateCashFlow/{loanId}")
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
-    public String generateCashFlow(@PathParam("loanId") @Parameter(description = "loanId") final Long loanId, final String apiRequestBodyAsJson) {
+    public String generateCashFlow(@PathParam("loanId") @Parameter(description = "loanId") final Long loanId,
+            final String apiRequestBodyAsJson) {
 
         final CommandWrapperBuilder builder = new CommandWrapperBuilder().withJson(apiRequestBodyAsJson);
         final CommandWrapper commandRequest = builder.generateCashFlow(loanId).build();
@@ -1269,8 +1270,6 @@ public class LoansApiResource {
     @Produces({ MediaType.APPLICATION_JSON })
     public String retrieveFinancialRatio(@PathParam("loanId") @Parameter(description = "loanId") final Long loanId,
             @Context final UriInfo uriInfo) {
-
-
 
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
         LoanFinancialRatioData balanceSheetData = this.loanReadPlatformService.retrieveLoanFinancialRatioData(loanId);

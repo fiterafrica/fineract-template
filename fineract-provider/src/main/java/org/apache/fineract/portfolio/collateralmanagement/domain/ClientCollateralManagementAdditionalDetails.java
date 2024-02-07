@@ -163,7 +163,7 @@ public class ClientCollateralManagementAdditionalDetails extends AbstractPersist
         }
         if (command.isChangeInLongParameterNamed(ClientApiConstants.provinceIdParamName, this.provinceId())) {
             final Long newValue = command.longValueOfParameterNamed(ClientApiConstants.provinceIdParamName);
-            changes.put(ClientApiConstants.programIdParamName, newValue);
+            changes.put(ClientApiConstants.provinceIdParamName, newValue);
         }
         if (command.isChangeInLongParameterNamed(ClientApiConstants.districtIdParamName, this.districtId())) {
             final Long newValue = command.longValueOfParameterNamed(ClientApiConstants.districtIdParamName);

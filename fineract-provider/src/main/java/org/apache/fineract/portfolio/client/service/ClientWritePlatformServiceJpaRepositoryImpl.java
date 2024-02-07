@@ -434,7 +434,7 @@ public class ClientWritePlatformServiceJpaRepositoryImpl implements ClientWriteP
             titleCodeValue = this.codeValueRepository.findOneByCodeNameAndIdWithNotFoundDetection(ClientApiConstants.TITLE, titleId);
         }
 
-        final ClientAdditionalInfo clientAdditionalInfo = ClientAdditionalInfo.fromJson(newClient, maritalStatusCodeValue, titleCodeValue,
+        final ClientAdditionalInfo clientAdditionalInfo = ClientAdditionalInfo.fromJson(newClient, titleCodeValue, maritalStatusCodeValue,
                 command);
 
         this.clientAdditionalInfoRepository.save(clientAdditionalInfo);
