@@ -212,7 +212,7 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
                     .append("from ")
                     .append("m_interest_rate_chart irc left join m_interest_rate_slab ircd on irc.id=ircd.interest_rate_chart_id ")
                     .append(" left join m_interest_incentives iri on iri.interest_rate_slab_id = ircd.id ")
-                    .append(" left join m_code_value code on " + sqlGenerator.castChar("code.id") + " = iri.attribute_value ")
+                    .append(" left join m_code_value code on code.id = " + sqlGenerator.castChar("iri.attribute_value") )
                     .append("left join m_currency curr on ircd.currency_code= curr.code ")
                     .append("left join m_deposit_product_interest_rate_chart dpirc on irc.id=dpirc.interest_rate_chart_id ")
                     .append("left join m_savings_product sp on sp.id=dpirc.deposit_product_id ");
@@ -308,7 +308,7 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
                     .append(" iri.incentive_type as incentiveType, iri.amount as amount, ").append("code.code_value as attributeValueDesc ")
                     .append("from ").append("m_interest_rate_slab ircd ")
                     .append(" left join m_interest_incentives iri on iri.interest_rate_slab_id = ircd.id ")
-                    .append(" left join m_code_value code on " + sqlGenerator.castChar("code.id") + " = iri.attribute_value ")
+                    .append(" left join m_code_value code on code.id = " + sqlGenerator.castChar("iri.attribute_value") )
                     .append("left join m_currency curr on ircd.currency_code= curr.code ");
             this.schemaSql = sqlBuilder.toString();
         }
@@ -461,7 +461,7 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
                     .append("from ")
                     .append("m_interest_rate_chart irc left join m_interest_rate_slab ircd on irc.id=ircd.interest_rate_chart_id ")
                     .append(" left join m_interest_incentives iri on iri.interest_rate_slab_id = ircd.id ")
-                    .append(" left join m_code_value code on " + sqlGenerator.castChar("code.id") + " = iri.attribute_value ")
+                    .append(" left join m_code_value code on code.id = " + sqlGenerator.castChar("iri.attribute_value") )
                     .append("left join m_currency curr on ircd.currency_code= curr.code ")
                     .append("left join m_product_loan_interest_rate_chart dpirc on irc.id=dpirc.interest_rate_chart_id ")
                     .append("left join m_product_loan sp on sp.id=dpirc.loan_product_id ");

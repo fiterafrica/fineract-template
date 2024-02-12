@@ -159,6 +159,17 @@ public class DatabaseSpecificSQLGenerator {
         }
     }
 
+    public String castNumber(String sql) {
+        if (databaseTypeResolver.isMySQL()) {
+            return format("CAST(%s AS UNSIGNED)", sql);
+        } else if (databaseTypeResolver.isPostgreSQL()) {
+            return format("%s::INTEGER", sql);
+        } else {
+            throw new IllegalStateException(
+                    "Database type is not supported for casting to character " + databaseTypeResolver.databaseType());
+        }
+    }
+
     public String currentSchema() {
         if (databaseTypeResolver.isMySQL()) {
             return "SCHEMA()";
