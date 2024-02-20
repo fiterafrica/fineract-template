@@ -158,7 +158,7 @@ public class ClientOtherInfoReadPlatformServiceImpl implements ClientOtherInfoRe
             final String guarantor = rs.getString("guarantor");
             final Long taxIdentificationNumber = rs.getLong("taxIdentificationNumber");
             final String businessLocation = rs.getString("businessLocation");
-            final Long incomeGeneratingActivity = JdbcSupport.getLong(rs,"incomeGeneratingActivity");
+            final Long incomeGeneratingActivity = JdbcSupport.getLong(rs, "incomeGeneratingActivity");
             final BigDecimal incomeGeneratingActivityMonthlyAmount = rs.getBigDecimal("incomeGeneratingActivityMonthlyAmount");
             final String telephoneNo = rs.getString("telephoneNo");
             final String bankAccountNumber = rs.getString("bankAccountNumber");

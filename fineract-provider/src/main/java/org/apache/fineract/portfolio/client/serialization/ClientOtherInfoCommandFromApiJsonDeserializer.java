@@ -280,7 +280,8 @@ public final class ClientOtherInfoCommandFromApiJsonDeserializer {
                 baseDataValidator.reset().parameter(ClientApiConstants.incomeGeneratingActivityParamName).value(incomeGeneratingActivity)
                         .notNull().integerGreaterThanZero();
             }
-            if (this.fromApiJsonHelper.extractStringNamed(ClientApiConstants.incomeGeneratingActivityMonthlyAmountParamName, element) != null) {
+            if (this.fromApiJsonHelper.extractStringNamed(ClientApiConstants.incomeGeneratingActivityMonthlyAmountParamName,
+                    element) != null) {
                 atLeastOneParameterPassedForUpdate = true;
                 final BigDecimal incomeGeneratingActivityMonthlyAmount = this.fromApiJsonHelper
                         .extractBigDecimalWithLocaleNamed(ClientApiConstants.incomeGeneratingActivityMonthlyAmountParamName, element);
