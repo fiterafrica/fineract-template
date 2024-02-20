@@ -311,26 +311,37 @@ public class OdooServiceImpl implements OdooService {
                 Integer creditPartnerId = getPartner((credit.getClient() != null ? credit.getClient().getId() : null), uid, models);
 
                 // Create journal entry
-                if (debit.getAmount().doubleValue() != 0 || credit.getAmount().doubleValue() != 0) {
-                    id = (Integer) models.execute("execute_kw",
-                            Arrays.asList(
-                                    odooDB, uid, password, "account.move", "create", Arrays.asList(Map.of("line_ids", Arrays.asList(
-                                            Arrays.asList(0, 0,
-                                                    Map.of("account_id", debitAccountId, "amount_currency", currencyId, "credit", 0,
-                                                            "debit", debit.getAmount().doubleValue(), "partner_id",
-                                                            debitPartnerId != null ? debitPartnerId
-                                                                    : false,
-                                                            "name", debit.getEntityId() != null ? debit.getEntityId().toString() : false)),
-                                            Arrays.asList(0, 0,
-                                                    Map.of("account_id", creditAccountId, "amount_currency", currencyId, "credit",
-                                                            credit.getAmount().doubleValue(), "debit", 0, "partner_id",
-                                                            creditPartnerId != null ? creditPartnerId : false, "name",
-                                                            credit.getEntityId() != null ? credit.getEntityId().toString() : false)))))));
+                if (debit.getAmount().doubleValue() != 0 && credit.getAmount().doubleValue() != 0) {
+
+                    Map<String, Object> debitLineItem = new HashMap<>();
+                    debitLineItem.put("account_id", debitAccountId);
+                    debitLineItem.put("amount_currency", currencyId);
+                    debitLineItem.put("credit", 0);
+                    debitLineItem.put("debit", debit.getAmount().doubleValue());
+                    debitLineItem.put("partner_id", debitPartnerId != null ? debitPartnerId : false);
+                    debitLineItem.put("name", debit.getEntityId() != null ? debit.getEntityId().toString() : false);
+
+                    Map<String, Object> creditLineItem = new HashMap<>();
+                    creditLineItem.put("account_id", creditAccountId);
+                    creditLineItem.put("amount_currency", currencyId);
+                    creditLineItem.put("credit", credit.getAmount().doubleValue());
+                    creditLineItem.put("debit", 0);
+                    creditLineItem.put("partner_id", creditPartnerId != null ? creditPartnerId : false);
+                    creditLineItem.put("name", credit.getEntityId() != null ? credit.getEntityId().toString() : false);
+
+                    List<Object> lineItems = Arrays.asList(Arrays.asList(0, 0, debitLineItem), Arrays.asList(0, 0, creditLineItem));
+                    LOG.info("Creating Journal Entry with line items " + lineItems);
+                    Integer responseId = (Integer) models.execute("execute_kw",
+                            Arrays.asList(odooDB, uid, password, "account.move", "create", Arrays.asList(Map.of("line_ids", lineItems))));
+
                     LOG.info("Odoo Journal Entry created with id " + id);
+
                     Boolean status = (Boolean) models.execute("execute_kw",
                             Arrays.asList(odooDB, uid, password, "account.move", "action_post", Arrays.asList(Arrays.asList(id))));
+
                     LOG.info("Odoo Journal Entry posted Successfully " + status);
-                    return id;
+
+                    return responseId;
                 }
             }
 
@@ -435,21 +446,12 @@ public class OdooServiceImpl implements OdooService {
      * extract the GLCode from the code again if we want the integration with Odoo from Fineract work as expected. We
      * accommodated the aspect of the GL code not concatenated with the id if this is created in fineract direct
      */
-    private Integer extractGlCode(String glCode) {
-        if (glCode.contains("_")) {
+    private String extractGlCode(String glCode) {
+        if (glCode.contains("-")) {
             List<String> parts = Splitter.on(Pattern.compile("-", Pattern.LITERAL)).splitToList(glCode);
-
-            try {
-                return Integer.parseInt(parts.get(0));
-            } catch (NumberFormatException e) {
-                return null;
-            }
+            return parts.get(0);
         } else {
-            try {
-                return Integer.parseInt(glCode);
-            } catch (NumberFormatException e) {
-                return null;
-            }
+            return glCode;
         }
     }
 
