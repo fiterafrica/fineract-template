@@ -370,7 +370,7 @@ public class LoanAssembler {
         loanApplication.setDescription(description);
         final Boolean loanWithAnotherInstitution = this.fromApiJsonHelper.extractBooleanNamed(LoanApiConstants.loanWithAnotherInstitution,
                 element);
-        if (loanWithAnotherInstitution) {
+        if (loanWithAnotherInstitution != null && loanWithAnotherInstitution) {
             final BigDecimal loanWithAnotherInstitutionAmount = this.fromApiJsonHelper
                     .extractBigDecimalWithLocaleNamed(LoanApiConstants.loanWithAnotherInstitutionAmount, element);
             loanApplication.setLoanWithAnotherInstitutionAmount(loanWithAnotherInstitutionAmount);
