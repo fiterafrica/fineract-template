@@ -319,12 +319,16 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         account.postMaturityInterest(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
         final DepositAccountOnClosureType onClosureType = DepositAccountOnClosureType.fromInt(onAccountClosureId);
         if (onClosureType.isReinvest()) {
+            BigDecimal interestPayable;
             BigDecimal reInvestAmount;
             if (onClosureType.isReinvestPrincipal()) {
                 reInvestAmount = account.getDepositAmount();
+                interestPayable = account.getAccountBalance().subtract(reInvestAmount);
             } else {
                 reInvestAmount = account.getAccountBalance();
+                interestPayable = reInvestAmount.subtract(account.getDepositAmount());
             }
+
             FixedDepositAccount reinvestedDeposit = account.reInvest(reInvestAmount);
             this.depositAccountAssembler.assignSavingAccountHelpers(reinvestedDeposit);
             reinvestedDeposit.updateMaturityDateAndAmountBeforeAccountActivation(mc, isPreMatureClosure,
@@ -336,9 +340,31 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
                     false, isRegularTransaction);
             savingsTransactionId = withdrawal.getId();
 
+            AccountAssociations accountAssociations = null;
+            // If amountRemaining > 0 AND FD Config is to send Interest to Savings when closed
+            if ((DepositAccountOnClosureType.REINVEST_PRINCIPAL_ONLY.getValue().compareTo(account.getOnAccountClosureId()) == 0)
+                    && account.getAccountBalance().compareTo(BigDecimal.ZERO) > 0) {
+                AccountAssociations linkedSavingAccount = accountAssociationsRepository.findBySavingsIdAndType(account.getId(),
+                        AccountAssociationType.LINKED_ACCOUNT_ASSOCIATION.getValue());
+
+                if (linkedSavingAccount != null) {
+                    final SavingsAccount toSavingsAccount = linkedSavingAccount.linkedSavingsAccount();
+
+                    transferFundsFromBalanceToSavingsAccount(account, fmt, closedDate, transferDescription, existingTransactionIds,
+                            onClosureType, toSavingsAccount, interestPayable);
+
+                    accountAssociations = AccountAssociations.associateSavingsAccount(reinvestedDeposit, toSavingsAccount,
+                            AccountAssociationType.LINKED_ACCOUNT_ASSOCIATION.getValue(), true);
+
+                    reinvestedDeposit.addAssociation(accountAssociations);
+
+                }
+            }
+
             if (onClosureType.isReinvestPrincipalAndInterest()) {
                 account.updateClosedStatus();
                 account.updateOnAccountClosureStatus(onClosureType);
+                account.setClosedOnDate(closedDate);
             }
             changes.put("reinvestedDepositId", reinvestedDeposit.getId());
             reinvestedDeposit.approveAndActivateApplication(closedDate, user);
@@ -409,12 +435,16 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         final Integer onAccountClosureId = command.integerValueOfParameterNamed(onAccountClosureIdParamName);
         final DepositAccountOnClosureType onClosureType = DepositAccountOnClosureType.fromInt(onAccountClosureId);
         if (onClosureType.isReinvest()) {
+            BigDecimal interestPayable;
             BigDecimal reInvestAmount;
             if (onClosureType.isReinvestPrincipal()) {
                 reInvestAmount = account.getDepositAmount();
+                interestPayable = account.getAccountBalance().subtract(reInvestAmount);
             } else {
                 reInvestAmount = account.getAccountBalance();
+                interestPayable = reInvestAmount.subtract(account.getDepositAmount());
             }
+
             RecurringDepositAccount reinvestedDeposit = account.reInvest(reInvestAmount);
             depositAccountAssembler.assignSavingAccountHelpers(reinvestedDeposit);
             this.savingsAccountRepository.save(reinvestedDeposit);
@@ -434,6 +464,27 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
             final SavingsAccountTransaction withdrawal = this.handleWithdrawal(account, fmt, closedDate, account.getAccountBalance(),
                     paymentDetail, false, isRegularTransaction);
             savingsTransactionId = withdrawal.getId();
+
+            AccountAssociations accountAssociations = null;
+            // If amountRemaining > 0 AND FD Config is to send Interest to Savings when closed
+            if ((DepositAccountOnClosureType.REINVEST_PRINCIPAL_ONLY.getValue().compareTo(account.getOnAccountClosureId()) == 0)
+                    && account.getAccountBalance().compareTo(BigDecimal.ZERO) > 0) {
+                AccountAssociations linkedSavingAccount = accountAssociationsRepository.findBySavingsIdAndType(account.getId(),
+                        AccountAssociationType.LINKED_ACCOUNT_ASSOCIATION.getValue());
+
+                if (linkedSavingAccount != null) {
+                    final SavingsAccount toSavingsAccount = linkedSavingAccount.linkedSavingsAccount();
+
+                    transferFundsFromBalanceToSavingsAccount(account, fmt, closedDate, "Apply maturity instructions",
+                            existingTransactionIds, onClosureType, toSavingsAccount, interestPayable);
+
+                    accountAssociations = AccountAssociations.associateSavingsAccount(reinvestedDeposit, toSavingsAccount,
+                            AccountAssociationType.LINKED_ACCOUNT_ASSOCIATION.getValue(), true);
+
+                    reinvestedDeposit.addAssociation(accountAssociations);
+
+                }
+            }
 
         } else if (onClosureType.isTransferToSavings()) {
             final Long toSavingsId = command.longValueOfParameterNamed(toSavingsAccountIdParamName);
@@ -860,6 +911,28 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
                 this.savingsAccountWritePlatformService.payCharge(charge, closedDate, charge.amount(), DateUtils.getDefaultFormatter(),
                         user);
             }
+        }
+    }
+
+    private <T> void transferFundsFromBalanceToSavingsAccount(T account, DateTimeFormatter fmt, LocalDate closedDate,
+            String transferDescription, Set<Long> existingTransactionIds, DepositAccountOnClosureType onClosureType,
+            SavingsAccount toSavingsAccount, BigDecimal interestPayable) {
+
+        final boolean isExceptionForBalanceCheck = false;
+        final AccountTransferDTO accountTransferDTO = new AccountTransferDTO(closedDate, interestPayable, PortfolioAccountType.SAVINGS,
+                PortfolioAccountType.SAVINGS, null, null, transferDescription, null, fmt, null, null, null, null, null,
+                AccountTransferType.ACCOUNT_TRANSFER.getValue(), null, null, null, null, toSavingsAccount, (SavingsAccount) account, false,
+                isExceptionForBalanceCheck);
+
+        this.accountTransfersWritePlatformService.transferFunds(accountTransferDTO);
+        updateAlreadyPostedTransactions(existingTransactionIds, (SavingsAccount) account);
+
+        if (account instanceof RecurringDepositAccount) {
+            ((RecurringDepositAccount) account).updateOnAccountClosure(onClosureType, closedDate);
+        }
+
+        if (account instanceof FixedDepositAccount) {
+            ((FixedDepositAccount) account).updateOnAccountClosure(onClosureType, closedDate);
         }
     }
 }

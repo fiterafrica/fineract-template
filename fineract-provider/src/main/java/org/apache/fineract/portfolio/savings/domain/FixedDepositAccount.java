@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -39,6 +40,7 @@ import javax.persistence.CascadeType;
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
+import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Transient;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
@@ -50,6 +52,7 @@ import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidati
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.organisation.staff.domain.Staff;
+import org.apache.fineract.portfolio.account.domain.AccountAssociations;
 import org.apache.fineract.portfolio.accountdetails.domain.AccountType;
 import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.group.domain.Group;
@@ -79,6 +82,9 @@ public class FixedDepositAccount extends SavingsAccount {
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "account")
     protected DepositAccountInterestRateChart chart;
+
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "savingsAccount")
+    private Set<AccountAssociations> associations;
 
     @Transient
     protected InterestRateChartAssembler chartAssembler;
@@ -560,6 +566,12 @@ public class FixedDepositAccount extends SavingsAccount {
         this.accountTermAndPreClosure.updateOnAccountClosureStatus(onClosureType);
     }
 
+    public void updateOnAccountClosure(final DepositAccountOnClosureType onClosureType, final LocalDate closureDate) {
+        this.closedOnDate = closureDate;
+        updateClosedStatus();
+        updateOnAccountClosureStatus(onClosureType);
+    }
+
     public void postMaturityInterest(final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth) {
         final LocalDate interestPostingUpToDate = maturityDate();
         final MathContext mc = MathContext.DECIMAL64;
@@ -1014,5 +1026,13 @@ public class FixedDepositAccount extends SavingsAccount {
                     savingsPostingInterestPeriodType.name(), savingsCompoundingInterestPeriodType.name());
 
         }
+    }
+
+    public void addAssociation(AccountAssociations associations) {
+        if (this.associations == null) {
+            this.associations = new HashSet<>();
+        }
+
+        this.associations.add(associations);
     }
 }
