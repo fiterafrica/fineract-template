@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -52,6 +53,7 @@ import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidati
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.organisation.staff.domain.Staff;
+import org.apache.fineract.portfolio.account.domain.AccountAssociations;
 import org.apache.fineract.portfolio.accountdetails.domain.AccountType;
 import org.apache.fineract.portfolio.calendar.domain.Calendar;
 import org.apache.fineract.portfolio.calendar.service.CalendarUtils;
@@ -86,6 +88,9 @@ public class RecurringDepositAccount extends SavingsAccount {
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "account")
     private DepositAccountInterestRateChart chart;
+
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "savingsAccount")
+    private Set<AccountAssociations> associations;
 
     @OrderBy(value = "installmentNumber, id")
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "account", orphanRemoval = true, fetch = FetchType.LAZY)
@@ -1293,4 +1298,31 @@ public class RecurringDepositAccount extends SavingsAccount {
     public DepositAccountTermAndPreClosure getAccountTermAndPreClosure() {
         return accountTermAndPreClosure;
     }
+
+    public void updateClosedStatus() {
+        this.status = SavingsAccountStatusType.CLOSED.getValue();
+    }
+
+    public void updateOnAccountClosureStatus(DepositAccountOnClosureType onClosureType) {
+        this.accountTermAndPreClosure.updateOnAccountClosureStatus(onClosureType);
+    }
+
+    public void updateOnAccountClosure(final DepositAccountOnClosureType onClosureType, final LocalDate closureDate) {
+        this.closedOnDate = closureDate;
+        updateClosedStatus();
+        updateOnAccountClosureStatus(onClosureType);
+    }
+
+    public Integer getOnAccountClosureId() {
+        return this.accountTermAndPreClosure.getOnAccountClosureType();
+    }
+
+    public void addAssociation(AccountAssociations associations) {
+        if (this.associations == null) {
+            this.associations = new HashSet<>();
+        }
+
+        this.associations.add(associations);
+    }
+
 }

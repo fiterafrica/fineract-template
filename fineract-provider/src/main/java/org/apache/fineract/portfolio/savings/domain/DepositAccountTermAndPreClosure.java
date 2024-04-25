@@ -361,9 +361,10 @@ public class DepositAccountTermAndPreClosure extends AbstractPersistableCustom {
         final DepositPreClosureDetail preClosureDetail = this.preClosureDetail.copy();
         final DepositTermDetail depositTermDetail = this.depositTermDetail.copy();
         final LocalDate expectedFirstDepositOnDate = null;
-        final Boolean transferInterestToLinkedAccount = false;
+        final Boolean transferInterestToLinkedAccount = this.transferInterestToLinkedAccount;
 
-        final DepositAccountOnClosureType accountOnClosureType = null;
+        final DepositAccountOnClosureType accountOnClosureType = this.onAccountClosureType == null ? null
+                : DepositAccountOnClosureType.fromInt(this.onAccountClosureType);
         final Long transferToSavingsId = null;
         return DepositAccountTermAndPreClosure.createNew(preClosureDetail, depositTermDetail, account, actualDepositAmount, maturityAmount,
                 maturityDate, depositPeriod, depositPeriodFrequency, expectedFirstDepositOnDate, accountOnClosureType,
