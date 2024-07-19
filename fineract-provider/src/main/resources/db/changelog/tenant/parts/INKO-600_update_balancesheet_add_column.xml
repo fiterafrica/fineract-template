@@ -20,7 +20,7 @@
 
 -->
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
-    <changeSet author="deepika@fiter.io" id="INKO-600_add_column_loan_balancesheet">
+    <changeSet author="deepika@fiter.io" id="INKO-600_add_column_loan_balancesheet_2">
         <preConditions onFail="MARK_RAN">
             <not>
                 <columnExists tableName="loan_balancesheet" columnName="short_term_loans"/>
@@ -28,7 +28,7 @@
         </preConditions>
         <addColumn tableName="loan_balancesheet">
             <column name="short_term_loans" type="decimal(19,6)">
-                <constraints nullable="false"/>
+                <constraints nullable="true"/>
             </column>
         </addColumn>
     </changeSet>
