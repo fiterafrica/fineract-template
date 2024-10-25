@@ -18,8 +18,6 @@
  */
 package org.apache.fineract.infrastructure.security.api;
 
-import com.google.common.base.Splitter;
-import com.google.common.collect.Iterables;
 import com.google.gson.Gson;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -54,12 +52,12 @@ import org.apache.fineract.portfolio.client.service.ClientReadPlatformService;
 import org.apache.fineract.useradministration.data.RoleData;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.apache.fineract.useradministration.domain.Role;
+import org.apache.fineract.useradministration.service.AppUserWritePlatformService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.Authentication;
@@ -86,19 +84,19 @@ public class AuthenticationApiResource {
     private final ToApiJsonSerializer<AuthenticatedUserData> apiJsonSerializerService;
     private final SpringSecurityPlatformSecurityContext springSecurityPlatformSecurityContext;
     private final ClientReadPlatformService clientReadPlatformService;
-    private final JdbcTemplate jdbcTemplate;
+    private final AppUserWritePlatformService appUserWritePlatformService;
 
     @Autowired
     public AuthenticationApiResource(
             @Qualifier("customAuthenticationProvider") final DaoAuthenticationProvider customAuthenticationProvider,
             final ToApiJsonSerializer<AuthenticatedUserData> apiJsonSerializerService,
             final SpringSecurityPlatformSecurityContext springSecurityPlatformSecurityContext,
-            ClientReadPlatformService aClientReadPlatformService, final JdbcTemplate jdbcTemplate) {
+            ClientReadPlatformService aClientReadPlatformService, final AppUserWritePlatformService appUserWritePlatformService) {
         this.customAuthenticationProvider = customAuthenticationProvider;
         this.apiJsonSerializerService = apiJsonSerializerService;
         this.springSecurityPlatformSecurityContext = springSecurityPlatformSecurityContext;
         clientReadPlatformService = aClientReadPlatformService;
-        this.jdbcTemplate = jdbcTemplate;
+        this.appUserWritePlatformService = appUserWritePlatformService;
     }
 
     @POST
@@ -166,23 +164,7 @@ public class AuthenticationApiResource {
                         new String(base64EncodedAuthenticationKey, StandardCharsets.UTF_8), isTwoFactorRequired,
                         returnClientList ? clientReadPlatformService.retrieveUserClients(userId) : null);
             }
-
-            String clientIp = "Unknown IP Address";
-            if (servletRequest != null) {
-                clientIp = servletRequest.getHeader("X-Forwarded-For");
-                if (clientIp == null || clientIp.isEmpty()) {
-                    clientIp = servletRequest.getRemoteAddr();
-                } else {
-                    // The X-Forwarded-For header can contain multiple IP addresses, in case of proxies.
-                    // The first IP in the list is the original client.
-                    clientIp = Iterables.get(Splitter.on(',').split(clientIp), 0);
-                    ;
-                }
-            }
-            this.jdbcTemplate.update("insert into m_portfolio_command_source "
-                    + "(action_name,entity_name,office_id,api_get_url,command_as_json,resource_id,maker_id,made_on_date,processing_result_enum) "
-                    + "values(?, ?,?,?,?,?,?,current_date,1) ", "LOGIN", "AUTHENTICATION", principal.getOffice().getId(),
-                    "/authenticate/login", "{ipAddress:\"" + clientIp + "\"}", userId, userId);
+            this.appUserWritePlatformService.logUserAuthenticationDetails(principal, servletRequest);
         }
 
         return this.apiJsonSerializerService.serialize(authenticatedUserData);
@@ -195,26 +177,7 @@ public class AuthenticationApiResource {
     public String processLogout(final String apiRequestBodyAsJson, @Context HttpServletRequest servletRequest) {
         final CommandWrapper commandRequest = new CommandWrapperBuilder().invalidateTwoFactorAccessToken().withJson(apiRequestBodyAsJson)
                 .build();
-
-        String clientIp = "Unknown IP Address";
-        if (servletRequest != null) {
-            clientIp = servletRequest.getHeader("X-Forwarded-For");
-            if (clientIp == null || clientIp.isEmpty()) {
-                clientIp = servletRequest.getRemoteAddr();
-            } else {
-                // The X-Forwarded-For header can contain multiple IP addresses, in case of proxies.
-                // The first IP in the list is the original client.
-                clientIp = Iterables.get(Splitter.on(',').split(clientIp), 0);
-                ;
-            }
-        }
-
-        AppUser appUser = this.springSecurityPlatformSecurityContext.authenticatedUser();
-        Long userId = appUser.getId();
-        this.jdbcTemplate.update("insert into m_portfolio_command_source "
-                + "(action_name,entity_name,office_id,api_get_url,command_as_json,resource_id,maker_id,made_on_date,processing_result_enum) "
-                + "values(?, ?,?,?,?,?,?,current_date,1) ", "LOGOUT", "AUTHENTICATION", appUser.getOffice().getId(), "/authenticate/logout",
-                "{ipAddress:\"" + clientIp + "\"}", userId, userId);
+        this.appUserWritePlatformService.logUserLogoutRequestDetails(servletRequest);
         return this.apiJsonSerializerService.serialize("");
     }
 }
