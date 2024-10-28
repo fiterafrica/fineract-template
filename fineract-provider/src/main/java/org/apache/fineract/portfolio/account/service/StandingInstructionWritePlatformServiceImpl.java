@@ -299,7 +299,7 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
                 this.fromJsonHelper.toJson(standinAmountDue), false, false, tenantIdentifier, appUser.getOffice().getId(), userIds);
         try {
             notificationEventPublisher.broadcastGenericActiveMqNotification(notificationData,
-                    env.getProperty("fineract.activemq.loanOverdueCollectionsQueue"));
+                    env.getProperty("fineract.activemq.loansDueCollections"));
         } catch (Exception e) {
             // We want to avoid rethrowing the exception to stop the business transaction from rolling back
             LOG.error("Error while broadcasting notification event", e);
