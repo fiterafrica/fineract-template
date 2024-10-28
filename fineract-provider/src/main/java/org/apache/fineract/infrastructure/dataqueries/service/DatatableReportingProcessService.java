@@ -18,20 +18,14 @@
  */
 package org.apache.fineract.infrastructure.dataqueries.service;
 
-import java.io.File;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.StreamingOutput;
 import org.apache.fineract.infrastructure.core.api.ApiParameterHelper;
 import org.apache.fineract.infrastructure.core.serialization.ToApiJsonSerializer;
 import org.apache.fineract.infrastructure.dataqueries.api.RunreportsApiResource;
 import org.apache.fineract.infrastructure.dataqueries.data.GenericResultsetData;
+import org.apache.fineract.infrastructure.dataqueries.data.LoanPortfolioData;
+import org.apache.fineract.infrastructure.dataqueries.data.LoanPortfolioRowData;
 import org.apache.fineract.infrastructure.dataqueries.data.ReportData;
+import org.apache.fineract.infrastructure.dataqueries.data.ResultsetRowData;
 import org.apache.fineract.infrastructure.report.annotation.ReportService;
 import org.apache.fineract.infrastructure.report.service.ReportingProcessService;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProduct;
@@ -39,8 +33,23 @@ import org.apache.fineract.portfolio.loanproduct.domain.LoanProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.StreamingOutput;
+import java.io.File;
+import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 @Service
-@ReportService(type = { "Table", "Chart", "SMS" })
+@ReportService(type = {"Table", "Chart", "SMS"})
 public class DatatableReportingProcessService implements ReportingProcessService {
 
     private final ReadReportingService readExtraDataAndReportingService;
@@ -51,8 +60,8 @@ public class DatatableReportingProcessService implements ReportingProcessService
 
     @Autowired
     public DatatableReportingProcessService(final ReadReportingService readExtraDataAndReportingService,
-            final GenericDataService genericDataService, final ToApiJsonSerializer<ReportData> toApiJsonSerializer,
-            final LoanProductRepository loanProductRepository) {
+                                            final GenericDataService genericDataService, final ToApiJsonSerializer<ReportData> toApiJsonSerializer,
+                                            final LoanProductRepository loanProductRepository) {
         this.readExtraDataAndReportingService = readExtraDataAndReportingService;
         this.toApiJsonSerializer = toApiJsonSerializer;
         this.genericDataService = genericDataService;
@@ -67,6 +76,7 @@ public class DatatableReportingProcessService implements ReportingProcessService
         final boolean exportCsv = ApiParameterHelper.exportCsv(queryParams);
         final boolean exportPdf = ApiParameterHelper.exportPdf(queryParams);
         final boolean exportXLSX = ApiParameterHelper.exportXLSX(queryParams);
+        final boolean exportAPI = ApiParameterHelper.exportAPI(queryParams);
         final String parameterTypeValue = ApiParameterHelper.parameterType(queryParams) ? "parameter" : "report";
         Integer limit = null;
         Integer offset = null;
@@ -100,6 +110,28 @@ public class DatatableReportingProcessService implements ReportingProcessService
 
             return Response.ok().entity(excelBytes).type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                     .header("Content-Disposition", "attachment;filename=" + reportName.replaceAll(" ", "") + ".xlsx").build();
+        }
+
+        if (exportAPI) {
+            final Map<String, String> reportParams = getReportParams(queryParams);
+
+            final GenericResultsetData result = this.readExtraDataAndReportingService.retrieveGenericResultset(reportName,
+                    parameterTypeValue, reportParams, isSelfServiceUserReport, limit, offset);
+
+            if(reportName.equals("Portfolio Management")) {
+
+                LoanPortfolioData data;
+                try {
+                    data = transformToLoanPortfolio(result);
+
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+                String json = this.toApiJsonSerializer.serializeResult(data);
+
+                return Response.ok().entity(json).type(MediaType.APPLICATION_JSON).build();
+            }
+
         }
 
         // JSON format
@@ -148,5 +180,58 @@ public class DatatableReportingProcessService implements ReportingProcessService
                 result.replaceWordInColumHeader("Interest", "Profit");
             }
         }
+    }
+
+
+    private LoanPortfolioData transformToLoanPortfolio(GenericResultsetData results) throws IllegalAccessException {
+
+        LoanPortfolioData loanPortfolioData = new LoanPortfolioData();
+
+        loanPortfolioData.setCount(results.getCount());
+
+        List<LoanPortfolioRowData> loanPortfolioRowData = new ArrayList<>();
+
+        for (ResultsetRowData rowData : results.getData()) {
+
+            List<String> row = rowData.getRow();
+            LoanPortfolioRowData loanDetails = new LoanPortfolioRowData();
+
+            // Get all fields of the LoanDetails class
+            Field[] fields = LoanPortfolioRowData.class.getDeclaredFields();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+            for (int i = 0; i < fields.length; i++) {
+
+                Field field = fields[i];
+                field.setAccessible(true); // Access private fields
+
+                if (i >= row.size() || row.get(i) == null || row.get(i).isEmpty()) {
+                    field.set(loanDetails, null); // Set field to null if value is missing
+                    continue;
+                }
+
+                // Set the value based on the field type
+                String value = row.get(i);
+                if (field.getType() == String.class) {
+                    field.set(loanDetails, value);
+                } else if (field.getType() == LocalDate.class) {
+                    field.set(loanDetails, LocalDate.parse(value, formatter));
+                } else if (field.getType() == BigDecimal.class) {
+                    field.set(loanDetails, new BigDecimal(value));
+                } else if (field.getType() == int.class || field.getType() == Integer.class) {
+                    field.set(loanDetails, Integer.parseInt(value));
+                } else if (field.getType() == long.class || field.getType() == Long.class) {
+                    field.set(loanDetails, Long.parseLong(value));
+                } else if (field.getType() == short.class || field.getType() == Short.class) {
+                    field.set(loanDetails, Short.parseShort(value));
+                }
+            }
+
+            loanPortfolioRowData.add(loanDetails);
+        }
+
+        loanPortfolioData.setData(loanPortfolioRowData);
+        return loanPortfolioData;
+
     }
 }
