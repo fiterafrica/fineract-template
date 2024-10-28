@@ -511,7 +511,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
         }
 
         final String sql = "select " + this.transactionsMapper.schema()
-                + " where sa.id = ? and sa.deposit_type_enum = ? AND transaction_type_enum in (22,25)  order by tr.transaction_date DESC, tr.created_date DESC, tr.id DESC LIMIT ? OFFSET ?   ";
+                + " where sa.id = ? and sa.deposit_type_enum = ? AND transaction_type_enum in (22,25) AND tr.is_reversed = 0 order by tr.transaction_date DESC, tr.created_date DESC, tr.id DESC LIMIT ? OFFSET ?   ";
 
         return this.jdbcTemplate.query(sql, this.transactionsMapper,
                 new Object[] { savingsId, depositAccountType.getValue(), limit, offset });
@@ -653,7 +653,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
             Boolean hideAccrualTransactions) {
         StringBuilder sqlBuilder = new StringBuilder().append(
                 " SELECT COUNT(tr.id) FROM m_savings_account sa  JOIN m_savings_account_transaction tr ON tr.savings_account_id = sa.id ")
-                .append(" where sa.id = ? and sa.deposit_type_enum = ? ");
+                .append(" where sa.id = ? and tr.is_reversed = 0 and sa.deposit_type_enum = ? ");
         if (hideAccrualTransactions) {
             sqlBuilder.append(" AND transaction_type_enum not in (?,?) ");
         } else {
@@ -699,7 +699,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
     @Override
     public List<Long> retrieveActiveOverdraftSavingAccounts() {
         String sql = "select id from m_savings_account where status_enum = 300 and (allow_overdraft = true or account_balance_derived <= 0) and deposit_type_enum != 200";
-        return this.jdbcTemplate.queryForList(sql, Long.class, true);
+        return this.jdbcTemplate.queryForList(sql, Long.class);
     }
 
     @Override

@@ -1841,6 +1841,10 @@ public class SavingsAccount extends AbstractPersistableCustom {
         return transactionBeforeLastInterestPosting;
     }
 
+    public boolean isBeforeLastAccrualPostingDate(LocalDate transactionDate) {
+        return this.startInterestAccrualCalculationDate != null && this.startInterestAccrualCalculationDate.isAfter(transactionDate);
+    }
+
     public void validateAccountBalanceDoesNotBecomeNegative(final BigDecimal transactionAmount, final boolean isException,
             final List<DepositAccountOnHoldTransaction> depositAccountOnHoldTransactions, final boolean backdatedTxnsAllowedTill,
             final BigDecimal overdueLoanAmount) {
@@ -4816,7 +4820,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
                 }
             }
         }
-        this.startInterestAccrualCalculationDate = interestPostingUpToDate;
+        this.setStartInterestAccrualCalculationDate(interestPostingUpToDate);
         updateSummary();
     }
 
@@ -4933,6 +4937,10 @@ public class SavingsAccount extends AbstractPersistableCustom {
         } else
             startInterestAccrualCalculationLocalDate = getActivationLocalDate();
         return startInterestAccrualCalculationLocalDate;
+    }
+
+    public void setStartInterestAccrualCalculationDate(LocalDate startInterestAccrualCalculationDate) {
+        this.startInterestAccrualCalculationDate = startInterestAccrualCalculationDate;
     }
 
     private Money getStartingBalanceBefore(LocalDate date) {
