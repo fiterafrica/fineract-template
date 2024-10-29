@@ -80,4 +80,24 @@
 
     </changeSet>
 
+    <changeSet author="brian@fiter.io" id="OXY-296_add_forced_password_reset">
+
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                select count(1) from c_configuration where name = 'force_password_reset_on_first_login';
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="c_configuration">
+            <column name="name" value="force_password_reset_on_first_login"/>
+            <column name="value" value="null"/>
+            <column name="date_value" value="null"/>
+            <column name="string_value" value="null"/>
+            <column name="enabled" valueBoolean="true"/>
+            <column name="is_trap_door" valueBoolean="false"/>
+            <column name="description" value="Set forced Password Reset On First Time Login"/>
+        </insert>
+
+    </changeSet>
+
 </databaseChangeLog>

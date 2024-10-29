@@ -55,6 +55,8 @@ public class AuthenticatedUserData {
     @SuppressWarnings("unused")
     private final boolean shouldRenewPassword;
 
+    private final boolean firstTimeLogin;
+
     @SuppressWarnings("unused")
     private final boolean isTwoFactorAuthenticationRequired;
 
@@ -72,13 +74,14 @@ public class AuthenticatedUserData {
         this.permissions = permissions;
         this.shouldRenewPassword = false;
         this.isTwoFactorAuthenticationRequired = false;
+        this.firstTimeLogin = false;
         clients = null;
     }
 
     public AuthenticatedUserData(final String username, final Long officeId, final String officeName, final Long staffId,
             final String staffDisplayName, final EnumOptionData organisationalRole, final Collection<RoleData> roles,
             final Collection<String> permissions, final Long userId, final String base64EncodedAuthenticationKey,
-            final boolean isTwoFactorAuthenticationRequired, Collection<Long> aListOfClientIDs) {
+            final boolean isTwoFactorAuthenticationRequired, Collection<Long> aListOfClientIDs, boolean firstTimeLoginRemaining) {
         this.username = username;
         this.officeId = officeId;
         this.officeName = officeName;
@@ -92,6 +95,7 @@ public class AuthenticatedUserData {
         this.permissions = permissions;
         this.shouldRenewPassword = false;
         this.isTwoFactorAuthenticationRequired = isTwoFactorAuthenticationRequired;
+        this.firstTimeLogin = firstTimeLoginRemaining;
         clients = aListOfClientIDs;
     }
 
@@ -110,6 +114,7 @@ public class AuthenticatedUserData {
         this.permissions = null;
         this.shouldRenewPassword = true;
         this.isTwoFactorAuthenticationRequired = isTwoFactorAuthenticationRequired;
+        this.firstTimeLogin = false;
         clients = null;
     }
 }

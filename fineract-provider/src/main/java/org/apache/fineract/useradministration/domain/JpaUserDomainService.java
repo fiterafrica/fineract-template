@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.useradministration.domain;
 
+import org.apache.fineract.infrastructure.configuration.service.ConfigurationReadPlatformService;
 import org.apache.fineract.infrastructure.core.service.PlatformEmailService;
 import org.apache.fineract.infrastructure.security.service.PlatformPasswordEncoder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,13 +31,15 @@ public class JpaUserDomainService implements UserDomainService {
     private final AppUserRepository userRepository;
     private final PlatformPasswordEncoder applicationPasswordEncoder;
     private final PlatformEmailService emailService;
+    private final ConfigurationReadPlatformService configurationReadPlatformService;
 
     @Autowired
     public JpaUserDomainService(final AppUserRepository userRepository, final PlatformPasswordEncoder applicationPasswordEncoder,
-            final PlatformEmailService emailService) {
+            final PlatformEmailService emailService, final ConfigurationReadPlatformService configurationReadPlatformService) {
         this.userRepository = userRepository;
         this.applicationPasswordEncoder = applicationPasswordEncoder;
         this.emailService = emailService;
+        this.configurationReadPlatformService = configurationReadPlatformService;
     }
 
     @Transactional
@@ -49,6 +52,9 @@ public class JpaUserDomainService implements UserDomainService {
 
         final String encodePassword = this.applicationPasswordEncoder.encode(appUser);
         appUser.updatePassword(encodePassword);
+        if (this.configurationReadPlatformService.retrieveGlobalConfiguration("force_password_reset_on_first_login").isEnabled()) {
+            appUser.setFirstTimeLoginRemaining(true);
+        }
 
         this.userRepository.saveAndFlush(appUser);
 

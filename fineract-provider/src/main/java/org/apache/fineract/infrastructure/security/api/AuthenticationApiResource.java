@@ -42,7 +42,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-
 import lombok.RequiredArgsConstructor;
 import org.apache.fineract.commands.domain.CommandWrapper;
 import org.apache.fineract.commands.service.CommandWrapperBuilder;
@@ -130,7 +129,7 @@ public class AuthenticationApiResource {
             throw new UserLockedOutException();
         }
 
-        try{
+        try {
             final Authentication authentication = new UsernamePasswordAuthenticationToken(request.username, request.password);
             final Authentication authenticationCheck = this.customAuthenticationProvider.authenticate(authentication);
 
@@ -173,14 +172,15 @@ public class AuthenticationApiResource {
                     authenticatedUserData = new AuthenticatedUserData(request.username, officeId, officeName, staffId, staffDisplayName,
                             organisationalRole, roles, permissions, principal.getId(),
                             new String(base64EncodedAuthenticationKey, StandardCharsets.UTF_8), isTwoFactorRequired,
-                            returnClientList ? clientReadPlatformService.retrieveUserClients(userId) : null);
+                            returnClientList ? clientReadPlatformService.retrieveUserClients(userId) : null,
+                            appUser.isFirstTimeLoginRemaining());
                 }
                 this.appUserWritePlatformService.logUserAuthenticationDetails(principal, servletRequest);
             }
 
             return this.apiJsonSerializerService.serialize(authenticatedUserData);
 
-        }catch (AuthenticationException e) {
+        } catch (AuthenticationException e) {
             appUser.incrementNoOfFailedLoginAttempts();
             int noOfFailedLoginAttempts = appUser.getNoOfFailedLoginAttempts();
             if (noOfFailedLoginAttemptBeforeLockout > 0 && noOfFailedLoginAttempts % noOfFailedLoginAttemptBeforeLockout == 0) {
