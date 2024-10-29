@@ -349,6 +349,18 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
                 "{ipAddress:\"" + clientIp + "\"}", userId, userId);
     }
 
+    @Override
+    public AppUser saveUser(AppUser appUser) {
+        return appUserRepository.saveAndFlush(appUser);
+    }
+
+    @Override
+    public AppUser updateUserAuthDetails(AppUser appUser) {
+        this.jdbcTemplate.update("update m_appuser set no_of_failed_login_attempts = ?, can_login_after = ? where id = ? ",
+                appUser.getNoOfFailedLoginAttempts(), appUser.getCanloginAfter(), appUser.getId());
+        return appUser;
+    }
+
     /*
      * Return an exception to throw, no matter what the data integrity issue is.
      */

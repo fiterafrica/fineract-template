@@ -16,26 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.useradministration.service;
+package org.apache.fineract.infrastructure.security.exception;
 
-import javax.servlet.http.HttpServletRequest;
-import org.apache.fineract.infrastructure.core.api.JsonCommand;
-import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
-import org.apache.fineract.useradministration.domain.AppUser;
+import org.apache.fineract.infrastructure.core.exception.AbstractPlatformDomainRuleException;
 
-public interface AppUserWritePlatformService {
+public class UserLockedOutException extends AbstractPlatformDomainRuleException {
 
-    CommandProcessingResult createUser(JsonCommand command);
-
-    CommandProcessingResult updateUser(Long userId, JsonCommand command);
-
-    CommandProcessingResult deleteUser(Long userId);
-
-    void logUserAuthenticationDetails(AppUser principal, HttpServletRequest servletRequest);
-
-    void logUserLogoutRequestDetails(HttpServletRequest servletRequest);
-
-    AppUser saveUser(AppUser appUser);
-
-    AppUser updateUserAuthDetails(AppUser appUser);
+    public UserLockedOutException() {
+        super("error.msg.user.locked.out", "Account has been blocked. Please contact admin for assistance.");
+    }
 }
