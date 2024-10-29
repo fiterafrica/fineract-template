@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,6 +39,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.SSLSocketFactory;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -332,7 +338,7 @@ public class OdooServiceImpl implements OdooService {
 
     @Override
     public JsonObject createJournalEntryToOddo(List<JournalEntry> list, Long loanTransactionId, Long transactionType, Boolean isReversed, String loanAccountNo)
-            throws IOException {
+            throws IOException, NoSuchAlgorithmException, KeyManagementException {
 
         final Integer uid = loginToOddo();
         if (uid > 0) {
@@ -415,12 +421,40 @@ public class OdooServiceImpl implements OdooService {
 
     }
 
-    private JsonObject sendRequest(String payload) throws IOException {
-        OkHttpClient httpClient = new OkHttpClient();
+
+    private JsonObject sendRequest(String payload) throws IOException, NoSuchAlgorithmException, KeyManagementException {
+
+        // Trust all certificates
+        TrustManager[] trustAllCerts = new TrustManager[] {
+                new X509TrustManager() {
+                    @Override
+                    public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType){}
+
+                    @Override
+                    public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType){}
+
+                    @Override
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() { return new java.security.cert.X509Certificate[]{}; }
+                }
+        };
+
+        // Install the all-trusting trust manager
+        final SSLContext sslContext = SSLContext.getInstance("SSL");
+        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+        final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
+        // Create OkHttpClient that ignores SSL validation
+        OkHttpClient httpClient = new OkHttpClient.Builder()
+                .sslSocketFactory(sslSocketFactory, (X509TrustManager)trustAllCerts[0])
+                .hostnameVerifier((hostname, session) -> true)
+                .build();
 
         RequestBody requestBody = RequestBody.create(MediaType.parse(FORM_URL_CONTENT_TYPE), payload);
-        Request request = new Request.Builder().url(celeryUrl + "/api/cbs_journal_entry").post(requestBody)
-                .addHeader("Content-Type", "application/json").build();
+        Request request = new Request.Builder()
+                .url(celeryUrl + "/api/cbs_journal_entry")
+                .post(requestBody)
+                .addHeader("Content-Type", "application/json")
+                .build();
 
         Response response = httpClient.newCall(request).execute();
 

@@ -20,6 +20,8 @@ package org.apache.fineract.infrastructure.Odoo;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Map;
 
@@ -41,7 +43,7 @@ public interface OdooService {
     public void postCustomerUpdatedDetailsToOddo() throws JobExecutionException;
 
     JsonObject createJournalEntryToOddo(List<JournalEntry> entry, Long loanTransactionId, Long transactionType, Boolean isReversed, String loanAccount)
-            throws IOException;
+            throws IOException, NoSuchAlgorithmException, KeyManagementException;
 
     String updateJournalEntryWithOdooStatus(String stringRequest);
 
