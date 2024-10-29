@@ -89,5 +89,6 @@
     <include file="parts/FSO_17_update_password_validation_policy.xml" relativeToChangelogFile="true" />
     <include file="parts/FSO_34_add_provisioning_category.xml" relativeToChangelogFile="true" />
     <include file="parts/OXY-302-add_job_for_processing_failed_standing_orders.xml" relativeToChangelogFile="true" />
+    <include file="parts/OXY-294-accout_lock_cofiguratio.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>

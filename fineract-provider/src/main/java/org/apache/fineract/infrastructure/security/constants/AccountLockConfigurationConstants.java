@@ -16,26 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.useradministration.service;
+package org.apache.fineract.infrastructure.security.constants;
 
-import javax.servlet.http.HttpServletRequest;
-import org.apache.fineract.infrastructure.core.api.JsonCommand;
-import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
-import org.apache.fineract.useradministration.domain.AppUser;
+public final class AccountLockConfigurationConstants {
 
-public interface AppUserWritePlatformService {
+    private AccountLockConfigurationConstants() {
 
-    CommandProcessingResult createUser(JsonCommand command);
+    }
 
-    CommandProcessingResult updateUser(Long userId, JsonCommand command);
+    public static final String FAILED_LOGIN_ATTEMPTS = "failed-login-attempts";
+    public static final String ACCOUNT_LOCK_DURATION = "account-lock-duration-minutes";
 
-    CommandProcessingResult deleteUser(Long userId);
-
-    void logUserAuthenticationDetails(AppUser principal, HttpServletRequest servletRequest);
-
-    void logUserLogoutRequestDetails(HttpServletRequest servletRequest);
-
-    AppUser saveUser(AppUser appUser);
-
-    AppUser updateUserAuthDetails(AppUser appUser);
 }

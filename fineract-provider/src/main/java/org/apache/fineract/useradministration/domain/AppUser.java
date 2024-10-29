@@ -19,6 +19,7 @@
 package org.apache.fineract.useradministration.domain;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -121,6 +122,16 @@ public class AppUser extends AbstractPersistableCustom implements PlatformUser {
 
     @Column(name = "cannot_change_password", nullable = true)
     private Boolean cannotChangePassword;
+
+    @Column(name = "temporary_password_expiry_time", nullable = true)
+    private LocalDateTime temporaryPasswordExpiryTime;
+
+    @Column(name = "no_of_failed_login_attempts", nullable = false)
+    private int noOfFailedLoginAttempts;
+
+    @Column(name = "can_login_after", nullable = false, columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime canLoginAfter;
+
 
     public static AppUser fromJson(final Office userOffice, final Staff linkedStaff, final Set<Role> allRoles,
             final Collection<Client> clients, final JsonCommand command) {
@@ -721,8 +732,32 @@ public class AppUser extends AbstractPersistableCustom implements PlatformUser {
         return newAppUserClientMappings;
     }
 
+    public boolean isLockedOut() {
+        return canLoginAfter.isAfter(LocalDateTime.now(DateUtils.getDateTimeZoneOfTenant()));
+    }
+
+    public int getNoOfFailedLoginAttempts() {
+        return noOfFailedLoginAttempts;
+    }
+
+    public LocalDateTime getCanloginAfter() {
+        return canLoginAfter;
+    }
+
+    public void incrementNoOfFailedLoginAttempts() {
+        this.noOfFailedLoginAttempts++;
+    }
+
+    public void resetNoOfFailedLoginAttempts() {
+        this.noOfFailedLoginAttempts = 0;
+    }
+
     @Override
     public String toString() {
         return "AppUser [username=" + this.username + ", getId()=" + this.getId() + "]";
+    }
+
+    public void setCanLoginAfter(LocalDateTime canLoginAfter) {
+        this.canLoginAfter = canLoginAfter;
     }
 }
