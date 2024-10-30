@@ -132,7 +132,6 @@ public class AppUser extends AbstractPersistableCustom implements PlatformUser {
     @Column(name = "can_login_after", nullable = false, columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime canLoginAfter;
 
-
     public static AppUser fromJson(final Office userOffice, final Staff linkedStaff, final Set<Role> allRoles,
             final Collection<Client> clients, final JsonCommand command) {
 
@@ -199,6 +198,7 @@ public class AppUser extends AbstractPersistableCustom implements PlatformUser {
         this.isSelfServiceUser = isSelfServiceUser;
         this.appUserClientMappings = createAppUserClientMappings(clients);
         this.cannotChangePassword = cannotChangePassword;
+        this.canLoginAfter = DateUtils.getLocalDateTimeOfTenant();
     }
 
     public EnumOptionData organisationalRoleData() {
@@ -759,5 +759,13 @@ public class AppUser extends AbstractPersistableCustom implements PlatformUser {
 
     public void setCanLoginAfter(LocalDateTime canLoginAfter) {
         this.canLoginAfter = canLoginAfter;
+    }
+
+    public boolean isFirstTimeLoginRemaining() {
+        return firstTimeLoginRemaining;
+    }
+
+    public void setFirstTimeLoginRemaining(boolean firstTimeLoginRemaining) {
+        this.firstTimeLoginRemaining = firstTimeLoginRemaining;
     }
 }

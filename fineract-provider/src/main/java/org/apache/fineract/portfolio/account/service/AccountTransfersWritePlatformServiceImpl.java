@@ -397,10 +397,12 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             boolean isChargePayment = AccountTransferType.fromInt(accountTransferDTO.getTransferType()).isChargePayment();
             BigDecimal transactionAmount = accountTransferDTO.getTransactionAmount();
 
-            // check that savings account has sufficient funds for the transfer(loan repayment), if not, use the savings AND withdrawable amount is more than 0
+            // check that savings account has sufficient funds for the transfer(loan repayment), if not, use the savings
+            // AND withdrawable amount is more than 0
             // account balance as transfer amount
             BigDecimal withdrawableBalance = fromSavingsAccount.getWithdrawableBalance();
-            if (isLoanRepayment && (withdrawableBalance.compareTo(transactionAmount) < 0) && withdrawableBalance.compareTo(BigDecimal.ZERO) > 0) {
+            if (isLoanRepayment && (withdrawableBalance.compareTo(transactionAmount) < 0)
+                    && withdrawableBalance.compareTo(BigDecimal.ZERO) > 0) {
                 transactionAmount = withdrawableBalance;
                 accountTransferDTO.setTransactionAmount(transactionAmount);
                 if (transactionAmount.compareTo(BigDecimal.ZERO) == 0) {
