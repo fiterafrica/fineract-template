@@ -345,7 +345,7 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
         Long userId = appUser.getId();
         this.jdbcTemplate.update("insert into m_portfolio_command_source "
                 + "(action_name,entity_name,office_id,api_get_url,command_as_json,resource_id,maker_id,made_on_date,processing_result_enum) "
-                + "values(?, ?,?,?,?,?,?,current_date,1) ", "LOGOUT", "AUTHENTICATION", appUser.getOffice().getId(), "/authenticate/logout",
+                + "values(?, ?,?,?,?,?,?,current_timestamp ,1) ", "LOGOUT", "AUTHENTICATION", appUser.getOffice().getId(), "/authenticate/logout",
                 "{ipAddress:\"" + clientIp + "\"}", userId, userId);
     }
 
