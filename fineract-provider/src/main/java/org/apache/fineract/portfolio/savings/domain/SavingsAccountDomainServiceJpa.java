@@ -175,6 +175,13 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
                     backdatedTxnsAllowedTill, false);
         }
 
+        if (account.isBeforeLastAccrualPostingDate(transactionDate)) {
+            // reset last accrual date to transaction date
+            account.setStartInterestAccrualCalculationDate(transactionDate.minusDays(1));
+            account.postAccrualInterest(mc, today, transactionBooleanValues.isInterestTransfer(),
+                    isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, postInterestOnDate, null);
+        }
+
         List<DepositAccountOnHoldTransaction> depositAccountOnHoldTransactions = null;
         if (account.getOnHoldFunds().compareTo(BigDecimal.ZERO) > 0) {
             depositAccountOnHoldTransactions = this.depositAccountOnHoldTransactionRepository
@@ -302,6 +309,13 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         } else {
             account.calculateInterestUsing(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                     financialYearBeginningMonth, postInterestOnDate, true, backdatedTxnsAllowedTill, false);
+        }
+
+        if (account.isBeforeLastAccrualPostingDate(transactionDate)) {
+            // reset last accrual date to transaction date
+            account.setStartInterestAccrualCalculationDate(transactionDate.minusDays(1));
+            account.postAccrualInterest(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
+                    financialYearBeginningMonth, postInterestOnDate, null);
         }
 
         saveTransactionToGenerateTransactionId(deposit);
