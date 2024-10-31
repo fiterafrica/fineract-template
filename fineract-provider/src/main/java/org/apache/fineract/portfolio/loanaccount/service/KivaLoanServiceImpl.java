@@ -56,6 +56,7 @@ import org.apache.fineract.portfolio.client.domain.ClientRecruitmentSurvey;
 import org.apache.fineract.portfolio.client.domain.ClientRecruitmentSurveyRepository;
 import org.apache.fineract.portfolio.loanaccount.data.KivaLoanAccount;
 import org.apache.fineract.portfolio.loanaccount.data.KivaLoanAccountSchedule;
+import org.apache.fineract.portfolio.loanaccount.data.KivaLoanAccountScheduleParameters;
 import org.apache.fineract.portfolio.loanaccount.data.KivaLoanAwaitingApprovalData;
 import org.apache.fineract.portfolio.loanaccount.data.KivaLoanAwaitingRepaymentData;
 import org.apache.fineract.portfolio.loanaccount.data.KivaLoanData;
@@ -65,7 +66,6 @@ import org.apache.fineract.portfolio.loanaccount.data.KivaLocationData;
 import org.apache.fineract.portfolio.loanaccount.data.KivaSupportedCurrencyData;
 import org.apache.fineract.portfolio.loanaccount.data.KivaSupportedLocationData;
 import org.apache.fineract.portfolio.loanaccount.data.KivaSupportedThemeData;
-import org.apache.fineract.portfolio.loanaccount.data.KivaLoanAccountScheduleParameters;
 import org.apache.fineract.portfolio.loanaccount.data.LoanDetailToKivaData;
 import org.apache.fineract.portfolio.loanaccount.data.ThemeData;
 import org.apache.fineract.portfolio.loanaccount.domain.KivaCurrency;
@@ -223,8 +223,8 @@ public class KivaLoanServiceImpl implements KivaLoanService {
         ClientRecruitmentSurvey clientRecruitmentSurvey = clientRecruitmentSurveyRepository.getByClientId(client.getId());
         String location = getClientLocation(clientRecruitmentSurvey);
 
-        KivaLoanAccount loanAccount = new KivaLoanAccount(loan.getLoanSummary().getTotalPrincipalDisbursed(), clientKivaId, client.getFirstname(), gender,
-                client.getLastname(), getLoanKivaId(loan));
+        KivaLoanAccount loanAccount = new KivaLoanAccount(loan.getLoanSummary().getTotalPrincipalDisbursed(), clientKivaId,
+                client.getFirstname(), gender, client.getLastname(), getLoanKivaId(loan));
         kivaLoanAccounts.add(loanAccount);
 
         for (LoanRepaymentScheduleInstallment scheduleInstallment : loan.getRepaymentScheduleInstallments()) {
@@ -233,10 +233,12 @@ public class KivaLoanServiceImpl implements KivaLoanService {
                     scheduleInstallment.getPrincipal(loan.getCurrency()).getAmount());
             kivaLoanAccountSchedules.add(schedule);
         }
-        Date firstRepaymentDate = loan.getExpectedFirstRepaymentOnDate() != null ? Date.valueOf(loan.getExpectedFirstRepaymentOnDate()) : null;
+        Date firstRepaymentDate = loan.getExpectedFirstRepaymentOnDate() != null ? Date.valueOf(loan.getExpectedFirstRepaymentOnDate())
+                : null;
         KivaLoanAccountScheduleParameters scheduleParameters = new KivaLoanAccountScheduleParameters(firstRepaymentDate,
                 loan.getNumberOfRepayments(), loan.getLoanRepaymentScheduleDetail().getRepayEvery(),
-                LoanEnumerations.repaymentFrequencyType(loan.getLoanRepaymentScheduleDetail().getRepaymentPeriodFrequencyType().getValue()).getValue().toLowerCase(),
+                LoanEnumerations.repaymentFrequencyType(loan.getLoanRepaymentScheduleDetail().getRepaymentPeriodFrequencyType().getValue())
+                        .getValue().toLowerCase(),
                 LoanEnumerations.interestType(loan.getLoanProductRelatedDetail().getInterestMethod().getValue()).getValue(),
                 loan.getLoanProductRelatedDetail().getAnnualNominalInterestRate().toString());
 
