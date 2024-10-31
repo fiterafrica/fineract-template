@@ -498,11 +498,11 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                     this.loanRepositoryWrapper.saveAndFlush(newLoanApplication);
                 }
             }
-            if(newLoanApplication.getFund() != null && newLoanApplication.getFund().getName().equals("Kiva")){
-                if(newLoanApplication.getClient().getKivaId() == null || newLoanApplication.getClient().getKivaId().isEmpty()){
+            if (newLoanApplication.getFund() != null && newLoanApplication.getFund().getName().equals("Kiva")) {
+                if (newLoanApplication.getClient().getKivaId() == null || newLoanApplication.getClient().getKivaId().isEmpty()) {
                     newLoanApplication.getClient().setKivaId(newLoanApplication.getClient().getExternalId());
                 }
-                if(newLoanApplication.getKivaId() == null || newLoanApplication.getKivaId().isEmpty()){
+                if (newLoanApplication.getKivaId() == null || newLoanApplication.getKivaId().isEmpty()) {
                     newLoanApplication.setKivaId(newLoanApplication.getAccountNumber());
                 }
                 this.loanRepositoryWrapper.saveAndFlush(newLoanApplication);
@@ -1039,12 +1039,12 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
 
                     }
                 }
-                if(fund != null && fund.getName().equals("Kiva") && (existingLoanApplication.getClient().getKivaId() == null
-                        || existingLoanApplication.getClient().getKivaId().isEmpty())){
+                if (fund != null && fund.getName().equals("Kiva") && (existingLoanApplication.getClient().getKivaId() == null
+                        || existingLoanApplication.getClient().getKivaId().isEmpty())) {
                     existingLoanApplication.getClient().setKivaId(existingLoanApplication.getClient().getExternalId());
                 }
-                if(fund != null && fund.getName().equals("Kiva") && (existingLoanApplication.getKivaId() == null
-                        || existingLoanApplication.getKivaId().isEmpty())){
+                if (fund != null && fund.getName().equals("Kiva")
+                        && (existingLoanApplication.getKivaId() == null || existingLoanApplication.getKivaId().isEmpty())) {
                     existingLoanApplication.setKivaId(existingLoanApplication.getAccountNumber());
                 }
 

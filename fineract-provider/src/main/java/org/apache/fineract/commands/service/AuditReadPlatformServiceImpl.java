@@ -164,8 +164,7 @@ public class AuditReadPlatformServiceImpl implements AuditReadPlatformService {
 
     @Override
     public Collection<AuditData> retrieveAuditEntries(final SQLBuilder extraCriteria, final boolean includeJson) {
-        return retrieveEntries("audit", extraCriteria, " order by aud.id DESC ",
-                includeJson);
+        return retrieveEntries("audit", extraCriteria, " order by aud.id DESC ", includeJson);
     }
 
     @Override
