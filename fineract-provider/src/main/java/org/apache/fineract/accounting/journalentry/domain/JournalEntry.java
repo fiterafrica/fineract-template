@@ -107,6 +107,9 @@ public class JournalEntry extends AbstractAuditableCustom {
     @Column(name = "odoo_ack")
     private boolean odooAck;
 
+    @Column(name = "odoo_response")
+    private String odooResponse;
+
     @Column(name = "is_oddo_posted")
     private boolean isOddoPosted;
 
@@ -258,6 +261,14 @@ public class JournalEntry extends AbstractAuditableCustom {
 
     public void setOddoPosted(boolean isOddoPosted) {
         this.isOddoPosted = isOddoPosted;
+    }
+
+    public String getOdooResponse() {
+        return odooResponse;
+    }
+
+    public void setOdooResponse(String odooResponse) {
+        this.odooResponse = odooResponse;
     }
 
     public void setOdooAck(boolean odooAck) {
