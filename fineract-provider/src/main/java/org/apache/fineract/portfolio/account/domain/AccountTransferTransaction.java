@@ -20,6 +20,8 @@ package org.apache.fineract.portfolio.account.domain;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
@@ -28,6 +30,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
+import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransaction;
@@ -72,26 +75,32 @@ public class AccountTransferTransaction extends AbstractPersistableCustom implem
     @Column(name = "description", length = 100)
     private String description;
 
+    @Column(name = "date_created", length = 100)
+    private LocalDateTime dateCreated;
+
+    @Column(name = "external_reference", length = 100)
+    private String externalReference;
+
     public static AccountTransferTransaction savingsToSavingsTransfer(final AccountTransferDetails accountTransferDetails,
             final SavingsAccountTransaction withdrawal, final SavingsAccountTransaction deposit, final LocalDate transactionDate,
-            final Money transactionAmount, final String description) {
+            final Money transactionAmount, final String description, final String externalReference) {
 
         return new AccountTransferTransaction(accountTransferDetails, withdrawal, deposit, null, null, transactionDate, transactionAmount,
-                description);
+                description,externalReference);
     }
 
     public static AccountTransferTransaction savingsToLoanTransfer(final AccountTransferDetails accountTransferDetails,
             final SavingsAccountTransaction withdrawal, final LoanTransaction loanRepaymentTransaction, final LocalDate transactionDate,
-            final Money transactionAmount, final String description) {
+            final Money transactionAmount, final String description, final String externalReference) {
         return new AccountTransferTransaction(accountTransferDetails, withdrawal, null, loanRepaymentTransaction, null, transactionDate,
-                transactionAmount, description);
+                transactionAmount, description,externalReference);
     }
 
     public static AccountTransferTransaction loanTosavingsTransfer(final AccountTransferDetails accountTransferDetails,
             final SavingsAccountTransaction deposit, final LoanTransaction loanRefundTransaction, final LocalDate transactionDate,
-            final Money transactionAmount, final String description) {
+            final Money transactionAmount, final String description, final String externalReference) {
         return new AccountTransferTransaction(accountTransferDetails, null, deposit, null, loanRefundTransaction, transactionDate,
-                transactionAmount, description);
+                transactionAmount, description,externalReference);
     }
 
     protected AccountTransferTransaction() {
@@ -101,7 +110,7 @@ public class AccountTransferTransaction extends AbstractPersistableCustom implem
     private AccountTransferTransaction(final AccountTransferDetails accountTransferDetails, final SavingsAccountTransaction withdrawal,
             final SavingsAccountTransaction deposit, final LoanTransaction loanRepaymentTransaction,
             final LoanTransaction loanRefundTransaction, final LocalDate transactionDate, final Money transactionAmount,
-            final String description) {
+            final String description, final String externalReference) {
         this.accountTransferDetails = accountTransferDetails;
         this.fromLoanTransaction = loanRefundTransaction;
         this.fromSavingsTransaction = withdrawal;
@@ -111,6 +120,8 @@ public class AccountTransferTransaction extends AbstractPersistableCustom implem
         this.currency = transactionAmount.getCurrency();
         this.amount = transactionAmount.getAmountDefaultedToNullIfZero();
         this.description = description;
+        this.externalReference = externalReference;
+        this.dateCreated = ZonedDateTime.now(DateUtils.getDateTimeZoneOfTenant()).toLocalDateTime();
     }
 
     public LoanTransaction getFromLoanTransaction() {
@@ -145,7 +156,7 @@ public class AccountTransferTransaction extends AbstractPersistableCustom implem
             LoanTransaction disburseTransaction, LoanTransaction repaymentTransaction, LocalDate transactionDate,
             Money transactionMonetaryAmount, String description) {
         return new AccountTransferTransaction(accountTransferDetails, null, null, repaymentTransaction, disburseTransaction,
-                transactionDate, transactionMonetaryAmount, description);
+                transactionDate, transactionMonetaryAmount, description,repaymentTransaction.getExternalId());
     }
 
     @Override

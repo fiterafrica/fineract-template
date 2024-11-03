@@ -386,6 +386,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
         final LocalDate transactionDate = command.localDateValueOfParameterNamed("transactionDate");
         final BigDecimal transactionAmount = command.bigDecimalValueOfParameterNamed("transactionAmount");
+        final String externalReference = command.stringValueOfParameterNamed("externalReference");
 
         this.savingsAccountTransactionDataValidator.validateTransactionWithPivotDate(transactionDate, account);
 
@@ -398,6 +399,9 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final SavingsAccountTransaction deposit = this.savingsAccountDomainService.handleDeposit(account, fmt, transactionDate,
                 transactionAmount, paymentDetail, isAccountTransfer, isRegularTransaction, backdatedTxnsAllowedTill);
 
+        if (StringUtils.isNotBlank(externalReference)){
+            deposit.updateExternalReference(externalReference);
+        }
         if (isGsim && (deposit.getId() != null)) {
 
             LOG.debug("Deposit account has been created: {} ", deposit);
