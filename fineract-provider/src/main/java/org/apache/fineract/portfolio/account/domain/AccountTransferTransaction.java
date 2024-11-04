@@ -78,29 +78,26 @@ public class AccountTransferTransaction extends AbstractPersistableCustom implem
     @Column(name = "date_created", length = 100)
     private LocalDateTime dateCreated;
 
-    @Column(name = "external_reference", length = 100)
-    private String externalReference;
-
     public static AccountTransferTransaction savingsToSavingsTransfer(final AccountTransferDetails accountTransferDetails,
             final SavingsAccountTransaction withdrawal, final SavingsAccountTransaction deposit, final LocalDate transactionDate,
             final Money transactionAmount, final String description, final String externalReference) {
 
         return new AccountTransferTransaction(accountTransferDetails, withdrawal, deposit, null, null, transactionDate, transactionAmount,
-                description,externalReference);
+                description);
     }
 
     public static AccountTransferTransaction savingsToLoanTransfer(final AccountTransferDetails accountTransferDetails,
             final SavingsAccountTransaction withdrawal, final LoanTransaction loanRepaymentTransaction, final LocalDate transactionDate,
-            final Money transactionAmount, final String description, final String externalReference) {
+            final Money transactionAmount, final String description) {
         return new AccountTransferTransaction(accountTransferDetails, withdrawal, null, loanRepaymentTransaction, null, transactionDate,
-                transactionAmount, description,externalReference);
+                transactionAmount, description);
     }
 
     public static AccountTransferTransaction loanTosavingsTransfer(final AccountTransferDetails accountTransferDetails,
             final SavingsAccountTransaction deposit, final LoanTransaction loanRefundTransaction, final LocalDate transactionDate,
-            final Money transactionAmount, final String description, final String externalReference) {
+            final Money transactionAmount, final String description) {
         return new AccountTransferTransaction(accountTransferDetails, null, deposit, null, loanRefundTransaction, transactionDate,
-                transactionAmount, description,externalReference);
+                transactionAmount, description);
     }
 
     protected AccountTransferTransaction() {
@@ -110,7 +107,7 @@ public class AccountTransferTransaction extends AbstractPersistableCustom implem
     private AccountTransferTransaction(final AccountTransferDetails accountTransferDetails, final SavingsAccountTransaction withdrawal,
             final SavingsAccountTransaction deposit, final LoanTransaction loanRepaymentTransaction,
             final LoanTransaction loanRefundTransaction, final LocalDate transactionDate, final Money transactionAmount,
-            final String description, final String externalReference) {
+            final String description) {
         this.accountTransferDetails = accountTransferDetails;
         this.fromLoanTransaction = loanRefundTransaction;
         this.fromSavingsTransaction = withdrawal;
@@ -120,7 +117,6 @@ public class AccountTransferTransaction extends AbstractPersistableCustom implem
         this.currency = transactionAmount.getCurrency();
         this.amount = transactionAmount.getAmountDefaultedToNullIfZero();
         this.description = description;
-        this.externalReference = externalReference;
         this.dateCreated = ZonedDateTime.now(DateUtils.getDateTimeZoneOfTenant()).toLocalDateTime();
     }
 
@@ -156,7 +152,7 @@ public class AccountTransferTransaction extends AbstractPersistableCustom implem
             LoanTransaction disburseTransaction, LoanTransaction repaymentTransaction, LocalDate transactionDate,
             Money transactionMonetaryAmount, String description) {
         return new AccountTransferTransaction(accountTransferDetails, null, null, repaymentTransaction, disburseTransaction,
-                transactionDate, transactionMonetaryAmount, description,repaymentTransaction.getExternalId());
+                transactionDate, transactionMonetaryAmount, description);
     }
 
     @Override

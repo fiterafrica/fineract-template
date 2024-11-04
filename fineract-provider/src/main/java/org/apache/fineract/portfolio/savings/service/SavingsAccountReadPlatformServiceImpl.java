@@ -1589,7 +1589,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
             sqlBuilder.append("tr.id as transactionId,");
             sqlBuilder.append(
                     "CASE WHEN tr.transaction_type_enum = 2 AND  pd.actual_transaction_type = 'REVOKED_INTEREST' THEN 72  ELSE tr.transaction_type_enum END as transactionType, ");
-            sqlBuilder.append("tr.transaction_date as transactionDate, tr.amount as transactionAmount,");
+            sqlBuilder.append("tr.transaction_date as transactionDate, tr.amount as transactionAmount, tr.external_reference as externalReference,");
             sqlBuilder.append(" tr.release_id_of_hold_amount as releaseTransactionId,sp.id productId,mc.office_id officeId,");
             sqlBuilder.append(" tr.reason_for_block as reasonForBlock,sp.nominal_annual_interest_rate interestRate,");
             sqlBuilder.append("tr.created_date as submittedOnDate,sp.overdraft_limit overdraftInterestLimit,");
@@ -1703,10 +1703,11 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
             }
             final String submittedByUsername = rs.getString("submittedByUsername");
             final String note = rs.getString("transactionNote");
+            final String externalReference = rs.getString("externalReference");
             return SavingsAccountTransactionData.create(id, transactionType, paymentDetailData, savingsId, accountNo, date, currency,
                     amount, outstandingChargeAmount, runningBalance, reversed, transfer, submittedOnDate, postInterestAsOn,
                     submittedByUsername, note, isReversal, originalTransactionId, lienTransaction, releaseTransactionId, reasonForBlock,
-                    createdDate);
+                    createdDate, externalReference);
         }
     }
 

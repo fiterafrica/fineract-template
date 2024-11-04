@@ -75,6 +75,7 @@ public final class SavingsAccountTransactionData implements Serializable {
     private final Boolean lienTransaction;
     private final Long releaseTransactionId;
     private final String reasonForBlock;
+    private final String externalReference;
     private Set<SavingsAccountChargesPaidByData> chargesPaidByData = new HashSet<>();
 
     // templates
@@ -363,6 +364,7 @@ public final class SavingsAccountTransactionData implements Serializable {
         this.releaseTransactionId = null;
         this.reasonForBlock = null;
         this.createdDate = null;
+        this.externalReference = null;
     }
 
     public boolean isChargeTransaction() {
@@ -566,6 +568,7 @@ public final class SavingsAccountTransactionData implements Serializable {
         this.releaseTransactionId = null;
         this.reasonForBlock = null;
         this.createdDate = null;
+        this.externalReference = null;
     }
 
     private SavingsAccountTransactionData(BigDecimal transactionAmount, LocalDate transactionDate, Long paymentTypeId, String accountNumber,
@@ -608,6 +611,7 @@ public final class SavingsAccountTransactionData implements Serializable {
         this.releaseTransactionId = null;
         this.reasonForBlock = null;
         this.createdDate = null;
+        this.externalReference = null;
     }
 
     private SavingsAccountTransactionData(Integer id, BigDecimal transactionAmount, LocalDate transactionDate, Long paymentTypeId,
@@ -651,6 +655,7 @@ public final class SavingsAccountTransactionData implements Serializable {
         this.releaseTransactionId = null;
         this.reasonForBlock = null;
         this.createdDate = null;
+        this.externalReference = null;
     }
 
     public Integer getRowIndex() {
@@ -794,6 +799,7 @@ public final class SavingsAccountTransactionData implements Serializable {
         this.releaseTransactionId = null;
         this.reasonForBlock = null;
         this.createdDate = createdDate;
+        this.externalReference = null;
     }
 
     public static SavingsAccountTransactionData create(final Long id, final SavingsAccountTransactionEnumData transactionType,
@@ -812,18 +818,19 @@ public final class SavingsAccountTransactionData implements Serializable {
             final CurrencyData currency, final BigDecimal amount, final BigDecimal outstandingChargeAmount, final BigDecimal runningBalance,
             final boolean reversed, final AccountTransferData transfer, final LocalDate submittedOnDate, final boolean interestedPostedAsOn,
             final String submittedByUsername, final String note, final Boolean isReversal, final Long originalTransactionId,
-            final Boolean lienTransaction, final Long releaseTransactionId, final String reasonForBlock, final LocalDateTime createdDate) {
+            final Boolean lienTransaction, final Long releaseTransactionId, final String reasonForBlock, final LocalDateTime createdDate,
+            final String externalReference) {
         final Collection<PaymentTypeData> paymentTypeOptions = null;
         return new SavingsAccountTransactionData(id, transactionType, paymentDetailData, savingsId, savingsAccountNo, date, currency,
                 amount, outstandingChargeAmount, runningBalance, reversed, transfer, paymentTypeOptions, submittedOnDate,
                 interestedPostedAsOn, submittedByUsername, note, isReversal, originalTransactionId, lienTransaction, releaseTransactionId,
-                reasonForBlock, createdDate);
+                reasonForBlock, createdDate, externalReference);
     }
 
     public static SavingsAccountTransactionData create(final Long id) {
         final Collection<PaymentTypeData> paymentTypeOptions = null;
         return new SavingsAccountTransactionData(id, null, null, null, null, null, null, null, null, null, false, null, paymentTypeOptions,
-                null, false, null, null, null, null, false, null, null, null);
+                null, false, null, null, null, null, false, null, null, null,null);
     }
 
     public static SavingsAccountTransactionData template(final Long savingsId, final String savingsAccountNo,
@@ -866,7 +873,7 @@ public final class SavingsAccountTransactionData implements Serializable {
 
         this(id, transactionType, paymentDetailData, savingsId, savingsAccountNo, date, currency, amount, outstandingChargeAmount,
                 runningBalance, reversed, transfer, paymentTypeOptions, date, interestedPostedAsOn, submittedByUsername, note, null, null,
-                lienTransaction, null, null, createdDate);
+                lienTransaction, null, null, createdDate,null);
     }
 
     private SavingsAccountTransactionData(final Long id, final SavingsAccountTransactionEnumData transactionType,
@@ -875,7 +882,7 @@ public final class SavingsAccountTransactionData implements Serializable {
             final boolean reversed, final AccountTransferData transfer, final Collection<PaymentTypeData> paymentTypeOptions,
             final LocalDate submittedOnDate, final boolean interestedPostedAsOn, final String submittedByUsername, final String note,
             final Boolean isReversal, final Long originalTransactionId, final Boolean lienTransaction, final Long releaseTransactionId,
-            final String reasonForBlock, final LocalDateTime createdDate) {
+            final String reasonForBlock, final LocalDateTime createdDate, final String externalReference) {
         this.id = id;
         this.transactionType = transactionType;
         this.paymentDetailData = paymentDetailData;
@@ -901,6 +908,7 @@ public final class SavingsAccountTransactionData implements Serializable {
         this.lienTransaction = lienTransaction;
         this.releaseTransactionId = releaseTransactionId;
         this.reasonForBlock = reasonForBlock;
+        this.externalReference = externalReference;
     }
 
     private SavingsAccountTransactionData(final Long id, final SavingsAccountTransactionEnumData transactionType,
@@ -934,6 +942,7 @@ public final class SavingsAccountTransactionData implements Serializable {
         this.lienTransaction = lienTransaction;
         this.releaseTransactionId = null;
         this.reasonForBlock = null;
+        this.externalReference = null;
     }
 
     public static SavingsAccountTransactionData withWithDrawalTransactionDetails(

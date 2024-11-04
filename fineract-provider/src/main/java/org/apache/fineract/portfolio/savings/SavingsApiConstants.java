@@ -238,4 +238,5 @@ public class SavingsApiConstants {
     public static String SAVINGS_PRODUCT_CATEGORY = "SavingsProductCategory";
 
     public static String SAVINGS_PRODUCT_TYPE = "SavingsProductType";
+    public static String externalReferenceParamName = "externalReference";
 }

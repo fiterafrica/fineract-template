@@ -141,7 +141,7 @@ public final class SavingsAccountTransaction extends AbstractPersistableCustom {
     @Column(name = "ref_no", nullable = true)
     private String refNo;
 
-    @Column(name = "external_ref", nullable = true)
+    @Column(name = "external_reference", nullable = true)
     private String externalReference;
 
     @Transient
