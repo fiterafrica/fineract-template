@@ -36,6 +36,7 @@ public final class AccountTransfersApiConstants {
     public static final String transferDateParamName = "transferDate";
     public static final String transferAmountParamName = "transferAmount";
     public static final String transferDescriptionParamName = "transferDescription";
+    public static final String externalReferenceParamName = "externalReference";
     public static final String currencyParamName = "currency";
 
     public static final String DisburseToSavingsCharges = "DisburseToSavingsCharges";

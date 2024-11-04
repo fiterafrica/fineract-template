@@ -141,6 +141,9 @@ public final class SavingsAccountTransaction extends AbstractPersistableCustom {
     @Column(name = "ref_no", nullable = true)
     private String refNo;
 
+    @Column(name = "external_reference", nullable = true)
+    private String externalReference;
+
     @Transient
     private boolean newTransaction;
 
@@ -1101,6 +1104,10 @@ public final class SavingsAccountTransaction extends AbstractPersistableCustom {
         if (paymentDetail != null) {
             Long PaymentDetailsId = paymentDetail.getId();
         }
+    }
+
+    public void updateExternalReference(String externalReference) {
+        this.externalReference=externalReference;
     }
 
 }

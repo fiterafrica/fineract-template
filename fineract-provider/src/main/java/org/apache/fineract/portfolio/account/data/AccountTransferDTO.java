@@ -59,6 +59,7 @@ public class AccountTransferDTO {
 
     private boolean fdToSavings = false;
     private boolean savingsToFD = false;
+    private String externalReference;
 
     public AccountTransferDTO(final LocalDate transactionDate, final BigDecimal transactionAmount,
             final PortfolioAccountType fromAccountType, final PortfolioAccountType toAccountType, final Long fromAccountId,

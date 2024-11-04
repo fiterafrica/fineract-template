@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.portfolio.account.domain;
 
+import static org.apache.fineract.portfolio.account.api.AccountTransfersApiConstants.externalReferenceParamName;
 import static org.apache.fineract.portfolio.account.api.AccountTransfersApiConstants.transferAmountParamName;
 import static org.apache.fineract.portfolio.account.api.AccountTransfersApiConstants.transferDateParamName;
 import static org.apache.fineract.portfolio.account.api.AccountTransfersApiConstants.transferDescriptionParamName;
@@ -55,8 +56,9 @@ public class AccountTransferAssembler {
         final Money transactionMonetaryAmount = Money.of(fromSavingsAccount.getCurrency(), transactionAmount);
 
         final String description = command.stringValueOfParameterNamed(transferDescriptionParamName);
+        final String externalReference = command.stringValueOfParameterNamed(externalReferenceParamName);
         AccountTransferTransaction accountTransferTransaction = AccountTransferTransaction.savingsToSavingsTransfer(accountTransferDetails,
-                withdrawal, deposit, transactionDate, transactionMonetaryAmount, description);
+                withdrawal, deposit, transactionDate, transactionMonetaryAmount, description, externalReference);
         accountTransferDetails.addAccountTransferTransaction(accountTransferTransaction);
         return accountTransferDetails;
     }
@@ -124,7 +126,7 @@ public class AccountTransferAssembler {
 
         AccountTransferTransaction accountTransferTransaction = AccountTransferTransaction.savingsToSavingsTransfer(accountTransferDetails,
                 withdrawal, deposit, accountTransferDTO.getTransactionDate(), transactionMonetaryAmount,
-                accountTransferDTO.getDescription());
+                accountTransferDTO.getDescription(), null);
         accountTransferDetails.addAccountTransferTransaction(accountTransferTransaction);
         return accountTransferDetails;
     }
