@@ -424,6 +424,7 @@ public class OdooServiceImpl implements OdooService {
                         je.setOddoPosted(true);
                         je.setOdooJournalId(odooJournalId);
                         je.setOdooResponse(responseCode);
+                        this.journalEntryRepository.saveAndFlush(je);
                     }
                 }
 
@@ -431,6 +432,7 @@ public class OdooServiceImpl implements OdooService {
                 LOG.info("Loan Transaction Not Posted to Odoo - Code:{} - Message: {} ", responseCode, responseMessage);
                 for (JournalEntry je : journalEntries) {
                     je.setOdooResponse(responseCode + ":" + responseMessage);
+                    this.journalEntryRepository.saveAndFlush(je);
                 }
             }
 
