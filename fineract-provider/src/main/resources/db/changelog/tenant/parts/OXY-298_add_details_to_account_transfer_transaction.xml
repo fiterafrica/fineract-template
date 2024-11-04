@@ -34,7 +34,7 @@
 <changeSet author="brian@fiter.io" id="add_external_ref_savings_transaction">
     <preConditions onFail="MARK_RAN">
         <not>
-            <columnExists tableName="m_account_transfer_transaction" columnName="external_reference"/>
+            <columnExists tableName="m_savings_account_transaction" columnName="external_reference"/>
         </not>
     </preConditions>
         <addColumn tableName="m_savings_account_transaction">
