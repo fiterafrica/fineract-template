@@ -30,7 +30,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.fineract.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.codes.domain.CodeValueRepositoryWrapper;
@@ -55,7 +54,6 @@ import org.apache.fineract.portfolio.loanaccount.domain.ChangedTransactionDetail
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanAccountDomainService;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanLifecycleStateMachine;
-import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentReminder;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentReminderRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallmentRepository;
@@ -539,8 +537,8 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
             // update the status of the request
             loanRescheduleRequest.approve(appUser, approvedOnDate);
 
-            deleteLoanRepaymentRemindersAssociatedToThisLoanAccount(loan);
             deleteOverdueInstallmentChargesAssociatedToThisLoanAccount(loan);
+            deleteLoanRepaymentRemindersAssociatedToThisLoanAccount(loan);
 
             loan.updateLoanSummaryDerivedFields();
 
@@ -717,12 +715,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 
     private void deleteLoanRepaymentRemindersAssociatedToThisLoanAccount(Loan loan) {
         // delete dependencies on m_loan_repayment_reminder associated with this Loan Account
-        List<LoanRepaymentReminder> loanRepaymentReminders = loanRepaymentReminderRepository
-                .getLoanRepaymentReminderByLoanId(loan.getId().intValue());
-
-        if (!CollectionUtils.isEmpty(loanRepaymentReminders)) {
-            loanRepaymentReminderRepository.deleteAll(loanRepaymentReminders);
-        }
+        this.namedParameterJdbcTemplate.getJdbcTemplate().update("DELETE FROM m_loan_repayment_reminder WHERE loan_id = ?", loan.getId());
     }
 
     private void deleteOverdueInstallmentChargesAssociatedToThisLoanAccount(Loan loan) {
