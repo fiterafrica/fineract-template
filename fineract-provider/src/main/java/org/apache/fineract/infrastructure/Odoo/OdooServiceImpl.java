@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,6 +39,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.SSLSocketFactory;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -332,7 +338,7 @@ public class OdooServiceImpl implements OdooService {
 
     @Override
     public JsonObject createJournalEntryToOddo(List<JournalEntry> list, Long loanTransactionId, Long transactionType, Boolean isReversed, String loanAccountNo)
-            throws IOException {
+            throws IOException, NoSuchAlgorithmException, KeyManagementException {
 
         final Integer uid = loginToOddo();
         if (uid > 0) {
@@ -390,37 +396,96 @@ public class OdooServiceImpl implements OdooService {
     }
 
     @Override
-    public String updateJournalEntryWithOdooStatus(String stringRequest){
+    public String updateJournalEntryWithOdooStatus(String stringRequest) {
 
-        JsonObject odooRequest =  JsonParser.parseString(stringRequest).getAsJsonObject();
+        LOG.info("Received Odoo Journal entry response " + stringRequest);
+
+        JsonObject odooRequest = JsonParser.parseString(stringRequest).getAsJsonObject();
         JsonObject response = new JsonObject();
 
-        String odooJournalId = getStringField(odooRequest, "journal_entry_no");
+        String responseCode = getStringField(odooRequest, "responseCode");
+        String responseMessage = getStringField(odooRequest, "responseCode");
+
+
         String transactionId = getStringField(odooRequest, "cbs_journal_entry_id");
 
-        if (odooJournalId != null) {
-            List<JournalEntry> journalEntries = this.journalEntryRepository.findJournalEntriesByLoanTransactionId("L"+transactionId);
 
-            for (JournalEntry je : journalEntries){
-                je.setOddoPosted(true);
-                je.setOdooJournalId(odooJournalId);
+        if (transactionId != null) {
+            List<JournalEntry> journalEntries = this.journalEntryRepository.findJournalEntriesByLoanTransactionId("L" + transactionId);
+
+
+            if (responseCode.equals("POSTED") || responseCode.equals("REVERSED") || responseCode.equals("EXISTING")) {
+
+                String odooJournalId = getStringField(odooRequest, "journal_entry_no");
+
+                if (odooJournalId != null) {
+
+                    for (JournalEntry je : journalEntries) {
+                        je.setOddoPosted(true);
+                        je.setOdooJournalId(odooJournalId);
+                        je.setOdooResponse(responseCode);
+                        this.journalEntryRepository.saveAndFlush(je);
+                    }
+                }
+
+            } else {
+                LOG.info("Loan Transaction Not Posted to Odoo - Code:{} - Message: {} ", responseCode, responseMessage);
+                for (JournalEntry je : journalEntries) {
+                    je.setOdooResponse(responseCode + ":" + responseMessage);
+                    this.journalEntryRepository.saveAndFlush(je);
+                }
             }
+
+            response.addProperty("success", true);
+            response.addProperty("message", "Successful");
+            response.addProperty( "ack", true);
+
+        } else {
+            LOG.info("Odoo response has no cbs transactionId");
+
+            response.addProperty("success", false);
+            response.addProperty("message", "cbs_journal_entry_id not found");
+            response.addProperty("data", stringRequest);
+            response.addProperty( "ack", true);
         }
 
-        response.addProperty("success", true);
-        response.addProperty("message", "Successful");
-        response.addProperty( "ack", true);
-
         return  response.toString();
-
     }
 
-    private JsonObject sendRequest(String payload) throws IOException {
-        OkHttpClient httpClient = new OkHttpClient();
+
+    private JsonObject sendRequest(String payload) throws IOException, NoSuchAlgorithmException, KeyManagementException {
+
+        // Trust all certificates
+        TrustManager[] trustAllCerts = new TrustManager[] {
+                new X509TrustManager() {
+                    @Override
+                    public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType){}
+
+                    @Override
+                    public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType){}
+
+                    @Override
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() { return new java.security.cert.X509Certificate[]{}; }
+                }
+        };
+
+        // Install the all-trusting trust manager
+        final SSLContext sslContext = SSLContext.getInstance("SSL");
+        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+        final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
+        // Create OkHttpClient that ignores SSL validation
+        OkHttpClient httpClient = new OkHttpClient.Builder()
+                .sslSocketFactory(sslSocketFactory, (X509TrustManager)trustAllCerts[0])
+                .hostnameVerifier((hostname, session) -> true)
+                .build();
 
         RequestBody requestBody = RequestBody.create(MediaType.parse(FORM_URL_CONTENT_TYPE), payload);
-        Request request = new Request.Builder().url(celeryUrl + "/api/cbs_journal_entry").post(requestBody)
-                .addHeader("Content-Type", "application/json").build();
+        Request request = new Request.Builder()
+                .url(celeryUrl + "/api/cbs_journal_entry")
+                .post(requestBody)
+                .addHeader("Content-Type", "application/json")
+                .build();
 
         Response response = httpClient.newCall(request).execute();
 

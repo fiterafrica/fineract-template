@@ -19,7 +19,6 @@
 package org.apache.fineract.portfolio.loanaccount.data;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-
 import java.util.Date;
 
 public class KivaLoanAccountScheduleParameters {
@@ -32,7 +31,8 @@ public class KivaLoanAccountScheduleParameters {
     private String interestRateType;
     private String annualRate;
 
-    public KivaLoanAccountScheduleParameters(Date firstRepaymentDate, Integer nInstallments, Integer nRepeat, String nRepeatUnit, String interestRateType, String annualRate) {
+    public KivaLoanAccountScheduleParameters(Date firstRepaymentDate, Integer nInstallments, Integer nRepeat, String nRepeatUnit,
+            String interestRateType, String annualRate) {
         this.firstRepaymentDate = firstRepaymentDate;
         this.nInstallments = nInstallments;
         this.nRepeat = nRepeat;
@@ -44,7 +44,8 @@ public class KivaLoanAccountScheduleParameters {
     @Override
     public String toString() {
         return "KivaLoanAccountScheduleParameters{" + "firstRepaymentDate=" + firstRepaymentDate + ", nInstallments=" + nInstallments
-                + ", nRepeat=" + nRepeat + ", nRepeatUnit=" + nRepeatUnit + ", interestRateType=" + interestRateType + ", annualRate=" + annualRate + '}';
+                + ", nRepeat=" + nRepeat + ", nRepeatUnit=" + nRepeatUnit + ", interestRateType=" + interestRateType + ", annualRate="
+                + annualRate + '}';
     }
 
     public String getInterestRateType(String interestRateType) {

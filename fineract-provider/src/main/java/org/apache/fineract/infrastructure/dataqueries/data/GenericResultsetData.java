@@ -29,6 +29,7 @@ public final class GenericResultsetData {
 
     private final List<ResultsetColumnHeaderData> columnHeaders;
     private final List<ResultsetRowData> data;
+
     @Setter
     private Integer count;
 
@@ -43,6 +44,10 @@ public final class GenericResultsetData {
 
     public List<ResultsetRowData> getData() {
         return this.data;
+    }
+
+    public Integer getCount() {
+        return count;
     }
 
     public String getColTypeOfColumnNamed(final String columnName) {

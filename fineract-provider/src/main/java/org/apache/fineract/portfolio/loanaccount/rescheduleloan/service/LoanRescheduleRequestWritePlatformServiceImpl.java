@@ -30,7 +30,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.fineract.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.codes.domain.CodeValueRepositoryWrapper;
@@ -55,7 +54,6 @@ import org.apache.fineract.portfolio.loanaccount.domain.ChangedTransactionDetail
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanAccountDomainService;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanLifecycleStateMachine;
-import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentReminder;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentReminderRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallmentRepository;
@@ -93,6 +91,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.NonTransientDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -125,6 +124,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
     private final NoteRepository noteRepository;
     private final LoanRepaymentReminderRepository loanRepaymentReminderRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     /**
      * LoanRescheduleRequestWritePlatformServiceImpl constructor
@@ -169,6 +169,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
         this.noteRepository = noteRepository;
         this.loanRepaymentReminderRepository = loanRepaymentReminderRepository;
         this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
     }
 
     /**
@@ -536,6 +537,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
             // update the status of the request
             loanRescheduleRequest.approve(appUser, approvedOnDate);
 
+            deleteOverdueInstallmentChargesAssociatedToThisLoanAccount(loan);
             deleteLoanRepaymentRemindersAssociatedToThisLoanAccount(loan);
 
             loan.updateLoanSummaryDerivedFields();
@@ -713,11 +715,23 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 
     private void deleteLoanRepaymentRemindersAssociatedToThisLoanAccount(Loan loan) {
         // delete dependencies on m_loan_repayment_reminder associated with this Loan Account
-        List<LoanRepaymentReminder> loanRepaymentReminders = loanRepaymentReminderRepository
-                .getLoanRepaymentReminderByLoanId(loan.getId().intValue());
+        this.namedParameterJdbcTemplate.getJdbcTemplate().update("DELETE FROM m_loan_repayment_reminder WHERE loan_id = ?", loan.getId());
+    }
 
-        if (!CollectionUtils.isEmpty(loanRepaymentReminders)) {
-            loanRepaymentReminderRepository.deleteAll(loanRepaymentReminders);
+    private void deleteOverdueInstallmentChargesAssociatedToThisLoanAccount(Loan loan) {
+        Long loanId = loan.getId();
+        String query = "SELECT loan_charge_id FROM m_loan_overdue_installment_charge WHERE loan_schedule_id IN (SELECT id FROM m_loan_repayment_schedule WHERE loan_id = ? AND completed_derived = false)";
+        // Select the chargeIds
+        List<Long> chargeIds = this.namedParameterJdbcTemplate.getJdbcTemplate().queryForList(query, Long.class, loanId);
+        if (!chargeIds.isEmpty()) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("chargeIds", chargeIds);
+            // Delete loan charges associated with overdue installments
+            this.namedParameterJdbcTemplate.update("DELETE FROM m_loan_charge_paid_by WHERE loan_charge_id IN (:chargeIds)", params);
+            this.namedParameterJdbcTemplate.update("DELETE FROM m_loan_overdue_installment_charge WHERE loan_charge_id IN (:chargeIds)",
+                    params);
+            // Delete chargeIds
+            this.namedParameterJdbcTemplate.update("DELETE FROM m_loan_charge WHERE id IN (:chargeIds)", params);
         }
     }
 
