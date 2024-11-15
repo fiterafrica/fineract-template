@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.infrastructure.documentmanagement.service;
 
+import java.io.IOException;
 import java.io.InputStream;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.codes.domain.CodeValueRepositoryWrapper;
@@ -36,6 +37,7 @@ import org.apache.fineract.infrastructure.documentmanagement.exception.ContentMa
 import org.apache.fineract.infrastructure.documentmanagement.exception.DocumentNotFoundException;
 import org.apache.fineract.infrastructure.documentmanagement.exception.InvalidEntityTypeForDocumentManagementException;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
+import org.apache.tika.Tika;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,6 +84,18 @@ public class DocumentWritePlatformServiceJpaRepositoryImpl implements DocumentWr
                 throw new GeneralPlatformDomainRuleException("error.msg.document.invalid.file.type",
                         "Invalid file type for Kiva Profile Image required file type is PNG, JPG, JPEG, GIF");
             }
+            // Check if file type is application/octet-stream and attempt to detect the MIME type
+            if (documentCommand.getType().equals("application/octet-stream")) {
+                Tika tika = new Tika();
+                // Use Tika to detect the MIME type based on the file content
+                String detectedMimeType = tika.detect(inputStream);
+
+                // Log or handle the detected MIME type
+                LOG.info("Detected MIME type: " + detectedMimeType);
+
+                // Update the documentCommand type to the detected MIME type
+                documentCommand.setType(detectedMimeType);
+            }
 
             final ContentRepository contentRepository = this.contentRepositoryFactory.getRepository();
 
@@ -104,6 +118,9 @@ public class DocumentWritePlatformServiceJpaRepositoryImpl implements DocumentWr
             LOG.error("Error occured.", dve);
             throw new PlatformDataIntegrityException("error.msg.document.unknown.data.integrity.issue",
                     "Unknown data integrity issue with resource.", dve);
+        } catch (IOException e) {
+            LOG.error("Error occurred while detecting MIME type.", e);
+            throw new GeneralPlatformDomainRuleException("error.msg.document.mime.type.detection.failed", "MIME type detection failed", e);
         }
     }
 
