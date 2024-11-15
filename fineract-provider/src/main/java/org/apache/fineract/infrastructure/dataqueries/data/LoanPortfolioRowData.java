@@ -24,7 +24,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+
 
 
 @Data
@@ -166,7 +166,7 @@ public class LoanPortfolioRowData {
     @SerializedName("Business Sub-Sector")
     private String businessSubSector;
     @SerializedName("Loan Created On")
-    private LocalDateTime createdOnUtc;
+    private String createdOnUtc;
     @SerializedName("Loan Last Modified on")
-    private LocalDateTime lastModifiedUtc;
+    private String lastModifiedUtc;
 }

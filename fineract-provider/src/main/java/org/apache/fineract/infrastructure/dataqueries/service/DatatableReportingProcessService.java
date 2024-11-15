@@ -41,7 +41,6 @@ import javax.ws.rs.core.StreamingOutput;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -200,7 +199,6 @@ public class DatatableReportingProcessService implements ReportingProcessService
             // Get all fields of the LoanDetails class
             Field[] fields = LoanPortfolioRowData.class.getDeclaredFields();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.S");
 
             for (int i = 0; i < fields.length; i++) {
 
@@ -218,8 +216,6 @@ public class DatatableReportingProcessService implements ReportingProcessService
                     field.set(loanDetails, value);
                 } else if (field.getType() == LocalDate.class) {
                     field.set(loanDetails, LocalDate.parse(value, formatter));
-                }else if (field.getType() == LocalDateTime.class) {
-                    field.set(loanDetails, LocalDateTime.parse(value, dateTimeFormatter));
                 }
                 else if (field.getType() == BigDecimal.class) {
                     field.set(loanDetails, new BigDecimal(value));
