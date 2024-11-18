@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.portfolio.charge.api;
+package org.apache.fineract.portfolio.charge.exception;
 
-public final class ChargesApiConstants {
+import org.apache.fineract.infrastructure.core.exception.AbstractPlatformDomainRuleException;
 
-    private ChargesApiConstants() {
+/**
+ * {@link AbstractPlatformDomainRuleException} thrown when attempting to crate charge of type penalty due at
+ * disbursement .
+ */
+public class ChargeForGraceExtensionMustHaveADueDateException extends AbstractPlatformDomainRuleException {
 
+    public ChargeForGraceExtensionMustHaveADueDateException(final String name) {
+        super("error.msg.charge.must.be.on.due.date", "Charge '" + name + "' must be on a due date.", name, name);
     }
-
-    public static final String glAccountIdParamName = "incomeAccountId";
-    public static final String taxGroupIdParamName = "taxGroupId";
-    public static final String graceExtensionParamName = "graceExtension";
-    public static final String graceExtensionDaysParamName = "extensionDays";
-
 }

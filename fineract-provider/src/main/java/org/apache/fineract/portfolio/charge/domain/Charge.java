@@ -56,6 +56,7 @@ import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.portfolio.charge.api.ChargesApiConstants;
 import org.apache.fineract.portfolio.charge.data.ChargeData;
 import org.apache.fineract.portfolio.charge.exception.ChargeDueAtDisbursementCannotBePenaltyException;
+import org.apache.fineract.portfolio.charge.exception.ChargeForGraceExtensionMustHaveADueDateException;
 import org.apache.fineract.portfolio.charge.exception.ChargeMustBePenaltyException;
 import org.apache.fineract.portfolio.charge.exception.ChargeParameterUpdateNotSupportedException;
 import org.apache.fineract.portfolio.charge.service.ChargeEnumerations;
@@ -156,6 +157,9 @@ public class Charge extends AbstractPersistableCustom {
     @Column(name = "max_occurrence", nullable = true)
     private Integer maxOccurrence;
 
+    @Column(name = "is_grace_extention", nullable = false)
+    private boolean isGraceExtention;
+
     @OneToMany(mappedBy = "charge", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<ChargeSlab> chargeSlabs = new HashSet<>();
 
@@ -167,6 +171,8 @@ public class Charge extends AbstractPersistableCustom {
         final BigDecimal minAmount = command.bigDecimalValueOfParameterNamed("minAmount");
         final BigDecimal maxAmount = command.bigDecimalValueOfParameterNamed("maxAmount");
         final String currencyCode = command.stringValueOfParameterNamed("currencyCode");
+        final Integer extensionDays = command.integerValueOfParameterNamed("extensionDays");
+        final boolean isGraceExtention = command.booleanPrimitiveValueOfParameterNamed("graceExtension");
 
         final ChargeAppliesTo chargeAppliesTo = ChargeAppliesTo.fromInt(command.integerValueOfParameterNamed("chargeAppliesTo"));
         final ChargeTimeType chargeTimeType = ChargeTimeType.fromInt(command.integerValueOfParameterNamed("chargeTimeType"));
@@ -211,7 +217,7 @@ public class Charge extends AbstractPersistableCustom {
         return new Charge(name, amount, currencyCode, chargeAppliesTo, chargeTimeType, chargeCalculationType, penalty, active, paymentMode,
                 feeOnMonthDay, feeInterval, minCap, maxCap, feeFrequency, enableFreeWithdrawalCharge, freeWithdrawalFrequency,
                 restartCountFrequency, countFrequencyType, account, taxGroup, enablePaymentType, paymentType, minAmount, maxAmount,
-                chargeVarying, maxOccurrence);
+                chargeVarying, maxOccurrence, isGraceExtention);
     }
 
     protected Charge() {}
@@ -222,7 +228,7 @@ public class Charge extends AbstractPersistableCustom {
             final BigDecimal maxCap, final Integer feeFrequency, final boolean enableFreeWithdrawalCharge,
             final Integer freeWithdrawalFrequency, final Integer restartFrequency, final PeriodFrequencyType restartFrequencyEnum,
             final GLAccount account, final TaxGroup taxGroup, final boolean enablePaymentType, final PaymentType paymentType,
-            final BigDecimal minAmount, final BigDecimal maxAmount, Boolean hasVaryingCharge, Integer maxOccurrence) {
+            final BigDecimal minAmount, final BigDecimal maxAmount, Boolean hasVaryingCharge, Integer maxOccurrence,boolean isGraceExtention) {
         this.name = name;
         this.amount = amount;
         this.minAmount = minAmount;
@@ -236,6 +242,7 @@ public class Charge extends AbstractPersistableCustom {
         this.account = account;
         this.taxGroup = taxGroup;
         this.chargePaymentMode = paymentMode == null ? null : paymentMode.getValue();
+        this.isGraceExtention = isGraceExtention;
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
         final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("charges");
@@ -292,6 +299,10 @@ public class Charge extends AbstractPersistableCustom {
             }
             if (!penalty && chargeTime.isOverdueInstallment()) {
                 throw new ChargeMustBePenaltyException(name);
+            }
+            //if is grace extension charge check if chargetime is for specified due date
+            if (isGraceExtention && !chargeTime.isOnSpecifiedDueDate()){
+                throw new ChargeForGraceExtensionMustHaveADueDateException(name);
             }
             // TODO vishwas, this validation seems unnecessary as identical
             // validation is performed in the write service
@@ -662,6 +673,12 @@ public class Charge extends AbstractPersistableCustom {
             actualChanges.put(penaltyParamName, newValue);
             this.penalty = newValue;
         }
+        final String graceExtensionParamName = "graceExtension";
+        if (command.isChangeInBooleanParameterNamed(graceExtensionParamName, this.isGraceExtention)) {
+            final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(graceExtensionParamName);
+            actualChanges.put(graceExtensionParamName, newValue);
+            this.isGraceExtention = newValue;
+        }
 
         final String activeParamName = "active";
         if (command.isChangeInBooleanParameterNamed(activeParamName, this.active)) {
@@ -755,7 +772,7 @@ public class Charge extends AbstractPersistableCustom {
                 chargePaymentmode, getFeeOnMonthDay(), this.feeInterval, this.penalty, this.active, this.enableFreeWithdrawal,
                 this.freeWithdrawalFrequency, this.restartFrequency, this.restartFrequencyEnum, this.enablePaymentType, paymentTypeData,
                 this.minCap, this.maxCap, feeFrequencyType, accountData, taxGroupData, this.minAmount, this.maxAmount,
-                this.hasVaryingCharge, null);
+                this.hasVaryingCharge, null, this.isGraceExtention);
     }
 
     public void updateChargeSlabs(JsonCommand command, final Map<String, Object> actualChanges,
@@ -965,5 +982,13 @@ public class Charge extends AbstractPersistableCustom {
             return this.hasVaryingCharge;
         }
 
+    }
+
+    public boolean isGraceExtention() {
+        return isGraceExtention;
+    }
+
+    public void setGraceExtention(boolean graceExtention) {
+        isGraceExtention = graceExtention;
     }
 }
