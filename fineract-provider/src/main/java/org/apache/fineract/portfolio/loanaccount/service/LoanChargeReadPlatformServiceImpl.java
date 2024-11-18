@@ -59,7 +59,8 @@ public class LoanChargeReadPlatformServiceImpl implements LoanChargeReadPlatform
 
         public String schema() {
             return "lc.id as id, lc.external_id as externalId, c.id as chargeId, c.name as name, " + "lc.amount as amountDue, "
-                    + "lc.amount_paid_derived as amountPaid, " + "lc.amount_waived_derived as amountWaived, "
+                    + "lc.amount_paid_derived as amountPaid,c.is_grace_extention as isGraceExtension, "
+                    + "lc.amount_waived_derived as amountWaived, lc.grace_extension_days as graceExtensionDays, "
                     + "lc.amount_writtenoff_derived as amountWrittenOff, " + "lc.amount_outstanding_derived as amountOutstanding, "
                     + "lc.calculation_percentage as percentageOf, lc.calculation_on_amount as amountPercentageAppliedTo, "
                     + "lc.charge_time_enum as chargeTime, " + "lc.is_penalty as penalty, "
@@ -117,6 +118,8 @@ public class LoanChargeReadPlatformServiceImpl implements LoanChargeReadPlatform
             final BigDecimal maxCap = rs.getBigDecimal("maxCap");
             final BigDecimal amountOrPercentage = rs.getBigDecimal("amountOrPercentage");
             final LocalDate disbursementDate = JdbcSupport.getLocalDate(rs, "disbursementDate");
+            final boolean isGraceExtension = rs.getBoolean("isGraceExtension");
+            final Integer graceExtensionDays = JdbcSupport.getInteger(rs, "graceExtensionDays");
 
             if (disbursementDate != null) {
                 dueAsOfDate = disbursementDate;
@@ -125,7 +128,7 @@ public class LoanChargeReadPlatformServiceImpl implements LoanChargeReadPlatform
 
             return new LoanChargeData(id, chargeId, name, currency, amount, amountPaid, amountWaived, amountWrittenOff, amountOutstanding,
                     chargeTimeType, dueAsOfDate, chargeCalculationType, percentageOf, amountPercentageAppliedTo, penalty, paymentMode, paid,
-                    waived, null, minCap, maxCap, amountOrPercentage, null, externalId, minAmount, maxAmount);
+                    waived, null, minCap, maxCap, amountOrPercentage, null, externalId, minAmount, maxAmount,isGraceExtension,graceExtensionDays);
         }
     }
 

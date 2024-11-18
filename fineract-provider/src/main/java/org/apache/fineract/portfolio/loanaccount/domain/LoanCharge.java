@@ -139,6 +139,9 @@ public class LoanCharge extends AbstractPersistableCustom {
     @OneToMany(mappedBy = "loanCharge", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private Set<LoanChargePaidBy> loanChargePaidBySet;
 
+    @Column(name = "grace_extension_days", nullable = true)
+    private Integer graceExtensionDays;
+
     public static LoanCharge createNewFromJson(final Loan loan, final Charge chargeDefinition, final JsonCommand command) {
         final LocalDate dueDate = command.localDateValueOfParameterNamed("dueDate");
         if (chargeDefinition.getChargeTimeType().equals(ChargeTimeType.SPECIFIED_DUE_DATE.getValue()) && dueDate == null) {
@@ -151,7 +154,18 @@ public class LoanCharge extends AbstractPersistableCustom {
 
     public static LoanCharge createNewFromJson(final Loan loan, final Charge chargeDefinition, final JsonCommand command,
             final LocalDate dueDate) {
-        final BigDecimal amount = command.bigDecimalValueOfParameterNamed("amount");
+        BigDecimal amount = command.bigDecimalValueOfParameterNamed("amount");
+        final Integer graceExtensionDays = command.integerValueOfParameterNamed("graceExtensionDays");
+        if (graceExtensionDays!=null && graceExtensionDays > 0) {
+            amount = amount.multiply(BigDecimal.valueOf(graceExtensionDays));
+        }
+        if (chargeDefinition.isGraceExtention()){
+            if (graceExtensionDays == null) {
+                final String defaultUserMessage = "Loan charge is missing grace extension days.";
+                throw new LoanChargeWithoutMandatoryFieldException("loanCharge", "graceExtensionDays", defaultUserMessage, chargeDefinition.getId(),
+                        chargeDefinition.getName());
+            }
+        }
 
         final ChargeTimeType chargeTime = null;
         final ChargeCalculationType chargeCalculation = null;
@@ -212,6 +226,7 @@ public class LoanCharge extends AbstractPersistableCustom {
                 dueDate, chargePaymentMode, null, loanCharge);
         final String externalId = command.stringValueOfParameterNamedAllowingNull("externalId");
         newLoanCharge.setExternalId(externalId);
+        newLoanCharge.setGraceExtensionDays(graceExtensionDays);
         return newLoanCharge;
     }
 
@@ -1110,4 +1125,11 @@ public class LoanCharge extends AbstractPersistableCustom {
         return ChargeTimeType.fromInt(this.chargeTime).equals(ChargeTimeType.DISBURSE_TO_SAVINGS);
     }
 
+    public Integer getGraceExtensionDays() {
+        return graceExtensionDays;
+    }
+
+    public void setGraceExtensionDays(Integer graceExtensionDays) {
+        this.graceExtensionDays = graceExtensionDays;
+    }
 }

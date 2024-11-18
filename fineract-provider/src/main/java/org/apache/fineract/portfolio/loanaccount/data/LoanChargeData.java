@@ -87,6 +87,10 @@ public class LoanChargeData {
 
     private BigDecimal maxAmount;
 
+    private Integer graceExtensionDays;
+
+    private boolean isGraceExtension;
+
     public static LoanChargeData template(final Collection<ChargeData> chargeOptions) {
         return new LoanChargeData(null, null, null, null, null, null, null, null, chargeOptions, false, null, false, false, null, null,
                 null, null, null);
@@ -104,13 +108,13 @@ public class LoanChargeData {
     }
 
     public LoanChargeData(final Long id, final Long chargeId, final String name, final CurrencyData currency, final BigDecimal amount,
-            final BigDecimal amountPaid, final BigDecimal amountWaived, final BigDecimal amountWrittenOff,
-            final BigDecimal amountOutstanding, final EnumOptionData chargeTimeType, final LocalDate dueDate,
-            final EnumOptionData chargeCalculationType, final BigDecimal percentage, final BigDecimal amountPercentageAppliedTo,
-            final boolean penalty, final EnumOptionData chargePaymentMode, final boolean paid, final boolean waived, final Long loanId,
-            final BigDecimal minCap, final BigDecimal maxCap, final BigDecimal amountOrPercentage,
-            Collection<LoanInstallmentChargeData> installmentChargeData, final String externalId, final BigDecimal minAmount,
-            final BigDecimal maxAmount) {
+                          final BigDecimal amountPaid, final BigDecimal amountWaived, final BigDecimal amountWrittenOff,
+                          final BigDecimal amountOutstanding, final EnumOptionData chargeTimeType, final LocalDate dueDate,
+                          final EnumOptionData chargeCalculationType, final BigDecimal percentage, final BigDecimal amountPercentageAppliedTo,
+                          final boolean penalty, final EnumOptionData chargePaymentMode, final boolean paid, final boolean waived, final Long loanId,
+                          final BigDecimal minCap, final BigDecimal maxCap, final BigDecimal amountOrPercentage,
+                          Collection<LoanInstallmentChargeData> installmentChargeData, final String externalId, final BigDecimal minAmount,
+                          final BigDecimal maxAmount, boolean isGraceExtension, Integer graceExtensionDays) {
         this.id = id;
         this.chargeId = chargeId;
         this.name = name;
@@ -150,6 +154,8 @@ public class LoanChargeData {
         this.externalId = externalId;
         this.minAmount = minAmount;
         this.maxAmount = maxAmount;
+        this.isGraceExtension = isGraceExtension;
+        this.graceExtensionDays = graceExtensionDays;
     }
 
     private LoanChargeData(final Long id, final Long chargeId, final String name, final CurrencyData currency, final BigDecimal amount,

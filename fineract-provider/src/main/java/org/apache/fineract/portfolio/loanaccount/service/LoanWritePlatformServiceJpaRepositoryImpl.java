@@ -1619,19 +1619,26 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             final String defaultUserMessage = "charge with date before last transaction date can not be added to loan.";
             throw new LoanChargeCannotBeAddedException("loanCharge", "date.is.before.last.transaction.date", defaultUserMessage, null,
                     chargeDefinition.getName());
-        } else if (loan.repaymentScheduleDetail().isInterestRecalculationEnabled()) {
-
-            if (loanCharge.isInstalmentFee() && loan.status().isActive()) {
-                final String defaultUserMessage = "installment charge addition not allowed after disbursement";
-                throw new LoanChargeCannotBeAddedException("loanCharge", "installment.charge", defaultUserMessage, null,
+        }else {
+            LocalDate possibleNextRepaymentDate = loan.possibleNextRepaymentDate();
+            if (chargeDefinition.isGraceExtention() && !possibleNextRepaymentDate.isEqual(loanCharge.getDueLocalDate())) {
+                final String defaultUserMessage = "charge due date same should be the same as next possible repayment date of the loan.";
+                throw new LoanChargeCannotBeAddedException("loanCharge", "date.is.same.as.next.repayment.date", defaultUserMessage, null,
                         chargeDefinition.getName());
-            }
-            final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-            final Set<LoanCharge> loanCharges = new HashSet<>(1);
-            loanCharges.add(loanCharge);
-            this.loanApplicationCommandFromApiJsonHelper.validateLoanCharges(loanCharges, dataValidationErrors);
-            if (!dataValidationErrors.isEmpty()) {
-                throw new PlatformApiDataValidationException(dataValidationErrors);
+            } else if (loan.repaymentScheduleDetail().isInterestRecalculationEnabled()) {
+
+                if (loanCharge.isInstalmentFee() && loan.status().isActive()) {
+                    final String defaultUserMessage = "installment charge addition not allowed after disbursement";
+                    throw new LoanChargeCannotBeAddedException("loanCharge", "installment.charge", defaultUserMessage, null,
+                            chargeDefinition.getName());
+                }
+                final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+                final Set<LoanCharge> loanCharges = new HashSet<>(1);
+                loanCharges.add(loanCharge);
+                this.loanApplicationCommandFromApiJsonHelper.validateLoanCharges(loanCharges, dataValidationErrors);
+                if (!dataValidationErrors.isEmpty()) {
+                    throw new PlatformApiDataValidationException(dataValidationErrors);
+                }
             }
         }
 
