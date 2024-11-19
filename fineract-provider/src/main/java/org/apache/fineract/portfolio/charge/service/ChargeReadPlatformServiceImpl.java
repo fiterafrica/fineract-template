@@ -295,7 +295,7 @@ public class ChargeReadPlatformServiceImpl implements ChargeReadPlatformService 
 
         public String chargeSchema() {
             return "c.id as id, c.name as name, c.amount as amount, c.currency_code as currencyCode, "
-                    + "c.is_grace_extention as isGraceExtension, c.grace_extension_days as graceExtensionDays, "
+                    + "c.is_grace_extention as isGraceExtension, "
                     + "c.charge_applies_to_enum as chargeAppliesTo, c.charge_time_enum as chargeTime, "
                     + "c.charge_payment_mode_enum as chargePaymentMode, " + "c.max_occurrence as maxOccurrence, "
                     + "c.charge_calculation_enum as chargeCalculation, c.is_penalty as penalty, "
@@ -398,7 +398,6 @@ public class ChargeReadPlatformServiceImpl implements ChargeReadPlatformService 
 
             final String paymentTypeName = rs.getString("paymentTypeName");
             final boolean isGraceExtension = rs.getBoolean("isGraceExtension");
-            final Integer graceExtensionDays = rs.getInt("graceExtensionDays");
             final Boolean varyAmounts = rs.getBoolean("varyAmounts");
             PaymentTypeData paymentTypeData = null;
             if (paymentTypeId != null) {
