@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 
+
 @Data
 public class LoanPortfolioRowData {
     @SerializedName("Loan Number")
@@ -164,5 +165,8 @@ public class LoanPortfolioRowData {
     private String industrySectorOfActivity;
     @SerializedName("Business Sub-Sector")
     private String businessSubSector;
-
+    @SerializedName("Loan Created On")
+    private String createdOnUtc;
+    @SerializedName("Loan Last Modified on")
+    private String lastModifiedUtc;
 }
