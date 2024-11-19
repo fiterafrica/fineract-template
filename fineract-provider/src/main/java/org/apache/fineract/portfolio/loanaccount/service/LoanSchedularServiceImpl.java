@@ -105,7 +105,7 @@ public class LoanSchedularServiceImpl implements LoanSchedularService {
 
     @Override
     @CronTarget(jobName = JobName.APPLY_CHARGE_TO_OVERDUE_LOAN_INSTALLMENT)
-    public void applyChargeForOverdueLoans(Map<String, String> jobParameters) throws JobExecutionException {
+    public void applyChargeForOverdueLoans(Map<String, String> jobParams) throws JobExecutionException {
 
         final Long penaltyWaitPeriodValue = this.configurationDomainService.retrievePenaltyWaitPeriod();
         final Boolean backdatePenalties = this.configurationDomainService.isBackdatePenaltiesEnabled();
