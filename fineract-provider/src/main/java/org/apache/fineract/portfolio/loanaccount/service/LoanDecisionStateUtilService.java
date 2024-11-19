@@ -1030,9 +1030,10 @@ public class LoanDecisionStateUtilService {
 
     private void generateTheNextIcReviewStageFive(BigDecimal dueDiligenceRecommendedAmount, BigDecimal nextStageMatrixMaxAmount,
             Integer numberOfRepayment, Integer nextStageMatrixMinTerm, Integer nextStageMatrixMaxTerm, LoanDecision loanDecision,
-            LoanDecisionState nextStageIcReview) {
+            LoanDecisionState nextStageIcReview, BigDecimal currentStageMaximumLoanAmount) {
 
-        if ((dueDiligenceRecommendedAmount.compareTo(nextStageMatrixMaxAmount) <= 0)
+        if ((dueDiligenceRecommendedAmount.compareTo(currentStageMaximumLoanAmount) > 0
+                && (dueDiligenceRecommendedAmount.compareTo(nextStageMatrixMaxAmount) <= 0))
                 && (numberOfRepayment > nextStageMatrixMinTerm && numberOfRepayment <= nextStageMatrixMaxTerm)) {
             loanDecision.setNextLoanIcReviewDecisionState(nextStageIcReview.getValue());
         } else {
@@ -1198,25 +1199,29 @@ public class LoanDecisionStateUtilService {
             // Loan is FirstCycle and Unsecure
             generateTheNextIcReviewStageFive(dueDiligenceRecommendedAmount, approvalMatrix.getLevelFiveUnsecuredFirstCycleMaxAmount(),
                     loan.getNumberOfRepayments(), approvalMatrix.getLevelFiveUnsecuredFirstCycleMinTerm(),
-                    approvalMatrix.getLevelFiveUnsecuredFirstCycleMaxTerm(), loanDecision, expectedNextIcReviewStage);
+                    approvalMatrix.getLevelFiveUnsecuredFirstCycleMaxTerm(), loanDecision, expectedNextIcReviewStage,
+                    approvalMatrix.getLevelFourUnsecuredFirstCycleMaxAmount());
 
         } else if (!isLoanFirstCycle && isLoanUnsecure) {
             // Loan is (Second cycle or plus) and Unsecure
             generateTheNextIcReviewStageFive(dueDiligenceRecommendedAmount, approvalMatrix.getLevelFiveUnsecuredSecondCycleMaxAmount(),
                     loan.getNumberOfRepayments(), approvalMatrix.getLevelFiveUnsecuredSecondCycleMinTerm(),
-                    approvalMatrix.getLevelFiveUnsecuredSecondCycleMaxTerm(), loanDecision, expectedNextIcReviewStage);
+                    approvalMatrix.getLevelFiveUnsecuredSecondCycleMaxTerm(), loanDecision, expectedNextIcReviewStage,
+                    approvalMatrix.getLevelFourUnsecuredSecondCycleMaxAmount());
 
         } else if (isLoanFirstCycle && !isLoanUnsecure) {
             // First Cycle and secured Loan
             generateTheNextIcReviewStageFive(dueDiligenceRecommendedAmount, approvalMatrix.getLevelFiveSecuredFirstCycleMaxAmount(),
                     loan.getNumberOfRepayments(), approvalMatrix.getLevelFiveSecuredFirstCycleMinTerm(),
-                    approvalMatrix.getLevelFiveSecuredFirstCycleMaxTerm(), loanDecision, expectedNextIcReviewStage);
+                    approvalMatrix.getLevelFiveSecuredFirstCycleMaxTerm(), loanDecision, expectedNextIcReviewStage,
+                    approvalMatrix.getLevelFourSecuredFirstCycleMaxAmount());
 
         } else if (!isLoanFirstCycle && !isLoanUnsecure) {
             // Second Cycle or plus and secured
             generateTheNextIcReviewStageFive(dueDiligenceRecommendedAmount, approvalMatrix.getLevelFiveSecuredSecondCycleMaxAmount(),
                     loan.getNumberOfRepayments(), approvalMatrix.getLevelFiveSecuredSecondCycleMinTerm(),
-                    approvalMatrix.getLevelFiveSecuredSecondCycleMaxTerm(), loanDecision, expectedNextIcReviewStage);
+                    approvalMatrix.getLevelFiveSecuredSecondCycleMaxTerm(), loanDecision, expectedNextIcReviewStage,
+                    approvalMatrix.getLevelFourSecuredSecondCycleMaxAmount());
 
         } else {
             throw new GeneralPlatformDomainRuleException("error.msg.invalid.loan.decision.engine.can.not.determine.the.next.decision.state",
