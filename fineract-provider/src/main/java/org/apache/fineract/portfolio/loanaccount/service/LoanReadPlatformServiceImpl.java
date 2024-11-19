@@ -1058,16 +1058,22 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
     private static final class MusoniOverdueLoanScheduleMapper implements RowMapper<OverdueLoanScheduleData> {
 
         public String schema() {
-            return " ls.loan_id as loanId, ls.installment as period, ls.fromdate as fromDate, ls.duedate as dueDate, ls.obligations_met_on_date as obligationsMetOnDate, ls.completed_derived as complete,"
-                    + " ls.principal_amount as principalDue, ls.principal_completed_derived as principalPaid, ls.principal_writtenoff_derived as principalWrittenOff, "
-                    + " ls.interest_amount as interestDue, ls.interest_completed_derived as interestPaid, ls.interest_waived_derived as interestWaived, ls.interest_writtenoff_derived as interestWrittenOff, "
-                    + " ls.fee_charges_amount as feeChargesDue, ls.fee_charges_completed_derived as feeChargesPaid, ls.fee_charges_waived_derived as feeChargesWaived, ls.fee_charges_writtenoff_derived as feeChargesWrittenOff, "
+            return " ls.loan_id as loanId, ls.installment as period, ls.fromdate as fromDate, ls.duedate as dueDate, "
+                    + "ls.obligations_met_on_date as obligationsMetOnDate, ls.completed_derived as complete,"
+                    + " ls.principal_amount as principalDue, ls.principal_completed_derived as principalPaid, "
+                    + "ls.principal_writtenoff_derived as principalWrittenOff, gec.is_grace_extention graceExtension, lc.grace_extension_days  graceExtensionDays, "
+                    + " ls.interest_amount as interestDue, ls.interest_completed_derived as interestPaid, "
+                    + "ls.interest_waived_derived as interestWaived, ls.interest_writtenoff_derived as interestWrittenOff, "
+                    + " ls.fee_charges_amount as feeChargesDue, ls.fee_charges_completed_derived as feeChargesPaid, "
+                    + "ls.fee_charges_waived_derived as feeChargesWaived, ls.fee_charges_writtenoff_derived as feeChargesWrittenOff, "
                     + " ls.penalty_charges_amount as penaltyChargesDue, ls.penalty_charges_completed_derived as penaltyChargesPaid, ls.penalty_charges_waived_derived as penaltyChargesWaived, ls.penalty_charges_writtenoff_derived as penaltyChargesWrittenOff, "
                     + " ls.total_paid_in_advance_derived as totalPaidInAdvanceForPeriod, ls.total_paid_late_derived as totalPaidLateForPeriod, "
                     + " mc.amount,mc.id as chargeId, mc.max_occurrence as maxOccurrence" + " from m_loan_repayment_schedule ls "
                     + " inner join m_loan ml on ml.id = ls.loan_id "
                     + " join m_product_loan_charge plc on plc.product_loan_id = ml.product_id "
-                    + " join m_charge mc on mc.id = plc.charge_id ";
+                    + " join m_charge mc on mc.id = plc.charge_id "
+                    + " left join m_loan_charge lc on lc.loan_id = ml.id "
+                    + " left join m_charge gec on gec.id = lc.charge_id ";
 
         }
 
@@ -1096,9 +1102,11 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
 
             final Integer installmentNumber = JdbcSupport.getIntegerDefaultToNullIfZero(rs, "period");
             final Integer maxOccurrenceTillChargeApplies = JdbcSupport.getIntegerDefaultToNullIfZero(rs, "maxOccurrence");
+            final Boolean graceExtension = rs.getBoolean("graceExtension");
+            final Integer graceExtensionDays = JdbcSupport.getIntegerDefaultToNullIfZero(rs, "graceExtensionDays");
 
             return new OverdueLoanScheduleData(loanId, chargeId, dueDate, amount, dateFormat, locale, principalOutstanding,
-                    interestOutstanding, installmentNumber, maxOccurrenceTillChargeApplies);
+                    interestOutstanding, installmentNumber, maxOccurrenceTillChargeApplies, graceExtension, graceExtensionDays);
         }
     }
 

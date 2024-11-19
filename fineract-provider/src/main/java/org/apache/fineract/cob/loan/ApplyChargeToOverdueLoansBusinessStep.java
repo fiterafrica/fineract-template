@@ -55,6 +55,11 @@ public class ApplyChargeToOverdueLoansBusinessStep implements LoanCOBBusinessSte
     }
 
     @Override
+    public void execute(Long loanId, Collection<OverdueLoanScheduleData> overdueLoanSchedules) {
+        loanWritePlatformService.applyOverdueChargesForLoan(loanId, overdueLoanSchedules);
+    }
+
+    @Override
     public String getEnumStyledName() {
         return "APPLY_CHARGE_TO_OVERDUE_LOANS";
     }

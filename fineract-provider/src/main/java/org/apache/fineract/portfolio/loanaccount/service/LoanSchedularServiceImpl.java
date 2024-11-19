@@ -20,6 +20,8 @@ package org.apache.fineract.portfolio.loanaccount.service;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.security.SecureRandom;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -105,38 +107,41 @@ public class LoanSchedularServiceImpl implements LoanSchedularService {
 
     @Override
     @CronTarget(jobName = JobName.APPLY_CHARGE_TO_OVERDUE_LOAN_INSTALLMENT)
-    public void applyChargeForOverdueLoans(Map<String, String> jobParameters) throws JobExecutionException {
-
+    public void applyChargeForOverdueLoans(Map<String, String> jobParams) throws JobExecutionException {
         final Long penaltyWaitPeriodValue = this.configurationDomainService.retrievePenaltyWaitPeriod();
         final Boolean backdatePenalties = this.configurationDomainService.isBackdatePenaltiesEnabled();
         final Collection<OverdueLoanScheduleData> overdueLoanScheduledInstallments = this.loanReadPlatformService
                 .retrieveAllLoansWithOverdueInstallments(penaltyWaitPeriodValue, backdatePenalties);
 
-        Set<Long> loanIds = overdueLoanScheduledInstallments.stream().map(OverdueLoanScheduleData::getLoanId).collect(Collectors.toSet());
+        Set<Long> loanIds = overdueLoanScheduledInstallments.stream()
+                .filter(data -> !data.getGraceExtension() ||
+                        LocalDate.parse(data.getDueDate()).plus(data.getGraceExtensionDays(), ChronoUnit.DAYS).isAfter(DateUtils.getLocalDateOfTenant()))
+                .map(OverdueLoanScheduleData::getLoanId)
+                .collect(Collectors.toSet());
 
+        Map<Long, List<OverdueLoanScheduleData>> groupedOverdueData = overdueLoanScheduledInstallments.stream()
+                .collect(Collectors.groupingBy(OverdueLoanScheduleData::getLoanId));
         if (!loanIds.isEmpty()) {
             List<Throwable> exceptions = new ArrayList<>();
-
-            Long loanId = loanIds.stream().findFirst().orElse(null);
-
-            try {
-                applyChargeToOverdueLoansBusinessStep.execute(loanRepository.getReferenceById(loanId));
-            } catch (final PlatformApiDataValidationException e) {
-                final List<ApiParameterError> errors = e.getErrors();
-                for (final ApiParameterError error : errors) {
+            for (final Long loanId : groupedOverdueData.keySet()) {
+                try {
+                    this.applyChargeToOverdueLoansBusinessStep.execute(loanId, groupedOverdueData.get(loanId));
+                } catch (final PlatformApiDataValidationException e) {
+                    final List<ApiParameterError> errors = e.getErrors();
+                    for (final ApiParameterError error : errors) {
+                        log.error("Apply Charges due for overdue loans failed for account {} with message: {}", loanId,
+                                error.getDeveloperMessage(), e);
+                    }
+                    exceptions.add(e);
+                } catch (final AbstractPlatformDomainRuleException e) {
                     log.error("Apply Charges due for overdue loans failed for account {} with message: {}", loanId,
-                            error.getDeveloperMessage(), e);
+                            e.getDefaultUserMessage(), e);
+                    exceptions.add(e);
+                } catch (Exception e) {
+                    log.error("Apply Charges due for overdue loans failed for account {}", loanId, e);
+                    exceptions.add(e);
                 }
-                exceptions.add(e);
-            } catch (final AbstractPlatformDomainRuleException e) {
-                log.error("Apply Charges due for overdue loans failed for account {} with message: {}", loanId, e.getDefaultUserMessage(),
-                        e);
-                exceptions.add(e);
-            } catch (Exception e) {
-                log.error("Apply Charges due for overdue loans failed for account {}", loanId, e);
-                exceptions.add(e);
             }
-
             if (!exceptions.isEmpty()) {
                 throw new JobExecutionException(exceptions);
             }
