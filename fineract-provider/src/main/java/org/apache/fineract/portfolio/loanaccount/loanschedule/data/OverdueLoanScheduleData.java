@@ -32,10 +32,12 @@ public class OverdueLoanScheduleData {
     private final BigDecimal interestOverdue;
     private final Integer periodNumber;
     private final Integer maxOccurrenceTillChargeApplies;
+    private final Boolean graceExtension;
+    private final Integer graceExtensionDays;
 
     public OverdueLoanScheduleData(final Long loanId, final Long chargeId, final String dueDate, final BigDecimal amount,
             final String dateFormat, final String locale, final BigDecimal principalOverdue, final BigDecimal interestOverdue,
-            final Integer periodNumber, final Integer maxOccurrenceTillChargeApplies) {
+            final Integer periodNumber, final Integer maxOccurrenceTillChargeApplies,Boolean graceExtension, Integer graceExtensionDays) {
         this.loanId = loanId;
         this.chargeId = chargeId;
         this.dueDate = dueDate;
@@ -46,6 +48,8 @@ public class OverdueLoanScheduleData {
         this.interestOverdue = interestOverdue;
         this.periodNumber = periodNumber;
         this.maxOccurrenceTillChargeApplies = maxOccurrenceTillChargeApplies;
+        this.graceExtension = graceExtension;
+        this.graceExtensionDays = graceExtensionDays;
     }
 
     public Long getLoanId() {
@@ -87,4 +91,11 @@ public class OverdueLoanScheduleData {
                 + ", interest:'" + this.interestOverdue + '\'' + '}';
     }
 
+    public Boolean getGraceExtension() {
+        return graceExtension;
+    }
+
+    public Integer getGraceExtensionDays() {
+        return graceExtensionDays;
+    }
 }

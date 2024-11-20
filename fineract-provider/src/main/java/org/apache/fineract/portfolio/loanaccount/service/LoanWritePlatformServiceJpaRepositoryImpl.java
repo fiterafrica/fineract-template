@@ -26,6 +26,7 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -2899,11 +2900,25 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             }
 
         }
+        Collection<LoanChargeData> loanChargeData = this.loanChargeReadPlatformService.retrieveLoanCharges(loanId);
 
         if (loan != null) {
             businessEventNotifierService.notifyPreBusinessEvent(new LoanApplyOverdueChargeBusinessEvent(loan));
             for (Map.Entry<Integer, LocalDate> entry : scheduleDates.entrySet()) {
+                Collection<LoanChargeData> graceExtensionCharges = loanChargeData.stream()
+                        .filter(data -> {
+                            return data.isGraceExtension() && dueDate.equals(data.getDueDate());
+                        })
+                        .collect(Collectors.toList());
 
+                if (CollectionUtils.isNotEmpty(graceExtensionCharges)) {
+                    for (LoanChargeData chargeData : graceExtensionCharges) {
+                        LocalDate extensionDateExpiry = chargeData.getDueDate().plus(chargeData.getGraceExtensionDays(), ChronoUnit.DAYS);
+                        if (extensionDateExpiry.isBefore(entry.getValue())) {
+                            continue;
+                        }
+                    }
+                }
                 final LoanCharge loanCharge = LoanCharge.createNewFromJson(loan, chargeDefinition, command, entry.getValue());
 
                 if (BigDecimal.ZERO.compareTo(loanCharge.amount()) == 0) {

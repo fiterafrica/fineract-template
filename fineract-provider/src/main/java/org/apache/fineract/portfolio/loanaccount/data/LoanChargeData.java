@@ -464,4 +464,19 @@ public class LoanChargeData {
         return externalId;
     }
 
+    public Integer getGraceExtensionDays() {
+        return graceExtensionDays;
+    }
+
+    public void setGraceExtensionDays(Integer graceExtensionDays) {
+        this.graceExtensionDays = graceExtensionDays;
+    }
+
+    public boolean isGraceExtension() {
+        return isGraceExtension;
+    }
+
+    public void setGraceExtension(boolean graceExtension) {
+        isGraceExtension = graceExtension;
+    }
 }

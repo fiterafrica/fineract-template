@@ -118,8 +118,12 @@ public class LoanRepaymentScheduleProcessingWrapper {
                     }
                     BigDecimal loanChargeAmt = amount.multiply(loanCharge.getPercentage()).divide(BigDecimal.valueOf(100));
                     cumulative = cumulative.plus(loanChargeAmt);
-                } else if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)
-                        || loanCharge.isDueForCollectionForDisburseToSavingsAndIncluding(periodStart)) {
+                } else if ((loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)
+                        || loanCharge.isDueForCollectionForDisburseToSavingsAndIncluding(periodStart)) &&
+                        !loanCharge.getCharge().isGraceExtention()) {
+                    cumulative = cumulative.plus(loanCharge.amount());
+                }else if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart,periodEnd) &&
+                        loanCharge.getCharge().isGraceExtention()) {
                     cumulative = cumulative.plus(loanCharge.amount());
                 }
             }
@@ -140,8 +144,12 @@ public class LoanRepaymentScheduleProcessingWrapper {
                     if (loanChargePerInstallment != null) {
                         cumulative = cumulative.plus(loanChargePerInstallment.getAmountWaived(currency));
                     }
-                } else if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)
-                        || loanCharge.isDueForCollectionForDisburseToSavingsAndIncluding(periodStart)) {
+                } else if ((loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)
+                        || loanCharge.isDueForCollectionForDisburseToSavingsAndIncluding(periodStart)) &&
+                        !loanCharge.getCharge().isGraceExtention()) {
+                    cumulative = cumulative.plus(loanCharge.getAmountWaived(currency));
+                }else if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd) &&
+                        loanCharge.getCharge().isGraceExtention()) {
                     cumulative = cumulative.plus(loanCharge.getAmountWaived(currency));
                 }
             }
@@ -162,8 +170,12 @@ public class LoanRepaymentScheduleProcessingWrapper {
                     if (loanChargePerInstallment != null) {
                         cumulative = cumulative.plus(loanChargePerInstallment.getAmountWrittenOff(currency));
                     }
-                } else if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)
-                        || loanCharge.isDueForCollectionForDisburseToSavingsAndIncluding(periodStart)) {
+                } else if ((loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd)
+                        || loanCharge.isDueForCollectionForDisburseToSavingsAndIncluding(periodStart))
+                        && !loanCharge.getCharge().isGraceExtention()) {
+                    cumulative = cumulative.plus(loanCharge.getAmountWrittenOff(currency));
+                }else if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(periodStart, periodEnd) &&
+                        loanCharge.getCharge().isGraceExtention()) {
                     cumulative = cumulative.plus(loanCharge.getAmountWrittenOff(currency));
                 }
             }
