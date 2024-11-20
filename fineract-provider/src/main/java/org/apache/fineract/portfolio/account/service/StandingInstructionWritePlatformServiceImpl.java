@@ -422,6 +422,14 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
                 transferCompleted = false;
                 updateQuery.append("'failed'").append(",");
             } else {
+                if (Boolean.TRUE.equals(accountTransferDTO.getPartialProcessing())){
+                    StringBuilder partialHistory = new StringBuilder(updateQuery);
+                    partialHistory.append("'failed'").append(",");
+                    partialHistory.append(accountTransferDTO.getPartialAmount().doubleValue());
+                    partialHistory.append(", ").append(sqlGenerator.currentTenantDateTime()).append(" ");
+                    partialHistory.append(", '").append(StandingInstructionApiConstants.PartialStandingInstructionCollectionExceptionMessage).append("')");
+                    this.jdbcTemplate.update(partialHistory.toString());
+                }
                 updateQuery.append("'success'").append(",");
             }
             updateQuery.append(accountTransferDTO.getTransactionAmount().doubleValue());

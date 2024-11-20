@@ -45,6 +45,7 @@ public final class StandingInstructionApiConstants {
     public static final String monthDayFormatParamName = "monthDayFormat";
 
     public static final String insufficientBalanceExceptionMessage = "InsufficientAccountBalance Exception";
+    public static final String PartialStandingInstructionCollectionExceptionMessage = "PartialStandingInstructionCollection Exception";
 
     static final Set<String> RESPONSE_DATA_PARAMETERS = new HashSet<>(
             Arrays.asList(AccountDetailConstants.idParamName, nameParamName, priorityParamName, instructionTypeParamName, statusParamName,
