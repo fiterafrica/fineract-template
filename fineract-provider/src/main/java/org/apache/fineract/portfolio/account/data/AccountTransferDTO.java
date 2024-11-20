@@ -60,6 +60,8 @@ public class AccountTransferDTO {
     private boolean fdToSavings = false;
     private boolean savingsToFD = false;
     private String externalReference;
+    private Boolean partialProcessing = false;
+    private BigDecimal partialAmount = BigDecimal.ZERO;
 
     public AccountTransferDTO(final LocalDate transactionDate, final BigDecimal transactionAmount,
             final PortfolioAccountType fromAccountType, final PortfolioAccountType toAccountType, final Long fromAccountId,
@@ -245,5 +247,21 @@ public class AccountTransferDTO {
 
     public void setSavingsToFD(boolean savingsToFD) {
         this.savingsToFD = savingsToFD;
+    }
+
+    public Boolean getPartialProcessing() {
+        return partialProcessing;
+    }
+
+    public void setPartialProcessing(Boolean partialProcessing) {
+        this.partialProcessing = partialProcessing;
+    }
+
+    public BigDecimal getPartialAmount() {
+        return partialAmount;
+    }
+
+    public void setPartialAmount(BigDecimal partialAmount) {
+        this.partialAmount = partialAmount;
     }
 }

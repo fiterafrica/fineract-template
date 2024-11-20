@@ -403,8 +403,10 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             BigDecimal withdrawableBalance = fromSavingsAccount.getWithdrawableBalance();
             if (isLoanRepayment && (withdrawableBalance.compareTo(transactionAmount) < 0)
                     && withdrawableBalance.compareTo(BigDecimal.ZERO) > 0) {
+                accountTransferDTO.setPartialAmount(transactionAmount.subtract(withdrawableBalance));
                 transactionAmount = withdrawableBalance;
                 accountTransferDTO.setTransactionAmount(transactionAmount);
+                accountTransferDTO.setPartialProcessing(true);
                 if (transactionAmount.compareTo(BigDecimal.ZERO) == 0) {
                     return transferTransactionId;
                 }

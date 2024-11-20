@@ -117,8 +117,9 @@ public class StandingInstructionHistoryReadPlatformServiceImpl implements Standi
         sqlBuilder.append(" and ");
 
         // adding condition for SI with failed status with insufficient balance
-        sqlBuilder.append(" atsih.error_log=? ");
+        sqlBuilder.append(" atsih.error_log in(?,?) ");
         paramObj.add(StandingInstructionApiConstants.insufficientBalanceExceptionMessage);
+        paramObj.add(StandingInstructionApiConstants.PartialStandingInstructionCollectionExceptionMessage);
 
         sqlBuilder.append(" and ");
 
