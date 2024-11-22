@@ -850,7 +850,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
             this.noteRepository.save(note);
         }
 
-        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, false);
+        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, false, isTopup);
         businessEventNotifierService.notifyPostBusinessEvent(new LoanForeClosurePostBusinessEvent(payment));
         if (!isRepayGreater && isTopup) {
             Money refundAmount = Money.of(currency,
