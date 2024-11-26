@@ -23,6 +23,8 @@ import org.apache.fineract.infrastructure.jobs.exception.JobExecutionException;
 
 public interface LoanSchedularService {
 
+    void applyChargeForOverdueLoans() throws JobExecutionException;
+
     void applyChargeForOverdueLoans(Map<String, String> jobParameters) throws JobExecutionException;
 
     void recalculateInterest() throws JobExecutionException;
