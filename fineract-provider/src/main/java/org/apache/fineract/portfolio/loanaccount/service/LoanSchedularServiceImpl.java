@@ -149,6 +149,12 @@ public class LoanSchedularServiceImpl implements LoanSchedularService {
     }
 
     @Override
+    @CronTarget(jobName = JobName.APPLY_CHARGE_TO_OVERDUE_LOAN_INSTALLMENT)
+    public void applyChargeForOverdueLoans() throws JobExecutionException {
+        applyChargeForOverdueLoans(null);
+    }
+
+    @Override
     @CronTarget(jobName = JobName.RECALCULATE_INTEREST_FOR_LOAN)
     @SuppressFBWarnings(value = {
             "DMI_RANDOM_USED_ONLY_ONCE" }, justification = "False positive for random object created and used only once")
