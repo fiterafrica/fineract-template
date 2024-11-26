@@ -988,6 +988,10 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                     if (totalInterestEarned != null) {
                         interestNotPosted = totalInterestEarned.subtract(totalInterestPosted).add(totalOverdraftInterestDerived);
                         lastInterestCalculationDate = JdbcSupport.getLocalDate(rs, "lastInterestCalculationDate");
+                        //this value can't be negative
+                        if (interestNotPosted.compareTo(BigDecimal.ZERO) < 0) {
+                            interestNotPosted = null;
+                        }
                     }
 
                     final SavingsAccountSummaryData summary = new SavingsAccountSummaryData(currency, totalDeposits, totalWithdrawals,
@@ -1454,6 +1458,10 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
             if (totalInterestEarned != null) {
                 interestNotPosted = totalInterestEarned.subtract(totalInterestPosted).add(totalOverdraftInterestDerived);
                 lastInterestCalculationDate = JdbcSupport.getLocalDate(rs, "lastInterestCalculationDate");
+                //this value can't be negative
+                if (interestNotPosted.compareTo(BigDecimal.ZERO) < 0) {
+                    interestNotPosted = null;
+                }
             }
 
             final SavingsAccountSummaryData summary = new SavingsAccountSummaryData(currency, totalDeposits, totalWithdrawals,
