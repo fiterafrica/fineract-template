@@ -623,6 +623,29 @@ public final class LoanApplicationTerms {
         return totalInterestCharged;
     }
 
+    public Money calculateTotalInterestChargedWithGrace(final PaymentPeriodsInOneYearCalculator calculator, final MathContext mc) {
+
+        Money totalInterestCharged = this.principal.zero();
+
+        switch (this.interestMethod) {
+            case FLAT:
+                final Money totalInterestChargedForLoanTerm = calculateTotalFlatInterestDueWithoutGrace(calculator, mc);
+
+                final Money totalInterestPerInstallment = calculateTotalInterestPerInstallmentWithGrace(calculator, mc);
+
+                final Money totalGraceOnInterestCharged = totalInterestPerInstallment.multiplyRetainScale(getInterestPaymentGrace(),
+                        mc.getRoundingMode());
+
+                totalInterestCharged = totalInterestChargedForLoanTerm.minus(totalGraceOnInterestCharged);
+                break;
+            case DECLINING_BALANCE:
+            case INVALID:
+                break;
+        }
+
+        return totalInterestCharged;
+    }
+
     public Money calculateTotalPrincipalForPeriod(final PaymentPeriodsInOneYearCalculator calculator, final Money outstandingBalance,
             final int periodNumber, final MathContext mc, Money interestForThisInstallment) {
 
@@ -932,6 +955,25 @@ public final class LoanApplicationTerms {
         return interestPerInstallment;
     }
 
+    private Money calculateTotalInterestPerInstallmentWithGrace(final PaymentPeriodsInOneYearCalculator calculator,
+                                                                   final MathContext mc) {
+
+        final Money totalInterestForLoanTerm = calculateTotalFlatInterestDueWithoutGrace(calculator, mc);
+        return flatInterestPerInstallmentWithGrace(mc, totalInterestForLoanTerm);
+    }
+
+    private Money flatInterestPerInstallmentWithGrace(final MathContext mc, final Money totalInterestForLoanTerm) {
+        Money interestPerInstallment = totalInterestForLoanTerm.dividedBy(
+                Long.valueOf(this.actualNumberOfRepayments) - defaultToZeroIfNull(this.excludePeriodsForCalculation), mc.getRoundingMode());
+        if (this.excludePeriodsForCalculation < this.periodsCompleted) {
+            Money interestLeft = totalInterestForLoanTerm.minus(this.totalInterestAccounted);
+            interestPerInstallment = interestLeft.dividedBy(
+                    Long.valueOf(this.actualNumberOfRepayments) - defaultToZeroIfNull(this.periodsCompleted), mc.getRoundingMode());
+        }
+
+        return interestPerInstallment;
+    }
+
     private Money calculateTotalPrincipalPerPeriodWithoutGrace(final MathContext mc, final int periodNumber,
             Money interestForThisInstallment) {
         final int totalRepaymentsWithCapitalPayment = calculateNumberOfRepaymentsWithPrincipalPayment();
@@ -1002,7 +1044,7 @@ public final class LoanApplicationTerms {
 
             final Money interestPerGracePeriod = calculateTotalInterestPerInstallmentWithoutGrace(calculator, mc);
 
-            final Money totalInterestFree = interestPerGracePeriod.multipliedBy(getInterestChargingGrace());
+            final Money totalInterestFree = interestPerGracePeriod.multipliedBy(getInterestPaymentGrace());
             final Money realTotalInterestForLoan = totalInterestForLoanTerm.minus(totalInterestFree);
 
             Integer interestPaymentDuePeriods = calculateNumberOfRemainingInterestPaymentPeriods(this.actualNumberOfRepayments,

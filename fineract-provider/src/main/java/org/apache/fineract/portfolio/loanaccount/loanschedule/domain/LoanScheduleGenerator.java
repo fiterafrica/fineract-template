@@ -42,4 +42,8 @@ public interface LoanScheduleGenerator {
             LoanApplicationTerms loanApplicationTerms, MathContext mc, Loan loan, HolidayDetailDTO holidayDetailDTO,
             LoanRepaymentScheduleTransactionProcessor loanRepaymentScheduleTransactionProcessor);
 
+    LoanScheduleDTO rescheduleRequestNextInstallments(MathContext mc, LoanApplicationTerms loanApplicationTerms, Loan loan,
+                                               HolidayDetailDTO holidayDetailDTO, LoanRepaymentScheduleTransactionProcessor loanRepaymentScheduleTransactionProcessor,
+                                               LocalDate rescheduleFrom);
+
 }
