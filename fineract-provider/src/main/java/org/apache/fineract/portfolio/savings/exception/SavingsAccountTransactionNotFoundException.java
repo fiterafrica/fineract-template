@@ -28,4 +28,10 @@ public class SavingsAccountTransactionNotFoundException extends AbstractPlatform
                 savingsId, transactionId);
     }
 
+    public SavingsAccountTransactionNotFoundException(final String checkNumber, final Long savingsId) {
+        super("error.msg.saving.account.checkNumber.invalid",
+                "Savings account transaction with savings identifier " + savingsId + " and checkNumber " + checkNumber + " does not exist",
+                savingsId, checkNumber);
+    }
+
 }
