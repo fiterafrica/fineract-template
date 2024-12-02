@@ -187,4 +187,18 @@ public class FixedDepositAccountTransactionsApiResource {
 
         return this.toApiJsonSerializer.serialize(result);
     }
+
+    @GET
+    @Path("/byCheck/{checkNumber}")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    public String retrieveTransactionByCheckNumber(@PathParam("fixedDepositAccountId") final Long fixedDepositAccountId,
+                              @PathParam("checkNumber") final String checkNumber, @Context final UriInfo uriInfo) {
+
+        this.context.authenticatedUser().validateHasReadPermission(DepositsApiConstants.FIXED_DEPOSIT_ACCOUNT_RESOURCE_NAME);
+        SavingsAccountTransactionData transactionData = this.savingsAccountReadPlatformService
+                .retrieveSavingsTransactionByCheckNumber(fixedDepositAccountId, checkNumber, DepositAccountType.FIXED_DEPOSIT);
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.toApiJsonSerializer.serialize(settings, transactionData, FIXED_DEPOSIT_TRANSACTION_RESPONSE_DATA_PARAMETERS);
+    }
 }

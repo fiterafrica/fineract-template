@@ -244,4 +244,24 @@ public class RecurringDepositAccountTransactionsApiResource {
 
         return this.toApiJsonSerializer.serialize(result);
     }
+
+    @GET
+    @Path("/byCheck/{checkNumber}")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    @Operation(summary = "Retrieve Recurring Deposit Account Transaction", description = "Retrieves Recurring Deposit Account Transaction\n\n"
+            + "Example Requests:\n" + "\n" + "recurringdepositaccounts/1/transactions/1")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = RecurringDepositAccountTransactionsApiResourceSwagger.GetRecurringDepositAccountsRecurringDepositAccountIdTransactionsTransactionIdResponse.class))) })
+    public String retrieveTransactionByCheckNumber(
+            @PathParam("recurringDepositAccountId") @Parameter(description = "recurringDepositAccountId") final Long recurringDepositAccountId,
+            @PathParam("checkNumber") @Parameter(description = "checkNumber") final String checkNumber,
+            @Context final UriInfo uriInfo) {
+
+        this.context.authenticatedUser().validateHasReadPermission(DepositsApiConstants.RECURRING_DEPOSIT_ACCOUNT_RESOURCE_NAME);
+        SavingsAccountTransactionData transactionData = this.savingsAccountReadPlatformService
+                .retrieveSavingsTransactionByCheckNumber(recurringDepositAccountId, checkNumber, DepositAccountType.RECURRING_DEPOSIT);
+        final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
+        return this.toApiJsonSerializer.serialize(settings, transactionData, FIXED_DEPOSIT_TRANSACTION_RESPONSE_DATA_PARAMETERS);
+    }
 }
