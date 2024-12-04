@@ -358,7 +358,7 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
         }
 
         final Object[] finalObjectArray = Arrays.copyOf(objectArray, arrayPos);
-        return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlBuilder.toString(), finalObjectArray, rm);
+        return this.paginationHelper.fetchPageWithCount(this.jdbcTemplate, sqlBuilder.toString(), finalObjectArray, rm);
     }
 
     @Override
