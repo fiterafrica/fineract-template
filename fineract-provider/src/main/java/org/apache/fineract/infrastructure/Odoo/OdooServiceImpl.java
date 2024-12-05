@@ -404,7 +404,7 @@ public class OdooServiceImpl implements OdooService {
         JsonObject response = new JsonObject();
 
         String responseCode = getStringField(odooRequest, "responseCode");
-        String responseMessage = getStringField(odooRequest, "responseCode");
+        String responseMessage = getStringField(odooRequest, "responseMessage");
 
 
         String transactionId = getStringField(odooRequest, "cbs_journal_entry_id");
