@@ -832,7 +832,10 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
             // if loan is linked with savings then first repay from linked savings account
             if (portfolioAccountData != null && portfolioAccountData.accountId() != null) {
                 isAccountTransfer = true;
+                final boolean backdatedTxnsAllowedTill = false;
                 final SavingsAccount fromSavingsAccount = this.savingsAccountAssembler.assembleFrom(portfolioAccountData.accountId());
+                this.savingsAccountAssembler.assembleFrom(portfolioAccountData.accountId(),
+                        backdatedTxnsAllowedTill);
 
                 final SavingsTransactionBooleanValues transactionBooleanValues = new SavingsTransactionBooleanValues(true, true,
                         fromSavingsAccount.isWithdrawalFeeApplicableForTransfer(), false, false);
