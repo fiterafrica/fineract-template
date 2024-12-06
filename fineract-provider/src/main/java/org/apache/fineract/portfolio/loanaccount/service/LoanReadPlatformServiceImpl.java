@@ -1600,16 +1600,19 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                 .append(" where " + sqlGenerator.subDate(sqlGenerator.currentBusinessDate(), "?", "day") + " > ls.duedate ")
                 .append(" and ls.completed_derived <> true and mc.charge_applies_to_enum =1 ")
                 .append(" and ls.recalculated_interest_component <> true ")
-                .append(" and mc.charge_time_enum = 9 and ml.loan_status_id = 300 order by ls.installment asc");
+                .append(" and mc.charge_time_enum = 9 and ml.loan_status_id = 300 ");
 
         if (backdatePenalties) {
+            sqlBuilder.append(" order by ls.installment asc");
             return this.jdbcTemplate.query(sqlBuilder.toString(), rm, penaltyWaitPeriod);
         }
         // Only apply for duedate = yesterday (so that we don't apply
         // penalties on the duedate itself)
-        sqlBuilder.append(" and ls.duedate >= " + sqlGenerator.subDate(sqlGenerator.currentBusinessDate(), "(? + 1)", "day"));
+        sqlBuilder.append(" and ls.duedate >= " + sqlGenerator.subDate(sqlGenerator.currentBusinessDate(), "?", "day"));
+        sqlBuilder.append(" order by ls.installment asc");
 
-        return this.jdbcTemplate.query(sqlBuilder.toString(), rm, penaltyWaitPeriod, penaltyWaitPeriod);
+        long additionalIntervalDays = penaltyWaitPeriod + 1;
+        return this.jdbcTemplate.query(sqlBuilder.toString(), rm, penaltyWaitPeriod, additionalIntervalDays);
     }
 
     @Override

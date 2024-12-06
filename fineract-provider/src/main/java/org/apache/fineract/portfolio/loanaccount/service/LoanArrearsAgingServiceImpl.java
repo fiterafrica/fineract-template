@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -163,16 +164,39 @@ public class LoanArrearsAgingServiceImpl implements LoanArrearsAgingService {
 
     @Override
     public void updateLoanArrearsAgeingDetails(final Loan loan) {
-        int count = this.jdbcTemplate.queryForObject("select count(mla.loan_id) from m_loan_arrears_aging mla where mla.loan_id =?",
-                Integer.class, loan.getId());
-        String updateStatement = constructUpdateStatement(loan, count == 0);
-        if (updateStatement == null) {
-            String deletestatement = "DELETE FROM m_loan_arrears_aging WHERE  loan_id=?";
-            this.jdbcTemplate.update(deletestatement, loan.getId()); // NOSONAR
-        } else {
-            this.jdbcTemplate.update(updateStatement);
+        int retryCount = 0;
+        int maxRetries = 3;
+        while (retryCount < maxRetries) {
+            try {
+                Integer count = this.jdbcTemplate.queryForObject(
+                        "select count(mla.loan_id) from m_loan_arrears_aging mla where mla.loan_id = ?",
+                        Integer.class, loan.getId()
+                );
+                int safeCount = Optional.ofNullable(count).orElse(0);
+                String updateStatement = constructUpdateStatement(loan, safeCount == 0);
+                if (updateStatement == null) {
+                    String deleteStatement = "DELETE FROM m_loan_arrears_aging WHERE loan_id = ?";
+                    this.jdbcTemplate.update(deleteStatement, loan.getId());
+                } else {
+                    this.jdbcTemplate.update(updateStatement);
+                }
+                break; // Exit retry loop if successful
+            } catch (DataAccessException e) {
+                if (e.getCause() instanceof SQLException &&
+                        ((SQLException) e.getCause()).getErrorCode() == 1412) {
+                    retryCount++;
+                    try {
+                        Thread.sleep(1000); // Wait before retrying
+                    } catch (InterruptedException ignored) {
+                        log.info("Thread interrupted while waiting to retry updating loan arrears ageing details");
+                    }
+                } else {
+                    throw e; // Re-throw non-retryable exceptions
+                }
+            }
         }
     }
+
 
     private String constructUpdateStatement(final Loan loan, boolean isInsertStatement) {
         String updateSql = null;
