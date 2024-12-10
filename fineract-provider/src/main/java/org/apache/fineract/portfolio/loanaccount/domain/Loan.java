@@ -6731,10 +6731,12 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
         final MonetaryCurrency currency = getCurrency();
         Money totalPrincipal = Money.zero(currency);
         Money[] balances = retriveIncomeForOverlappingPeriod(transactionDate);
+        List<Long> installmentIds = new ArrayList<>();
         boolean isInterestComponent = true;
         for (final LoanRepaymentScheduleInstallment installment : this.repaymentScheduleInstallments) {
             if (!installment.getDueDate().isBefore(transactionDate)) {
                 totalPrincipal = totalPrincipal.plus(installment.getPrincipal(currency));
+                installmentIds.add(installment.getId());
                 newInstallments.remove(installment);
                 if (installment.getDueDate().isEqual(transactionDate)) {
                     isInterestComponent = false;
@@ -6791,8 +6793,16 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
                 }
 
             }
+            if(loanTransaction.isRepayment()){
+                loanTransaction.getLoanTransactionToRepaymentScheduleMappings().removeIf(mapping -> {
+                    assert mapping.getLoanRepaymentScheduleInstallment().getId() != null;
+                    return installmentIds.contains(mapping.getLoanRepaymentScheduleInstallment().getId());
+                });
+
+            }
         }
     }
+
 
     public void updateLoanScheduleOnForeclosure(final Collection<LoanRepaymentScheduleInstallment> installments) {
         this.repaymentScheduleInstallments.clear();
