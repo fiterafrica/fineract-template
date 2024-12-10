@@ -833,8 +833,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
             if (portfolioAccountData != null && portfolioAccountData.accountId() != null) {
                 isAccountTransfer = true;
                 final boolean backdatedTxnsAllowedTill = false;
-                final SavingsAccount fromSavingsAccount = this.savingsAccountAssembler.assembleFrom(portfolioAccountData.accountId());
-                this.savingsAccountAssembler.assembleFrom(portfolioAccountData.accountId(),
+                final SavingsAccount fromSavingsAccount = this.savingsAccountAssembler.assembleFrom(portfolioAccountData.accountId(),
                         backdatedTxnsAllowedTill);
 
                 final SavingsTransactionBooleanValues transactionBooleanValues = new SavingsTransactionBooleanValues(true, true,
