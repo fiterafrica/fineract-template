@@ -1583,10 +1583,11 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
             applyChargeOnRecurringDepositAccountWhenSavingsTargetIsMissed(account);
             account.setStatus(800);
+            this.savingAccountRepositoryWrapper.saveAndFlush(account);
+            postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds);
 
         }
-        this.savingAccountRepositoryWrapper.saveAndFlush(account);
-        postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds);
+
     }
 
     @Transactional
