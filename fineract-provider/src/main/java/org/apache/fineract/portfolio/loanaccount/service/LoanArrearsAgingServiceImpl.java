@@ -129,8 +129,19 @@ public class LoanArrearsAgingServiceImpl implements LoanArrearsAgingService {
         updateSqlBuilder.append(" and (prd.arrears_based_on_original_schedule = false or prd.arrears_based_on_original_schedule is null) ");
         updateSqlBuilder.append(" GROUP BY ml.id");
 
+        // Add ON DUPLICATE KEY UPDATE clause
+        updateSqlBuilder.append(" ON DUPLICATE KEY UPDATE ");
+        updateSqlBuilder.append(" principal_overdue_derived = VALUES(principal_overdue_derived), ");
+        updateSqlBuilder.append(" interest_overdue_derived = VALUES(interest_overdue_derived), ");
+        updateSqlBuilder.append(" fee_charges_overdue_derived = VALUES(fee_charges_overdue_derived), ");
+        updateSqlBuilder.append(" penalty_charges_overdue_derived = VALUES(penalty_charges_overdue_derived), ");
+        updateSqlBuilder.append(" total_overdue_derived = VALUES(total_overdue_derived), ");
+        updateSqlBuilder.append(" overdue_since_date_derived = VALUES(overdue_since_date_derived) ");
+
         List<String> insertStatements = updateLoanArrearsAgeingDetailsWithOriginalSchedule();
         insertStatements.add(0, updateSqlBuilder.toString());
+        insertStatements.stream()
+                .forEach(statement -> log.info("Insert statement : {}", statement));
         final int[] results = this.jdbcTemplate.batchUpdate(insertStatements.toArray(new String[0]));
         int result = 0;
         for (int i : results) {
