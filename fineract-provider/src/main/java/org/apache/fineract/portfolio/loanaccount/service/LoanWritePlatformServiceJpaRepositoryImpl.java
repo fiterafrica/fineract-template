@@ -1620,7 +1620,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             final String defaultUserMessage = "charge with date before last transaction date can not be added to loan.";
             throw new LoanChargeCannotBeAddedException("loanCharge", "date.is.before.last.transaction.date", defaultUserMessage, null,
                     chargeDefinition.getName());
-        }else {
+        } else {
             LocalDate possibleNextRepaymentDate = loan.possibleNextRepaymentDate();
             if (chargeDefinition.isGraceExtention() && !possibleNextRepaymentDate.isEqual(loanCharge.getDueLocalDate())) {
                 final String defaultUserMessage = "charge due date same should be the same as next possible repayment date of the loan.";
@@ -2905,11 +2905,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         if (loan != null) {
             businessEventNotifierService.notifyPreBusinessEvent(new LoanApplyOverdueChargeBusinessEvent(loan));
             for (Map.Entry<Integer, LocalDate> entry : scheduleDates.entrySet()) {
-                Collection<LoanChargeData> graceExtensionCharges = loanChargeData.stream()
-                        .filter(data -> {
-                            return data.isGraceExtension() && dueDate.equals(data.getDueDate());
-                        })
-                        .collect(Collectors.toList());
+                Collection<LoanChargeData> graceExtensionCharges = loanChargeData.stream().filter(data -> {
+                    return data.isGraceExtension() && dueDate.equals(data.getDueDate());
+                }).collect(Collectors.toList());
 
                 if (CollectionUtils.isNotEmpty(graceExtensionCharges)) {
                     for (LoanChargeData chargeData : graceExtensionCharges) {

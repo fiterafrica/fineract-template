@@ -228,7 +228,8 @@ public class Charge extends AbstractPersistableCustom {
             final BigDecimal maxCap, final Integer feeFrequency, final boolean enableFreeWithdrawalCharge,
             final Integer freeWithdrawalFrequency, final Integer restartFrequency, final PeriodFrequencyType restartFrequencyEnum,
             final GLAccount account, final TaxGroup taxGroup, final boolean enablePaymentType, final PaymentType paymentType,
-            final BigDecimal minAmount, final BigDecimal maxAmount, Boolean hasVaryingCharge, Integer maxOccurrence,boolean isGraceExtention) {
+            final BigDecimal minAmount, final BigDecimal maxAmount, Boolean hasVaryingCharge, Integer maxOccurrence,
+            boolean isGraceExtention) {
         this.name = name;
         this.amount = amount;
         this.minAmount = minAmount;
@@ -300,8 +301,8 @@ public class Charge extends AbstractPersistableCustom {
             if (!penalty && chargeTime.isOverdueInstallment()) {
                 throw new ChargeMustBePenaltyException(name);
             }
-            //if is grace extension charge check if chargetime is for specified due date
-            if (isGraceExtention && !chargeTime.isOnSpecifiedDueDate()){
+            // if is grace extension charge check if chargetime is for specified due date
+            if (isGraceExtention && !chargeTime.isOnSpecifiedDueDate()) {
                 throw new ChargeForGraceExtensionMustHaveADueDateException(name);
             }
             // TODO vishwas, this validation seems unnecessary as identical

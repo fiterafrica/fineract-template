@@ -18,10 +18,9 @@
  */
 package org.apache.fineract.cob;
 
+import java.util.Collection;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.OverdueLoanScheduleData;
-
-import java.util.Collection;
 
 public interface COBBusinessStep<T extends AbstractPersistableCustom> {
 

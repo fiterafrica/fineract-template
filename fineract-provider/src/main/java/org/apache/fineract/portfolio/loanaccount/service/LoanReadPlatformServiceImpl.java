@@ -1071,8 +1071,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                     + " mc.amount,mc.id as chargeId, mc.max_occurrence as maxOccurrence" + " from m_loan_repayment_schedule ls "
                     + " inner join m_loan ml on ml.id = ls.loan_id "
                     + " join m_product_loan_charge plc on plc.product_loan_id = ml.product_id "
-                    + " join m_charge mc on mc.id = plc.charge_id "
-                    + " left join m_loan_charge lc on lc.loan_id = ml.id "
+                    + " join m_charge mc on mc.id = plc.charge_id " + " left join m_loan_charge lc on lc.loan_id = ml.id "
                     + " left join m_charge gec on gec.id = lc.charge_id ";
 
         }
