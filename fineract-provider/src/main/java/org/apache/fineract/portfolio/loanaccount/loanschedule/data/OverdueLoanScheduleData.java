@@ -37,7 +37,7 @@ public class OverdueLoanScheduleData {
 
     public OverdueLoanScheduleData(final Long loanId, final Long chargeId, final String dueDate, final BigDecimal amount,
             final String dateFormat, final String locale, final BigDecimal principalOverdue, final BigDecimal interestOverdue,
-            final Integer periodNumber, final Integer maxOccurrenceTillChargeApplies,Boolean graceExtension, Integer graceExtensionDays) {
+            final Integer periodNumber, final Integer maxOccurrenceTillChargeApplies, Boolean graceExtension, Integer graceExtensionDays) {
         this.loanId = loanId;
         this.chargeId = chargeId;
         this.dueDate = dueDate;

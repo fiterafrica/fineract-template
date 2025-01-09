@@ -830,7 +830,7 @@ public final class SavingsAccountTransactionData implements Serializable {
     public static SavingsAccountTransactionData create(final Long id) {
         final Collection<PaymentTypeData> paymentTypeOptions = null;
         return new SavingsAccountTransactionData(id, null, null, null, null, null, null, null, null, null, false, null, paymentTypeOptions,
-                null, false, null, null, null, null, false, null, null, null,null);
+                null, false, null, null, null, null, false, null, null, null, null);
     }
 
     public static SavingsAccountTransactionData template(final Long savingsId, final String savingsAccountNo,
@@ -873,7 +873,7 @@ public final class SavingsAccountTransactionData implements Serializable {
 
         this(id, transactionType, paymentDetailData, savingsId, savingsAccountNo, date, currency, amount, outstandingChargeAmount,
                 runningBalance, reversed, transfer, paymentTypeOptions, date, interestedPostedAsOn, submittedByUsername, note, null, null,
-                lienTransaction, null, null, createdDate,null);
+                lienTransaction, null, null, createdDate, null);
     }
 
     private SavingsAccountTransactionData(final Long id, final SavingsAccountTransactionEnumData transactionType,

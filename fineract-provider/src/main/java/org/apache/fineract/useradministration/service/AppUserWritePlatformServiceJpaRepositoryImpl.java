@@ -322,8 +322,8 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
         Long userId = principal.getId();
         this.jdbcTemplate.update("insert into m_portfolio_command_source "
                 + "(action_name,entity_name,office_id,api_get_url,command_as_json,resource_id,maker_id,made_on_date,processing_result_enum) "
-                + "values(?, ?,?,?,?,?,?,current_timestamp,1) ", "LOGIN", "AUTHENTICATION", principal.getOffice().getId(), "/authenticate/login",
-                "{ipAddress:\"" + clientIp + "\"}", userId, userId);
+                + "values(?, ?,?,?,?,?,?,current_timestamp,1) ", "LOGIN", "AUTHENTICATION", principal.getOffice().getId(),
+                "/authenticate/login", "{ipAddress:\"" + clientIp + "\"}", userId, userId);
     }
 
     @Override
@@ -345,8 +345,8 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
         Long userId = appUser.getId();
         this.jdbcTemplate.update("insert into m_portfolio_command_source "
                 + "(action_name,entity_name,office_id,api_get_url,command_as_json,resource_id,maker_id,made_on_date,processing_result_enum) "
-                + "values(?, ?,?,?,?,?,?,current_timestamp ,1) ", "LOGOUT", "AUTHENTICATION", appUser.getOffice().getId(), "/authenticate/logout",
-                "{ipAddress:\"" + clientIp + "\"}", userId, userId);
+                + "values(?, ?,?,?,?,?,?,current_timestamp ,1) ", "LOGOUT", "AUTHENTICATION", appUser.getOffice().getId(),
+                "/authenticate/logout", "{ipAddress:\"" + clientIp + "\"}", userId, userId);
     }
 
     @Override

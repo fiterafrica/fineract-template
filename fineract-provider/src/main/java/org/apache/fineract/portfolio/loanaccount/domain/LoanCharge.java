@@ -156,14 +156,14 @@ public class LoanCharge extends AbstractPersistableCustom {
             final LocalDate dueDate) {
         BigDecimal amount = command.bigDecimalValueOfParameterNamed("amount");
         final Integer graceExtensionDays = command.integerValueOfParameterNamed("graceExtensionDays");
-        if (graceExtensionDays!=null && graceExtensionDays > 0) {
+        if (graceExtensionDays != null && graceExtensionDays > 0) {
             amount = amount.multiply(BigDecimal.valueOf(graceExtensionDays));
         }
-        if (chargeDefinition.isGraceExtention()){
+        if (chargeDefinition.isGraceExtention()) {
             if (graceExtensionDays == null) {
                 final String defaultUserMessage = "Loan charge is missing grace extension days.";
-                throw new LoanChargeWithoutMandatoryFieldException("loanCharge", "graceExtensionDays", defaultUserMessage, chargeDefinition.getId(),
-                        chargeDefinition.getName());
+                throw new LoanChargeWithoutMandatoryFieldException("loanCharge", "graceExtensionDays", defaultUserMessage,
+                        chargeDefinition.getId(), chargeDefinition.getName());
             }
         }
 

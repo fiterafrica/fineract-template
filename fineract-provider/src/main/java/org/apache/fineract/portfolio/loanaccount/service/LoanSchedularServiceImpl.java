@@ -114,10 +114,9 @@ public class LoanSchedularServiceImpl implements LoanSchedularService {
                 .retrieveAllLoansWithOverdueInstallments(penaltyWaitPeriodValue, backdatePenalties);
 
         Set<Long> loanIds = overdueLoanScheduledInstallments.stream()
-                .filter(data -> !data.getGraceExtension() ||
-                        LocalDate.parse(data.getDueDate()).plus(data.getGraceExtensionDays(), ChronoUnit.DAYS).isAfter(DateUtils.getLocalDateOfTenant()))
-                .map(OverdueLoanScheduleData::getLoanId)
-                .collect(Collectors.toSet());
+                .filter(data -> !data.getGraceExtension() || LocalDate.parse(data.getDueDate())
+                        .plus(data.getGraceExtensionDays(), ChronoUnit.DAYS).isAfter(DateUtils.getLocalDateOfTenant()))
+                .map(OverdueLoanScheduleData::getLoanId).collect(Collectors.toSet());
 
         Map<Long, List<OverdueLoanScheduleData>> groupedOverdueData = overdueLoanScheduledInstallments.stream()
                 .collect(Collectors.groupingBy(OverdueLoanScheduleData::getLoanId));

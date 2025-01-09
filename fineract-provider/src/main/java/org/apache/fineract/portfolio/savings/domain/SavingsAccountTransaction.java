@@ -1107,7 +1107,7 @@ public final class SavingsAccountTransaction extends AbstractPersistableCustom {
     }
 
     public void updateExternalReference(String externalReference) {
-        this.externalReference=externalReference;
+        this.externalReference = externalReference;
     }
 
 }

@@ -399,7 +399,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final SavingsAccountTransaction deposit = this.savingsAccountDomainService.handleDeposit(account, fmt, transactionDate,
                 transactionAmount, paymentDetail, isAccountTransfer, isRegularTransaction, backdatedTxnsAllowedTill);
 
-        if (StringUtils.isNotBlank(externalReference)){
+        if (StringUtils.isNotBlank(externalReference)) {
             deposit.updateExternalReference(externalReference);
         }
         if (isGsim && (deposit.getId() != null)) {

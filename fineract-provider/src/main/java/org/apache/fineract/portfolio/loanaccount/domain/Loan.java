@@ -6793,7 +6793,7 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
                 }
 
             }
-            if(loanTransaction.isRepayment()){
+            if (loanTransaction.isRepayment()) {
                 loanTransaction.getLoanTransactionToRepaymentScheduleMappings().removeIf(mapping -> {
                     assert mapping.getLoanRepaymentScheduleInstallment().getId() != null;
                     return installmentIds.contains(mapping.getLoanRepaymentScheduleInstallment().getId());
@@ -6802,7 +6802,6 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
             }
         }
     }
-
 
     public void updateLoanScheduleOnForeclosure(final Collection<LoanRepaymentScheduleInstallment> installments) {
         this.repaymentScheduleInstallments.clear();
