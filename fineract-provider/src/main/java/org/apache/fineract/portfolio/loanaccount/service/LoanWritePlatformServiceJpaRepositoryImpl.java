@@ -2169,7 +2169,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         List<Throwable> errors = new ArrayList<>();
         if (chargeDatas != null) {
             for (final LoanChargeData chargeData : chargeDatas) {
+                log.info("******  Loan id {}", chargeData.getLoanId());
                 if (chargeData.isInstallmentFee()) {
+                    log.info("- 1 - Processing charge payment for loan charge with id {}", chargeData.getId());
                     final Collection<LoanInstallmentChargeData> chargePerInstallments = this.loanChargeReadPlatformService
                             .retrieveInstallmentLoanCharges(chargeData.getId(), true);
                     PortfolioAccountData portfolioAccountData = null;
@@ -2191,6 +2193,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                         }
                     }
                 } else if (chargeData.getDueDate() != null && !chargeData.getDueDate().isAfter(DateUtils.getBusinessLocalDate())) {
+                    log.info("- 2 - Processing charge payment for loan charge with id {}", chargeData.getId());
                     final PortfolioAccountData portfolioAccountData = this.accountAssociationsReadPlatformService
                             .retriveLoanLinkedAssociation(chargeData.getLoanId());
                     final SavingsAccount fromSavingsAccount = null;
