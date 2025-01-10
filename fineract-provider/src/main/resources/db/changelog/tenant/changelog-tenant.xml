@@ -146,5 +146,6 @@
     <include file="parts/FSI-59_alter_table_m_loan_cashflow_projection.xml" relativeToChangelogFile="true"/>
     <include file="parts/FSI-66_modify_note_fields_to_text_data_type.xml" relativeToChangelogFile="true"/>
     <include file="parts/FSI-58_add_stages_read_permission.xml" relativeToChangelogFile="true"/>
+    <include file="parts/FSI-84_Fix_start_date_column_to_date_type.xml" relativeToChangelogFile="true"/>
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>
