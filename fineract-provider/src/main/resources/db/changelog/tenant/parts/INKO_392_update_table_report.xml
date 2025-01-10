@@ -857,5 +857,13 @@
                 splitStatements="true"
                 stripComments="true"/>
     </changeSet>
+    <changeSet author="bosco@fiter.io" id="INKO-546-update_portfolio_management_table_reports-ClientType_2" context="mysql">
+        <sqlFile
+                encoding="utf8"
+                path="db/changelog/tenant/commands/update_portfolio_management_table_reports_clientType.sql"
+                relativeToChangelogFile="false"
+                splitStatements="true"
+                stripComments="true"/>
+    </changeSet>
 
 </databaseChangeLog>
