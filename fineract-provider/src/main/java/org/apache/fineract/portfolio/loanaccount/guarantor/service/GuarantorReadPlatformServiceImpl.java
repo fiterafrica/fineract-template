@@ -126,7 +126,7 @@ public class GuarantorReadPlatformServiceImpl implements GuarantorReadPlatformSe
                         .append("g.is_pep as pep,")//
                         .append("g.middlename as middlename,")//
                         .append("g.bvn as bvn,")//
-                        .append("g.email as email,")//
+                        .append("g.email as email,g.client_id AS clientId, ")//
                         .append("cv2.id as genderCvId,").append("cv2.code_value as genderValue,")
                         .append(this.guarantorFundingMapper.schema())//
                         .append(",")//
@@ -161,6 +161,7 @@ public class GuarantorReadPlatformServiceImpl implements GuarantorReadPlatformSe
             final Long entityId = rs.getLong("entityId");
             final String firstname = rs.getString("firstname");
             final String lastname = rs.getString("lastname");
+            final String clientId = rs.getString("clientId");
             final LocalDate dob = JdbcSupport.getLocalDate(rs, "dateOfBirth");
             final String addressLine1 = rs.getString("addressLine1");
             final String addressLine2 = rs.getString("addressLine2");
@@ -206,7 +207,7 @@ public class GuarantorReadPlatformServiceImpl implements GuarantorReadPlatformSe
 
             return new GuarantorData(id, loanId, clientRelationshipType, entityId, guarantorType, firstname, lastname, dob, addressLine1,
                     addressLine2, city, state, zip, country, mobileNumber, housePhoneNumber, comment, null, null, null, status,
-                    guarantorFundingDetails, null, null, accountLinkingOptions, null, pep, bvn, email, middlename, gender);
+                    guarantorFundingDetails, null, null, accountLinkingOptions, null, pep, bvn, email, middlename, gender, clientId);
         }
     }
 

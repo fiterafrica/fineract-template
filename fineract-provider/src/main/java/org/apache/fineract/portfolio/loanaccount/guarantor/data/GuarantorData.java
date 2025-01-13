@@ -82,6 +82,7 @@ public class GuarantorData {
     private String bvn;
     private String email;
     private String middlename;
+    private String clientId;
     private CodeValueData gender;
 
     public static GuarantorData importInstance(Integer guarantorTypeId, Integer clientRelationshipTypeId, Long entityId, String firstname,
@@ -151,7 +152,8 @@ public class GuarantorData {
         final boolean status = false;
         return new GuarantorData(null, null, null, null, GuarantorEnumerations.guarantorType(GuarantorType.CUSTOMER), null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null, null, status, guarantorFundingDetails,
-                guarantorTypeOptions, allowedClientRelationshipTypes, accountLinkingOptions, genderOptions, null, null, null, null, null);
+                guarantorTypeOptions, allowedClientRelationshipTypes, accountLinkingOptions, genderOptions, null, null, null, null, null,
+                null);
     }
 
     public static GuarantorData templateOnTop(final GuarantorData guarantorData, final List<EnumOptionData> guarantorTypeOptions,
@@ -163,7 +165,7 @@ public class GuarantorData {
                 guarantorData.mobileNumber, guarantorData.housePhoneNumber, guarantorData.comment, guarantorData.officeName,
                 guarantorData.joinedDate, guarantorData.externalId, guarantorData.status, guarantorData.guarantorFundingDetails,
                 guarantorTypeOptions, allowedClientRelationshipTypes, accountLinkingOptions, genderOptions, guarantorData.pep,
-                guarantorData.bvn, guarantorData.email, guarantorData.middlename, guarantorData.gender);
+                guarantorData.bvn, guarantorData.email, guarantorData.middlename, guarantorData.gender, guarantorData.clientId);
     }
 
     public static GuarantorData mergeClientData(final ClientData clientData, final GuarantorData guarantorData) {
@@ -172,7 +174,7 @@ public class GuarantorData {
                 null, null, null, clientData.officeName(), clientData.getActivationDate(), clientData.getExternalId(), guarantorData.status,
                 guarantorData.guarantorFundingDetails, null, guarantorData.allowedClientRelationshipTypes,
                 guarantorData.accountLinkingOptions, guarantorData.genderOptions, guarantorData.pep, guarantorData.bvn, guarantorData.email,
-                guarantorData.middlename, guarantorData.gender);
+                guarantorData.middlename, guarantorData.gender, guarantorData.clientId);
     }
 
     public static GuarantorData mergeStaffData(final StaffData staffData, final GuarantorData guarantorData) {
@@ -180,7 +182,8 @@ public class GuarantorData {
                 guarantorData.guarantorType, staffData.getFirstname(), staffData.getLastname(), null, null, null, null, null, null, null,
                 null, null, null, staffData.getOfficeName(), null, null, guarantorData.status, guarantorData.guarantorFundingDetails, null,
                 guarantorData.allowedClientRelationshipTypes, guarantorData.accountLinkingOptions, guarantorData.genderOptions,
-                guarantorData.pep, guarantorData.bvn, guarantorData.email, guarantorData.middlename, guarantorData.gender);
+                guarantorData.pep, guarantorData.bvn, guarantorData.email, guarantorData.middlename, guarantorData.gender,
+                guarantorData.clientId);
     }
 
     public GuarantorData(final Long id, final Long loanId, final CodeValueData clientRelationshipType, final Long entityId,
@@ -190,7 +193,8 @@ public class GuarantorData {
             final LocalDate joinedDate, final String externalId, final boolean status,
             Collection<GuarantorFundingData> guarantorFundingDetails, final List<EnumOptionData> guarantorTypeOptions,
             final Collection<CodeValueData> allowedClientRelationshipTypes, final Collection<PortfolioAccountData> accountLinkingOptions,
-            Collection<CodeValueData> genderOptions, Boolean pep, String bvn, String email, String middlename, CodeValueData gender) {
+            Collection<CodeValueData> genderOptions, Boolean pep, String bvn, String email, String middlename, CodeValueData gender,
+            String clientId) {
         this.id = id;
         this.loanId = loanId;
         this.clientRelationshipType = clientRelationshipType;
@@ -222,6 +226,7 @@ public class GuarantorData {
         this.email = email;
         this.middlename = middlename;
         this.gender = gender;
+        this.clientId = clientId;
     }
 
     public boolean isExternalGuarantor() {
