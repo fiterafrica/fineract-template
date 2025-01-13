@@ -20,10 +20,21 @@
 
 -->
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
-    <changeSet author="deepika@fiter.io" id="FSI-84_alter_table_Business-Information_Start_date">
+
+    <changeSet author="bosco@fiter.io" id="add_m_guarantor_client_id_1">
+
         <preConditions onFail="MARK_RAN">
-            <columnExists tableName="Business Information" columnName="Started" />
+            <not>
+                <columnExists tableName="m_guarantor" columnName="client_id"/>
+            </not>
         </preConditions>
-        <modifyDataType tableName="Business Information" columnName="Started" newDataType="date"/>
+        <addColumn tableName="m_guarantor">
+            <column name="client_id" type="VARCHAR(50)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
     </changeSet>
+
+
+
 </databaseChangeLog>
