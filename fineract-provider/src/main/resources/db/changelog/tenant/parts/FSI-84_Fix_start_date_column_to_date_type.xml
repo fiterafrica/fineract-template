@@ -26,4 +26,18 @@
         </preConditions>
         <modifyDataType tableName="Business Information" columnName="Started" newDataType="date"/>
     </changeSet>
+
+    <changeSet author="bosco@fiter.io" id="add_m_guarantor_client_id">
+
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="m_guarantor" columnName="client_id"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="m_guarantor">
+            <column name="client_id" type="VARCHAR(50)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

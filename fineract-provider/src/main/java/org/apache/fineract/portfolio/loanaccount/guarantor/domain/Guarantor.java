@@ -107,6 +107,9 @@ public class Guarantor extends AbstractPersistableCustom {
     @Column(name = "middlename")
     private String middleName;
 
+    @Column(name = "client_id", length = 50)
+    private String clientId;
+
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "guarantor", orphanRemoval = true, fetch = FetchType.EAGER)
     private List<GuarantorFundingDetails> guarantorFundDetails = new ArrayList<>();
 
@@ -119,7 +122,7 @@ public class Guarantor extends AbstractPersistableCustom {
             final String addressLine2, final String city, final String state, final String country, final String zip,
             final String housePhoneNumber, final String mobilePhoneNumber, final String comment, final boolean active,
             final List<GuarantorFundingDetails> guarantorFundDetails, CodeValue gender, String middleName, String email, String bvn,
-            Boolean isPep) {
+            Boolean isPep, String clientId) {
         this.loan = loan;
         this.clientRelationshipType = clientRelationshipType;
         this.gurantorType = gurantorType;
@@ -143,6 +146,7 @@ public class Guarantor extends AbstractPersistableCustom {
         this.email = email;
         this.middleName = middleName;
         this.isPep = isPep;
+        this.clientId = clientId;
 
     }
 
@@ -173,14 +177,15 @@ public class Guarantor extends AbstractPersistableCustom {
             } else {
                 isPep = false;
             }
+            final String clientId = command.stringValueOfParameterNamed(GuarantorJSONinputParams.CLIENT_ID.getValue());
 
             return new Guarantor(loan, clientRelationshipType, gurantorType, entityId, firstname, lastname, dateOfBirth, addressLine1,
                     addressLine2, city, state, country, zip, housePhoneNumber, mobilePhoneNumber, comment, active, fundingDetails, gender,
-                    middleName, email, bvn, isPep);
+                    middleName, email, bvn, isPep, clientId);
         }
 
         return new Guarantor(loan, clientRelationshipType, gurantorType, entityId, null, null, null, null, null, null, null, null, null,
-                null, null, null, active, fundingDetails, null, null, null, null, null);
+                null, null, null, active, fundingDetails, null, null, null, null, null, null);
 
     }
 
@@ -206,6 +211,7 @@ public class Guarantor extends AbstractPersistableCustom {
             handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.EMAIL.getValue(), this.email);
             handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.BVN.getValue(), this.bvn);
             handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.MIDDLE_NAME.getValue(), this.middleName);
+            handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.CLIENT_ID.getValue(), this.clientId);
 
             if (command.isChangeInBooleanParameterNamed(GuarantorJSONinputParams.PEP.getValue(), this.isPep)) {
                 final Boolean newValue = command.booleanObjectValueOfParameterNamed(GuarantorJSONinputParams.PEP.getValue());
@@ -291,6 +297,8 @@ public class Guarantor extends AbstractPersistableCustom {
                 this.bvn = newValue;
             } else if (paramName.equals(GuarantorJSONinputParams.MIDDLE_NAME.getValue())) {
                 this.middleName = newValue;
+            } else if (paramName.equals(GuarantorJSONinputParams.CLIENT_ID.getValue())) {
+                this.clientId = newValue;
             }
         }
     }
