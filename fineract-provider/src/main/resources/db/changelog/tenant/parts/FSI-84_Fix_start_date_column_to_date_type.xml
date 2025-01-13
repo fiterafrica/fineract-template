@@ -27,6 +27,8 @@
         <modifyDataType tableName="Business Information" columnName="Started" newDataType="date"/>
     </changeSet>
 
+
+
     <changeSet author="bosco@fiter.io" id="add_m_guarantor_client_id">
 
         <preConditions onFail="MARK_RAN">
@@ -40,4 +42,7 @@
             </column>
         </addColumn>
     </changeSet>
+
+
+
 </databaseChangeLog>
