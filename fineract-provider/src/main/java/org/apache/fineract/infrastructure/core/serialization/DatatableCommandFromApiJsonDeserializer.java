@@ -21,6 +21,7 @@ package org.apache.fineract.infrastructure.core.serialization;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
+import com.google.re2j.Pattern;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -157,7 +158,7 @@ public class DatatableCommandFromApiJsonDeserializer {
         // parameter
         // has been specified is necessary in order to avoid JSON requests with
         // no parameters
-        if (!json.matches("(?s)\\A\\{.*?(\\\".*?\\\"\\s*?:\\s*?)+.*?\\}\\z")) { // NOSONAR
+        if (!Pattern.compile("\\A\\{.*?(\\\".*?\\\"\\s*?:\\s*?)+.*?\\}\\z", Pattern.DOTALL).matcher(json).matches()) {
             throw new PlatformDataIntegrityException("error.msg.invalid.request.body.no.parameters",
                     "Provided JSON request body does not have any parameters.");
         }

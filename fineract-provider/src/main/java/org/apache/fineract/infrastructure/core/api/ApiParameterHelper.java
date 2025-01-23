@@ -26,6 +26,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import javax.ws.rs.core.MultivaluedMap;
+
+import com.google.re2j.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.serialization.JsonParserHelper;
 
@@ -52,7 +54,9 @@ public final class ApiParameterHelper {
         if (queryParams.getFirst("fields") != null) {
             commaSeparatedParameters = queryParams.getFirst("fields");
             if (StringUtils.isNotBlank(commaSeparatedParameters)) {
-                fields = new HashSet<>(Arrays.asList(commaSeparatedParameters.split("\\s*,\\s*"))); // NOSONAR
+                // Use RE2J Pattern to split the parameters efficiently
+                Pattern pattern = Pattern.compile("\\s*,\\s*");
+                fields = new HashSet<>(Arrays.asList(pattern.split(commaSeparatedParameters))); // NOSONAR
             }
         }
         return fields;
@@ -64,7 +68,9 @@ public final class ApiParameterHelper {
         if (queryParams.getFirst("associations") != null) {
             commaSeparatedParameters = queryParams.getFirst("associations");
             if (StringUtils.isNotBlank(commaSeparatedParameters)) {
-                fields = new HashSet<>(Arrays.asList(commaSeparatedParameters.split("\\s*,\\s*"))); // NOSONAR
+                // Use RE2J Pattern to split the parameters efficiently
+                Pattern pattern = Pattern.compile("\\s*,\\s*");
+                fields = new HashSet<>(Arrays.asList(pattern.split(commaSeparatedParameters))); // NOSONAR
             }
         }
         return fields;
@@ -72,7 +78,9 @@ public final class ApiParameterHelper {
 
     public static void excludeAssociationsForResponseIfProvided(final String commaSeparatedParameters, Set<String> fields) {
         if (StringUtils.isNotBlank(commaSeparatedParameters)) {
-            fields.removeAll(new HashSet<>(Arrays.asList(commaSeparatedParameters.split("\\s*,\\s*")))); // NOSONAR
+            // Use RE2J Pattern to match commas efficiently and split the parameters
+            Pattern pattern = Pattern.compile("\\s*,\\s*");
+            fields.removeAll(new HashSet<>(Arrays.asList(pattern.split(commaSeparatedParameters)))); // NOSONAR
         }
     }
 
