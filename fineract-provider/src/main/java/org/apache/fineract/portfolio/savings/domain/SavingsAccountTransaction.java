@@ -728,7 +728,7 @@ public final class SavingsAccountTransaction extends AbstractPersistableCustom {
         final MonetaryCurrency currency = openingBalance.getCurrency();
         Money endOfDayBalance = openingBalance.copy();
 
-        int numberOfDaysOfBalance = this.balanceNumberOfDays;
+        int numberOfDaysOfBalance = this.balanceNumberOfDays == null ? 1 : this.balanceNumberOfDays;
 
         LocalDate balanceStartDate = getTransactionLocalDate();
         LocalDate balanceEndDate = getEndOfBalanceLocalDate();
@@ -1103,4 +1103,7 @@ public final class SavingsAccountTransaction extends AbstractPersistableCustom {
         }
     }
 
+    public void setBalanceNumberOfDays(int i) {
+        this.balanceNumberOfDays = i;
+    }
 }

@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -67,6 +68,7 @@ import org.apache.fineract.portfolio.savings.SavingsPeriodFrequencyType;
 import org.apache.fineract.portfolio.savings.SavingsPostingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.domain.interest.AnnualCompoundingPeriod;
 import org.apache.fineract.portfolio.savings.domain.interest.CompoundingPeriod;
+import org.apache.fineract.portfolio.savings.domain.interest.EndOfDayBalance;
 import org.apache.fineract.portfolio.savings.domain.interest.PostingPeriod;
 import org.apache.fineract.portfolio.savings.service.SavingsEnumerations;
 import org.apache.fineract.useradministration.domain.AppUser;
@@ -352,7 +354,7 @@ public class FixedDepositAccount extends SavingsAccount {
             allPostingPeriods.add(postingPeriod);
         }
 
-        if (allPostingPeriods.size() == 1 && SavingsPostingInterestPeriodType.TENURE.getValue().equals(this.interestPostingPeriodType)) {
+        if (allPostingPeriods.size() == 1 && SavingsPostingInterestPeriodType.TENURE.getValue().equals(this.interestPostingPeriodType)){
             List<CompoundingPeriod> compoundingPeriods = allPostingPeriods.get(0).getCompoundingPeriods();
             if (!compoundingPeriods.isEmpty()) {
                 CompoundingPeriod compoundingPeriod = compoundingPeriods.get(0);
@@ -362,8 +364,43 @@ public class FixedDepositAccount extends SavingsAccount {
                 allPostingPeriods.get(0).getCompoundingPeriods().add(compoundingPeriod);
                 if (compoundingPeriod instanceof AnnualCompoundingPeriod
                         && !((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().isEmpty()) {
-                    ((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().get(0)
-                            .setNumberOfDays(compoundingPeriod.getPeriodInterval().daysInPeriodInclusiveOfEndDate());
+                    int days = Math.toIntExact(ChronoUnit.DAYS.between(getActivationLocalDate(), DateUtils.getBusinessLocalDate()));
+                    if (((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().get(0).getNumberOfDays() == days) {
+                        EndOfDayBalance balance = ((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().get(0);
+                        ((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().clear();
+                        ((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().add(balance);
+                    } else if (((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().get(0).getNumberOfDays() > 1) {
+                        ((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().get(0).setNumberOfDays(1);
+                    }
+                }
+            }
+        }
+
+        if(allPostingPeriods.size() == 2 && SavingsPostingInterestPeriodType.ANNUAL.getValue().equals(this.interestPostingPeriodType)) {
+
+            for(PostingPeriod postingPeriod : allPostingPeriods) {
+
+                List<CompoundingPeriod> compoundingPeriods = postingPeriod.getCompoundingPeriods();
+                if (!compoundingPeriods.isEmpty()) {
+                    CompoundingPeriod compoundingPeriod = compoundingPeriods.get(0);
+                    compoundingPeriod.getPeriodInterval()
+                            .setEndDate(compoundingPeriods.get(compoundingPeriods.size() - 1).getPeriodInterval().endDate());
+                    postingPeriod.getCompoundingPeriods().clear();
+                    postingPeriod.getCompoundingPeriods().add(compoundingPeriod);
+                    if (compoundingPeriod instanceof AnnualCompoundingPeriod
+                            && !((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().isEmpty()) {
+                        int days = Math.toIntExact(ChronoUnit.DAYS.between(getActivationLocalDate(), DateUtils.getBusinessLocalDate()));
+                        if (SavingsPostingInterestPeriodType.ANNUAL.getValue().equals(this.interestPostingPeriodType)) {
+                            if (((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().get(0).getNumberOfDays() == days) {
+                                EndOfDayBalance balance = ((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().get(0);
+                                ((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().clear();
+                                ((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().add(balance);
+                            } else if (((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().get(0).getNumberOfDays() > 1) {
+                                ((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().get(0).setNumberOfDays(1);
+                            }
+                        }
+
+                    }
                 }
             }
         }
