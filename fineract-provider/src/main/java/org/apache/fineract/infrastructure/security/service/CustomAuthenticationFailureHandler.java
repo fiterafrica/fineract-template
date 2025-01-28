@@ -55,9 +55,10 @@ public class CustomAuthenticationFailureHandler implements AuthenticationFailure
             final AuthenticationException exception) throws IOException, ServletException {
 
         if (this.defaultFailureUrl == null) {
+            LOG.error("Authentication Failed: {}", exception.getMessage());
             LOG.debug("No failure URL set, sending 401 Unauthorized error");
 
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication Failed: " + exception.getMessage());
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication Failed: Invalid Credentials");
         } else {
             saveException(request, exception);
 
