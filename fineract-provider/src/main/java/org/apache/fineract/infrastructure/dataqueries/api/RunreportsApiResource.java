@@ -25,6 +25,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
+import java.util.stream.Collectors;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -37,6 +39,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.fineract.infrastructure.core.api.ApiParameterHelper;
 import org.apache.fineract.infrastructure.core.exception.PlatformServiceUnavailableException;
 import org.apache.fineract.infrastructure.dataqueries.service.ReadReportingService;
@@ -98,23 +101,29 @@ public class RunreportsApiResource {
             @Context final UriInfo uriInfo,
             @DefaultValue("false") @QueryParam(IS_SELF_SERVICE_USER_REPORT_PARAMETER) @Parameter(description = IS_SELF_SERVICE_USER_REPORT_PARAMETER) final boolean isSelfServiceUserReport) {
 
+        String sanitizedReportName = StringEscapeUtils.escapeHtml4(reportName);
+
         MultivaluedMap<String, String> queryParams = new MultivaluedStringMap();
-        queryParams.putAll(uriInfo.getQueryParameters());
+        uriInfo.getQueryParameters().forEach((key, value) -> {
+            List<String> sanitizedValues = value.stream().map(StringEscapeUtils::escapeHtml4).collect(Collectors.toList());
+            queryParams.put(key, sanitizedValues);
+        });
 
         final boolean parameterType = ApiParameterHelper.parameterType(queryParams);
 
-        checkUserPermissionForReport(reportName, parameterType);
+        checkUserPermissionForReport(sanitizedReportName, parameterType);
 
         // Pass through isSelfServiceUserReport so that ReportingProcessService implementations can use it
         queryParams.putSingle(IS_SELF_SERVICE_USER_REPORT_PARAMETER, Boolean.toString(isSelfServiceUserReport));
 
-        String reportType = this.readExtraDataAndReportingService.getReportType(reportName, isSelfServiceUserReport, parameterType);
+        String reportType = this.readExtraDataAndReportingService.getReportType(sanitizedReportName, isSelfServiceUserReport,
+                parameterType);
         ReportingProcessService reportingProcessService = this.reportingProcessServiceProvider.findReportingProcessService(reportType);
         if (reportingProcessService == null) {
             throw new PlatformServiceUnavailableException("err.msg.report.service.implementation.missing",
                     ReportingProcessServiceProvider.SERVICE_MISSING + reportType, reportType);
         }
-        return reportingProcessService.processRequest(reportName, queryParams);
+        return reportingProcessService.processRequest(sanitizedReportName, queryParams);
     }
 
     private void checkUserPermissionForReport(final String reportName, final boolean parameterType) {

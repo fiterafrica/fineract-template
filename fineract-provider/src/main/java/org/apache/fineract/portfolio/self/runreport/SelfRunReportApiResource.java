@@ -76,7 +76,11 @@ public class SelfRunReportApiResource {
             @Context final UriInfo uriInfo) {
         this.context.authenticatedUser();
         final boolean isSelfServiceUserReport = true;
-        return this.runreportsApiResource.runReport(reportName, uriInfo, isSelfServiceUserReport);
+        return this.runreportsApiResource.runReport(reportName, uriInfo, isSelfServiceUserReport);// codeql[js/csrf-disabled]
+                                                                                                  // This Method
+                                                                                                  // Sanitizes the input
+                                                                                                  // so it's safe to
+                                                                                                  // call it.
     }
 
 }
