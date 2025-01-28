@@ -39,6 +39,7 @@ import org.apache.fineract.infrastructure.security.service.PlatformSecurityConte
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import org.apache.commons.text.StringEscapeUtils;
 
 @Path("/self/runreports")
 @Component
@@ -76,7 +77,8 @@ public class SelfRunReportApiResource {
             @Context final UriInfo uriInfo) {
         this.context.authenticatedUser();
         final boolean isSelfServiceUserReport = true;
-        return this.runreportsApiResource.runReport(reportName, uriInfo, isSelfServiceUserReport);// codeql[js/csrf-disabled]
+        String sanitizedReportName = StringEscapeUtils.escapeHtml4(reportName);
+        return this.runreportsApiResource.runReport(sanitizedReportName, uriInfo, isSelfServiceUserReport);// codeql[js/csrf-disabled]
                                                                                                   // This Method
                                                                                                   // Sanitizes the input
                                                                                                   // so it's safe to
