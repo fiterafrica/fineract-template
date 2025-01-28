@@ -1983,11 +1983,15 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
 
     public boolean isDatatableAttachedToEntityDatatableCheck(final String datatableName) {
         StringBuilder builder = new StringBuilder();
-        builder.append(" SELECT COUNT(edc.x_registered_table_name) FROM x_registered_table xrt ");
-        builder.append(" JOIN m_entity_datatable_check edc ON edc.x_registered_table_name = xrt.registered_table_name");
-        builder.append(" WHERE edc.x_registered_table_name = '" + datatableName + "'");
-        final Long count = this.jdbcTemplate.queryForObject(builder.toString(), Long.class);
-        return count > 0 ? true : false;
+        builder.append(" SELECT COUNT(edc.x_registered_table_name) ");
+        builder.append(" FROM x_registered_table xrt ");
+        builder.append(" JOIN m_entity_datatable_check edc ");
+        builder.append(" ON edc.x_registered_table_name = xrt.registered_table_name ");
+        builder.append(" WHERE edc.x_registered_table_name = ?");
+
+        final Long count = this.jdbcTemplate.queryForObject(builder.toString(), Long.class, datatableName);
+        return count != null && count > 0;
+
     }
 
     @Override

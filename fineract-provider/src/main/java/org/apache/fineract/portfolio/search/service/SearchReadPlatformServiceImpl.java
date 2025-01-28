@@ -37,6 +37,7 @@ import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
 import org.apache.fineract.infrastructure.core.filters.FilterConstraint;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
+import org.apache.fineract.infrastructure.security.utils.ColumnValidator;
 import org.apache.fineract.organisation.office.data.OfficeData;
 import org.apache.fineract.organisation.office.service.OfficeReadPlatformService;
 import org.apache.fineract.organisation.teller.util.DateRange;
@@ -67,15 +68,17 @@ public class SearchReadPlatformServiceImpl implements SearchReadPlatformService 
     private final PlatformSecurityContext context;
     private final LoanProductReadPlatformService loanProductReadPlatformService;
     private final OfficeReadPlatformService officeReadPlatformService;
+    private final ColumnValidator columnValidator;
 
     @Autowired
     public SearchReadPlatformServiceImpl(final PlatformSecurityContext context, final NamedParameterJdbcTemplate namedParameterJdbcTemplate,
-            final LoanProductReadPlatformService loanProductReadPlatformService,
-            final OfficeReadPlatformService officeReadPlatformService) {
+                                         final LoanProductReadPlatformService loanProductReadPlatformService,
+                                         final OfficeReadPlatformService officeReadPlatformService, ColumnValidator columnValidator) {
         this.context = context;
         this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
         this.loanProductReadPlatformService = loanProductReadPlatformService;
         this.officeReadPlatformService = officeReadPlatformService;
+        this.columnValidator = columnValidator;
     }
 
     @Override
@@ -210,7 +213,7 @@ public class SearchReadPlatformServiceImpl implements SearchReadPlatformService 
 
         this.context.authenticatedUser();
 
-        final AdHocQuerySearchMapper rm = new AdHocQuerySearchMapper();
+        final AdHocQuerySearchMapper rm = new AdHocQuerySearchMapper(this.columnValidator);
         final MapSqlParameterSource params = new MapSqlParameterSource();
 
         return this.namedParameterJdbcTemplate.query(rm.schema(searchConditions, params), params, rm);
@@ -354,7 +357,15 @@ public class SearchReadPlatformServiceImpl implements SearchReadPlatformService 
 
     private static final class AdHocQuerySearchMapper implements RowMapper<AdHocSearchQueryData> {
 
+        private final ColumnValidator columnValidator;
         private boolean isWhereClauseAdded = false;
+
+        // Autowire the required service or dependency
+        @Autowired
+        public AdHocQuerySearchMapper(ColumnValidator columnValidator) {
+             this.columnValidator = columnValidator;
+        }
+
 
         // TODO- build the query dynamically based on selected entity types, for
         // now adding query for only loan entity.
@@ -428,8 +439,10 @@ public class SearchReadPlatformServiceImpl implements SearchReadPlatformService 
                     // params.addValue("outStandingAmountPercentageCondition",
                     // searchConditions.getOutStandingAmountPercentageCondition());
                     params.addValue("outStandingAmountPercentage", searchConditions.getOutStandingAmountPercentage());
+                    this.columnValidator.validateSqlInjection(sql.toString(), searchConditions.getOutStandingAmountPercentageCondition());
                     sql.append(" a.percentOut ").append(searchConditions.getOutStandingAmountPercentageCondition())
                             .append(" :outStandingAmountPercentage ");
+
                 }
             }
 
@@ -445,6 +458,7 @@ public class SearchReadPlatformServiceImpl implements SearchReadPlatformService 
                     checkAndUpdateWhereClause(sql);
                     // params.addValue("outstandingAmountCondition",
                     // searchConditions.getOutstandingAmountCondition());
+                    this.columnValidator.validateSqlInjection(sql.toString(), searchConditions.getOutstandingAmountCondition());
                     params.addValue("outstandingAmount", searchConditions.getOutstandingAmount());
                     sql.append(" a.outstandingAmt ").append(searchConditions.getOutstandingAmountCondition())
                             .append(" :outstandingAmount ");
