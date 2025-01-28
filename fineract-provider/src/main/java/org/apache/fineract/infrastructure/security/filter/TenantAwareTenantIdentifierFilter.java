@@ -142,11 +142,13 @@ public class TenantAwareTenantIdentifierFilter extends GenericFilterBean {
                 chain.doFilter(request, response);
             }
         } catch (final InvalidTenantIdentifierException e) {
+
+            log.error("Invalid tenant identifier: {}", e.getMessage());
             // deal with exception at low level
             SecurityContextHolder.getContext().setAuthentication(null);
 
             response.addHeader("WWW-Authenticate", "Basic realm=\"" + "Fineract Platform API" + "\"");
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid tenant identifier.");
         } finally {
             task.stop();
             final PlatformRequestLog logRequest = PlatformRequestLog.from(task, request);
