@@ -193,8 +193,9 @@ public class GroupReadPlatformServiceImpl implements GroupReadPlatformService {
 
         if (parameters != null) {
             if (parameters.isOrderByRequested()) {
-                sqlBuilder.append(parameters.orderBySql());
                 this.columnValidator.validateSqlInjection(sqlBuilder.toString(), parameters.orderBySql());
+                sqlBuilder.append(parameters.orderBySql());
+
             }
 
             if (parameters.isLimited()) {

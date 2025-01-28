@@ -37,6 +37,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.stereotype.Component;
 
+
 @Component
 public class ColumnValidator {
 
@@ -53,17 +54,24 @@ public class ColumnValidator {
         try {
             connection = this.jdbcTemplate.getDataSource().getConnection();
             DatabaseMetaData dbMetaData = connection.getMetaData();
-            ResultSet resultSet = null;
+
             for (Map.Entry<String, Set<String>> entry : tableColumnMap.entrySet()) {
+                String tableName = sanitizeName(entry.getKey()); // Validate table name
                 Set<String> columns = entry.getValue();
-                resultSet = dbMetaData.getColumns(null, null, entry.getKey(), null);
-                Set<String> tableColumns = getTableColumns(resultSet);
-                if (columns.size() > 0 && tableColumns.size() == 0) {
-                    throw new SQLInjectionException();
-                }
-                for (String requestedColumn : columns) {
-                    if (!tableColumns.contains(requestedColumn)) {
+
+                try (ResultSet resultSet = dbMetaData.getColumns(null, null, tableName, null)) {
+                    Set<String> tableColumns = getTableColumns(resultSet);
+
+                    // Check if table columns are valid
+                    if (!tableColumns.isEmpty() && columns.isEmpty()) {
                         throw new SQLInjectionException();
+                    }
+
+                    // Validate requested columns
+                    for (String requestedColumn : columns) {
+                        if (!tableColumns.contains(sanitizeName(requestedColumn))) {
+                            throw new SQLInjectionException();
+                        }
                     }
                 }
             }
@@ -75,6 +83,13 @@ public class ColumnValidator {
             }
             connection = null;
         }
+    }
+    // Helper method to validate table and column names
+    private String sanitizeName(String name) {
+        if (name == null || !name.matches("[a-zA-Z0-9_]+")) {
+            throw new IllegalArgumentException("Invalid name: " + name);
+        }
+        return name;
     }
 
     private Set<String> getTableColumns(final ResultSet rs) {

@@ -39,6 +39,7 @@ import org.apache.fineract.infrastructure.core.service.Page;
 import org.apache.fineract.infrastructure.core.service.PaginationHelper;
 import org.apache.fineract.infrastructure.core.service.database.DatabaseSpecificSQLGenerator;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
+import org.apache.fineract.infrastructure.security.utils.ColumnValidator;
 import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.organisation.staff.data.StaffData;
 import org.apache.fineract.organisation.staff.service.StaffReadPlatformService;
@@ -124,28 +125,30 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
     private final CalendarReadPlatformService calendarReadPlatformService;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final PaymentTypeReadPlatformService paymentTypeReadPlatformService;
+    private final ColumnValidator columnValidator;
     // allowed column names for sorting the query result
     private static final Set<String> supportedOrderByValues = new HashSet<>(Arrays.asList("id", "accountNumbr", "officeId", "officeName"));
 
     @Autowired
     public DepositAccountReadPlatformServiceImpl(final PlatformSecurityContext context, final JdbcTemplate jdbcTemplate,
-            final DepositAccountInterestRateChartReadPlatformService chartReadPlatformService,
-            final PaginationParametersDataValidator paginationParametersDataValidator,
-            final ClientReadPlatformService clientReadPlatformService, final GroupReadPlatformService groupReadPlatformService,
-            final DepositProductReadPlatformService depositProductReadPlatformService,
-            final SavingsDropdownReadPlatformService savingsDropdownReadPlatformService,
-            final ChargeReadPlatformService chargeReadPlatformService, final StaffReadPlatformService staffReadPlatformService,
-            final DepositsDropdownReadPlatformService depositsDropdownReadPlatformService,
-            final InterestRateChartReadPlatformService productChartReadPlatformService,
-            final SavingsAccountReadPlatformService savingsAccountReadPlatformService,
-            final DropdownReadPlatformService dropdownReadPlatformService, final CalendarReadPlatformService calendarReadPlatformService,
-            PaymentTypeReadPlatformService paymentTypeReadPlatformService, DatabaseSpecificSQLGenerator sqlGenerator,
-            PaginationHelper paginationHelper) {
+                                                 final DepositAccountInterestRateChartReadPlatformService chartReadPlatformService,
+                                                 final PaginationParametersDataValidator paginationParametersDataValidator,
+                                                 final ClientReadPlatformService clientReadPlatformService, final GroupReadPlatformService groupReadPlatformService,
+                                                 final DepositProductReadPlatformService depositProductReadPlatformService,
+                                                 final SavingsDropdownReadPlatformService savingsDropdownReadPlatformService,
+                                                 final ChargeReadPlatformService chargeReadPlatformService, final StaffReadPlatformService staffReadPlatformService,
+                                                 final DepositsDropdownReadPlatformService depositsDropdownReadPlatformService,
+                                                 final InterestRateChartReadPlatformService productChartReadPlatformService,
+                                                 final SavingsAccountReadPlatformService savingsAccountReadPlatformService,
+                                                 final DropdownReadPlatformService dropdownReadPlatformService, final CalendarReadPlatformService calendarReadPlatformService,
+                                                 PaymentTypeReadPlatformService paymentTypeReadPlatformService, DatabaseSpecificSQLGenerator sqlGenerator,
+                                                 PaginationHelper paginationHelper, ColumnValidator columnValidator) {
         this.context = context;
         this.jdbcTemplate = jdbcTemplate;
         this.accountChartReadPlatformService = chartReadPlatformService;
         this.paginationParametersDataValidator = paginationParametersDataValidator;
         this.sqlGenerator = sqlGenerator;
+        this.columnValidator = columnValidator;
         this.transactionsMapper = new SavingsAccountTransactionsMapper();
         this.clientReadPlatformService = clientReadPlatformService;
         this.groupReadPlatformService = groupReadPlatformService;
@@ -178,7 +181,12 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
         sqlBuilder.append(depositAccountMapper.schema());
         sqlBuilder.append(" where sa.deposit_type_enum = ? ");
         // always append at the end of a sql statement
-        sqlBuilder.append(paginationParameters.paginationSql());
+        // Validate pagination SQL (if it involves dynamic parts, like ORDER BY or LIMIT)
+        String paginationSql = paginationParameters.paginationSql();
+        this.columnValidator.validateSqlInjection(paginationSql, paginationParameters.getOrderBy());
+
+        // Append validated pagination SQL to the query
+        sqlBuilder.append(paginationSql);
 
         return jdbcTemplate.query(sqlBuilder.toString(), depositAccountMapper, new Object[] { depositAccountType.getValue() }); // NOSONAR
     }
