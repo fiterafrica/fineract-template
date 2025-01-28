@@ -223,6 +223,8 @@ public interface LoanReadPlatformService {
 
     List<LoanTransactionNotPostedToOdooInstanceData> retrieveLoanTransactionWhoseJournalEntriesAreNotPostedToOdoo();
 
+    List<LoanTransactionNotPostedToOdooInstanceData> retrieveLoanTransactionWhoseJournalEntriesAreNotPostedToOdoo(LocalDate fromDate, LocalDate toDate, Long OfficeId, String currency);
+
     List<Pair<Long, Long>> getLoansForReprocessing();
 
 }

@@ -20,6 +20,8 @@ package org.apache.fineract.portfolio.loanaccount.data;
 
 import lombok.Data;
 
+import java.time.LocalDate;
+
 @Data
 public class LoanTransactionNotPostedToOdooInstanceData {
 
@@ -29,5 +31,7 @@ public class LoanTransactionNotPostedToOdooInstanceData {
     private final Long transactionType;
     private final Boolean isReversed;
     private final String office;
+    private final LocalDate transactionDate;
+    private final String currencyCode;
 
 }
