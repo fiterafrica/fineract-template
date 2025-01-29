@@ -87,5 +87,6 @@
     <include file="parts/OXY-138_add_on_hold_table_for_savings_account.xml" relativeToChangelogFile="true" />
     <include file="parts/FSMA-103_fix_grouping_for_WITHDRAWAL_REDRAW.xml" relativeToChangelogFile="true" />
     <include file="parts/FSMA-104_add_bvn_in_m_client.xml" relativeToChangelogFile="true" />
+    <include file="parts/FSMA-155.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>

@@ -254,12 +254,12 @@ public class SavingsAccountTransactionsApiResource {
     @Path("/byCheck/{checkNumber}")
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
-    public String retrieveTransactionByCheckNumber(@PathParam("savingsId") final Long savingsId, @PathParam("checkNumber") final String checkNumber,
-                              @Context final UriInfo uriInfo) {
+    public String retrieveTransactionByCheckNumber(@PathParam("savingsId") final Long savingsId,
+            @PathParam("checkNumber") final String checkNumber, @Context final UriInfo uriInfo) {
 
         this.context.authenticatedUser().validateHasReadPermission(SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME);
-        SavingsAccountTransactionData transactionData = this.savingsAccountReadPlatformService.retrieveSavingsTransactionByCheckNumber(savingsId,
-                checkNumber, DepositAccountType.SAVINGS_DEPOSIT);
+        SavingsAccountTransactionData transactionData = this.savingsAccountReadPlatformService
+                .retrieveSavingsTransactionByCheckNumber(savingsId, checkNumber, DepositAccountType.SAVINGS_DEPOSIT);
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.toApiJsonSerializer.serialize(settings, transactionData,
                 SavingsApiSetConstants.SAVINGS_TRANSACTION_RESPONSE_DATA_PARAMETERS);

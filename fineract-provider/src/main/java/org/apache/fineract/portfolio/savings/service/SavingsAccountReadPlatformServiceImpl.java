@@ -532,15 +532,16 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
 
     @Override
     public SavingsAccountTransactionData retrieveSavingsTransactionByCheckNumber(final Long savingsId, final String checkNumber,
-                                                                    DepositAccountType depositAccountType) {
+            DepositAccountType depositAccountType) {
 
-        final String sql = "select " + this.transactionsMapperCheckNumber.schema() + " where sa.id = ? and sa.deposit_type_enum = ? and pd.check_number= ?";
+        final String sql = "select " + this.transactionsMapperCheckNumber.schema()
+                + " where sa.id = ? and sa.deposit_type_enum = ? and pd.check_number= ?";
 
         try {
             return this.jdbcTemplate.queryForObject(sql, this.transactionsMapperCheckNumber, // NOSONAR
                     new Object[] { savingsId, depositAccountType.getValue(), checkNumber });
         } catch (EmptyResultDataAccessException e) {
-            throw  new SavingsAccountTransactionNotFoundException(checkNumber, savingsId);
+            throw new SavingsAccountTransactionNotFoundException(checkNumber, savingsId);
         }
     }
 
@@ -1005,7 +1006,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                     if (totalInterestEarned != null) {
                         interestNotPosted = totalInterestEarned.subtract(totalInterestPosted).add(totalOverdraftInterestDerived);
                         lastInterestCalculationDate = JdbcSupport.getLocalDate(rs, "lastInterestCalculationDate");
-                        //this value can't be negative
+                        // this value can't be negative
                         if (interestNotPosted.compareTo(BigDecimal.ZERO) < 0) {
                             interestNotPosted = null;
                         }
@@ -1475,7 +1476,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
             if (totalInterestEarned != null) {
                 interestNotPosted = totalInterestEarned.subtract(totalInterestPosted).add(totalOverdraftInterestDerived);
                 lastInterestCalculationDate = JdbcSupport.getLocalDate(rs, "lastInterestCalculationDate");
-                //this value can't be negative
+                // this value can't be negative
                 if (interestNotPosted.compareTo(BigDecimal.ZERO) < 0) {
                     interestNotPosted = null;
                 }
