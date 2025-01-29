@@ -131,18 +131,18 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
 
     @Autowired
     public DepositAccountReadPlatformServiceImpl(final PlatformSecurityContext context, final JdbcTemplate jdbcTemplate,
-                                                 final DepositAccountInterestRateChartReadPlatformService chartReadPlatformService,
-                                                 final PaginationParametersDataValidator paginationParametersDataValidator,
-                                                 final ClientReadPlatformService clientReadPlatformService, final GroupReadPlatformService groupReadPlatformService,
-                                                 final DepositProductReadPlatformService depositProductReadPlatformService,
-                                                 final SavingsDropdownReadPlatformService savingsDropdownReadPlatformService,
-                                                 final ChargeReadPlatformService chargeReadPlatformService, final StaffReadPlatformService staffReadPlatformService,
-                                                 final DepositsDropdownReadPlatformService depositsDropdownReadPlatformService,
-                                                 final InterestRateChartReadPlatformService productChartReadPlatformService,
-                                                 final SavingsAccountReadPlatformService savingsAccountReadPlatformService,
-                                                 final DropdownReadPlatformService dropdownReadPlatformService, final CalendarReadPlatformService calendarReadPlatformService,
-                                                 PaymentTypeReadPlatformService paymentTypeReadPlatformService, DatabaseSpecificSQLGenerator sqlGenerator,
-                                                 PaginationHelper paginationHelper, ColumnValidator columnValidator) {
+            final DepositAccountInterestRateChartReadPlatformService chartReadPlatformService,
+            final PaginationParametersDataValidator paginationParametersDataValidator,
+            final ClientReadPlatformService clientReadPlatformService, final GroupReadPlatformService groupReadPlatformService,
+            final DepositProductReadPlatformService depositProductReadPlatformService,
+            final SavingsDropdownReadPlatformService savingsDropdownReadPlatformService,
+            final ChargeReadPlatformService chargeReadPlatformService, final StaffReadPlatformService staffReadPlatformService,
+            final DepositsDropdownReadPlatformService depositsDropdownReadPlatformService,
+            final InterestRateChartReadPlatformService productChartReadPlatformService,
+            final SavingsAccountReadPlatformService savingsAccountReadPlatformService,
+            final DropdownReadPlatformService dropdownReadPlatformService, final CalendarReadPlatformService calendarReadPlatformService,
+            PaymentTypeReadPlatformService paymentTypeReadPlatformService, DatabaseSpecificSQLGenerator sqlGenerator,
+            PaginationHelper paginationHelper, ColumnValidator columnValidator) {
         this.context = context;
         this.jdbcTemplate = jdbcTemplate;
         this.accountChartReadPlatformService = chartReadPlatformService;

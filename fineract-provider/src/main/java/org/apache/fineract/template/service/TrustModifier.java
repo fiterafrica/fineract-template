@@ -39,7 +39,7 @@ public final class TrustModifier {
 
     }
 
-    private static final TrustingHostnameVerifier TRUSTING_HOSTNAME_VERIFIER = new TrustingHostnameVerifier();
+    private static final HostnameVerifier DEFAULT_HOSTNAME_VERIFIER = HttpsURLConnection.getDefaultHostnameVerifier();
     private static SSLSocketFactory factory;
 
     /**
@@ -52,7 +52,7 @@ public final class TrustModifier {
             final HttpsURLConnection httpsConnection = (HttpsURLConnection) conn;
             final SSLSocketFactory factory = prepFactory(httpsConnection);
             httpsConnection.setSSLSocketFactory(factory);
-            httpsConnection.setHostnameVerifier(TRUSTING_HOSTNAME_VERIFIER);
+            httpsConnection.setHostnameVerifier(DEFAULT_HOSTNAME_VERIFIER);
         }
     }
 

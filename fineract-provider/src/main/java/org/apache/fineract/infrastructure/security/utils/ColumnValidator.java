@@ -37,7 +37,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.stereotype.Component;
 
-
 @Component
 public class ColumnValidator {
 
@@ -84,6 +83,7 @@ public class ColumnValidator {
             connection = null;
         }
     }
+
     // Helper method to validate table and column names
     private String sanitizeName(String name) {
         if (name == null || !name.matches("[a-zA-Z0-9_]+")) {
