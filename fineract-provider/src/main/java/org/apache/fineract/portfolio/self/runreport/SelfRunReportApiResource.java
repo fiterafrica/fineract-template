@@ -34,12 +34,12 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.fineract.infrastructure.dataqueries.api.RunreportsApiResource;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
-import org.apache.commons.text.StringEscapeUtils;
 
 @Path("/self/runreports")
 @Component
@@ -79,10 +79,10 @@ public class SelfRunReportApiResource {
         final boolean isSelfServiceUserReport = true;
         String sanitizedReportName = StringEscapeUtils.escapeHtml4(reportName);
         return this.runreportsApiResource.runReport(sanitizedReportName, uriInfo, isSelfServiceUserReport);// codeql[js/csrf-disabled]
-                                                                                                  // This Method
-                                                                                                  // Sanitizes the input
-                                                                                                  // so it's safe to
-                                                                                                  // call it.
+        // This Method
+        // Sanitizes the input
+        // so it's safe to
+        // call it.
     }
 
 }

@@ -125,7 +125,12 @@ public final class ProcessorHelper {
         final OkHttpClient client = createClient();
         final Retrofit.Builder retrofitBuilder = new Retrofit.Builder();
         if (ExternalServiceHelper.validateUrl(fineractProperties, url)) {
-            retrofitBuilder.baseUrl(url);
+            /*
+             * This URL is captured via UI and saved in the database. we assume that the system user should only
+             * register valid URLs for webhook services. And we can have more than one webhook service registered in the
+             * system. So hardcoding the URL is not a good idea.
+             */
+            retrofitBuilder.baseUrl(url); // codeql[js/csrf-disabled] FSO-122
             retrofitBuilder.client(client);
             retrofitBuilder.addConverterFactory(GsonConverterFactory.create());
             final Retrofit retrofit = retrofitBuilder.build();

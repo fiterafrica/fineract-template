@@ -156,7 +156,11 @@ public class TemplateMergeService {
         HttpURLConnection connection = null;
         try {
             if (ExternalServiceHelper.validateUrl(fineractProperties, url)) {
-                connection = (HttpURLConnection) new URL(url).openConnection();
+                // This Rule should be suppressed as the URL is validated above
+                connection = (HttpURLConnection) new URL(url).openConnection(); // codeql[js/csrf-disabled] This URL is
+                                                                                // validated above in
+                                                                                // ExternalServiceHelper.validateUrl(fineractProperties,
+                                                                                // url) method
                 if (this.authToken != null) {
                     connection.setRequestProperty("Authorization", "Basic " + this.authToken);// NOSONAR
                 }

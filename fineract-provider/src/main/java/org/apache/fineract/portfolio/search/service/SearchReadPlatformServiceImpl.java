@@ -72,8 +72,8 @@ public class SearchReadPlatformServiceImpl implements SearchReadPlatformService 
 
     @Autowired
     public SearchReadPlatformServiceImpl(final PlatformSecurityContext context, final NamedParameterJdbcTemplate namedParameterJdbcTemplate,
-                                         final LoanProductReadPlatformService loanProductReadPlatformService,
-                                         final OfficeReadPlatformService officeReadPlatformService, ColumnValidator columnValidator) {
+            final LoanProductReadPlatformService loanProductReadPlatformService, final OfficeReadPlatformService officeReadPlatformService,
+            ColumnValidator columnValidator) {
         this.context = context;
         this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
         this.loanProductReadPlatformService = loanProductReadPlatformService;
@@ -363,9 +363,8 @@ public class SearchReadPlatformServiceImpl implements SearchReadPlatformService 
         // Autowire the required service or dependency
         @Autowired
         public AdHocQuerySearchMapper(ColumnValidator columnValidator) {
-             this.columnValidator = columnValidator;
+            this.columnValidator = columnValidator;
         }
-
 
         // TODO- build the query dynamically based on selected entity types, for
         // now adding query for only loan entity.
