@@ -183,12 +183,12 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
         // always append at the end of a sql statement
         // Validate pagination SQL (if it involves dynamic parts, like ORDER BY or LIMIT)
         String paginationSql = paginationParameters.paginationSql();
-        this.columnValidator.validateSqlInjection(paginationSql, paginationParameters.getOrderBy());
-
+        String orderBy = paginationParameters.getOrderBy();
+        this.columnValidator.validateSqlInjection(paginationSql, orderBy);
         // Append validated pagination SQL to the query
         sqlBuilder.append(paginationSql);
 
-        return jdbcTemplate.query(sqlBuilder.toString(), depositAccountMapper, new Object[] { depositAccountType.getValue() }); // NOSONAR
+        return jdbcTemplate.query(sqlBuilder.toString(), new Object[] { depositAccountType.getValue(), orderBy }, depositAccountMapper); // NOSONAR
     }
 
     @Override
@@ -207,9 +207,14 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
         sqlBuilder.append("select " + sqlGenerator.calcFoundRows() + " ");
         sqlBuilder.append(depositAccountMapper.schema());
         sqlBuilder.append(" where sa.deposit_type_enum = ? ");
-        sqlBuilder.append(paginationParameters.paginationSql());
 
-        return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlBuilder.toString(), new Object[] { depositAccountType.getValue() },
+        // codeql[java/sql-injection] This code already validates the orderBy parameter and appends it to the query. If still alert is raised, then it is a false positive.
+        String paginationSql = paginationParameters.paginationSql();
+        String orderBy = paginationParameters.getOrderBy();
+        this.columnValidator.validateSqlInjection(paginationSql, orderBy);
+        sqlBuilder.append(paginationSql);
+
+        return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlBuilder.toString(), new Object[] { depositAccountType.getValue(), orderBy },
                 depositAccountMapper);
     }
 

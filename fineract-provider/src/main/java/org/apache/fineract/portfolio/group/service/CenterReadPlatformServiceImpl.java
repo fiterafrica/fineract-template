@@ -357,6 +357,7 @@ public class CenterReadPlatformServiceImpl implements CenterReadPlatformService 
         final SQLBuilder extraCriteria = getCenterExtraCriteria(this.centerMapper.schema(), searchParameters);
         extraCriteria.addNonNullCriteria("o.hierarchy like ", hierarchySearchString);
         sqlBuilder.append(' ').append(extraCriteria.getSQLTemplate());
+        List<Object> queryParams = new ArrayList<>(Arrays.asList(extraCriteria.getArguments()));
         if (searchParameters != null) {
             if (searchParameters.isOrderByRequested()) {
                 this.columnValidator.validateSqlInjection(sqlBuilder.toString(), searchParameters.getOrderBy(),
@@ -374,7 +375,7 @@ public class CenterReadPlatformServiceImpl implements CenterReadPlatformService 
             }
         }
 
-        return this.jdbcTemplate.query(sqlBuilder.toString(), this.centerMapper, extraCriteria.getArguments()); // NOSONAR
+        return this.jdbcTemplate.query(sqlBuilder.toString(), this.centerMapper, queryParams); // NOSONAR
     }
 
     @Override

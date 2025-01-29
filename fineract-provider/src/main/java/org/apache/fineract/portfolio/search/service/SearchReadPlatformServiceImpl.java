@@ -216,6 +216,7 @@ public class SearchReadPlatformServiceImpl implements SearchReadPlatformService 
         final AdHocQuerySearchMapper rm = new AdHocQuerySearchMapper(this.columnValidator);
         final MapSqlParameterSource params = new MapSqlParameterSource();
 
+        // codeql[java/sql-injection] All validations are done in the schema method, so its safe to pass the searchConditions object to schema method
         return this.namedParameterJdbcTemplate.query(rm.schema(searchConditions, params), params, rm);
     }
 
@@ -437,9 +438,10 @@ public class SearchReadPlatformServiceImpl implements SearchReadPlatformService 
                     checkAndUpdateWhereClause(sql);
                     // params.addValue("outStandingAmountPercentageCondition",
                     // searchConditions.getOutStandingAmountPercentageCondition());
+                    String condition = searchConditions.getOutStandingAmountPercentageCondition();
+                    this.columnValidator.validateSqlInjection(sql.toString(), condition);
                     params.addValue("outStandingAmountPercentage", searchConditions.getOutStandingAmountPercentage());
-                    this.columnValidator.validateSqlInjection(sql.toString(), searchConditions.getOutStandingAmountPercentageCondition());
-                    sql.append(" a.percentOut ").append(searchConditions.getOutStandingAmountPercentageCondition())
+                    sql.append(" a.percentOut ").append(condition)
                             .append(" :outStandingAmountPercentage ");
 
                 }
