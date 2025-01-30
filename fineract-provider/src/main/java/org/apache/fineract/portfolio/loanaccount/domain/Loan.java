@@ -6529,7 +6529,7 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
                             .plus(balancesForCurrentPeroid[3].minus(balancesForCurrentPeroid[1]));
                 }
                 if (balancesForCurrentPeroid[2].isGreaterThan(balancesForCurrentPeroid[4])) {
-                    penalty = penalty.plus(balancesForCurrentPeroid[2].minus(balancesForCurrentPeroid[4]));
+                    penalty = penalty.plus(balancesForCurrentPeroid[2].minus(balancesForCurrentPeroid[4]));//Double penalty is added here
                 } else {
                     paidFromFutureInstallments = paidFromFutureInstallments.plus(balancesForCurrentPeroid[4])
                             .minus(balancesForCurrentPeroid[2]);
