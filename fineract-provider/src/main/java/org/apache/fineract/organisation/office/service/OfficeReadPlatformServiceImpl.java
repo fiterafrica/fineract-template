@@ -169,6 +169,7 @@ public class OfficeReadPlatformServiceImpl implements OfficeReadPlatformService 
 
                 if (searchParameters.isSortOrderProvided()) {
                     this.columnValidator.validateSqlInjection(sqlBuilder.toString(), searchParameters.getSortOrder());
+                    // codeql[java/sql-injection] - sort order is validated above
                     sqlBuilder.append(' ').append(searchParameters.getSortOrder());
 
                 }
