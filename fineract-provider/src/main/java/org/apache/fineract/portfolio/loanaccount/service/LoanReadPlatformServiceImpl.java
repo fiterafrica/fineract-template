@@ -3620,10 +3620,30 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
     }
 
     @Override
+    public List<LoanTransactionNotPostedToOdooInstanceData> retrieveLoanTransactionWhoseJournalEntriesAreNotPostedToOdoo(LocalDate fromDate, LocalDate toDate, Long officeId, String currency) {
+        final LoanTransactionNotPostedToOdooInstanceMapper rm = new LoanTransactionNotPostedToOdooInstanceMapper(sqlGenerator);
+
+        String sql = "select " + rm.loanTransactionNotPostedToOdoo();
+
+        if (fromDate != null)
+            sql = sql + "AND mlt.transaction_date >= '" + fromDate + "' ";
+        if (fromDate != null)
+            sql = sql + "AND mlt.transaction_date <= '" + toDate + "' ";
+        if (officeId != null)
+            sql =  sql + "AND mc.office_id = " + officeId + " ";
+        if (currency != null)
+            sql =  sql + "AND ml.currency_code = '" + currency + "' ";
+
+        sql = sql + "order by mlt.transaction_date DESC ";
+
+        return this.jdbcTemplate.query(sql, rm);
+    }
+
+    @Override
     public List<LoanTransactionNotPostedToOdooInstanceData> retrieveLoanTransactionWhoseJournalEntriesAreNotPostedToOdoo() {
         final LoanTransactionNotPostedToOdooInstanceMapper rm = new LoanTransactionNotPostedToOdooInstanceMapper(sqlGenerator);
 
-        final String sql = "select " + rm.loanTransactionNotPostedToOdoo();
+        final String sql = "select " + rm.loanTransactionNotPostedToOdoo() + "order by mlt.transaction_date DESC ";
 
         return this.jdbcTemplate.query(sql, rm);
     }
@@ -3638,7 +3658,8 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         }
 
         public String loanTransactionNotPostedToOdoo() {
-            return "DISTINCT gl.loan_transaction_id AS loanTransactionId, gl.entity_id AS loanId, mlt.transaction_type_enum AS transactionType, mlt.is_reversed AS isReversed, ml.account_no as loanAccountNo, mc.office_id as office " +
+            return "DISTINCT gl.loan_transaction_id AS loanTransactionId, gl.entity_id AS loanId, ml.currency_code as currency, mlt.transaction_date as transactionDate, " +
+                    "mlt.transaction_type_enum AS transactionType, mlt.is_reversed AS isReversed, ml.account_no as loanAccountNo, mc.office_id as office " +
                     "FROM acc_gl_journal_entry gl " +
                     "INNER JOIN m_loan_transaction mlt on gl.loan_transaction_id = mlt.id " +
                     "INNER JOIN m_loan ml on mlt.loan_id = ml.id " +
@@ -3647,8 +3668,8 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                     "AND mc.is_odoo_customer_posted = true " +
                     "AND odoo_customer_id IS NOT NULL " +
                     "AND mlt.transaction_type_enum IN (1,2,4,5,6,8,9,10,19,26,27) " +
-                    "AND ml.currency_code NOT IN ('ETB') " +
-                    "ORDER BY gl.entity_id ASC ";
+                    "AND ml.currency_code NOT IN ('ETB') " ;
+
         }
 
         @Override
@@ -3660,8 +3681,10 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
             final Boolean isReversed = rs.getBoolean("isReversed");
             final String loanAccountNo = rs.getString("loanAccountNo");
             final String office = rs.getString("office");
+            final LocalDate transactionDate = rs.getDate("transactionDate").toLocalDate();
+            final String currencyCode = rs.getString("currency");
 
-            return new LoanTransactionNotPostedToOdooInstanceData(loanTransactionId, loanId, loanAccountNo, transactionType, isReversed, office);
+            return new LoanTransactionNotPostedToOdooInstanceData(loanTransactionId, loanId, loanAccountNo, transactionType, isReversed, office, transactionDate, currencyCode);
         }
     }
 
