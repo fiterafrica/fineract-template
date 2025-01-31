@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.accounting.journalentry.api;
 
+import com.google.gson.JsonObject;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -124,6 +125,7 @@ public class JournalEntriesApiResource {
             @QueryParam("loanId") @Parameter(description = "loanId") final Long loanId,
             @QueryParam("savingsId") @Parameter(description = "savingsId") final Long savingsId,
             @QueryParam("runningBalance") @Parameter(description = "runningBalance") final boolean runningBalance,
+            @QueryParam("isPostedToOdoo")@Parameter(description = "isPostedToOdoo") final boolean isPostedToOdoo,
             @QueryParam("transactionDetails") @Parameter(description = "transactionDetails") final boolean transactionDetails) {
 
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermission);
@@ -138,7 +140,7 @@ public class JournalEntriesApiResource {
         }
 
         final SearchParameters searchParameters = SearchParameters.forJournalEntries(officeId, offset, limit, orderBy, sortOrder, loanId,
-                savingsId);
+                savingsId,isPostedToOdoo);
         JournalEntryAssociationParametersData associationParametersData = new JournalEntryAssociationParametersData(transactionDetails,
                 runningBalance);
 
@@ -147,6 +149,38 @@ public class JournalEntriesApiResource {
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
         return this.apiJsonSerializerService.serialize(settings, glJournalEntries, RESPONSE_DATA_PARAMETERS);
     }
+
+
+    @GET
+    @Path("postToOdoo")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = JournalEntryData.class)))) })
+    public String triggerOdooPosting(@Context final UriInfo uriInfo,
+                                     @QueryParam("fromDate") @Parameter(description = "fromDate") final DateParam fromDateParam,
+                                     @QueryParam("toDate") @Parameter(description = "toDate") final DateParam toDateParam,
+                                     @QueryParam("officeId") @Parameter(description = "officeId") final Long officeId,
+                                     @QueryParam("currency") @Parameter(description = "currency") final String currency,
+                                     @QueryParam("dateFormat") @Parameter(description = "dateFormat") final String dateFormat,
+                                     @QueryParam("locale") @Parameter(description = "locale") final String locale) {
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermission);
+
+        LocalDate fromDate = null;
+        if (fromDateParam != null) {
+            fromDate = fromDateParam.getDate("fromDate", dateFormat, locale);
+        }
+        LocalDate toDate = null;
+        if (toDateParam != null) {
+            toDate = toDateParam.getDate("toDate", dateFormat, locale);
+        }
+
+        JsonObject response = odooService.postJournalEntryToOddo(fromDate, toDate, officeId, currency);
+
+        return response.toString();
+
+    }
+
 
     @GET
     @Path("{journalEntryId}")

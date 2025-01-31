@@ -29,6 +29,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -504,6 +505,55 @@ public class OdooServiceImpl implements OdooService {
     }
 
     @Override
+    public JsonObject postJournalEntryToOddo(LocalDate fromDate, LocalDate toDate, Long officeId, String currency) {
+        Boolean isOdooEnabled = this.configurationDomainService.isOdooIntegrationEnabled();
+        List<Throwable> errors = new ArrayList<>();
+        JsonObject response = new JsonObject();
+        int transactions = 0;
+        if (isOdooEnabled) {
+            // get loan accounts with transactions not posted to Odoo
+            List<LoanTransactionNotPostedToOdooInstanceData> loanTransactionNotPostedToOdooInstanceData = loanReadPlatformService
+                    .retrieveLoanTransactionWhoseJournalEntriesAreNotPostedToOdoo(fromDate, toDate, officeId, currency);
+            if (!CollectionUtils.isEmpty(loanTransactionNotPostedToOdooInstanceData)) {
+                transactions = getTransactions(loanTransactionNotPostedToOdooInstanceData, errors, transactions);
+                response.addProperty("responseMessage", "Posted Entries");
+            }else{
+                response.addProperty("responseMessage", "No entries to post");
+            }
+
+            response.addProperty("numberOfTransactions", transactions);
+
+            if (errors.size() > 0) {
+                List<String> errorMessages = new ArrayList<>();
+                for( Throwable error : errors) {
+                    errorMessages.add(error.getMessage());
+                }
+                Gson gson = new Gson();
+                response.add("errors", gson.toJsonTree(errorMessages));
+            }
+            response.addProperty("responseCode", "DONE");
+            return response;
+        }
+
+        response.addProperty("responseMessage", "Odoo not Enabled");
+        response.addProperty("responseCode", "ERROR");
+
+        return response;
+    }
+
+    private int getTransactions(List<LoanTransactionNotPostedToOdooInstanceData> loanTransactionNotPostedToOdooInstanceData, List<Throwable> errors, int transactions) {
+        for (LoanTransactionNotPostedToOdooInstanceData transaction : loanTransactionNotPostedToOdooInstanceData) {
+            List<JournalEntry> JE = this.journalEntryRepository.findJournalEntriesByIsOddoPosted(false,
+                    transaction.getLoanTransactionId());
+            postJournalEntries(errors, JE, transaction.getLoanTransactionId(), transaction.getTransactionType(),
+                    transaction.getIsReversed(), transaction.getLoanAccountNo(), transaction.getOffice());
+            transactions +=1;
+
+        }
+        return transactions;
+    }
+
+    @Override
     @CronTarget(jobName = JobName.POST_JOURNAL_ENTRY_TO_ODDO)
     public void postJournalEntryToOddo() throws JobExecutionException {
         Boolean isOdooEnabled = this.configurationDomainService.isOdooIntegrationEnabled();
@@ -512,17 +562,10 @@ public class OdooServiceImpl implements OdooService {
             // get loan accounts with transactions not posted to Odoo
             List<LoanTransactionNotPostedToOdooInstanceData> loanTransactionNotPostedToOdooInstanceData = loanReadPlatformService
                     .retrieveLoanTransactionWhoseJournalEntriesAreNotPostedToOdoo();
-            LOG.info("Loan Transaction Not Posted to Odoo " + loanTransactionNotPostedToOdooInstanceData.toString());
+            LOG.trace("Loan Transaction Not Posted to Odoo " + loanTransactionNotPostedToOdooInstanceData.toString());
             if (!CollectionUtils.isEmpty(loanTransactionNotPostedToOdooInstanceData)) {
-                for (LoanTransactionNotPostedToOdooInstanceData transaction : loanTransactionNotPostedToOdooInstanceData) {
-                    LOG.info("Loan Transaction Not Posted to Odoo " + transaction.toString());
-                    List<JournalEntry> JE = this.journalEntryRepository.findJournalEntriesByIsOddoPosted(false,
-                            transaction.getLoanTransactionId());
-                    postJournalEntries(errors, JE, transaction.getLoanTransactionId(), transaction.getTransactionType(),
-                            transaction.getIsReversed(), transaction.getLoanAccountNo(), transaction.getOffice());
-                }
+                getTransactions(loanTransactionNotPostedToOdooInstanceData, errors, 0);
             }
-
             if (errors.size() > 0) {
                 throw new JobExecutionException(errors);
             }

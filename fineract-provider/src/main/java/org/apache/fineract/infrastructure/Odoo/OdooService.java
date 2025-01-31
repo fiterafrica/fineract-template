@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -46,6 +47,8 @@ public interface OdooService {
             throws IOException, NoSuchAlgorithmException, KeyManagementException;
 
     String updateJournalEntryWithOdooStatus(String stringRequest);
+
+    JsonObject postJournalEntryToOddo(LocalDate fromDate, LocalDate toDate, Long officeId, String currency);
 
     void postJournalEntryToOddo() throws JobExecutionException;
 

@@ -235,8 +235,8 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
 
     @Override
     public Page<JournalEntryData> retrieveAll(final SearchParameters searchParameters, final Long glAccountId,
-            final Boolean onlyManualEntries, final LocalDate fromDate, final LocalDate toDate, final String transactionId,
-            final Integer entityType, final JournalEntryAssociationParametersData associationParametersData) {
+                                              final Boolean onlyManualEntries, final LocalDate fromDate, final LocalDate toDate, final String transactionId,
+                                              final Integer entityType, final JournalEntryAssociationParametersData associationParametersData) {
 
         GLJournalEntryMapper rm = new GLJournalEntryMapper(associationParametersData);
         final StringBuilder sqlBuilder = new StringBuilder(200);
@@ -333,6 +333,11 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
             objectArray[arrayPos] = searchParameters.getSavingsId();
             arrayPos = arrayPos + 1;
 
+            whereClose = " and ";
+        }
+
+        if (searchParameters.isPostedToOdoo() != null) {
+            sqlBuilder.append(whereClose + "journalEntry.is_oddo_posted = " + searchParameters.isPostedToOdoo());
             whereClose = " and ";
         }
 
@@ -436,7 +441,7 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
     }
 
     private List<JournalEntryData> populateOpeningBalances(final List<JournalEntryData> existingOpeningBalanceTransactions,
-            final List<JournalEntryData> allOpeningTransactions) {
+                                                           final List<JournalEntryData> allOpeningTransactions) {
         final List<JournalEntryData> allOpeningBalnceTransactions = new ArrayList<>(allOpeningTransactions.size());
         for (final JournalEntryData newOpeningBalanceTransaction : allOpeningTransactions) {
             boolean isNewTransactionAddedToCollection = false;
@@ -468,7 +473,7 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
     }
 
     private List<JournalEntryData> retrieveOfficeBalanceTransactions(final Long officeId, final String transactionId,
-            final String currencyCode) {
+                                                                     final String currencyCode) {
         final Long contraId = null;
         return retrieveContraTransactions(officeId, contraId, transactionId, currencyCode).getPageItems();
     }
@@ -485,7 +490,7 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
     }
 
     private Page<JournalEntryData> retrieveContraTransactions(final Long officeId, final Long contraId, final String transactionId,
-            final String currencyCode) {
+                                                              final String currencyCode) {
         final Integer offset = 0;
         final Integer limit = null;
         final String orderBy = "journalEntry.id";
