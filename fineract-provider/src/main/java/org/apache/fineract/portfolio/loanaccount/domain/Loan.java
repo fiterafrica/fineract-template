@@ -6529,7 +6529,9 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
                             .plus(balancesForCurrentPeroid[3].minus(balancesForCurrentPeroid[1]));
                 }
                 if (balancesForCurrentPeroid[2].isGreaterThan(balancesForCurrentPeroid[4])) {
-                    penalty = penalty.plus(balancesForCurrentPeroid[2].minus(balancesForCurrentPeroid[4]));//Double penalty is added here
+                    penalty = penalty.plus(balancesForCurrentPeroid[2].minus(balancesForCurrentPeroid[4]));// Double
+                                                                                                           // penalty is
+                                                                                                           // added here
                 } else {
                     paidFromFutureInstallments = paidFromFutureInstallments.plus(balancesForCurrentPeroid[4])
                             .minus(balancesForCurrentPeroid[2]);
@@ -6564,11 +6566,12 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
             if (loanCharge.isActive() && !loanCharge.isDueAtDisbursement()) {
                 if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(installment.getFromDate(), paymentDate)
                         || loanCharge.isDueForCollectionForDisburseToSavingsAndIncluding(installment.getFromDate())) {
-                    if (loanCharge.isPenaltyCharge()) {
+                    if (loanCharge.getOverdueInstallmentCharge() != null && loanCharge.isPenaltyCharge()
+                            && Objects.equals(loanCharge.getOverdueInstallmentCharge().getInstallment().getId(), installment.getId())) {
                         penaltyForCurrentPeriod = penaltyForCurrentPeriod.plus(loanCharge.getAmount(getCurrency()));
                         penaltyAccoutedForCurrentPeriod = penaltyAccoutedForCurrentPeriod
                                 .plus(loanCharge.getAmountWaived(getCurrency()).plus(loanCharge.getAmountPaid(getCurrency())));
-                    } else {
+                    } else if (loanCharge.isFeeCharge()) {
                         feeForCurrentPeriod = feeForCurrentPeriod.plus(loanCharge.getAmount(currency));
                         feeAccountedForCurrentPeriod = feeAccountedForCurrentPeriod.plus(loanCharge.getAmountWaived(getCurrency()).plus(
 
