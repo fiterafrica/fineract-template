@@ -6564,11 +6564,12 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
             if (loanCharge.isActive() && !loanCharge.isDueAtDisbursement()) {
                 if (loanCharge.isDueForCollectionFromAndUpToAndIncluding(installment.getFromDate(), paymentDate)
                         || loanCharge.isDueForCollectionForDisburseToSavingsAndIncluding(installment.getFromDate())) {
-                    if (loanCharge.isPenaltyCharge()) {
+                    if (loanCharge.getOverdueInstallmentCharge() != null && loanCharge.isPenaltyCharge()
+                            && Objects.equals(loanCharge.getOverdueInstallmentCharge().getInstallment().getId(), installment.getId())) {
                         penaltyForCurrentPeriod = penaltyForCurrentPeriod.plus(loanCharge.getAmount(getCurrency()));
                         penaltyAccoutedForCurrentPeriod = penaltyAccoutedForCurrentPeriod
                                 .plus(loanCharge.getAmountWaived(getCurrency()).plus(loanCharge.getAmountPaid(getCurrency())));
-                    } else {
+                    } else if (loanCharge.isFeeCharge()) {
                         feeForCurrentPeriod = feeForCurrentPeriod.plus(loanCharge.getAmount(currency));
                         feeAccountedForCurrentPeriod = feeAccountedForCurrentPeriod.plus(loanCharge.getAmountWaived(getCurrency()).plus(
 
