@@ -255,8 +255,7 @@ public class RecurringDepositAccountTransactionsApiResource {
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = RecurringDepositAccountTransactionsApiResourceSwagger.GetRecurringDepositAccountsRecurringDepositAccountIdTransactionsTransactionIdResponse.class))) })
     public String retrieveTransactionByCheckNumber(
             @PathParam("recurringDepositAccountId") @Parameter(description = "recurringDepositAccountId") final Long recurringDepositAccountId,
-            @PathParam("checkNumber") @Parameter(description = "checkNumber") final String checkNumber,
-            @Context final UriInfo uriInfo) {
+            @PathParam("checkNumber") @Parameter(description = "checkNumber") final String checkNumber, @Context final UriInfo uriInfo) {
 
         this.context.authenticatedUser().validateHasReadPermission(DepositsApiConstants.RECURRING_DEPOSIT_ACCOUNT_RESOURCE_NAME);
         SavingsAccountTransactionData transactionData = this.savingsAccountReadPlatformService

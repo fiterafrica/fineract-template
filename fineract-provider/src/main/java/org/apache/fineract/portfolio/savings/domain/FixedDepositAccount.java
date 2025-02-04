@@ -354,7 +354,7 @@ public class FixedDepositAccount extends SavingsAccount {
             allPostingPeriods.add(postingPeriod);
         }
 
-        if (allPostingPeriods.size() == 1 && SavingsPostingInterestPeriodType.TENURE.getValue().equals(this.interestPostingPeriodType)){
+        if (allPostingPeriods.size() == 1 && SavingsPostingInterestPeriodType.TENURE.getValue().equals(this.interestPostingPeriodType)) {
             List<CompoundingPeriod> compoundingPeriods = allPostingPeriods.get(0).getCompoundingPeriods();
             if (!compoundingPeriods.isEmpty()) {
                 CompoundingPeriod compoundingPeriod = compoundingPeriods.get(0);
@@ -376,9 +376,9 @@ public class FixedDepositAccount extends SavingsAccount {
             }
         }
 
-        if(allPostingPeriods.size() == 2 && SavingsPostingInterestPeriodType.ANNUAL.getValue().equals(this.interestPostingPeriodType)) {
+        if (allPostingPeriods.size() == 2 && SavingsPostingInterestPeriodType.ANNUAL.getValue().equals(this.interestPostingPeriodType)) {
 
-            for(PostingPeriod postingPeriod : allPostingPeriods) {
+            for (PostingPeriod postingPeriod : allPostingPeriods) {
 
                 List<CompoundingPeriod> compoundingPeriods = postingPeriod.getCompoundingPeriods();
                 if (!compoundingPeriods.isEmpty()) {

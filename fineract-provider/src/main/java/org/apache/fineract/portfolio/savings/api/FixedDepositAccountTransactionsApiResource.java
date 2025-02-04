@@ -193,7 +193,7 @@ public class FixedDepositAccountTransactionsApiResource {
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
     public String retrieveTransactionByCheckNumber(@PathParam("fixedDepositAccountId") final Long fixedDepositAccountId,
-                              @PathParam("checkNumber") final String checkNumber, @Context final UriInfo uriInfo) {
+            @PathParam("checkNumber") final String checkNumber, @Context final UriInfo uriInfo) {
 
         this.context.authenticatedUser().validateHasReadPermission(DepositsApiConstants.FIXED_DEPOSIT_ACCOUNT_RESOURCE_NAME);
         SavingsAccountTransactionData transactionData = this.savingsAccountReadPlatformService

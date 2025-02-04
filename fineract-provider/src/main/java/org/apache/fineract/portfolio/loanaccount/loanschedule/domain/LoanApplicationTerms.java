@@ -637,10 +637,10 @@ public final class LoanApplicationTerms {
                         mc.getRoundingMode());
 
                 totalInterestCharged = totalInterestChargedForLoanTerm.minus(totalGraceOnInterestCharged);
-                break;
+            break;
             case DECLINING_BALANCE:
             case INVALID:
-                break;
+            break;
         }
 
         return totalInterestCharged;
@@ -955,8 +955,7 @@ public final class LoanApplicationTerms {
         return interestPerInstallment;
     }
 
-    private Money calculateTotalInterestPerInstallmentWithGrace(final PaymentPeriodsInOneYearCalculator calculator,
-                                                                   final MathContext mc) {
+    private Money calculateTotalInterestPerInstallmentWithGrace(final PaymentPeriodsInOneYearCalculator calculator, final MathContext mc) {
 
         final Money totalInterestForLoanTerm = calculateTotalFlatInterestDueWithoutGrace(calculator, mc);
         return flatInterestPerInstallmentWithGrace(mc, totalInterestForLoanTerm);

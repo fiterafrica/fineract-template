@@ -52,7 +52,8 @@ public interface SavingsAccountReadPlatformService {
 
     SavingsAccountTransactionData retrieveSavingsTransaction(Long savingsId, Long transactionId, DepositAccountType depositAccountType);
 
-    SavingsAccountTransactionData retrieveSavingsTransactionByCheckNumber(Long savingsId, String checkNumber, DepositAccountType depositAccountType);
+    SavingsAccountTransactionData retrieveSavingsTransactionByCheckNumber(Long savingsId, String checkNumber,
+            DepositAccountType depositAccountType);
 
     Collection<SavingsAccountData> retrieveForLookup(Long clientId, Boolean overdraft);
 

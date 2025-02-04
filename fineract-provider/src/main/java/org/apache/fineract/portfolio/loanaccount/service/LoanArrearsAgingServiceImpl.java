@@ -169,9 +169,7 @@ public class LoanArrearsAgingServiceImpl implements LoanArrearsAgingService {
         while (retryCount < maxRetries) {
             try {
                 Integer count = this.jdbcTemplate.queryForObject(
-                        "select count(mla.loan_id) from m_loan_arrears_aging mla where mla.loan_id = ?",
-                        Integer.class, loan.getId()
-                );
+                        "select count(mla.loan_id) from m_loan_arrears_aging mla where mla.loan_id = ?", Integer.class, loan.getId());
                 int safeCount = Optional.ofNullable(count).orElse(0);
                 String updateStatement = constructUpdateStatement(loan, safeCount == 0);
                 if (updateStatement == null) {
@@ -182,8 +180,7 @@ public class LoanArrearsAgingServiceImpl implements LoanArrearsAgingService {
                 }
                 break; // Exit retry loop if successful
             } catch (DataAccessException e) {
-                if (e.getCause() instanceof SQLException &&
-                        ((SQLException) e.getCause()).getErrorCode() == 1412) {
+                if (e.getCause() instanceof SQLException && ((SQLException) e.getCause()).getErrorCode() == 1412) {
                     retryCount++;
                     try {
                         Thread.sleep(1000); // Wait before retrying
@@ -196,7 +193,6 @@ public class LoanArrearsAgingServiceImpl implements LoanArrearsAgingService {
             }
         }
     }
-
 
     private String constructUpdateStatement(final Loan loan, boolean isInsertStatement) {
         String updateSql = null;
