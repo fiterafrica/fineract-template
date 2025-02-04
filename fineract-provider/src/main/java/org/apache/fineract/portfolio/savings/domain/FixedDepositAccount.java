@@ -363,7 +363,7 @@ public class FixedDepositAccount extends SavingsAccount {
                 allPostingPeriods.get(0).getCompoundingPeriods().clear();
                 allPostingPeriods.get(0).getCompoundingPeriods().add(compoundingPeriod);
                 if (compoundingPeriod instanceof AnnualCompoundingPeriod
-                        && !((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().isEmpty()) {
+                        && !((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().isEmpty() && isPreMatureClosure) {
                     int days = Math.toIntExact(ChronoUnit.DAYS.between(getActivationLocalDate(), DateUtils.getBusinessLocalDate()));
                     if (((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().get(0).getNumberOfDays() == days) {
                         EndOfDayBalance balance = ((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().get(0);
@@ -388,7 +388,7 @@ public class FixedDepositAccount extends SavingsAccount {
                     postingPeriod.getCompoundingPeriods().clear();
                     postingPeriod.getCompoundingPeriods().add(compoundingPeriod);
                     if (compoundingPeriod instanceof AnnualCompoundingPeriod
-                            && !((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().isEmpty()) {
+                            && !((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().isEmpty() && isPreMatureClosure) {
                         int days = Math.toIntExact(ChronoUnit.DAYS.between(getActivationLocalDate(), DateUtils.getBusinessLocalDate()));
                         if (SavingsPostingInterestPeriodType.ANNUAL.getValue().equals(this.interestPostingPeriodType)) {
                             if (((AnnualCompoundingPeriod) compoundingPeriod).getEndOfDayBalances().get(0).getNumberOfDays() == days) {
