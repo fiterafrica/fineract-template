@@ -75,6 +75,8 @@ import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionEnumD
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransaction;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransactionRepository;
 import org.apache.fineract.portfolio.shareaccounts.data.ShareAccountTransactionEnumData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
@@ -87,6 +89,7 @@ public class AccountingProcessorHelper {
     public static final String CLIENT_TRANSACTION_IDENTIFIER = "C";
     public static final String PROVISIONING_TRANSACTION_IDENTIFIER = "P";
     public static final String SHARE_TRANSACTION_IDENTIFIER = "SH";
+    private static final Logger log = LoggerFactory.getLogger(AccountingProcessorHelper.class);
 
     private final JournalEntryRepository glJournalEntryRepository;
     private final ProductToGLAccountMappingRepository accountMappingRepository;
@@ -420,6 +423,7 @@ public class AccountingProcessorHelper {
         }
 
         if (totalAmount.compareTo(totalCreditedAmount) != 0) {
+            log.info("Totalamount {} -- VS --is not equal to totalCreditedAmount {}", totalAmount, totalCreditedAmount);
             throw new PlatformDataIntegrityException(
                     "Meltdown in advanced accounting...sum of all charges is not equal to the fee charge for a transaction",
                     "Meltdown in advanced accounting...sum of all charges is not equal to the fee charge for a transaction",

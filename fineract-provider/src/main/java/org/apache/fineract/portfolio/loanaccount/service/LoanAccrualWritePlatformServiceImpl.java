@@ -47,6 +47,8 @@ import org.apache.fineract.portfolio.loanaccount.exception.LoanNotFoundException
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanSchedulePeriodData;
 import org.apache.fineract.portfolio.loanproduct.service.LoanEnumerations;
 import org.apache.fineract.useradministration.domain.AppUserRepositoryWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -56,6 +58,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlatformService {
 
+    private static final Logger log = LoggerFactory.getLogger(LoanAccrualWritePlatformServiceImpl.class);
     private final LoanReadPlatformService loanReadPlatformService;
     private final LoanChargeReadPlatformService loanChargeReadPlatformService;
     private final JdbcTemplate jdbcTemplate;
@@ -399,7 +402,7 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
                     chargeAmount = chargeAmount.subtract(loanCharge.getAmountUnrecognized());
                 }
                 boolean canAddCharge = chargeAmount.compareTo(BigDecimal.ZERO) > 0;
-                if (canAddCharge && (loanCharge.getAmountAccrued() == null || chargeAmount.compareTo(loanCharge.getAmountAccrued()) != 0)) {
+                if (canAddCharge && (loanCharge.getAmountAccrued() == null || chargeAmount.compareTo(loanCharge.getAmountAccrued()) == 0)) {
                     BigDecimal amountForAccrual = chargeAmount;
                     if (loanCharge.getAmountAccrued() != null) {
                         amountForAccrual = chargeAmount.subtract(loanCharge.getAmountAccrued());
