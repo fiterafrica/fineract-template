@@ -620,6 +620,12 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         final SavingsAccountTransaction withdrawal = this.depositAccountDomainService.handleWithdrawal(account, fmt, transactionDate,
                 transactionAmount, paymentDetail, true, isRegularTransaction);
 
+        final String noteText = command.stringValueOfParameterNamed("note");
+        if (StringUtils.isNotBlank(noteText)) {
+            final Note note = Note.savingsTransactionNote(account, withdrawal, noteText);
+            this.noteRepository.save(note);
+        }
+
         return new CommandProcessingResultBuilder() //
                 .withEntityId(withdrawal.getId()) //
                 .withOfficeId(account.officeId()) //

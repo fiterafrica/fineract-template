@@ -1011,9 +1011,10 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
                     "sa.currency_code as currencyCode, sa.currency_digits as currencyDigits, sa.currency_multiplesof as inMultiplesOf, ");
             sqlBuilder.append("curr.name as currencyName, curr.internationalized_name_code as currencyNameCode, ");
             sqlBuilder.append("curr.display_symbol as currencyDisplaySymbol, ");
-            sqlBuilder.append("pt.value as paymentTypeName ");
+            sqlBuilder.append("pt.value as paymentTypeName ,nt.note as note ");
             sqlBuilder.append("from m_savings_account sa ");
             sqlBuilder.append("join m_savings_account_transaction tr on tr.savings_account_id = sa.id ");
+            sqlBuilder.append("left join m_note nt on nt.savings_account_transaction_id = tr.id ");
             sqlBuilder.append("join m_currency curr on curr.code = sa.currency_code ");
             sqlBuilder.append("left join m_account_transfer_transaction fromtran on fromtran.from_savings_transaction_id = tr.id ");
             sqlBuilder.append("left join m_account_transfer_transaction totran on totran.to_savings_transaction_id = tr.id ");
@@ -1065,6 +1066,7 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
             final String currencyName = rs.getString("currencyName");
             final String currencyNameCode = rs.getString("currencyNameCode");
             final String currencyDisplaySymbol = rs.getString("currencyDisplaySymbol");
+            final String note = rs.getString("note");
             final Integer currencyDigits = JdbcSupport.getInteger(rs, "currencyDigits");
             final Integer inMultiplesOf = JdbcSupport.getInteger(rs, "inMultiplesOf");
             final CurrencyData currency = new CurrencyData(currencyCode, currencyName, currencyDigits, inMultiplesOf, currencyDisplaySymbol,
@@ -1092,7 +1094,6 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
             }
             final boolean postInterestAsOn = false;
             final String submittedByUsername = rs.getString("submittedByUsername");
-            final String note = null;
             return SavingsAccountTransactionData.create(id, transactionType, paymentDetailData, savingsId, accountNo, date, currency,
                     amount, outstandingChargeAmount, runningBalance, reversed, transfer, postInterestAsOn, submittedByUsername, note,
                     createdDate);
