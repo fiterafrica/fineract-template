@@ -28,6 +28,8 @@ import static org.apache.fineract.portfolio.savings.SavingsApiConstants.transact
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.transactionDateParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.withHoldTaxParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.withdrawBalanceParamName;
+import static org.apache.fineract.portfolio.savings.SavingsApiConstants.checkNumberParamName;
+import static org.apache.fineract.portfolio.savings.SavingsApiConstants.paymentTypeIdParamName;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -96,6 +98,7 @@ import org.apache.fineract.portfolio.note.domain.Note;
 import org.apache.fineract.portfolio.note.domain.NoteRepository;
 import org.apache.fineract.portfolio.note.exception.NoteNotFoundException;
 import org.apache.fineract.portfolio.paymentdetail.domain.PaymentDetail;
+import org.apache.fineract.portfolio.paymentdetail.domain.PaymentDetailRepository;
 import org.apache.fineract.portfolio.paymentdetail.service.PaymentDetailWritePlatformService;
 import org.apache.fineract.portfolio.paymenttype.domain.PaymentTypeRepositoryWrapper;
 import org.apache.fineract.portfolio.savings.SavingsAccountTransactionType;
@@ -143,6 +146,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+
 @Service
 public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements SavingsAccountWritePlatformService {
 
@@ -180,32 +184,33 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
     private final SavingsAccountTransactionLimitPlatformService savingsAccountTransactionLimitPlatformService;
     private final SavingsAccountDataValidator savingsAccountDataValidator;
+    private final PaymentDetailRepository paymentDetailRepository;
 
     @Autowired
     public SavingsAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
-            final SavingsAccountRepositoryWrapper savingAccountRepositoryWrapper,
-            final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
-            final SavingsAccountAssembler savingAccountAssembler,
-            final SavingsAccountTransactionDataValidator savingsAccountTransactionDataValidator,
-            final SavingsAccountChargeDataValidator savingsAccountChargeDataValidator,
-            final PaymentDetailWritePlatformService paymentDetailWritePlatformService,
-            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
-            final JournalEntryWritePlatformService journalEntryWritePlatformService,
-            final SavingsAccountDomainService savingsAccountDomainService, final NoteRepository noteRepository,
-            final AccountTransfersReadPlatformService accountTransfersReadPlatformService, final HolidayRepositoryWrapper holidayRepository,
-            final WorkingDaysRepositoryWrapper workingDaysRepository,
-            final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
-            final ChargeRepositoryWrapper chargeRepository, final SavingsAccountChargeRepositoryWrapper savingsAccountChargeRepository,
-            final SavingsAccountDataValidator fromApiJsonDeserializer, final StaffRepositoryWrapper staffRepository,
-            final ConfigurationDomainService configurationDomainService,
-            final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
-            final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService,
-            final AppUserRepositoryWrapper appuserRepository, final StandingInstructionRepository standingInstructionRepository,
-            final BusinessEventNotifierService businessEventNotifierService, final GSIMRepositoy gsimRepository,
-            final JdbcTemplate jdbcTemplate, final SavingsAccountInterestPostingService savingsAccountInterestPostingService,
-            final CodeValueRepositoryWrapper codeValueRepositoryWrapper, final PaymentTypeRepositoryWrapper repositoryWrapper,
-            final SavingsAccountTransactionLimitPlatformService savingsAccountTransactionLimitPlatformService,
-            SavingsAccountDataValidator savingsAccountDataValidator) {
+                                                               final SavingsAccountRepositoryWrapper savingAccountRepositoryWrapper,
+                                                               final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
+                                                               final SavingsAccountAssembler savingAccountAssembler,
+                                                               final SavingsAccountTransactionDataValidator savingsAccountTransactionDataValidator,
+                                                               final SavingsAccountChargeDataValidator savingsAccountChargeDataValidator,
+                                                               final PaymentDetailWritePlatformService paymentDetailWritePlatformService,
+                                                               final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
+                                                               final JournalEntryWritePlatformService journalEntryWritePlatformService,
+                                                               final SavingsAccountDomainService savingsAccountDomainService, final NoteRepository noteRepository,
+                                                               final AccountTransfersReadPlatformService accountTransfersReadPlatformService, final HolidayRepositoryWrapper holidayRepository,
+                                                               final WorkingDaysRepositoryWrapper workingDaysRepository,
+                                                               final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
+                                                               final ChargeRepositoryWrapper chargeRepository, final SavingsAccountChargeRepositoryWrapper savingsAccountChargeRepository,
+                                                               final SavingsAccountDataValidator fromApiJsonDeserializer, final StaffRepositoryWrapper staffRepository,
+                                                               final ConfigurationDomainService configurationDomainService,
+                                                               final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
+                                                               final EntityDatatableChecksWritePlatformService entityDatatableChecksWritePlatformService,
+                                                               final AppUserRepositoryWrapper appuserRepository, final StandingInstructionRepository standingInstructionRepository,
+                                                               final BusinessEventNotifierService businessEventNotifierService, final GSIMRepositoy gsimRepository,
+                                                               final JdbcTemplate jdbcTemplate, final SavingsAccountInterestPostingService savingsAccountInterestPostingService,
+                                                               final CodeValueRepositoryWrapper codeValueRepositoryWrapper, final PaymentTypeRepositoryWrapper repositoryWrapper,
+                                                               final SavingsAccountTransactionLimitPlatformService savingsAccountTransactionLimitPlatformService,
+                                                               SavingsAccountDataValidator savingsAccountDataValidator, PaymentDetailRepository paymentDetailRepository) {
         this.context = context;
         this.savingAccountRepositoryWrapper = savingAccountRepositoryWrapper;
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
@@ -238,6 +243,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         this.repositoryWrapper = repositoryWrapper;
         this.savingsAccountTransactionLimitPlatformService = savingsAccountTransactionLimitPlatformService;
         this.savingsAccountDataValidator = savingsAccountDataValidator;
+        this.paymentDetailRepository = paymentDetailRepository;
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(SavingsAccountWritePlatformServiceJpaRepositoryImpl.class);
@@ -373,6 +379,26 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         this.context.authenticatedUser();
 
         this.savingsAccountTransactionDataValidator.validate(command);
+
+        if(command.hasParameter(paymentTypeIdParamName)){
+            Long paymentTypeId = command.longValueOfParameterNamed(paymentTypeIdParamName);
+            if(paymentTypeId != null){
+                  if(command.hasParameter(checkNumberParamName)){
+                     String checkNumber = command.stringValueOfParameterNamed(checkNumberParamName);
+                     if(!checkNumber.isEmpty()){
+                         this.paymentDetailRepository.findByCheckNumber(checkNumber)
+                                 .stream()
+                                 .findFirst()
+                                 .ifPresent(paymentDetail -> {
+                                     throw new PlatformDataIntegrityException("error.msg.check.number.already.exists",
+                                             "Check number already exists", "checkNumber", checkNumber);
+                                 });
+                     }
+               }
+            }
+        }
+
+
         boolean isGsim = false;
 
         final boolean backdatedTxnsAllowedTill = this.savingAccountAssembler.getPivotConfigStatus();
@@ -458,6 +484,24 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     public CommandProcessingResult withdrawal(final Long savingsId, final JsonCommand command) {
 
         this.savingsAccountTransactionDataValidator.validate(command);
+
+        if(command.hasParameter(paymentTypeIdParamName)){
+            Long paymentTypeId = command.longValueOfParameterNamed(paymentTypeIdParamName);
+            if(paymentTypeId != null){
+                if(command.hasParameter(checkNumberParamName)){
+                    String checkNumber = command.stringValueOfParameterNamed(checkNumberParamName);
+                    if(!checkNumber.isEmpty()){
+                        this.paymentDetailRepository.findByCheckNumber(checkNumber)
+                                .stream()
+                                .findFirst()
+                                .ifPresent(paymentDetail -> {
+                                    throw new PlatformDataIntegrityException("error.msg.check.number.already.exists",
+                                            "Check number already exists", "checkNumber", checkNumber);
+                                });
+                    }
+                }
+            }
+        }
 
         boolean isGsim = false;
 
