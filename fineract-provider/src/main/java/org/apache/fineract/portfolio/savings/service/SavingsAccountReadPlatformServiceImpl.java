@@ -40,6 +40,7 @@ import org.apache.fineract.infrastructure.codes.data.CodeValueData;
 import org.apache.fineract.infrastructure.codes.service.CodeValueReadPlatformService;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
+import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.apache.fineract.infrastructure.core.filters.FilterConstraint;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.core.service.Page;
@@ -538,11 +539,26 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                 + " where sa.id = ? and sa.deposit_type_enum = ? and pd.check_number= ?";
 
         try {
-            return this.jdbcTemplate.queryForObject(sql, this.transactionsMapperCheckNumber, // NOSONAR
-                    new Object[] { savingsId, depositAccountType.getValue(), checkNumber });
+            List<SavingsAccountTransactionData> transactions = this.jdbcTemplate.query(
+                    sql,
+                    this.transactionsMapperCheckNumber,
+                    new Object[] { savingsId, depositAccountType.getValue(), checkNumber }
+            );
+
+            if (transactions.isEmpty()) {
+                throw new SavingsAccountTransactionNotFoundException(checkNumber, savingsId);
+            } else if (transactions.size() > 1) {
+                // Handle duplicate case
+                throw new PlatformDataIntegrityException("error.msg.transaction.duplicate.checkNumber",
+                        "Duplicate checkNumber " + checkNumber + " found for savings account " + savingsId, "checkNumber", checkNumber);
+            }
+
+            // Return the single transaction
+            return transactions.get(0);
         } catch (EmptyResultDataAccessException e) {
             throw new SavingsAccountTransactionNotFoundException(checkNumber, savingsId);
         }
+
     }
 
     @Override
