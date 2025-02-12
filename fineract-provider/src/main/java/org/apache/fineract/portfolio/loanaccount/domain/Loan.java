@@ -1259,6 +1259,7 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
                 installment.getInstallmentCharges().addAll(existingCharges);
                 existingCharges.forEach(c -> c.setInstallment(installment));
                 existingInstallment.getInstallmentCharges().clear();
+                updateOverdueInstallmentCharge(existingInstallment, installment);
             }
             addLoanRepaymentScheduleInstallment(installment);
         }
@@ -1266,6 +1267,17 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
         updateLoanSummaryDerivedFields();
         applyAccurals();
 
+    }
+
+    private void updateOverdueInstallmentCharge(LoanRepaymentScheduleInstallment existingInstallment,
+            LoanRepaymentScheduleInstallment modifiedInstallment) {
+        this.getLoanCharges().forEach(charge -> {
+            if (charge.isOverdueInstallmentCharge()) {
+                if (existingInstallment.getInstallmentNumber().equals(charge.getOverdueInstallmentCharge().getInstallment().getInstallmentNumber())) {
+                    charge.getOverdueInstallmentCharge().updateLoanRepaymentScheduleInstallment(modifiedInstallment);
+                }
+            }
+        });
     }
 
     private LoanRepaymentScheduleInstallment findByInstallmentNumber(Collection<LoanRepaymentScheduleInstallment> installments,
