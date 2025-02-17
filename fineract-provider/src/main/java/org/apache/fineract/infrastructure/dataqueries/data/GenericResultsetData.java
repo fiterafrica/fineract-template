@@ -18,7 +18,12 @@
  */
 package org.apache.fineract.infrastructure.dataqueries.data;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 
@@ -81,6 +86,50 @@ public final class GenericResultsetData {
                 columnName = StringUtils.replace(columnName, wordToReplace, wordToReplaceWith);
                 columnHeader.setColumnName(columnName);
             }
+        }
+    }
+
+    public List convertToJSON() {
+        List<Map<String, Object>> jsonList = new ArrayList<>();
+
+        // Extract column names
+        List<ResultsetColumnHeaderData> columnHeaders = this.getColumnHeaders();
+        List<ResultsetRowData> dataRows = this.getData();
+
+        for (ResultsetRowData rowData : dataRows) {
+            Map<String, Object> jsonObject = new LinkedHashMap<>();
+            List<String> rowValues = rowData.getRow();
+
+            for (int i = 0; i < columnHeaders.size(); i++) {
+                ResultsetColumnHeaderData columnHeader = columnHeaders.get(i);
+                String columnName = columnHeader.getColumnName();
+                String columnType = columnHeader.getColumnType();
+                Object value = (i < rowValues.size() && rowValues.get(i) != null && !rowValues.get(i).isEmpty())
+                        ? parseValue(columnType, rowValues.get(i))
+                        : null; // Ensure null entries stay null
+
+                jsonObject.put(columnName, value);
+            }
+            jsonList.add(jsonObject);
+        }
+        return jsonList;
+    }
+
+
+    private static Object parseValue(String columnType, String value) {
+        if (value == null || value.isEmpty()) {
+            return null; // Ensure null values remain null
+        }
+
+        try {
+            return switch (columnType.toUpperCase()) {
+                case "INTEGER" -> Integer.parseInt(value);
+                case "DECIMAL" -> new BigDecimal(value);
+                case "BOOLEAN" -> Boolean.parseBoolean(value);
+                default -> value;
+            };
+        } catch (Exception e) {
+            return value; // Fallback to string if parsing fails
         }
     }
 
