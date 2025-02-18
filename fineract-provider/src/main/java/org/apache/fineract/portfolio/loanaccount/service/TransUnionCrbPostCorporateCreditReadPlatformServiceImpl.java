@@ -208,7 +208,16 @@ public class TransUnionCrbPostCorporateCreditReadPlatformServiceImpl implements 
             final String currencyType = rs.getString("currencyType");
             final String institution = rs.getString("institution");
             final String tradingName = rs.getString("tradingName");
-            final String telephone1 = rs.getString("telephone1");
+
+            final String phoneNumber = rs.getString("telephone1");
+            String telephone1 = (phoneNumber != null) ? phoneNumber.replace(" ", "") : null; // Remove Spaces from
+            // phone Number
+            // because CRB
+            // TransUnion does not
+            // accept spaces in
+            // phone number.
+            // FSI-173
+
             final String companyRegNo = rs.getString("companyRegNo");
             final String physicalAddressLine1 = rs.getString("physicalAddressLine1");
             final String industry = rs.getString("industry");
