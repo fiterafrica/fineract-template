@@ -28,7 +28,7 @@ public interface LoanAccrualPlatformService {
 
     void addPeriodicAccruals(LocalDate tilldate) throws MultiException;
 
-    void addPeriodicAccruals(LocalDate tilldate, Collection<LoanScheduleAccrualData> loanScheduleAccrualDatas) throws MultiException;
+    void addPeriodicAccruals(LocalDate tilldate, Collection<LoanScheduleAccrualData> loanScheduleAccrualDatas, boolean isRescheduleLoan) throws MultiException;
 
     void addAccrualAccounting() throws JobExecutionException;
 

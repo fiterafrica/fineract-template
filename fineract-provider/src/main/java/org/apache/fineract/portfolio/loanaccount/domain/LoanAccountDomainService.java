@@ -81,7 +81,7 @@ public interface LoanAccountDomainService {
      */
     void disableStandingInstructionsLinkedToClosedLoan(Loan loan);
 
-    void recalculateAccruals(Loan loan, boolean isInterestCalcualtionHappened);
+    void recalculateAccruals(Loan loan, boolean isInterestCalcualtionHappened, boolean isRescheduleLoan);
 
     CommandProcessingResultBuilder creditBalanceRefund(Long loanId, LocalDate transactionDate, BigDecimal transactionAmount,
             String noteText, String externalId);
