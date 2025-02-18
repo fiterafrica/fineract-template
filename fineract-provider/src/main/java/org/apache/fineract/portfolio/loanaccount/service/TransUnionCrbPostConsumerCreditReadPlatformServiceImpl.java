@@ -231,7 +231,16 @@ public class TransUnionCrbPostConsumerCreditReadPlatformServiceImpl implements T
             final String accountOwner = rs.getString("accountOwner");
             final String incomeFrequency = rs.getString("incomeFrequency");
             final Integer scheduledPaymentAmount = rs.getInt("scheduledPaymentAmount");
-            final String mobileTelephone = rs.getString("mobileTelephone");
+
+            final String phoneNumber = rs.getString("mobileTelephone");
+            String mobileTelephone = (phoneNumber != null) ? phoneNumber.replace(" ", "") : null; // Remove Spaces from
+                                                                                                  // phone Number
+                                                                                                  // because CRB
+                                                                                                  // TransUnion does not
+                                                                                                  // accept spaces in
+                                                                                                  // phone number.
+                                                                                                  // FSI-173
+
             final Integer actualPaymentAmount = rs.getInt("actualPaymentAmount");
             final LocalDate dateAccountOpened = JdbcSupport.getLocalDate(rs, "dateAccountOpened");
             final Double interestRateAtDisbursement = rs.getDouble("interestRateAtDisbursement");
