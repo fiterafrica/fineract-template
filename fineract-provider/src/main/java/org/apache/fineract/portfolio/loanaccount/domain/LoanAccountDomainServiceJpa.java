@@ -577,11 +577,11 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
     @Override
     public void recalculateAccruals(Loan loan) {
         boolean isInterestCalcualtionHappened = loan.repaymentScheduleDetail().isInterestRecalculationEnabled();
-        recalculateAccruals(loan, isInterestCalcualtionHappened);
+        recalculateAccruals(loan, isInterestCalcualtionHappened, false);
     }
 
     @Override
-    public void recalculateAccruals(Loan loan, boolean isInterestCalcualtionHappened) {
+    public void recalculateAccruals(Loan loan, boolean isInterestCalcualtionHappened, boolean isRescheduleLoan) {
         LocalDate accruedTill = loan.getAccruedTill();
         if (!loan.isPeriodicAccrualAccountingEnabledOnLoanProduct() || !isInterestCalcualtionHappened || accruedTill == null || loan.isNpa()
                 || !loan.status().isActive()) {
@@ -620,7 +620,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
 
         if (!loanScheduleAccrualDatas.isEmpty()) {
             try {
-                this.loanAccrualPlatformService.addPeriodicAccruals(accruedTill, loanScheduleAccrualDatas);
+                this.loanAccrualPlatformService.addPeriodicAccruals(accruedTill, loanScheduleAccrualDatas, isRescheduleLoan);
             } catch (MultiException e) {
                 String globalisationMessageCode = "error.msg.accrual.exception";
                 throw new GeneralPlatformDomainRuleException(globalisationMessageCode, e.getMessage(), e);

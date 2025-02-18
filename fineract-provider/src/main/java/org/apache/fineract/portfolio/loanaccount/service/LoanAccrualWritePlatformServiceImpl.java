@@ -97,7 +97,7 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
                 loanWaiverScheduleData = this.loanReadPlatformService.fetchWaiverInterestRepaymentData(accrualData.getLoanId());
                 loanWaiverTansactionData = this.loanReadPlatformService.retrieveWaiverLoanTransactions(accrualData.getLoanId());
             }
-            updateCharges(chargeData, accrualData, accrualData.getFromDateAsLocaldate(), accrualData.getDueDateAsLocaldate());
+            updateCharges(chargeData, accrualData, accrualData.getFromDateAsLocaldate(), accrualData.getDueDateAsLocaldate(), false);
             updateInterestIncome(accrualData, loanWaiverTansactionData, loanWaiverScheduleData, accrualData.getDueDateAsLocaldate());
             addAccrualAccounting(accrualData);
         }
@@ -105,7 +105,7 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
 
     @Override
     @Transactional
-    public void addPeriodicAccruals(final LocalDate tilldate, Long loanId, Collection<LoanScheduleAccrualData> loanScheduleAccrualDatas)
+    public void addPeriodicAccruals(final LocalDate tilldate, Long loanId, Collection<LoanScheduleAccrualData> loanScheduleAccrualDatas, boolean isRescheduleLoan)
             throws Exception {
         boolean firstTime = true;
         LocalDate accruredTill = null;
@@ -124,12 +124,12 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
                     firstTime = false;
                 }
                 if (accruredTill == null || accruredTill.isBefore(tilldate)) {
-                    updateCharges(chargeData, accrualData, accrualData.getFromDateAsLocaldate(), tilldate);
+                    updateCharges(chargeData, accrualData, accrualData.getFromDateAsLocaldate(), tilldate, isRescheduleLoan);
                     updateInterestIncome(accrualData, loanWaiverTansactionData, loanWaiverScheduleData, tilldate);
                     addAccrualTillSpecificDate(tilldate, accrualData);
                 }
             } else {
-                updateCharges(chargeData, accrualData, accrualData.getFromDateAsLocaldate(), accrualData.getDueDateAsLocaldate());
+                updateCharges(chargeData, accrualData, accrualData.getFromDateAsLocaldate(), accrualData.getDueDateAsLocaldate(), isRescheduleLoan);
                 updateInterestIncome(accrualData, loanWaiverTansactionData, loanWaiverScheduleData, tilldate);
                 addAccrualAccounting(accrualData);
                 accruredTill = accrualData.getDueDateAsLocaldate();
@@ -360,7 +360,7 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
     }
 
     private void updateCharges(final Collection<LoanChargeData> chargesData, final LoanScheduleAccrualData accrualData,
-            final LocalDate startDate, final LocalDate endDate) {
+            final LocalDate startDate, final LocalDate endDate, boolean isRescheduleLoan) {
 
         final Map<LoanChargeData, BigDecimal> applicableCharges = new HashMap<>();
         BigDecimal dueDateFeeIncome = BigDecimal.ZERO;
@@ -402,7 +402,7 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
                     chargeAmount = chargeAmount.subtract(loanCharge.getAmountUnrecognized());
                 }
                 boolean canAddCharge = chargeAmount.compareTo(BigDecimal.ZERO) > 0;
-                if (canAddCharge && (loanCharge.getAmountAccrued() == null || chargeAmount.compareTo(loanCharge.getAmountAccrued()) == 0)) {
+                if (canAddCharge && (loanCharge.getAmountAccrued() == null || chargeAmount.compareTo(loanCharge.getAmountAccrued()) == 0 || isRescheduleLoan)) {
                     BigDecimal amountForAccrual = chargeAmount;
                     if (loanCharge.getAmountAccrued() != null) {
                         amountForAccrual = chargeAmount.subtract(loanCharge.getAmountAccrued());

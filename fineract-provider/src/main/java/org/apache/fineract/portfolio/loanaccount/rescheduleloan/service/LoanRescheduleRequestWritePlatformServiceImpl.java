@@ -548,7 +548,7 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
             }
             postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds);
 
-            this.loanAccountDomainService.recalculateAccruals(loan, true);
+            this.loanAccountDomainService.recalculateAccruals(loan, true, true);
 
             return new CommandProcessingResultBuilder().withCommandId(jsonCommand.commandId()).withEntityId(loanRescheduleRequestId)
                     .withLoanId(loanRescheduleRequest.getLoan().getId()).with(changes).withClientId(loan.getClientId())
