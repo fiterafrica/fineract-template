@@ -20,6 +20,7 @@ package org.apache.fineract.template.service;
 
 import java.net.HttpURLConnection;
 import java.security.KeyManagementException;
+import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
@@ -29,7 +30,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 @SuppressWarnings("unused")
@@ -61,7 +62,9 @@ public final class TrustModifier {
 
         if (factory == null) {
             final SSLContext ctx = SSLContext.getInstance("TLS");
-            ctx.init(null, new TrustManager[] { new AlwaysTrustManager() }, null);
+            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init((KeyStore) null);
+            ctx.init(null, trustManagerFactory.getTrustManagers(), null);
             factory = ctx.getSocketFactory();
         }
         return factory;
