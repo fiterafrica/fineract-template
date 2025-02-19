@@ -18,16 +18,13 @@
  */
 package org.apache.fineract.infrastructure.Odoo;
 
-import java.util.List;
 import lombok.Data;
+import org.apache.fineract.accounting.journalentry.data.JournalData;
 
 @Data
 
 public class JournalEntryToOdooData {
 
-    private String username;
-    private String password;
-    private String cbs_journal_entry_id;
-    private JournalData journal;
-    private List<AccountingEntry> accounting_entries;
+    private String resourceId;
+    private JournalData resource;
 }
