@@ -20,6 +20,8 @@ package org.apache.fineract.infrastructure.dataqueries.service;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.apache.fineract.infrastructure.core.api.ApiParameterHelper;
 import org.apache.fineract.infrastructure.core.serialization.ToApiJsonSerializer;
 import org.apache.fineract.infrastructure.dataqueries.api.RunreportsApiResource;
@@ -112,10 +114,14 @@ public class DatatableReportingProcessService implements ReportingProcessService
                     parameterTypeValue, reportParams, isSelfServiceUserReport, limit, offset);
 
             // Convert to JSON
+            JsonObject payload = new JsonObject();
             Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
-            String json = gson.toJson(result.convertToJSON());
+            JsonElement jsonElement = gson.toJsonTree(result.convertToJSON());
 
-            return Response.ok().entity(json).type(MediaType.APPLICATION_JSON).build();
+            payload.addProperty("totalRecords", result.getCount());
+            payload.add("data", jsonElement);
+
+            return Response.ok().entity(payload.toString()).type(MediaType.APPLICATION_JSON).build();
 
         }
 
