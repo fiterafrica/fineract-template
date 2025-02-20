@@ -124,7 +124,7 @@ public final class SearchParameters {
     }
 
     public static SearchParameters forJournalEntries(final Long officeId, final Integer offset, final Integer limit, final String orderBy,
-            final String sortOrder, final Long loanId, final Long savingsId, final boolean isPostedToOdoo) {
+            final String sortOrder, final Long loanId, final Long savingsId, final Boolean isPostedToOdoo) {
 
         final Integer maxLimitAllowed = getCheckedLimit(limit);
         final Long staffId = null;

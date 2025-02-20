@@ -18,32 +18,27 @@
  */
 package org.apache.fineract.infrastructure.dataqueries.service;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.apache.fineract.infrastructure.core.api.ApiParameterHelper;
 import org.apache.fineract.infrastructure.core.serialization.ToApiJsonSerializer;
 import org.apache.fineract.infrastructure.dataqueries.api.RunreportsApiResource;
 import org.apache.fineract.infrastructure.dataqueries.data.GenericResultsetData;
-import org.apache.fineract.infrastructure.dataqueries.data.LoanPortfolioData;
-import org.apache.fineract.infrastructure.dataqueries.data.LoanPortfolioRowData;
 import org.apache.fineract.infrastructure.dataqueries.data.ReportData;
-import org.apache.fineract.infrastructure.dataqueries.data.ResultsetRowData;
 import org.apache.fineract.infrastructure.report.annotation.ReportService;
 import org.apache.fineract.infrastructure.report.service.ReportingProcessService;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProduct;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.StreamingOutput;
 import java.io.File;
-import java.lang.reflect.Field;
-import java.math.BigDecimal;
-import java.time.format.DateTimeFormatter;
-import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -118,19 +113,15 @@ public class DatatableReportingProcessService implements ReportingProcessService
             final GenericResultsetData result = this.readExtraDataAndReportingService.retrieveGenericResultset(reportName,
                     parameterTypeValue, reportParams, isSelfServiceUserReport, limit, offset);
 
-            if(reportName.equals("Portfolio Management")) {
+            // Convert to JSON
+            JsonObject payload = new JsonObject();
+            Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
+            JsonElement jsonElement = gson.toJsonTree(result.convertToJSON());
 
-                LoanPortfolioData data;
-                try {
-                    data = transformToLoanPortfolio(result);
+            payload.addProperty("totalRecords", result.getCount());
+            payload.add("data", jsonElement);
 
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
-                String json = this.toApiJsonSerializer.serializeResult(data);
-
-                return Response.ok().entity(json).type(MediaType.APPLICATION_JSON).build();
-            }
+            return Response.ok().entity(payload.toString()).type(MediaType.APPLICATION_JSON).build();
 
         }
 
@@ -182,57 +173,56 @@ public class DatatableReportingProcessService implements ReportingProcessService
         }
     }
 
-
-    private LoanPortfolioData transformToLoanPortfolio(GenericResultsetData results) throws IllegalAccessException {
-
-        LoanPortfolioData loanPortfolioData = new LoanPortfolioData();
-
-        loanPortfolioData.setCount(results.getCount());
-
-        List<LoanPortfolioRowData> loanPortfolioRowData = new ArrayList<>();
-
-        for (ResultsetRowData rowData : results.getData()) {
-
-            List<String> row = rowData.getRow();
-            LoanPortfolioRowData loanDetails = new LoanPortfolioRowData();
-
-            // Get all fields of the LoanDetails class
-            Field[] fields = LoanPortfolioRowData.class.getDeclaredFields();
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
-            for (int i = 0; i < fields.length; i++) {
-
-                Field field = fields[i];
-                field.setAccessible(true); // Access private fields
-
-                if (i >= row.size() || row.get(i) == null || row.get(i).isEmpty()) {
-                    field.set(loanDetails, null); // Set field to null if value is missing
-                    continue;
-                }
-
-                // Set the value based on the field type
-                String value = row.get(i);
-                if (field.getType() == String.class) {
-                    field.set(loanDetails, value);
-                } else if (field.getType() == LocalDate.class) {
-                    field.set(loanDetails, LocalDate.parse(value, formatter));
-                }
-                else if (field.getType() == BigDecimal.class) {
-                    field.set(loanDetails, new BigDecimal(value));
-                } else if (field.getType() == int.class || field.getType() == Integer.class) {
-                    field.set(loanDetails, Integer.parseInt(value));
-                } else if (field.getType() == long.class || field.getType() == Long.class) {
-                    field.set(loanDetails, Long.parseLong(value));
-                } else if (field.getType() == short.class || field.getType() == Short.class) {
-                    field.set(loanDetails, Short.parseShort(value));
-                }
-            }
-
-            loanPortfolioRowData.add(loanDetails);
-        }
-
-        loanPortfolioData.setData(loanPortfolioRowData);
-        return loanPortfolioData;
-
-    }
+//    private LoanPortfolioData transformToLoanPortfolio(GenericResultsetData results) throws IllegalAccessException {
+//
+//        LoanPortfolioData loanPortfolioData = new LoanPortfolioData();
+//
+//        loanPortfolioData.setCount(results.getCount());
+//
+//        List<LoanPortfolioRowData> loanPortfolioRowData = new ArrayList<>();
+//
+//        for (ResultsetRowData rowData : results.getData()) {
+//
+//            List<String> row = rowData.getRow();
+//            LoanPortfolioRowData loanDetails = new LoanPortfolioRowData();
+//
+//            // Get all fields of the LoanDetails class
+//            Field[] fields = LoanPortfolioRowData.class.getDeclaredFields();
+//            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+//
+//            for (int i = 0; i < fields.length; i++) {
+//
+//                Field field = fields[i];
+//                field.setAccessible(true); // Access private fields
+//
+//                if (i >= row.size() || row.get(i) == null || row.get(i).isEmpty()) {
+//                    field.set(loanDetails, null); // Set field to null if value is missing
+//                    continue;
+//                }
+//
+//                // Set the value based on the field type
+//                String value = row.get(i);
+//                if (field.getType() == String.class) {
+//                    field.set(loanDetails, value);
+//                } else if (field.getType() == LocalDate.class) {
+//                    field.set(loanDetails, LocalDate.parse(value, formatter));
+//                }
+//                else if (field.getType() == BigDecimal.class) {
+//                    field.set(loanDetails, new BigDecimal(value));
+//                } else if (field.getType() == int.class || field.getType() == Integer.class) {
+//                    field.set(loanDetails, Integer.parseInt(value));
+//                } else if (field.getType() == long.class || field.getType() == Long.class) {
+//                    field.set(loanDetails, Long.parseLong(value));
+//                } else if (field.getType() == short.class || field.getType() == Short.class) {
+//                    field.set(loanDetails, Short.parseShort(value));
+//                }
+//            }
+//
+//            loanPortfolioRowData.add(loanDetails);
+//        }
+//
+//        loanPortfolioData.setData(loanPortfolioRowData);
+//        return loanPortfolioData;
+//
+//    }
 }

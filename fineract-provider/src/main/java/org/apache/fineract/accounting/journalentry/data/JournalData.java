@@ -16,17 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.infrastructure.dataqueries.data;
+package org.apache.fineract.accounting.journalentry.data;
 
 import lombok.Data;
 
 import java.util.List;
 
-
 @Data
-public class LoanPortfolioData {
+public class JournalData {
 
-    private List<LoanPortfolioRowData> data;
-    private Integer count;
-
+    private String transactionId;
+    private String ref;
+    private Boolean reversed;
+    private String entryDate;
+    private Long officeId;
+    private Long clientId;
+    private String clientDisplayName;
+    private String transactionTypeName;
+    private String transactionTypeUniqueId;
+    private List<JournalItemData> journalItems;
 }

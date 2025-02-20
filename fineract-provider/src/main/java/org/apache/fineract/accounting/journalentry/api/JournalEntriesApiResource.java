@@ -125,7 +125,7 @@ public class JournalEntriesApiResource {
             @QueryParam("loanId") @Parameter(description = "loanId") final Long loanId,
             @QueryParam("savingsId") @Parameter(description = "savingsId") final Long savingsId,
             @QueryParam("runningBalance") @Parameter(description = "runningBalance") final boolean runningBalance,
-            @QueryParam("isPostedToOdoo")@Parameter(description = "isPostedToOdoo") final boolean isPostedToOdoo,
+            @QueryParam("isPostedToOdoo")@Parameter(description = "isPostedToOdoo") final Boolean isPostedToOdoo,
             @QueryParam("transactionDetails") @Parameter(description = "transactionDetails") final boolean transactionDetails) {
 
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermission);
