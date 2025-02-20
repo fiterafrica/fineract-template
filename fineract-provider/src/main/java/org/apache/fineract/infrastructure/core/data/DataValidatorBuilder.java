@@ -1012,8 +1012,9 @@ public class DataValidatorBuilder {
          */
         final String regex = "^\\+?[0-9. ()-]{0,25}$";
         final Pattern pattern = Pattern.compile(regex);
-        final Matcher matcher = pattern.matcher(this.value.toString());
-        if (matcher.matches()) {
+        String valueStr = this.value.toString();
+        final Matcher matcher = pattern.matcher(valueStr);
+        if (matcher.matches() && !valueStr.contains(" ")) {
             validationErr = false;
         }
         if (validationErr) {

@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Base64;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
@@ -52,6 +53,8 @@ import okhttp3.Response;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.fineract.accounting.journalentry.domain.JournalEntry;
 import org.apache.fineract.accounting.journalentry.domain.JournalEntryRepository;
+import org.apache.fineract.accounting.journalentry.data.JournalData;
+import org.apache.fineract.accounting.journalentry.data.JournalItemData;
 import org.apache.fineract.infrastructure.Odoo.exception.OdooFailedException;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.apache.fineract.infrastructure.core.domain.FineractContext;
@@ -86,6 +89,8 @@ import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Service
 @SuppressWarnings({ "unchecked", "rawtypes", "cast" })
@@ -344,28 +349,22 @@ public class OdooServiceImpl implements OdooService {
         final Integer uid = loginToOddo();
         if (uid > 0) {
 
-            AccountingEntry journalEntry = null;
-            List<AccountingEntry> accounting_entries = new ArrayList<>();
+            JournalItemData journalEntry = null;
+            List<JournalItemData> journalItems = new ArrayList<>();
 
             JournalEntryToOdooData journalEntryToOdooData = new JournalEntryToOdooData();
             JournalData journalData = new JournalData();
+            Client client = null;
+            Office office = null;
 
             for (JournalEntry entry : list) {
 
                 Integer accountId = extractGlCode(entry.getGlAccount().getGlCode());
-                Client client = entry.getClient();
-                Integer partnerId = client.getOdooCustomerId();
-                Office office = entry.getOffice();
+                client = entry.getClient();
+                office = entry.getOffice();
 
-                journalEntry = new AccountingEntry(entry, accountId, partnerId, office);
-                accounting_entries.add(journalEntry);
-                if (partnerId == null) {
-                    throw new GeneralPlatformDomainRuleException(
-                            "error.posting.journal.entries.to.odoo.has.failed.due.to.missing.client.id.or.partner.id",
-                            "Error occurred while creating Journal Entry to Odoo with Loan Transaction Id  " + loanTransactionId
-                                    + " and Type " + transactionType + " Error: Client or Partner id not found. Client is Posted =  : "
-                                    + client.isOdooCustomerPosted());
-                }
+                journalEntry = new JournalItemData(entry, entry.getGlAccount().getGlCode());
+                journalItems.add(journalEntry);
                 if (accountId == null) {
                     throw new GeneralPlatformDomainRuleException(
                             "error.posting.journal.entries.to.odoo.has.failed.due.missing.gl.account.id",
@@ -376,18 +375,33 @@ public class OdooServiceImpl implements OdooService {
             }
 
             // Create journal entry
-            journalEntryToOdooData.setUsername(username);
-            journalEntryToOdooData.setPassword(password);
-            journalEntryToOdooData.setCbs_journal_entry_id(loanTransactionId.toString());
+            journalEntryToOdooData.setResourceId(loanTransactionId.toString());
 
-            journalData.setRef("Journal Entry made by CBS for Loan Account : " + loanAccountNo);
-            journalData.setTransaction_type_name(LoanTransactionType.fromInt(transactionType.intValue()).name());
-            journalData.setTransaction_type_unique_id(transactionType.toString());
-            journalData.set_reversed(isReversed);
-            journalData.setDate(list.get(0).getTransactionDate().toString());
+            String ref = isReversed ? "Reversal of Journal Entry made by CBS for Loan ID : " + loanAccountNo +"; Transaction ID : L" + loanTransactionId :
+                    "Journal Entry made by CBS for Loan ID : " + loanAccountNo +"; Transaction ID : L" + loanTransactionId ;
 
-            journalEntryToOdooData.setJournal(journalData);
-            journalEntryToOdooData.setAccounting_entries(accounting_entries);
+            Integer partnerId = client.getOdooCustomerId();
+            if (partnerId == null) {
+                throw new GeneralPlatformDomainRuleException(
+                        "error.posting.journal.entries.to.odoo.has.failed.due.to.missing.client.id.or.partner.id",
+                        "Error occurred while creating Journal Entry to Odoo with Loan Transaction Id  " + loanTransactionId
+                                + " and Type " + transactionType + " Error: Client or Partner id not found. Client is Posted =  : "
+                                + client.isOdooCustomerPosted());
+            }
+
+            journalData.setRef(ref);
+            journalData.setTransactionId(loanTransactionId.toString());
+            journalData.setTransactionTypeName(LoanTransactionType.fromInt(transactionType.intValue()).name());
+            journalData.setTransactionTypeUniqueId(transactionType.toString());
+            journalData.setReversed(isReversed);
+            journalData.setClientId(client.getOdooCustomerId().longValue());
+            journalData.setClientDisplayName(client.getDisplayName());
+            journalData.setEntryDate(list.get(0).getTransactionDate().toString());
+            journalData.setOfficeId(office.getId());
+            journalData.setJournalItems(journalItems);
+
+            journalEntryToOdooData.setResource(journalData);
+
             LOG.info("Journal Entry to Odoo " + journalEntryToOdooData);
             String jsonPayload = convertRequestPayloadToJson(journalEntryToOdooData);
             LOG.info("Journal Entry to Odoo JSON Payload " + jsonPayload);
@@ -481,11 +495,14 @@ public class OdooServiceImpl implements OdooService {
                 .hostnameVerifier((hostname, session) -> true)
                 .build();
 
+        String authorization = Base64.getEncoder().encodeToString((username +":" +password).getBytes(UTF_8));
+
         RequestBody requestBody = RequestBody.create(MediaType.parse(FORM_URL_CONTENT_TYPE), payload);
         Request request = new Request.Builder()
                 .url(celeryUrl + "/api/cbs_journal_entry")
                 .post(requestBody)
                 .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization","Basic "+authorization)
                 .build();
 
         Response response = httpClient.newCall(request).execute();

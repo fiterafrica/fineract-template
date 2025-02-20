@@ -16,15 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.infrastructure.Odoo;
+package org.apache.fineract.accounting.journalentry.data;
 
 import lombok.Data;
-import org.apache.fineract.accounting.journalentry.data.JournalData;
+import org.apache.fineract.accounting.journalentry.domain.JournalEntry;
 
 @Data
+public class JournalItemData {
 
-public class JournalEntryToOdooData {
+    private Long id;
+    private String type;
+    private String accountId;
+    private Double credit;
+    private Double debit;
 
-    private String resourceId;
-    private JournalData resource;
+    public JournalItemData() {}
+
+    public JournalItemData(JournalEntry journalEntry, String accountId) {
+        this.accountId = accountId;
+        this.id = journalEntry.getId();
+
+        if (journalEntry.getType() == 2) {
+            this.debit = journalEntry.getAmount().doubleValue();
+            this.credit = 0.0;
+            this.type = "debit";
+        } else {
+            this.credit = journalEntry.getAmount().doubleValue();
+            this.debit = 0.0;
+            this.type = "credit";
+        }
+
+    }
 }
