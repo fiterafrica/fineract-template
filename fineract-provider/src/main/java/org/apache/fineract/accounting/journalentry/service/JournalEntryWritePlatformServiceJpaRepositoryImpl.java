@@ -18,16 +18,10 @@
  */
 package org.apache.fineract.accounting.journalentry.service;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -48,6 +42,9 @@ import org.apache.fineract.accounting.journalentry.data.ClientTransactionDTO;
 import org.apache.fineract.accounting.journalentry.data.LoanDTO;
 import org.apache.fineract.accounting.journalentry.data.SavingsDTO;
 import org.apache.fineract.accounting.journalentry.data.SharesDTO;
+import org.apache.fineract.accounting.journalentry.data.LoanTransactionDTO;
+import org.apache.fineract.accounting.journalentry.data.JournalData;
+import org.apache.fineract.accounting.journalentry.data.JournalItemData;
 import org.apache.fineract.accounting.journalentry.domain.JournalEntry;
 import org.apache.fineract.accounting.journalentry.domain.JournalEntryRepository;
 import org.apache.fineract.accounting.journalentry.domain.JournalEntryType;
@@ -67,24 +64,44 @@ import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
+import org.apache.fineract.infrastructure.core.domain.FineractContext;
 import org.apache.fineract.infrastructure.core.exception.GeneralPlatformDomainRuleException;
 import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
+import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
+import org.apache.fineract.infrastructure.hooks.event.HookEvent;
+import org.apache.fineract.infrastructure.hooks.event.HookEventSource;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.organisation.office.domain.Office;
 import org.apache.fineract.organisation.office.domain.OfficeRepositoryWrapper;
 import org.apache.fineract.organisation.office.domain.OrganisationCurrencyRepositoryWrapper;
+import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.client.domain.ClientTransaction;
+import org.apache.fineract.portfolio.loanaccount.data.LoanTransactionEnumData;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionType;
 import org.apache.fineract.portfolio.paymentdetail.domain.PaymentDetail;
 import org.apache.fineract.portfolio.paymentdetail.service.PaymentDetailWritePlatformService;
 import org.apache.fineract.useradministration.domain.AppUser;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.NonTransientDataAccessException;
 import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Set;
+import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Objects;
+
 
 @Service
 @RequiredArgsConstructor
@@ -107,6 +124,7 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
     private final PaymentDetailWritePlatformService paymentDetailWritePlatformService;
     private final FinancialActivityAccountRepositoryWrapper financialActivityAccountRepositoryWrapper;
     private final CashBasedAccountingProcessorForClientTransactions accountingProcessorForClientTransactions;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     @Override
@@ -481,7 +499,93 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
             final AccountingProcessorForLoan accountingProcessorForLoan = this.accountingProcessorForLoanFactory
                     .determineProcessor(loanDTO);
             accountingProcessorForLoan.createJournalEntriesForLoan(loanDTO);
+
+            postHookForLoanJournalEntries(loanDTO);
         }
+    }
+
+    public void postHookForLoanJournalEntries(LoanDTO loanDTO){
+
+        for (final LoanTransactionDTO loanTransactionDTO : loanDTO.getNewLoanTransactions()) {
+            final LocalDate transactionDate = loanTransactionDTO.getTransactionDate();
+            final String transactionId = loanTransactionDTO.getTransactionId();
+            final Office office = this.helper.getOfficeById(loanTransactionDTO.getOfficeId());
+            final LoanTransactionEnumData paymentTypeId = loanTransactionDTO.getTransactionType();
+            final Long loanId = loanDTO.getLoanId();
+
+
+            List<JournalEntry> journalEntries = glJournalEntryRepository.findJournalEntriesByLoanTransactionId("L" + transactionId);
+
+            JournalItemData journalItemData;
+
+            List<JournalItemData> journalItems = new ArrayList<>();
+
+            JournalData journalData = new JournalData();
+
+            Client client = null;
+
+            for (JournalEntry entry : journalEntries) {
+
+                String accountId = entry.getGlAccount().getGlCode();
+                client = entry.getClient();
+
+                journalItemData = new  JournalItemData(entry, accountId);
+                journalItems.add(journalItemData);
+            }
+
+            journalData.setRef("Journal Entry made by CBS for Loan ID : " + loanId +"; Transaction ID : L" + transactionId);
+            journalData.setTransactionId(transactionId);
+            journalData.setTransactionTypeName(LoanTransactionType.fromInt(paymentTypeId.id().intValue()).name());
+            journalData.setTransactionTypeUniqueId(paymentTypeId.id().toString());
+            journalData.setReversed(loanTransactionDTO.isReversed());
+            journalData.setClientId(client.getOdooCustomerId().longValue()); // should be named to something else TODO: remove in future
+            journalData.setClientDisplayName(client.getDisplayName());
+            journalData.setEntryDate(transactionDate.toString());
+            journalData.setOfficeId(office.getId());
+            journalData.setJournalItems(journalItems);
+
+            AppUser currentUser = this.context.authenticatedUser();
+
+            JsonObject payload = convertJournalDataToJson(journalData, currentUser);
+
+            postWebHook(payload,currentUser);
+
+        }
+    }
+
+    public static JsonObject convertJournalDataToJson(JournalData requestData, AppUser currentUser){
+
+        JsonObject payload = new JsonObject();
+        JsonObject request = new JsonObject();
+
+        request.addProperty("createjournalentries", true);
+        request.addProperty("locale", "en");
+        request.addProperty("dateFormat", "yyyy-MM-dd");
+        request.addProperty("date", requestData.getEntryDate());
+        payload.add("request", request);
+        payload.addProperty("entityName", "JOURNALENTRIES");
+
+        payload.addProperty("resourceId", requestData.getTransactionId());
+        Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
+        JsonElement json = gson.toJsonTree(requestData);
+        payload.add("resource", json);
+
+
+
+
+        payload.addProperty("createdByFullName", currentUser.getDisplayName());
+        payload.addProperty("actionName", "CREATE");
+
+        return payload;
+
+    }
+    public void postWebHook(JsonObject payload, AppUser currentUser) {
+
+        FineractContext context = ThreadLocalContextUtil.getContext();
+        // Create the HookEvent
+        HookEvent hookEvent = new HookEvent(new HookEventSource("JOURNALENTRY", "CREATE"), payload.toString(), currentUser, context);
+        // Publish the event
+        eventPublisher.publishEvent(hookEvent);
     }
 
     @Transactional
