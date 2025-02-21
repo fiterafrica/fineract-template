@@ -2411,7 +2411,10 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                     if (!particularCashFlowProjectionList.isEmpty()) {
                         List<LoanCashFlowProjection> list = particularCashFlowProjectionList.get(cashFlow.getId());
                         if (list != null && !list.isEmpty()) {
-                            incomeProjectionRate = list.get(installment.getInstallmentNumber() - 1).getProjectionRate();
+                            int installmentNumber = installment.getInstallmentNumber() - 1;
+                            if (installmentNumber < list.size()) {
+                                incomeProjectionRate = list.get(installment.getInstallmentNumber() - 1).getProjectionRate();
+                            }
                         }
                     }
 
@@ -2438,7 +2441,10 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                     if (!particularCashFlowProjectionList.isEmpty()) {
                         List<LoanCashFlowProjection> list = particularCashFlowProjectionList.get(cashFlow.getId());
                         if (list != null && !list.isEmpty()) {
-                            expenseProjectionRate = list.get(installment.getInstallmentNumber() - 1).getProjectionRate();
+                            int installmentNumber = installment.getInstallmentNumber() - 1;
+                            if (installmentNumber < list.size()) {
+                                expenseProjectionRate = list.get(installment.getInstallmentNumber() - 1).getProjectionRate();
+                            }
                         }
                     }
 
