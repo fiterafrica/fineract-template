@@ -35,6 +35,10 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="modify-m_transunion_crb_account-column-scheduled_payment_amount-to_data-type-_decimal_25_6" author="bosco@fiter.io">
+        <modifyDataType tableName="m_transunion_crb_account" columnName="scheduled_payment_amount" newDataType="DECIMAL(30,6)"/>
+    </changeSet>
+
 
 
 </databaseChangeLog>

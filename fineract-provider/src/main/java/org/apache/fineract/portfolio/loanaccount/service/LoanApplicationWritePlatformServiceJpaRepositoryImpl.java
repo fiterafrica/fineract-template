@@ -2412,7 +2412,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                         List<LoanCashFlowProjection> list = particularCashFlowProjectionList.get(cashFlow.getId());
                         if (list != null && !list.isEmpty()) {
                             int installmentNumber = installment.getInstallmentNumber() - 1;
-                            if(installmentNumber < list.size()) {
+                            if (installmentNumber < list.size()) {
                                 incomeProjectionRate = list.get(installment.getInstallmentNumber() - 1).getProjectionRate();
                             }
                         }
@@ -2442,7 +2442,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                         List<LoanCashFlowProjection> list = particularCashFlowProjectionList.get(cashFlow.getId());
                         if (list != null && !list.isEmpty()) {
                             int installmentNumber = installment.getInstallmentNumber() - 1;
-                            if(installmentNumber < list.size()) {
+                            if (installmentNumber < list.size()) {
                                 expenseProjectionRate = list.get(installment.getInstallmentNumber() - 1).getProjectionRate();
                             }
                         }
