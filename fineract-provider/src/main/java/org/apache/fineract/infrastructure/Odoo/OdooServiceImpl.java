@@ -499,10 +499,10 @@ public class OdooServiceImpl implements OdooService {
 
         RequestBody requestBody = RequestBody.create(MediaType.parse(FORM_URL_CONTENT_TYPE), payload);
         Request request = new Request.Builder()
-                .url(celeryUrl + "/api/cbs_journal_entry")
+                .url(celeryUrl)
                 .post(requestBody)
                 .addHeader("Content-Type", "application/json")
-                .addHeader("Authorization","Basic "+authorization)
+                .addHeader("Authorization","Basic " + authorization)
                 .build();
 
         Response response = httpClient.newCall(request).execute();
