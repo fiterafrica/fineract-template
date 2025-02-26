@@ -48,6 +48,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Locale;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
+import org.apache.fineract.portfolio.savings.DepositAccountOnClosureType;
 import org.apache.fineract.portfolio.savings.DepositsApiConstants;
 import org.apache.fineract.portfolio.savings.SavingsApiConstants;
 import org.apache.fineract.portfolio.savings.SavingsPeriodFrequencyType;
@@ -91,6 +92,7 @@ public class FixedDepositApplicationReq {
     private Long savingsAccountId;
     private BigDecimal interestCarriedForward;
     private String closedFixedDepositAccountNumber;
+    private DepositAccountOnClosureType accountOnClosureType;
 
     private RecurringAccountDetailReq recurringAccountDetailReq;
     private FixedDepositApplicationTermsReq fixedDepositApplicationTermsReq;
@@ -453,5 +455,13 @@ public class FixedDepositApplicationReq {
 
     public void setClosedFixedDepositAccountNumber(String closedFixedDepositAccountNumber) {
         this.closedFixedDepositAccountNumber = closedFixedDepositAccountNumber;
+    }
+
+    public DepositAccountOnClosureType getAccountOnClosureType() {
+        return accountOnClosureType;
+    }
+
+    public void setAccountOnClosureType(DepositAccountOnClosureType accountOnClosureType) {
+        this.accountOnClosureType = accountOnClosureType;
     }
 }
