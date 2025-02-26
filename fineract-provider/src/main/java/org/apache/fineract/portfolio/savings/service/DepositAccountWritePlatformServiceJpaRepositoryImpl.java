@@ -1878,6 +1878,9 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         fixedDepositApplicationReq.setFixedDepositApplicationTermsReq(new FixedDepositApplicationTermsReq());
         fixedDepositApplicationReq.setFixedDepositApplicationPreClosureReq(this.generateFixedDepositApplicationPreClosureReq(account));
         String newNickName = command.stringValueOfParameterNamed(SavingsApiConstants.nicknameParamName);
+        if(account.getAccountTermAndPreClosure().getOnAccountClosureType() != null) {
+            fixedDepositApplicationReq.setAccountOnClosureType(DepositAccountOnClosureType.fromInt(account.getAccountTermAndPreClosure().getOnAccountClosureType()));
+        }
         /*
          * if (newNickName != null && !"".equals(newNickName)) {
          * fixedDepositApplicationReq.setNickname(command.stringValueOfParameterNamed(SavingsApiConstants.
