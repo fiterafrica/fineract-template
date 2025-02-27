@@ -101,6 +101,7 @@ import java.util.HashMap;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Objects;
+import java.util.Arrays;
 
 
 @Service
@@ -513,8 +514,13 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
             final LoanTransactionEnumData paymentTypeId = loanTransactionDTO.getTransactionType();
             final Long loanId = loanDTO.getLoanId();
 
+            if(!Arrays.asList(new Long[]{1L, 2L, 4L, 5L, 6L, 8L, 9L, 10L, 19L, 26L, 27L}).contains(paymentTypeId.id()))
+                return; // not a transaction to post
 
             List<JournalEntry> journalEntries = glJournalEntryRepository.findJournalEntriesByLoanTransactionId("L" + transactionId);
+
+            if (journalEntries.isEmpty())
+                return;
 
             JournalItemData journalItemData;
 
