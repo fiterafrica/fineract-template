@@ -522,6 +522,9 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
             if (journalEntries.isEmpty())
                 return;
 
+            if(Objects.equals(journalEntries.get(0).getCurrencyCode(), "ETB"))
+                return;
+
             JournalItemData journalItemData;
 
             List<JournalItemData> journalItems = new ArrayList<>();
@@ -575,9 +578,6 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
         Gson gson = new GsonBuilder().serializeNulls().setPrettyPrinting().create();
         JsonElement json = gson.toJsonTree(requestData);
         payload.add("resource", json);
-
-
-
 
         payload.addProperty("createdByFullName", currentUser.getDisplayName());
         payload.addProperty("actionName", "CREATE");
