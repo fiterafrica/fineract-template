@@ -6794,7 +6794,7 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
                 }
 
             }
-            if (loanTransaction.isRepayment()) {
+            if (!loanTransaction.isAccrualTransaction() && !loanTransaction.getLoanTransactionToRepaymentScheduleMappings().isEmpty()) {
                 loanTransaction.getLoanTransactionToRepaymentScheduleMappings().removeIf(mapping -> {
                     assert mapping.getLoanRepaymentScheduleInstallment().getId() != null;
                     return installmentIds.contains(mapping.getLoanRepaymentScheduleInstallment().getId());
