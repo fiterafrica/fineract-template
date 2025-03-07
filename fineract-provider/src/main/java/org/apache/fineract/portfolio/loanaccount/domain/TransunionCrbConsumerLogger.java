@@ -33,17 +33,27 @@ public class TransunionCrbConsumerLogger extends AbstractPersistableCustom {
     private static final long serialVersionUID = 9181640245194392646L;
 
     @Column(name = "batch_id")
-    private Boolean batchId;
+    private String batchId;
     @Column(name = "has_passed")
     private Boolean hasPassed;
     @Column(name = "loan_id")
     private Integer loanId;
-    @Column(name = "client_id")
-    private Integer clientId;
+    @Column(name = "crb_response_id")
+    private String crbResponseId;
     @Column(name = "error_logs")
     private String errorLogs;
     @Column(name = "created_on")
     private String created_on;
 
+    public TransunionCrbConsumerLogger() {
+    }
 
+    public TransunionCrbConsumerLogger(String batchId, Boolean hasPassed, Integer loanId, String crbResponseId, String errorLogs, String created_on) {
+        this.batchId = batchId;
+        this.hasPassed = hasPassed;
+        this.loanId = loanId;
+        this.crbResponseId = crbResponseId;
+        this.errorLogs = errorLogs;
+        this.created_on = created_on;
+    }
 }

@@ -41,7 +41,7 @@
             <column name="loan_id" type="int">
                 <constraints nullable="true" />
             </column>
-            <column name="client_id" type="int">
+            <column name="crb_response_id" type="varchar(255)">
                 <constraints nullable="true" />
             </column>
             <column name="error_logs" type="TEXT">
@@ -73,7 +73,7 @@
             <column name="loan_id" type="int">
                 <constraints nullable="true" />
             </column>
-            <column name="client_id" type="int">
+            <column name="crb_response_id" type="varchar(255)">
                 <constraints nullable="true" />
             </column>
             <column name="error_logs" type="TEXT">

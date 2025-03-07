@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
@@ -49,6 +51,10 @@ import org.apache.fineract.portfolio.loanaccount.data.TransUnionRwandaCorporateC
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanStatus;
+import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbConsumerLogger;
+import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbConsumerLoggerRepository;
+import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbCorporateLoggerRepository;
+import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbCorporateLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,6 +71,8 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
     private final TransUnionCrbPostConsumerCreditReadPlatformServiceImpl transUnionCrbPostConsumerCreditReadPlatformServiceImpl;
     private final TransUnionCrbPostCorporateCreditReadPlatformServiceImpl transUnionCrbPostCorporateCreditReadPlatformServiceImpl;
     private final LoanRepositoryWrapper loanRepository;
+    private final TransunionCrbConsumerLoggerRepository crbConsumerLoggerRepository;
+    private final TransunionCrbCorporateLoggerRepository crbCorporateLoggerRepository;
     @Autowired
     private Environment env;
 
@@ -80,6 +88,8 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
 
         LOG.info(" >>>> Size for Consumer credit - - >" + transUnionRwandaConsumerCreditDataCollection.size());
         List<Throwable> exceptions = new ArrayList<>();
+
+        String batchId = UUID.randomUUID().toString();
 
         if (!CollectionUtils.isEmpty(transUnionRwandaConsumerCreditDataCollection)) {
             for (TransUnionRwandaConsumerCreditData creditData : transUnionRwandaConsumerCreditDataCollection) {
@@ -98,9 +108,13 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
                     // upload, stop re-posting
                     loansNotToBeRePostedTransUnion.add(creditData.getLoanId());
                 }
+                // Add Logger
+                    saveConsumerCrbLogger(creditData.getLoanId(), batchId, callbackId,Boolean.TRUE,null);
                 } catch (Exception e) {
                     log.error("Post Consumer Credit to TransUnion has failed" + e);
                     exceptions.add(e);
+                    // Add Logger
+                    saveConsumerCrbLogger(creditData.getLoanId(), batchId, null,Boolean.FALSE,e.getMessage());
                 }
 
             }
@@ -129,6 +143,16 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
 
     }
 
+    private void saveConsumerCrbLogger(Integer loanId, String batchId, String callbackId, Boolean hasPassed, String errorLogs) {
+        TransunionCrbConsumerLogger logger = new TransunionCrbConsumerLogger(batchId, hasPassed, loanId, callbackId, errorLogs, DateUtils.generateTimestamp());
+        crbConsumerLoggerRepository.saveAndFlush(logger);
+    }
+
+    private void saveCorporateCrbLogger(Integer loanId, String batchId, String callbackId, Boolean hasPassed, String errorLogs) {
+        TransunionCrbCorporateLogger logger = new TransunionCrbCorporateLogger(batchId, hasPassed, loanId, callbackId, errorLogs, DateUtils.generateTimestamp());
+        crbCorporateLoggerRepository.saveAndFlush(logger);
+    }
+
     @Override
     @CronTarget(jobName = JobName.POST_RWANDA_CORPORATE_CREDIT_TO_TRANSUNION_CRB)
     public void CorporateCreditDataUploadToTransUnion() {
@@ -141,7 +165,7 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
 
         LOG.info(" >>>> Size for Corporate credit - - >" + transUnionRwandaCorporateCreditDataCollection.size());
         List<Throwable> exceptions = new ArrayList<>();
-
+        String batchId = UUID.randomUUID().toString();
         if (!CollectionUtils.isEmpty(transUnionRwandaCorporateCreditDataCollection)) {
             for (TransUnionRwandaCorporateCreditData creditData : transUnionRwandaCorporateCreditDataCollection) {
                 RwandaCorporateCreditData rwandaCorporateCreditData = new RwandaCorporateCreditData();
@@ -159,9 +183,13 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
                         // upload, stop re-posting
                         loansNotToBeRePostedTransUnion.add(creditData.getLoanId());
                     }
+                    // Add Logger
+                    saveCorporateCrbLogger(creditData.getLoanId(), batchId, callbackId,Boolean.TRUE,null);
                 } catch (Exception e) {
                     log.error("Post Corporate Credit to TransUnion has failed" + e);
                     exceptions.add(e);
+                    // Add Logger
+                    saveConsumerCrbLogger(creditData.getLoanId(), batchId, null,Boolean.FALSE,e.getMessage());
                 }
 
             }
