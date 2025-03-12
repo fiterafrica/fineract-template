@@ -47,7 +47,19 @@
             <column name="error_logs" type="TEXT">
                 <constraints nullable="true" />
             </column>
-            <column name="created_on" type="timestamp" defaultValueComputed="now()">
+            <column name="pay_load" type="TEXT">
+                <constraints nullable="true" />
+            </column>
+            <column name="created_by" type="bigint">
+                <constraints nullable="true" foreignKeyName="FK_m_transunion_crb_corporate_logger-created_by" references="m_appuser(id)"/>
+            </column>
+            <column name="last_modified_by" type="bigint">
+                <constraints nullable="true" foreignKeyName="FK_m_transunion_crb_corporate_logger-lastmodifiedby_id" references="m_appuser(id)"/>
+            </column>
+            <column name="created_on_utc" type="timestamp" defaultValueComputed="now()">
+                <constraints nullable="false" />
+            </column>
+            <column name="last_modified_on_utc" type="timestamp" defaultValueComputed="now()">
                 <constraints nullable="false" />
             </column>
         </createTable>
@@ -79,10 +91,91 @@
             <column name="error_logs" type="TEXT">
                 <constraints nullable="true" />
             </column>
-            <column name="created_on" type="timestamp" defaultValueComputed="now()">
+            <column name="pay_load" type="TEXT">
+                <constraints nullable="true" />
+            </column>
+            <column name="created_by" type="bigint">
+                <constraints nullable="true" foreignKeyName="FK_m_transunion_crb_consumer_logger-created_by" references="m_appuser(id)"/>
+            </column>
+            <column name="last_modified_by" type="bigint">
+                <constraints nullable="true" foreignKeyName="FK_m_transunion_crb_consumer_logger-lastmodifiedby_id" references="m_appuser(id)"/>
+            </column>
+            <column name="created_on_utc" type="timestamp" defaultValueComputed="now()">
+                <constraints nullable="false" />
+            </column>
+            <column name="last_modified_on_utc" type="timestamp" defaultValueComputed="now()">
                 <constraints nullable="false" />
             </column>
         </createTable>
+    </changeSet>
+
+    <changeSet author="bosco@fiter.io" id="upload-rwanda-consumer-credit-to-transunion-crb-mysql-logger" context="mysql">
+        <insert tableName="stretchy_report">
+            <column name="report_name" value="Rwanda Consumer Credit To TransUnion (CRB) Report Logger"/>
+            <column name="report_type" value="Table"/>
+            <column name="report_subtype"/>
+            <column name="report_category" value="Loan"/>
+            <column name="report_sql" value=" SELECT logger.id              AS loggerId,
+       logger.batch_id        AS loggerBatchId,
+       cl.account_no          as clientAccountNo,
+       cl.display_name        AS name,
+       l.account_no           AS loanAccountNo,
+       logger.has_passed      AS requestPassed,
+       logger.crb_response_id as callbackId,
+       logger.pay_load        as requestPayLoad,
+       logger.error_logs      as errorLogs,
+        CONCAT(usr.firstname,' ',usr.lastname) as createdBy
+FROM m_transunion_crb_consumer_logger logger
+         INNER JOIN m_loan l ON logger.loan_id = l.id
+         INNER JOIN m_client cl ON l.client_id = cl.id
+         INNER JOIN m_appuser usr ON logger.created_by = usr.id
+ORDER BY logger.id DESC "/>
+            <column name="core_report" valueBoolean="true"/>
+            <column name="use_report" valueBoolean="true"/>
+            <column name="self_service_user_report" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+    <changeSet author="bosco@fiter.io" id="upload-rwanda-Corporate-credit-to-transunion-crb-mysql-logger" context="mysql">
+        <insert tableName="stretchy_report">
+            <column name="report_name" value="Rwanda Corporate Credit To TransUnion (CRB) Report Logger"/>
+            <column name="report_type" value="Table"/>
+            <column name="report_subtype"/>
+            <column name="report_category" value="Loan"/>
+            <column name="report_sql" value=" SELECT logger.id              AS loggerId,
+       logger.batch_id        AS loggerBatchId,
+       cl.account_no          as clientAccountNo,
+       cl.display_name        AS name,
+       l.account_no           AS loanAccountNo,
+       logger.has_passed      AS requestPassed,
+       logger.crb_response_id as callbackId,
+       logger.pay_load        as requestPayLoad,
+       logger.error_logs      as errorLogs,
+        CONCAT(usr.firstname,' ',usr.lastname) as createdBy
+FROM m_transunion_crb_corporate_logger logger
+         INNER JOIN m_loan l ON logger.loan_id = l.id
+         INNER JOIN m_client cl ON l.client_id = cl.id
+         INNER JOIN m_appuser usr ON logger.created_by = usr.id
+ORDER BY logger.id DESC "/>
+            <column name="core_report" valueBoolean="true"/>
+            <column name="use_report" valueBoolean="true"/>
+            <column name="self_service_user_report" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+    <changeSet author="bosco@fiter.io" id="FSI-187_add_report_permissions">
+        <insert tableName="m_permission">
+            <column name="grouping" value="report"/>
+            <column name="code" value="READ_Rwanda Consumer Credit To TransUnion (CRB) Report Logger"/>
+            <column name="entity_name" value="Rwanda Consumer Credit To TransUnion (CRB) Report Logger"/>
+            <column name="action_name" value="READ"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="report"/>
+            <column name="code" value="READ_Rwanda Corporate Credit To TransUnion (CRB) Report Logger"/>
+            <column name="entity_name" value="Rwanda Corporate Credit To TransUnion (CRB) Report Logger"/>
+            <column name="action_name" value="READ"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
     </changeSet>
 
 </databaseChangeLog>

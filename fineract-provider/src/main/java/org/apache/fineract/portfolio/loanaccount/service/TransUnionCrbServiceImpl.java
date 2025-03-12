@@ -22,13 +22,11 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.HttpUrl;
@@ -43,6 +41,7 @@ import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.jobs.annotation.CronTarget;
 import org.apache.fineract.infrastructure.jobs.exception.JobExecutionException;
 import org.apache.fineract.infrastructure.jobs.service.JobName;
+import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.portfolio.loanaccount.data.RwandaConsumerCreditData;
 import org.apache.fineract.portfolio.loanaccount.data.RwandaCorporateCreditData;
 import org.apache.fineract.portfolio.loanaccount.data.TransUnionAuthenticationData;
@@ -53,8 +52,9 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanStatus;
 import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbConsumerLogger;
 import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbConsumerLoggerRepository;
-import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbCorporateLoggerRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbCorporateLogger;
+import org.apache.fineract.portfolio.loanaccount.domain.TransunionCrbCorporateLoggerRepository;
+import org.apache.fineract.useradministration.domain.AppUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,6 +73,7 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
     private final LoanRepositoryWrapper loanRepository;
     private final TransunionCrbConsumerLoggerRepository crbConsumerLoggerRepository;
     private final TransunionCrbCorporateLoggerRepository crbCorporateLoggerRepository;
+    private final PlatformSecurityContext context;
     @Autowired
     private Environment env;
 
@@ -80,6 +81,7 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
     @CronTarget(jobName = JobName.POST_RWANDA_CONSUMER_CREDIT_TO_TRANSUNION_CRB)
     public void ConsumerCreditDataUploadToTransUnion() {
         LOG.info("Starting Consumer Credit Data Upload To TransUnion CRB");
+        final AppUser currentUser = this.context.authenticatedUser();
         String token = authenticateToTransUnionRestApi();
         LOG.info("CRB Token == > " + token);
         List<Integer> loansNotToBeRePostedTransUnion = new ArrayList<>();
@@ -98,23 +100,25 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
                 rwandaConsumerCreditData.setConsumerCreditInformationRecord(creditData);
                 rwandaConsumerCreditData.setRecordType("IC");
                 String callbackId = null;
-                try{
-                callbackId = postRwandaConsumerCreditToTransUnion(token, convertConsumerCreditPayloadToJson(rwandaConsumerCreditData));
+                try {
+                    callbackId = postRwandaConsumerCreditToTransUnion(token, convertConsumerCreditPayloadToJson(rwandaConsumerCreditData));
 
-                if (callbackId != null && !creditData.getLoanStatus().equals(LoanStatus.ACTIVE.getValue())) {
-                    // add it to list to update flag on the loan account so that next time we don't post it to
-                    // TransUnion
-                    // We query by status 300, 600, 601, 700 so if loan account is not Activate , then after this
-                    // upload, stop re-posting
-                    loansNotToBeRePostedTransUnion.add(creditData.getLoanId());
-                }
-                // Add Logger
-                    saveConsumerCrbLogger(creditData.getLoanId(), batchId, callbackId,Boolean.TRUE,null);
+                    if (callbackId != null && !creditData.getLoanStatus().equals(LoanStatus.ACTIVE.getValue())) {
+                        // add it to list to update flag on the loan account so that next time we don't post it to
+                        // TransUnion
+                        // We query by status 300, 600, 601, 700 so if loan account is not Activate , then after this
+                        // upload, stop re-posting
+                        loansNotToBeRePostedTransUnion.add(creditData.getLoanId());
+                    }
+                    // Add Logger
+                    saveConsumerCrbLogger(creditData.getLoanId(), batchId, callbackId, Boolean.TRUE, null,
+                            convertConsumerCreditPayloadToJson(rwandaConsumerCreditData), currentUser);
                 } catch (Exception e) {
                     log.error("Post Consumer Credit to TransUnion has failed" + e);
                     exceptions.add(e);
                     // Add Logger
-                    saveConsumerCrbLogger(creditData.getLoanId(), batchId, null,Boolean.FALSE,e.getMessage());
+                    saveConsumerCrbLogger(creditData.getLoanId(), batchId, null, Boolean.FALSE, e.getMessage(),
+                            convertConsumerCreditPayloadToJson(rwandaConsumerCreditData), currentUser);
                 }
 
             }
@@ -143,13 +147,21 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
 
     }
 
-    private void saveConsumerCrbLogger(Integer loanId, String batchId, String callbackId, Boolean hasPassed, String errorLogs) {
-        TransunionCrbConsumerLogger logger = new TransunionCrbConsumerLogger(batchId, hasPassed, loanId, callbackId, errorLogs, DateUtils.generateTimestamp());
+    private void saveConsumerCrbLogger(Integer loanId, String batchId, String callbackId, Boolean hasPassed, String errorLogs,
+            String payload, AppUser currentUser) {
+        TransunionCrbConsumerLogger logger = new TransunionCrbConsumerLogger(batchId, hasPassed, loanId, callbackId, errorLogs, payload);
+        assert currentUser.getId() != null;
+        logger.setCreatedBy(currentUser.getId());
+        logger.setLastModifiedBy(currentUser.getId());
         crbConsumerLoggerRepository.saveAndFlush(logger);
     }
 
-    private void saveCorporateCrbLogger(Integer loanId, String batchId, String callbackId, Boolean hasPassed, String errorLogs) {
-        TransunionCrbCorporateLogger logger = new TransunionCrbCorporateLogger(batchId, hasPassed, loanId, callbackId, errorLogs, DateUtils.generateTimestamp());
+    private void saveCorporateCrbLogger(Integer loanId, String batchId, String callbackId, Boolean hasPassed, String errorLogs,
+            String payload, AppUser currentUser) {
+        TransunionCrbCorporateLogger logger = new TransunionCrbCorporateLogger(batchId, hasPassed, loanId, callbackId, errorLogs, payload);
+        assert currentUser.getId() != null;
+        logger.setCreatedBy(currentUser.getId());
+        logger.setLastModifiedBy(currentUser.getId());
         crbCorporateLoggerRepository.saveAndFlush(logger);
     }
 
@@ -157,6 +169,7 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
     @CronTarget(jobName = JobName.POST_RWANDA_CORPORATE_CREDIT_TO_TRANSUNION_CRB)
     public void CorporateCreditDataUploadToTransUnion() {
         LOG.info("Starting Corporate Credit Data Upload To TransUnion CRB");
+        final AppUser currentUser = this.context.authenticatedUser();
         String token = authenticateToTransUnionRestApi();
         LOG.info("CRB Token == > " + token);
         List<Integer> loansNotToBeRePostedTransUnion = new ArrayList<>();
@@ -174,7 +187,8 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
                 String callbackId = null;
 
                 try {
-                    callbackId = postRwandaCorporateCreditToTransUnion(token, convertConsumerCreditPayloadToJson(rwandaCorporateCreditData));
+                    callbackId = postRwandaCorporateCreditToTransUnion(token,
+                            convertConsumerCreditPayloadToJson(rwandaCorporateCreditData));
 
                     if (callbackId != null && !creditData.getLoanStatus().equals(LoanStatus.ACTIVE.getValue())) {
                         // add it to list to update flag on the loan account so that next time we don't post it to
@@ -184,12 +198,14 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
                         loansNotToBeRePostedTransUnion.add(creditData.getLoanId());
                     }
                     // Add Logger
-                    saveCorporateCrbLogger(creditData.getLoanId(), batchId, callbackId,Boolean.TRUE,null);
+                    saveCorporateCrbLogger(creditData.getLoanId(), batchId, callbackId, Boolean.TRUE, null,
+                            convertConsumerCreditPayloadToJson(rwandaCorporateCreditData), currentUser);
                 } catch (Exception e) {
                     log.error("Post Corporate Credit to TransUnion has failed" + e);
                     exceptions.add(e);
                     // Add Logger
-                    saveConsumerCrbLogger(creditData.getLoanId(), batchId, null,Boolean.FALSE,e.getMessage());
+                    saveCorporateCrbLogger(creditData.getLoanId(), batchId, null, Boolean.FALSE, e.getMessage(),
+                            convertConsumerCreditPayloadToJson(rwandaCorporateCreditData), currentUser);
                 }
 
             }
@@ -214,8 +230,6 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
                 throw new RuntimeException(e);
             }
         }
-
-
 
     }
 
@@ -298,27 +312,39 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
 
         OkHttpClient client = new OkHttpClient();
 
-
         RequestBody formBody = RequestBody.create(MediaType.parse(FORM_URL_CONTENT_TYPE), consumerCreditData);
 
         Request request = new Request.Builder().url(url).header("Authorization", "Bearer " + accessToken)
                 .header("Content-Type", "application/json ").post(formBody).build();
+        List<Throwable> exceptions = new ArrayList<>();
 
+        try {
+            Response response = client.newCall(request).execute();
+            String resObject = response.body().string();
+            if (response.isSuccessful()) {
 
-        Response response = client.newCall(request).execute();
-        String resObject = response.body().string();
-        if (response.isSuccessful()) {
+                JsonObject jsonResponse = JsonParser.parseString(resObject).getAsJsonObject();
+                log.info("Consumer Credit Response from TransUnion :=>" + resObject);
 
-            JsonObject jsonResponse = JsonParser.parseString(resObject).getAsJsonObject();
-            log.info("Consumer Credit Response from TransUnion :=>" + resObject);
-
-            Integer code = jsonResponse.get("responseCode").getAsInt();
-            if (code == 200) {
-                return jsonResponse.get("callbackId").getAsString();
+                Integer code = jsonResponse.get("responseCode").getAsInt();
+                if (code == 200) {
+                    return jsonResponse.get("callbackId").getAsString();
+                } else {
+                    handleAPIIntegrityIssues(resObject);
+                }
             }
+        } catch (Exception e) {
+            log.error("Post Consumer Credit to TransUnion has failed" + e);
+            exceptions.add(e);
         }
+        if (!CollectionUtils.isEmpty(exceptions)) {
+            try {
+                throw new JobExecutionException(exceptions);
+            } catch (JobExecutionException e) {
+                throw new RuntimeException(e);
+            }
 
-
+        }
         return null;
     }
 
@@ -336,7 +362,9 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
         Request request = new Request.Builder().url(url).header("Authorization", "Bearer " + accessToken)
                 .header("Content-Type", "application/json ").post(formBody).build();
 
+        List<Throwable> exceptions = new ArrayList<>();
 
+        try {
             response = client.newCall(request).execute();
             String resObject = response.body().string();
             if (response.isSuccessful()) {
@@ -351,7 +379,23 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
                     handleAPIIntegrityIssues(resObject);
                 }
                 return null;
+            } else {
+                log.error("Post Corporate Credit to TransUnion failed with Message:" + resObject);
+
+                handleAPIIntegrityIssues(resObject);
+
             }
+        } catch (Exception e) {
+            log.error("Post Corporate Credit to TransUnion has failed" + e);
+            exceptions.add(e);
+        }
+        if (!CollectionUtils.isEmpty(exceptions)) {
+            try {
+                throw new JobExecutionException(exceptions);
+            } catch (JobExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
         return null;
     }

@@ -18,17 +18,16 @@
  */
 package org.apache.fineract.portfolio.loanaccount.domain;
 
-import lombok.Data;
-import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import lombok.Data;
+import org.apache.fineract.infrastructure.core.domain.AbstractAuditableWithUTCDateTimeCustom;
 
 @Data
 @Entity
 @Table(name = "m_transunion_crb_consumer_logger")
-public class TransunionCrbConsumerLogger extends AbstractPersistableCustom {
+public class TransunionCrbConsumerLogger extends AbstractAuditableWithUTCDateTimeCustom {
 
     private static final long serialVersionUID = 9181640245194392646L;
 
@@ -42,18 +41,18 @@ public class TransunionCrbConsumerLogger extends AbstractPersistableCustom {
     private String crbResponseId;
     @Column(name = "error_logs")
     private String errorLogs;
-    @Column(name = "created_on")
-    private String created_on;
+    @Column(name = "pay_load")
+    private String payload;
 
-    public TransunionCrbConsumerLogger() {
-    }
+    public TransunionCrbConsumerLogger() {}
 
-    public TransunionCrbConsumerLogger(String batchId, Boolean hasPassed, Integer loanId, String crbResponseId, String errorLogs, String created_on) {
+    public TransunionCrbConsumerLogger(String batchId, Boolean hasPassed, Integer loanId, String crbResponseId, String errorLogs,
+            String payload) {
         this.batchId = batchId;
         this.hasPassed = hasPassed;
         this.loanId = loanId;
         this.crbResponseId = crbResponseId;
         this.errorLogs = errorLogs;
-        this.created_on = created_on;
+        this.payload = payload;
     }
 }
