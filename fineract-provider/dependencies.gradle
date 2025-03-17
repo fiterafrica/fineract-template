@@ -129,6 +129,7 @@ dependencies {
         exclude group: 'commons-logging'
         exclude group: 'javax.activation'
         exclude group: 'com.sun.mail', module: 'javax.mail'
+        exclude group: 'commons-collections', module: 'commons-collections'
     }
 
     implementation ('org.ehcache:ehcache') {
