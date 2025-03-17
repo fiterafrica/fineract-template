@@ -27,6 +27,6 @@ dependencies {
 
     implementation ('com.github.javafaker:javafaker:1.0.2'){ exclude module: 'org.yaml' }
     // https://mvnrepository.com/artifact/org.yaml/snakeyaml
-    implementation 'org.yaml:snakeyaml:1.33'
+    implementation 'org.yaml:snakeyaml:2.4'
 
 }

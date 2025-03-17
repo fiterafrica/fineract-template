@@ -60,7 +60,8 @@ public class GenericDataServiceImpl implements GenericDataService {
     @Override
     public GenericResultsetData fillGenericResultSet(final String sql) {
         try {
-            // codeql[java/sql-injection] - This sql depends on database values, which is set by the system so no random values.
+            // codeql[java/sql-injection] - This sql depends on database values, which is set by the system so no random
+            // values.
             // It could ignore this as it is safe.
             final SqlRowSet rs = this.jdbcTemplate.queryForRowSet(sql); // NOSONAR
 
