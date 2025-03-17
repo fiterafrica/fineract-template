@@ -208,14 +208,15 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
         sqlBuilder.append(depositAccountMapper.schema());
         sqlBuilder.append(" where sa.deposit_type_enum = ? ");
 
-        // codeql[java/sql-injection] This code already validates the orderBy parameter and appends it to the query. If still alert is raised, then it is a false positive.
+        // codeql[java/sql-injection] This code already validates the orderBy parameter and appends it to the query. If
+        // still alert is raised, then it is a false positive.
         String paginationSql = paginationParameters.paginationSql();
         String orderBy = paginationParameters.getOrderBy();
         this.columnValidator.validateSqlInjection(paginationSql, orderBy);
         sqlBuilder.append(paginationSql);
 
-        return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlBuilder.toString(), new Object[] { depositAccountType.getValue(), orderBy },
-                depositAccountMapper);
+        return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlBuilder.toString(),
+                new Object[] { depositAccountType.getValue(), orderBy }, depositAccountMapper);
     }
 
     @Override
