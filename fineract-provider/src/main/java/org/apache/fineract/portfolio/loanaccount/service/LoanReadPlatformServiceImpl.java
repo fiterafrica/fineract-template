@@ -128,6 +128,7 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanStatus;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanSubStatus;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTermVariationType;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransaction;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionType;
 import org.apache.fineract.portfolio.loanaccount.exception.LoanNotFoundException;
 import org.apache.fineract.portfolio.loanaccount.exception.LoanTransactionNotFoundException;
@@ -195,6 +196,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
     private final ConfigurationReadPlatformService configurationReadPlatformService;
     private final LoanDueDiligenceInfoRepository loanDueDiligenceInfoRepository;
     private final CurrencyReadPlatformService currencyReadPlatformService;
+    private final LoanTransactionRepository loanTransactionRepository;
 
     @Autowired
     public LoanReadPlatformServiceImpl(final PlatformSecurityContext context,
@@ -213,7 +215,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
             final ColumnValidator columnValidator, DatabaseSpecificSQLGenerator sqlGenerator, PaginationHelper paginationHelper,
             SearchReadPlatformService searchReadPlatformService, final LoanDueDiligenceInfoRepository loanDueDiligenceInfoRepository,
             final ConfigurationReadPlatformService configurationReadPlatformService,
-            final CurrencyReadPlatformService currencyReadPlatformService) {
+            final CurrencyReadPlatformService currencyReadPlatformService, final LoanTransactionRepository loanTransactionRepository) {
         this.context = context;
         this.loanRepositoryWrapper = loanRepositoryWrapper;
         this.applicationCurrencyRepository = applicationCurrencyRepository;
@@ -243,6 +245,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         this.loanDueDiligenceInfoRepository = loanDueDiligenceInfoRepository;
         this.configurationReadPlatformService = configurationReadPlatformService;
         this.currencyReadPlatformService = currencyReadPlatformService;
+        this.loanTransactionRepository = loanTransactionRepository;
     }
 
     @Override
@@ -2110,12 +2113,24 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
     public LoanTransactionData retrieveRecoveryPaymentTemplate(Long loanId) {
         final Loan loan = this.loanRepositoryWrapper.findOneWithNotFoundDetection(loanId, true);
         final LoanTransactionEnumData transactionType = LoanEnumerations.transactionType(LoanTransactionType.RECOVERY_REPAYMENT);
+        final List<LoanTransaction> transaction = loanTransactionRepository.findWriteOffLoanTransaction(loanId);
+
+        BigDecimal totalWrittenOff = loan.getTotalWrittenOff();
+
+        if (!org.apache.commons.collections.CollectionUtils.isEmpty(transaction)) {
+
+            BigDecimal totalRecoveredAmount = transaction.stream().map(t -> t.getAmount(loan.getCurrency()).getAmount())
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            totalWrittenOff = loan.getTotalWrittenOff().subtract(totalRecoveredAmount);
+        }
+
         final Collection<PaymentTypeData> paymentOptions = this.paymentTypeReadPlatformService.retrieveAllPaymentTypes();
         BigDecimal outstandingLoanBalance = null;
         final BigDecimal unrecognizedIncomePortion = null;
-        return new LoanTransactionData(null, null, null, transactionType, null, null, null, loan.getTotalWrittenOff(),
-                loan.getNetDisbursalAmount(), null, null, null, null, null, unrecognizedIncomePortion, paymentOptions, null, null, null,
-                outstandingLoanBalance, false, null);
+        return new LoanTransactionData(null, null, null, transactionType, null, null, null, totalWrittenOff, loan.getNetDisbursalAmount(),
+                null, null, null, null, null, unrecognizedIncomePortion, paymentOptions, null, null, null, outstandingLoanBalance, false,
+                null);
 
     }
 
