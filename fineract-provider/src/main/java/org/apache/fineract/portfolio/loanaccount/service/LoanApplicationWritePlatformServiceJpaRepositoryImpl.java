@@ -1030,10 +1030,10 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
                         final String description = this.fromJsonHelper.extractStringNamed("description", command.parsedJson());
                         if (description != null) {
                             List<String> words = Splitter.on(WHITESPACE_PATTERN).omitEmptyStrings().splitToList(description.trim());
-                            if (words.size() < 150) {
+                            if (words.size() > 150) {
                                 LOG.info(words.size() + " words");
                                 throw new PlatformDataIntegrityException("error.msg.loan.fundsource.kiva.desc.less.than.150",
-                                        "Description should be more than 150 words for KIVA fund source", "description");
+                                        "Description should be less than 150 words for KIVA fund source", "description");
                             }
                         }
 
