@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.fineract.infrastructure.core.domain.LocalDateInterval;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
@@ -43,6 +44,7 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountFloatingIntere
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransaction;
 import org.apache.fineract.portfolio.savings.domain.SavingsProductFloatingInterestRate;
 
+@Slf4j
 public final class PostingPeriod {
 
     private final LocalDateInterval periodInterval;
@@ -591,8 +593,9 @@ public final class PostingPeriod {
                     periodStartDate = periodEndDate.plusDays(1);
                 }
             break;
-            // case NO_COMPOUNDING_SIMPLE_INTEREST:
-            // break;
+            case NONE:
+                log.info("None Compounding Period");
+            break;
         }
 
         return compoundingPeriods;
@@ -636,11 +639,9 @@ public final class PostingPeriod {
             break;
             case AT_MATURITY:
             break;
-
-            // case NO_COMPOUNDING_SIMPLE_INTEREST:
-            // periodEndDate = periodStartDate.monthOfYear().withMaximumValue();
-            // periodEndDate = periodEndDate.with(TemporalAdjusters.lastDayOfMonth());
-            // break;
+            case NONE:
+                log.info("Interest Compounding Period NONE");
+            break;
         }
 
         return periodEndDate;

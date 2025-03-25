@@ -37,7 +37,8 @@ public enum SavingsCompoundingInterestPeriodType {
     QUATERLY(5, "savingsCompoundingInterestPeriodType.quarterly"), //
     BI_ANNUAL(6, "savingsCompoundingInterestPeriodType.biannual"), //
     ANNUAL(7, "savingsCompoundingInterestPeriodType.annual"), //
-    AT_MATURITY(8, "savingsCompoundingInterestPeriodType.atMaturity"); //
+    AT_MATURITY(8, "savingsCompoundingInterestPeriodType.atMaturity"), //
+    NONE(9, "savingsCompoundingInterestPeriodType.none"); //
 
     // NO_COMPOUNDING_SIMPLE_INTEREST(8,
     // "savingsCompoundingInterestPeriodType.nocompounding");
@@ -98,6 +99,9 @@ public enum SavingsCompoundingInterestPeriodType {
                 break;
                 case 8:
                     repaymentFrequencyType = SavingsCompoundingInterestPeriodType.AT_MATURITY;
+                break;
+                case 9:
+                    repaymentFrequencyType = SavingsCompoundingInterestPeriodType.NONE;
                 break;
             }
         }

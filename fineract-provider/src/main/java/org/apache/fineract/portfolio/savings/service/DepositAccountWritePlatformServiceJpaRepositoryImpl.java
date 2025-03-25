@@ -29,10 +29,10 @@ import static org.apache.fineract.portfolio.savings.DepositsApiConstants.liquida
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.SAVINGS_ACCOUNT_RESOURCE_NAME;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.amountParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.chargeIdParamName;
-import static org.apache.fineract.portfolio.savings.SavingsApiConstants.dueAsOfDateParamName;
-import static org.apache.fineract.portfolio.savings.SavingsApiConstants.submittedOnDateParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.checkNumberParamName;
+import static org.apache.fineract.portfolio.savings.SavingsApiConstants.dueAsOfDateParamName;
 import static org.apache.fineract.portfolio.savings.SavingsApiConstants.paymentTypeIdParamName;
+import static org.apache.fineract.portfolio.savings.SavingsApiConstants.submittedOnDateParamName;
 
 import com.google.gson.JsonElement;
 import java.math.BigDecimal;
@@ -227,31 +227,32 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
     @Autowired
     public DepositAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
-                                                               final SavingsAccountRepositoryWrapper savingAccountRepositoryWrapper,
-                                                               final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
-                                                               final DepositAccountAssembler depositAccountAssembler,
-                                                               final DepositAccountTransactionDataValidator depositAccountTransactionDataValidator,
-                                                               final SavingsAccountChargeDataValidator savingsAccountChargeDataValidator,
-                                                               final PaymentDetailWritePlatformService paymentDetailWritePlatformService,
-                                                               final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
-                                                               final JournalEntryWritePlatformService journalEntryWritePlatformService,
-                                                               final DepositAccountDomainService depositAccountDomainService, final NoteRepository noteRepository,
-                                                               final AccountTransfersReadPlatformService accountTransfersReadPlatformService, final ChargeRepositoryWrapper chargeRepository,
-                                                               final SavingsAccountChargeRepositoryWrapper savingsAccountChargeRepository, final HolidayRepositoryWrapper holidayRepository,
-                                                               final WorkingDaysRepositoryWrapper workingDaysRepository,
-                                                               final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
-                                                               final AccountTransfersWritePlatformService accountTransfersWritePlatformService,
-                                                               final DepositAccountReadPlatformService depositAccountReadPlatformService,
-                                                               final CalendarInstanceRepository calendarInstanceRepository, final ConfigurationDomainService configurationDomainService,
-                                                               final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
-                                                               final DepositApplicationProcessWritePlatformService depositApplicationProcessWritePlatformService,
-                                                               final SavingsAccountActionService savingsAccountActionService,
-                                                               final AccountAssociationsRepository accountAssociationsRepository, ReadWriteNonCoreDataService readWriteNonCoreDataService,
-                                                               final SavingsAccountChargeRepositoryWrapper savingsAccountChargeRepositoryWrapper, final FromJsonHelper fromJsonHelper,
-                                                               AccountingProcessorHelper helper, RecurringDepositProductRepository recurringDepositProductRepository,
-                                                               SavingsAccountWritePlatformService savingsAccountWritePlatformService, SavingsAccountRepository savingsAccountRepository,
-                                                               ChargeSlabRepository chargeSlabRepository, SavingsAccountReadPlatformService savingsAccountReadPlatformService,
-                                                               ChargeReadPlatformService chargeReadPlatformService, final PaymentTypeRepositoryWrapper repositoryWrapper, PaymentDetailRepository paymentDetailRepository) {
+            final SavingsAccountRepositoryWrapper savingAccountRepositoryWrapper,
+            final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
+            final DepositAccountAssembler depositAccountAssembler,
+            final DepositAccountTransactionDataValidator depositAccountTransactionDataValidator,
+            final SavingsAccountChargeDataValidator savingsAccountChargeDataValidator,
+            final PaymentDetailWritePlatformService paymentDetailWritePlatformService,
+            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
+            final JournalEntryWritePlatformService journalEntryWritePlatformService,
+            final DepositAccountDomainService depositAccountDomainService, final NoteRepository noteRepository,
+            final AccountTransfersReadPlatformService accountTransfersReadPlatformService, final ChargeRepositoryWrapper chargeRepository,
+            final SavingsAccountChargeRepositoryWrapper savingsAccountChargeRepository, final HolidayRepositoryWrapper holidayRepository,
+            final WorkingDaysRepositoryWrapper workingDaysRepository,
+            final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
+            final AccountTransfersWritePlatformService accountTransfersWritePlatformService,
+            final DepositAccountReadPlatformService depositAccountReadPlatformService,
+            final CalendarInstanceRepository calendarInstanceRepository, final ConfigurationDomainService configurationDomainService,
+            final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
+            final DepositApplicationProcessWritePlatformService depositApplicationProcessWritePlatformService,
+            final SavingsAccountActionService savingsAccountActionService,
+            final AccountAssociationsRepository accountAssociationsRepository, ReadWriteNonCoreDataService readWriteNonCoreDataService,
+            final SavingsAccountChargeRepositoryWrapper savingsAccountChargeRepositoryWrapper, final FromJsonHelper fromJsonHelper,
+            AccountingProcessorHelper helper, RecurringDepositProductRepository recurringDepositProductRepository,
+            SavingsAccountWritePlatformService savingsAccountWritePlatformService, SavingsAccountRepository savingsAccountRepository,
+            ChargeSlabRepository chargeSlabRepository, SavingsAccountReadPlatformService savingsAccountReadPlatformService,
+            ChargeReadPlatformService chargeReadPlatformService, final PaymentTypeRepositoryWrapper repositoryWrapper,
+            PaymentDetailRepository paymentDetailRepository) {
 
         this.context = context;
         this.savingAccountRepositoryWrapper = savingAccountRepositoryWrapper;
@@ -553,19 +554,16 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
         this.depositAccountTransactionDataValidator.validate(command, DepositAccountType.RECURRING_DEPOSIT);
 
-        if(command.hasParameter(paymentTypeIdParamName)){
+        if (command.hasParameter(paymentTypeIdParamName)) {
             Long paymentTypeId = command.longValueOfParameterNamed(paymentTypeIdParamName);
-            if(paymentTypeId != null){
-                if(command.hasParameter(checkNumberParamName)){
+            if (paymentTypeId != null) {
+                if (command.hasParameter(checkNumberParamName)) {
                     String checkNumber = command.stringValueOfParameterNamed(checkNumberParamName);
-                    if(!checkNumber.isEmpty()){
-                        this.paymentDetailRepository.findByCheckNumber(checkNumber)
-                                .stream()
-                                .findFirst()
-                                .ifPresent(paymentDetail -> {
-                                    throw new PlatformDataIntegrityException("error.msg.check.number.already.exists",
-                                            "Check number already exists", "checkNumber", checkNumber);
-                                });
+                    if (!checkNumber.isEmpty()) {
+                        this.paymentDetailRepository.findByCheckNumber(checkNumber).stream().findFirst().ifPresent(paymentDetail -> {
+                            throw new PlatformDataIntegrityException("error.msg.check.number.already.exists", "Check number already exists",
+                                    "checkNumber", checkNumber);
+                        });
                     }
                 }
             }
@@ -616,19 +614,16 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
         this.depositAccountTransactionDataValidator.validate(command, depositAccountType);
 
-        if(command.hasParameter(paymentTypeIdParamName)){
+        if (command.hasParameter(paymentTypeIdParamName)) {
             Long paymentTypeId = command.longValueOfParameterNamed(paymentTypeIdParamName);
-            if(paymentTypeId != null){
-                if(command.hasParameter(checkNumberParamName)){
+            if (paymentTypeId != null) {
+                if (command.hasParameter(checkNumberParamName)) {
                     String checkNumber = command.stringValueOfParameterNamed(checkNumberParamName);
-                    if(!checkNumber.isEmpty()){
-                        this.paymentDetailRepository.findByCheckNumber(checkNumber)
-                                .stream()
-                                .findFirst()
-                                .ifPresent(paymentDetail -> {
-                                    throw new PlatformDataIntegrityException("error.msg.check.number.already.exists",
-                                            "Check number already exists", "checkNumber", checkNumber);
-                                });
+                    if (!checkNumber.isEmpty()) {
+                        this.paymentDetailRepository.findByCheckNumber(checkNumber).stream().findFirst().ifPresent(paymentDetail -> {
+                            throw new PlatformDataIntegrityException("error.msg.check.number.already.exists", "Check number already exists",
+                                    "checkNumber", checkNumber);
+                        });
                     }
                 }
             }
@@ -1878,8 +1873,9 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         fixedDepositApplicationReq.setFixedDepositApplicationTermsReq(new FixedDepositApplicationTermsReq());
         fixedDepositApplicationReq.setFixedDepositApplicationPreClosureReq(this.generateFixedDepositApplicationPreClosureReq(account));
         String newNickName = command.stringValueOfParameterNamed(SavingsApiConstants.nicknameParamName);
-        if(account.getAccountTermAndPreClosure().getOnAccountClosureType() != null) {
-            fixedDepositApplicationReq.setAccountOnClosureType(DepositAccountOnClosureType.fromInt(account.getAccountTermAndPreClosure().getOnAccountClosureType()));
+        if (account.getAccountTermAndPreClosure().getOnAccountClosureType() != null) {
+            fixedDepositApplicationReq.setAccountOnClosureType(
+                    DepositAccountOnClosureType.fromInt(account.getAccountTermAndPreClosure().getOnAccountClosureType()));
         }
         /*
          * if (newNickName != null && !"".equals(newNickName)) {
