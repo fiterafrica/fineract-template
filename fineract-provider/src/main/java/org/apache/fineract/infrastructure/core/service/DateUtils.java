@@ -29,6 +29,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -183,5 +184,18 @@ public final class DateUtils {
         ZonedDateTime currentUTC = ZonedDateTime.now(ZoneOffset.UTC);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
         return currentUTC.format(formatter);
+    }
+
+    public static LocalDate getLastDayOfPreviousMonth() {
+        LocalDate currentDate = getBusinessLocalDate();
+        YearMonth currentMonth = YearMonth.from(currentDate);
+
+        // Get the last day of the current month
+        LocalDate lastDayOfCurrentMonth = currentMonth.atEndOfMonth();
+
+        // If today is the last day of the current month, return today
+        // Otherwise, get the last day of the previous month
+        return currentDate.equals(lastDayOfCurrentMonth) ? currentDate : YearMonth.now().minusMonths(1).atEndOfMonth();
+
     }
 }
