@@ -142,7 +142,8 @@ public class ProvisioningEntriesWritePlatformServiceJpaRepositoryImpl implements
     @Override
     @CronTarget(jobName = JobName.GENERATE_LOANLOSS_PROVISIONING)
     public void generateLoanLossProvisioningAmount() {
-        LocalDate currentDate = DateUtils.getBusinessLocalDate();
+//        LocalDate currentDate = DateUtils.getBusinessLocalDate();
+        LocalDate lastDayOfMonth = DateUtils.getLastDayOfPreviousMonth();
         boolean addJournalEntries = true;
         try {
             Collection<ProvisioningCriteriaData> criteriaCollection = this.provisioningCriteriaReadPlatformService
@@ -152,8 +153,10 @@ public class ProvisioningEntriesWritePlatformServiceJpaRepositoryImpl implements
                 // FIXME: Do we need to throw
                 // NoProvisioningCriteriaDefinitionFound()?
             }
-            ProvisioningEntry requestedEntry = createProvsioningEntry(currentDate, addJournalEntries);
+            log.info("Provisioning job started");
+            ProvisioningEntry requestedEntry = createProvsioningEntry(lastDayOfMonth, addJournalEntries);
             postWebHook(requestedEntry);
+            log.info("Provisioning job complete");
         } catch (ProvisioningEntryAlreadyCreatedException peace) {
             log.error("Provisioning Entry already created", peace);
         } catch (final JpaSystemException | DataIntegrityViolationException dve) {
@@ -173,6 +176,7 @@ public class ProvisioningEntriesWritePlatformServiceJpaRepositoryImpl implements
                 throw new NoProvisioningCriteriaDefinitionFound();
             }
             ProvisioningEntry requestedEntry = createProvsioningEntry(createdDate, addJournalEntries);
+            postWebHook(requestedEntry);
             return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withEntityId(requestedEntry.getId()).build();
         } catch (final JpaSystemException | DataIntegrityViolationException e) {
             return CommandProcessingResult.empty();
