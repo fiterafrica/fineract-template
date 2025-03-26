@@ -380,7 +380,6 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
         List<JournalEntry> journalEntries = this.glJournalEntryRepository.findProvisioningJournalEntriesByEntityId(entityId, entityType);
         final String reversalTransactionId = !journalEntries.isEmpty() ? journalEntries.get(0).getTransactionId() : null;
         for (final JournalEntry journalEntry : journalEntries) {
-            log.info("Reversing entry: " + journalEntry.getId());
             JournalEntry reversalJournalEntry;
             String reversalComment = "Reversal entry for Journal Entry with Entry Id  :" + journalEntry.getId() + " and transaction Id "
                     + journalEntry.getTransactionId();
