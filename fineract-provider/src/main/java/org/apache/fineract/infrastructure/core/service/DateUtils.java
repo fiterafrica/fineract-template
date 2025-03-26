@@ -195,7 +195,7 @@ public final class DateUtils {
 
         // If today is the last day of the current month, return today
         // Otherwise, get the last day of the previous month
-        return currentDate.equals(lastDayOfCurrentMonth) ? currentDate : YearMonth.now(ZoneId.systemDefault()).minusMonths(1).atEndOfMonth();
+        return currentDate.equals(lastDayOfCurrentMonth) ? currentDate : YearMonth.now(getSystemZoneId()).minusMonths(1).atEndOfMonth();
 
     }
 }
