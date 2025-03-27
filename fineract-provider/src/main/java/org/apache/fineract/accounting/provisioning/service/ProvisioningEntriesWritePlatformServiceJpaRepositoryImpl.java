@@ -176,7 +176,6 @@ public class ProvisioningEntriesWritePlatformServiceJpaRepositoryImpl implements
                 throw new NoProvisioningCriteriaDefinitionFound();
             }
             ProvisioningEntry requestedEntry = createProvsioningEntry(createdDate, addJournalEntries);
-            postWebHook(requestedEntry);
             return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withEntityId(requestedEntry.getId()).build();
         } catch (final JpaSystemException | DataIntegrityViolationException e) {
             return CommandProcessingResult.empty();
