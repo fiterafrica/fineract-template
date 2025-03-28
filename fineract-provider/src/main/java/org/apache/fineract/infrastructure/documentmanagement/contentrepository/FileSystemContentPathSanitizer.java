@@ -18,14 +18,13 @@
  */
 package org.apache.fineract.infrastructure.documentmanagement.contentrepository;
 
+import com.google.common.base.Splitter;
 import java.io.BufferedInputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
-
-import com.google.common.base.Splitter;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.config.FineractProperties;
@@ -150,7 +149,6 @@ public class FileSystemContentPathSanitizer implements ContentPathSanitizer {
         // Ensure at least 3 parts and second part is a number
         return parts.size() >= 3 && parts.get(1).matches("\\d+");
     }
-
 
     private String detectContentMimeType(BufferedInputStream bis) throws Exception {
         TikaInputStream tis = TikaInputStream.get(bis);
