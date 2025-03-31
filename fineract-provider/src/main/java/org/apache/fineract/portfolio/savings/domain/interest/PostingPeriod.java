@@ -597,7 +597,8 @@ public final class PostingPeriod {
                 log.info("None Compounding Period");
             break;
         }
-
+        log.info("Compounding Periods :-"+compoundingPeriods);
+        log.info("Compounding Periods Size:-"+compoundingPeriods.size());
         return compoundingPeriods;
     }
 
