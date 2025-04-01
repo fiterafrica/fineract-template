@@ -406,55 +406,72 @@ public final class PostingPeriod {
     public BigDecimal calculateInterest(final CompoundInterestValues compoundInterestValues) {
         BigDecimal interestEarned = BigDecimal.ZERO;
         log.info("calculateInterest - - - -->"+compoundInterestValues);
-        // for each compounding period accumulate the amount of interest
-        // to be applied to the balanced for interest calculation
-        for (final CompoundingPeriod compoundingPeriod : this.compoundingPeriods) {
 
-            // The critical part: when calling calculateInterest on the compounding period,
-            // if we're using NONE compounding, we should pass the ORIGINAL PRINCIPAL,
-            // not the compounded interest
-            final BigDecimal interestUnrounded;
-            if (SavingsCompoundingInterestPeriodType.NONE.equals(this.interestCompoundingType)) {
-                // For NONE compounding, always calculate interest on the original principal (zero compounded interest)
-                interestUnrounded = compoundingPeriod.calculateInterest(this.interestCompoundingType,
-                        this.interestCalculationType, BigDecimal.ZERO, this.interestRateAsFraction,
-                        this.daysInYear, this.minBalanceForInterestCalculation.getAmount(), this.overdraftInterestRateAsFraction,
-                        this.minOverdraftForInterestCalculation.getAmount());
-                log.info("NONE compounding: Interest calculated on original principal: {}", interestUnrounded);
-            } else {
-                // Normal compounding behavior - use compounded interest
-                interestUnrounded = compoundingPeriod.calculateInterest(this.interestCompoundingType,
-                        this.interestCalculationType, compoundInterestValues.getcompoundedInterest(), this.interestRateAsFraction,
-                        this.daysInYear, this.minBalanceForInterestCalculation.getAmount(), this.overdraftInterestRateAsFraction,
-                        this.minOverdraftForInterestCalculation.getAmount());
-            }
+        // Special handling for NONE compounding type
+        if (SavingsCompoundingInterestPeriodType.NONE.equals(this.interestCompoundingType)) {
+            // Force calculation of simple interest for NONE compounding type
+            log.info("Forcing direct calculation for NONE compounding type");
 
-            // Calculate uncompounded interest
-            BigDecimal unCompoundedInterest = compoundInterestValues.getuncompoundedInterest().add(interestUnrounded);
-            compoundInterestValues.setuncompoundedInterest(unCompoundedInterest);
+            // Get the principal amount and number of days
+            BigDecimal principalAmount = this.openingBalance.getAmount();
+            int numberOfDays = this.periodInterval.daysInPeriodInclusiveOfEndDate();
 
-            // Check if this is NONE compounding type - in this case we never compound the interest
-            if (SavingsCompoundingInterestPeriodType.NONE.equals(this.interestCompoundingType)) {
-                // For NONE compounding, we track the interest but never add it to the principal
-                // DO NOT reset uncompoundedInterest - we want it to accumulate, but not compound
-                log.debug("NONE compounding: Interest calculated: {}", interestUnrounded);
-            } else {
-                // Normal compounding behavior for other types
-                LocalDate compoundingPeriodEndDate = compoundingPeriod.getPeriodInterval().endDate();
-                if (!SavingsCompoundingInterestPeriodType.DAILY.equals(this.interestCompoundingType)) {
-                    compoundingPeriodEndDate = determineInterestPeriodEndDateFrom(compoundingPeriod.getPeriodInterval().startDate(),
-                            this.interestCompoundingType, compoundingPeriod.getPeriodInterval().endDate(),
-                            this.getFinancialYearBeginningMonth());
+            log.info("Principal: {}, Days: {}, Interest Rate: {}, Days in Year: {}",
+                    principalAmount, numberOfDays, this.interestRateAsFraction, this.daysInYear);
+
+            // Calculate simple interest for the period: P * R * (days/daysInYear)
+            BigDecimal dailyInterestRate = this.interestRateAsFraction.divide(
+                    BigDecimal.valueOf(this.daysInYear), MathContext.DECIMAL64);
+
+            interestEarned = principalAmount
+                    .multiply(this.interestRateAsFraction)
+                    .multiply(BigDecimal.valueOf(numberOfDays))
+                    .divide(BigDecimal.valueOf(this.daysInYear), MathContext.DECIMAL64);
+
+            log.info("Directly calculated interest: {}", interestEarned);
+        } else {
+            // Original code for other compounding types
+            for (final CompoundingPeriod compoundingPeriod : this.compoundingPeriods) {
+                final BigDecimal interestUnrounded;
+                if (SavingsCompoundingInterestPeriodType.NONE.equals(this.interestCompoundingType)) {
+                    interestUnrounded = compoundingPeriod.calculateInterest(this.interestCompoundingType,
+                            this.interestCalculationType, BigDecimal.ZERO, this.interestRateAsFraction,
+                            this.daysInYear, this.minBalanceForInterestCalculation.getAmount(), this.overdraftInterestRateAsFraction,
+                            this.minOverdraftForInterestCalculation.getAmount());
+                } else {
+                    interestUnrounded = compoundingPeriod.calculateInterest(this.interestCompoundingType,
+                            this.interestCalculationType, compoundInterestValues.getcompoundedInterest(), this.interestRateAsFraction,
+                            this.daysInYear, this.minBalanceForInterestCalculation.getAmount(), this.overdraftInterestRateAsFraction,
+                            this.minOverdraftForInterestCalculation.getAmount());
                 }
 
-                if (compoundingPeriodEndDate.equals(compoundingPeriod.getPeriodInterval().endDate())) {
-                    BigDecimal interestCompounded = compoundInterestValues.getcompoundedInterest().add(unCompoundedInterest);
-                    compoundInterestValues.setcompoundedInterest(interestCompounded);
-                    compoundInterestValues.setZeroForInterestToBeUncompounded();
-                }
-            }
+                // Calculate uncompounded interest
+                BigDecimal unCompoundedInterest = compoundInterestValues.getuncompoundedInterest().add(interestUnrounded);
+                compoundInterestValues.setuncompoundedInterest(unCompoundedInterest);
 
-            interestEarned = interestEarned.add(interestUnrounded);
+                // Check if this is NONE compounding type - in this case we never compound the interest
+                if (SavingsCompoundingInterestPeriodType.NONE.equals(this.interestCompoundingType)) {
+                    // For NONE compounding, we track the interest but never add it to the principal
+                    // DO NOT reset uncompoundedInterest - we want it to accumulate, but not compound
+                    log.debug("NONE compounding: Interest calculated: {}", interestUnrounded);
+                } else {
+                    // Normal compounding behavior for other types
+                    LocalDate compoundingPeriodEndDate = compoundingPeriod.getPeriodInterval().endDate();
+                    if (!SavingsCompoundingInterestPeriodType.DAILY.equals(this.interestCompoundingType)) {
+                        compoundingPeriodEndDate = determineInterestPeriodEndDateFrom(compoundingPeriod.getPeriodInterval().startDate(),
+                                this.interestCompoundingType, compoundingPeriod.getPeriodInterval().endDate(),
+                                this.getFinancialYearBeginningMonth());
+                    }
+
+                    if (compoundingPeriodEndDate.equals(compoundingPeriod.getPeriodInterval().endDate())) {
+                        BigDecimal interestCompounded = compoundInterestValues.getcompoundedInterest().add(unCompoundedInterest);
+                        compoundInterestValues.setcompoundedInterest(interestCompounded);
+                        compoundInterestValues.setZeroForInterestToBeUncompounded();
+                    }
+                }
+
+                interestEarned = interestEarned.add(interestUnrounded);
+            }
         }
 
         this.interestEarnedUnrounded = interestEarned;
@@ -463,7 +480,6 @@ public final class PostingPeriod {
         log.info("Final interest calculated: {}", interestEarned);
 
         return interestEarned;
-
     }
 
     public List<Money> getInterestEarneds() {
@@ -865,56 +881,70 @@ public final class PostingPeriod {
     public List<BigDecimal> calculateInterests(final CompoundInterestValues compoundInterestValues) {
         List<BigDecimal> interestEarned = new ArrayList<>();
         log.info("** calculateInterests ** : {}", this.periodInterval);
-        // for each compounding period accumulate the amount of interest
-        // to be applied to the balanced for interest calculation
-        for (final CompoundingPeriod compoundingPeriod : this.compoundingPeriods) {
-            // The critical part: when calling calculateInterests on the compounding period,
-            // if we're using NONE compounding, we should pass the ORIGINAL PRINCIPAL,
-            // not the compounded interest
-            final List<BigDecimal> interestUnrounded;
-            if (SavingsCompoundingInterestPeriodType.NONE.equals(this.interestCompoundingType)) {
-                // For NONE compounding, always calculate interest on the original principal (zero compounded interest)
-                interestUnrounded = compoundingPeriod.calculateInterests(this.interestCompoundingType,
-                        this.interestCalculationType, BigDecimal.ZERO, this.interestRateAsFraction,
-                        this.daysInYear, this.minBalanceForInterestCalculation.getAmount(), this.overdraftInterestRateAsFraction,
-                        this.minOverdraftForInterestCalculation.getAmount());
-                log.info("NONE compounding: Interest calculated on original principal: {}", interestUnrounded);
-            } else {
-                // Normal compounding behavior - use compounded interest
-                interestUnrounded = compoundingPeriod.calculateInterests(this.interestCompoundingType,
+
+        // Special handling for NONE compounding type
+        if (SavingsCompoundingInterestPeriodType.NONE.equals(this.interestCompoundingType)) {
+            // Force calculation of simple interest for NONE compounding type
+            log.info("Forcing direct calculation for NONE compounding type");
+
+            // Get the principal amount and number of days
+            BigDecimal principalAmount = this.openingBalance.getAmount();
+            int numberOfDays = this.periodInterval.daysInPeriodInclusiveOfEndDate();
+
+            log.info("Principal: {}, Days: {}, Interest Rate: {}, Days in Year: {}",
+                    principalAmount, numberOfDays, this.interestRateAsFraction, this.daysInYear);
+
+            // Calculate simple interest for the period: P * R * (days/daysInYear)
+            BigDecimal dailyInterestRate = this.interestRateAsFraction.divide(
+                    BigDecimal.valueOf(this.daysInYear), MathContext.DECIMAL64);
+
+            BigDecimal interest = principalAmount
+                    .multiply(this.interestRateAsFraction)
+                    .multiply(BigDecimal.valueOf(numberOfDays))
+                    .divide(BigDecimal.valueOf(this.daysInYear), MathContext.DECIMAL64);
+
+            // Add calculated interest to results
+            if (interest.compareTo(BigDecimal.ZERO) > 0) {
+                interestEarned.add(interest);
+                log.info("Directly calculated interest: {}", interest);
+            }
+        } else {
+            // Original code for other compounding types
+            for (final CompoundingPeriod compoundingPeriod : this.compoundingPeriods) {
+                final List<BigDecimal> interestUnrounded = compoundingPeriod.calculateInterests(this.interestCompoundingType,
                         this.interestCalculationType, compoundInterestValues.getcompoundedInterest(), this.interestRateAsFraction,
                         this.daysInYear, this.minBalanceForInterestCalculation.getAmount(), this.overdraftInterestRateAsFraction,
                         this.minOverdraftForInterestCalculation.getAmount());
-            }
 
-            BigDecimal unCompoundedInterest = compoundInterestValues.getuncompoundedInterest();
-            for (BigDecimal interest : interestUnrounded) {
-                unCompoundedInterest = unCompoundedInterest.add(interest);
-            }
-            compoundInterestValues.setuncompoundedInterest(unCompoundedInterest);
+                BigDecimal unCompoundedInterest = compoundInterestValues.getuncompoundedInterest();
+                for (BigDecimal interest : interestUnrounded) {
+                    unCompoundedInterest = unCompoundedInterest.add(interest);
+                }
+                compoundInterestValues.setuncompoundedInterest(unCompoundedInterest);
 
-            // Check if this is NONE compounding type - in this case we never compound the interest
-            if (SavingsCompoundingInterestPeriodType.NONE.equals(this.interestCompoundingType)) {
-                // For NONE compounding, we track the interest but never add it to the principal
-                // DO NOT reset uncompoundedInterest - we want it to accumulate, but not compound
-                log.debug("NONE compounding: Interest calculated but not compounded");
-            } else {
-                // Normal compounding behavior for other types
-                LocalDate compoundingPeriodEndDate = compoundingPeriod.getPeriodInterval().endDate();
-                if (!SavingsCompoundingInterestPeriodType.DAILY.equals(this.interestCompoundingType)) {
-                    compoundingPeriodEndDate = determineInterestPeriodEndDateFrom(compoundingPeriod.getPeriodInterval().startDate(),
-                            this.interestCompoundingType, compoundingPeriod.getPeriodInterval().endDate(),
-                            this.getFinancialYearBeginningMonth());
+                // Check if this is NONE compounding type - in this case we never compound the interest
+                if (SavingsCompoundingInterestPeriodType.NONE.equals(this.interestCompoundingType)) {
+                    // For NONE compounding, we track the interest but never add it to the principal
+                    // DO NOT reset uncompoundedInterest - we want it to accumulate, but not compound
+                    log.debug("NONE compounding: Interest calculated but not compounded");
+                } else {
+                    // Normal compounding behavior for other types
+                    LocalDate compoundingPeriodEndDate = compoundingPeriod.getPeriodInterval().endDate();
+                    if (!SavingsCompoundingInterestPeriodType.DAILY.equals(this.interestCompoundingType)) {
+                        compoundingPeriodEndDate = determineInterestPeriodEndDateFrom(compoundingPeriod.getPeriodInterval().startDate(),
+                                this.interestCompoundingType, compoundingPeriod.getPeriodInterval().endDate(),
+                                this.getFinancialYearBeginningMonth());
+                    }
+
+                    if (compoundingPeriodEndDate.equals(compoundingPeriod.getPeriodInterval().endDate())) {
+                        BigDecimal interestCompounded = compoundInterestValues.getcompoundedInterest().add(unCompoundedInterest);
+                        compoundInterestValues.setcompoundedInterest(interestCompounded);
+                        compoundInterestValues.setZeroForInterestToBeUncompounded();
+                    }
                 }
 
-                if (compoundingPeriodEndDate.equals(compoundingPeriod.getPeriodInterval().endDate())) {
-                    BigDecimal interestCompounded = compoundInterestValues.getcompoundedInterest().add(unCompoundedInterest);
-                    compoundInterestValues.setcompoundedInterest(interestCompounded);
-                    compoundInterestValues.setZeroForInterestToBeUncompounded();
-                }
+                interestEarned.addAll(interestUnrounded);
             }
-
-            interestEarned.addAll(interestUnrounded);
         }
 
         this.interestEarnedUnroundeds = interestEarned;
