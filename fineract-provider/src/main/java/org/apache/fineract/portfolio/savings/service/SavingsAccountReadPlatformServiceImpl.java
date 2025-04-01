@@ -87,10 +87,13 @@ import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionEnumData;
 import org.apache.fineract.portfolio.savings.data.SavingsProductData;
 import org.apache.fineract.portfolio.savings.data.SavingsProductFloatingInterestRateData;
+import org.apache.fineract.portfolio.savings.data.DeletedSavingsAccountTransactionData;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountAssembler;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountChargesPaidByData;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountStatusType;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountSubStatusEnum;
+import org.apache.fineract.portfolio.savings.domain.DeletedSavingsAccountTransactionRepository;
+import org.apache.fineract.portfolio.savings.domain.DeletedSavingsAccountTransaction;
 import org.apache.fineract.portfolio.savings.exception.SavingsAccountNotFoundException;
 import org.apache.fineract.portfolio.savings.exception.SavingsAccountSearchParameterNotProvidedException;
 import org.apache.fineract.portfolio.savings.exception.SavingsAccountTransactionNotFoundException;
@@ -127,6 +130,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
     private final RecurringMissedTargetTemplateMapper recurringMissedTargetTemplateMapper;
     private final SavingsAccountTransactionsMapper transactionsMapper;
     private final SavingsAccountTransactionsByCheckNumberMapper transactionsMapperCheckNumber;
+
     private final SavingsAccountTransactionsForBatchMapper savingsAccountTransactionsForBatchMapper;
     private final SavingAccountMapper savingAccountMapper;
     private final SavingAccountMapperForInterestPosting savingAccountMapperForInterestPosting;
@@ -143,18 +147,19 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
     private final SavingsProductFloatingInterestRateReadPlatformService savingsProductFloatingInterestRateReadPlatformService;
 
     private final SearchReadPlatformService searchReadPlatformService;
+    private final DeletedSavingsAccountTransactionRepository deletedSavingsAccountTransactionRepository;
 
     @Autowired
     public SavingsAccountReadPlatformServiceImpl(final PlatformSecurityContext context, final JdbcTemplate jdbcTemplate,
-            final ClientReadPlatformService clientReadPlatformService, final GroupReadPlatformService groupReadPlatformService,
-            final SavingsProductReadPlatformService savingProductReadPlatformService,
-            final StaffReadPlatformService staffReadPlatformService, final SavingsDropdownReadPlatformService dropdownReadPlatformService,
-            final ChargeReadPlatformService chargeReadPlatformService,
-            final EntityDatatableChecksReadService entityDatatableChecksReadService, final ColumnValidator columnValidator,
-            final SavingsAccountAssembler savingAccountAssembler, PaginationHelper paginationHelper,
-            DatabaseSpecificSQLGenerator sqlGenerator, final CodeValueReadPlatformService codeValueReadPlatformService,
-            final SavingsProductFloatingInterestRateReadPlatformService savingsProductFloatingInterestRateReadPlatformService,
-            SearchReadPlatformService searchReadPlatformService) {
+                                                 final ClientReadPlatformService clientReadPlatformService, final GroupReadPlatformService groupReadPlatformService,
+                                                 final SavingsProductReadPlatformService savingProductReadPlatformService,
+                                                 final StaffReadPlatformService staffReadPlatformService, final SavingsDropdownReadPlatformService dropdownReadPlatformService,
+                                                 final ChargeReadPlatformService chargeReadPlatformService,
+                                                 final EntityDatatableChecksReadService entityDatatableChecksReadService, final ColumnValidator columnValidator,
+                                                 final SavingsAccountAssembler savingAccountAssembler, PaginationHelper paginationHelper,
+                                                 DatabaseSpecificSQLGenerator sqlGenerator, final CodeValueReadPlatformService codeValueReadPlatformService,
+                                                 final SavingsProductFloatingInterestRateReadPlatformService savingsProductFloatingInterestRateReadPlatformService,
+                                                 SearchReadPlatformService searchReadPlatformService, DeletedSavingsAccountTransactionRepository deletedSavingsAccountTransactionRepository) {
         this.context = context;
         this.jdbcTemplate = jdbcTemplate;
         this.clientReadPlatformService = clientReadPlatformService;
@@ -164,6 +169,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
         this.dropdownReadPlatformService = dropdownReadPlatformService;
         this.sqlGenerator = sqlGenerator;
         this.searchReadPlatformService = searchReadPlatformService;
+        this.deletedSavingsAccountTransactionRepository = deletedSavingsAccountTransactionRepository;
         this.transactionTemplateMapper = new SavingsAccountTransactionTemplateMapper();
         this.transactionsMapper = new SavingsAccountTransactionsMapper();
         this.savingsAccountTransactionsForBatchMapper = new SavingsAccountTransactionsForBatchMapper();
@@ -552,9 +558,13 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                 throw new PlatformDataIntegrityException("error.msg.transaction.duplicate.checkNumber",
                         "Duplicate checkNumber " + checkNumber + " found for savings account " + savingsId, "checkNumber", checkNumber);
             }
+            SavingsAccountTransactionData transactionData = transactions.get(0);
+            List<DeletedSavingsAccountTransaction> deletedTransactions = this.deletedSavingsAccountTransactionRepository.findByDeletedByTransactionId(transactionData.getId());
+            List<DeletedSavingsAccountTransactionData> deletedTransactionsData = deletedTransactions.stream().map(entity -> new DeletedSavingsAccountTransactionData(entity.getDeletedTransactionId(), entity.getDeletedByTransactionId(), entity.getTypeOf(), entity.getDateOf(),entity.getAmount(),
+                    entity.getRunningBalance(), entity.getCumulativeBalance(), entity.getCreatedDate(), entity.getRefNo())).toList();
+            transactionData.setDeletedSavingsAccountTransactions(deletedTransactionsData);
 
-            // Return the single transaction
-            return transactions.get(0);
+            return transactionData;
         } catch (EmptyResultDataAccessException e) {
             throw new SavingsAccountTransactionNotFoundException(checkNumber, savingsId);
         }

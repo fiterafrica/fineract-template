@@ -155,6 +155,7 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountStatusType;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransaction;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransactionRepository;
 import org.apache.fineract.portfolio.savings.domain.SavingsProduct;
+import org.apache.fineract.portfolio.savings.domain.DeletedSavingsAccountTransactionRepository;
 import org.apache.fineract.portfolio.savings.exception.DepositAccountTransactionNotAllowedException;
 import org.apache.fineract.portfolio.savings.exception.Fx_RateTableShouldBeExistException;
 import org.apache.fineract.portfolio.savings.exception.InsufficientAccountBalanceException;
@@ -224,6 +225,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
     private final PaymentTypeRepositoryWrapper repositoryWrapper;
     private final PaymentDetailRepository paymentDetailRepository;
+    private final DeletedSavingsAccountTransactionRepository deletedSavingsAccountTransactionRepository;
 
     @Autowired
     public DepositAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -251,7 +253,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                                                                AccountingProcessorHelper helper, RecurringDepositProductRepository recurringDepositProductRepository,
                                                                SavingsAccountWritePlatformService savingsAccountWritePlatformService, SavingsAccountRepository savingsAccountRepository,
                                                                ChargeSlabRepository chargeSlabRepository, SavingsAccountReadPlatformService savingsAccountReadPlatformService,
-                                                               ChargeReadPlatformService chargeReadPlatformService, final PaymentTypeRepositoryWrapper repositoryWrapper, PaymentDetailRepository paymentDetailRepository) {
+                                                               ChargeReadPlatformService chargeReadPlatformService, final PaymentTypeRepositoryWrapper repositoryWrapper, PaymentDetailRepository paymentDetailRepository, DeletedSavingsAccountTransactionRepository deletedSavingsAccountTransactionRepository) {
 
         this.context = context;
         this.savingAccountRepositoryWrapper = savingAccountRepositoryWrapper;
@@ -290,6 +292,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         this.chargeReadPlatformService = chargeReadPlatformService;
         this.repositoryWrapper = repositoryWrapper;
         this.paymentDetailRepository = paymentDetailRepository;
+        this.deletedSavingsAccountTransactionRepository = deletedSavingsAccountTransactionRepository;
     }
 
     @Transactional
@@ -582,6 +585,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         final BigDecimal transactionAmount = command.bigDecimalValueOfParameterNamed("transactionAmount");
 
         final Map<String, Object> changes = new LinkedHashMap<>();
+
         final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createAndPersistPaymentDetail(command, changes);
         final SavingsAccountTransaction deposit = this.depositAccountDomainService.handleRDDeposit(account, fmt, transactionDate,
                 transactionAmount, paymentDetail, isRegularTransaction);
@@ -591,6 +595,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             final Note note = Note.savingsTransactionNote(account, deposit, noteText);
             this.noteRepository.save(note);
         }
+
+        changes.put("DeleteAccrualsAndInterestTransactions", deposit.getDeletedTransactions());
 
         return new CommandProcessingResultBuilder() //
                 .withEntityId(deposit.getId()) //
@@ -672,6 +678,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             final Note note = Note.savingsTransactionNote(account, withdrawal, noteText);
             this.noteRepository.save(note);
         }
+
+        changes.put("DeleteAccrualsAndInterestTransactions", withdrawal.getDeletedTransactions());
 
         return new CommandProcessingResultBuilder() //
                 .withEntityId(withdrawal.getId()) //

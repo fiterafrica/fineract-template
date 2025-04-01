@@ -37,6 +37,9 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Transient;
+
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 import org.apache.fineract.infrastructure.core.domain.LocalDateInterval;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
@@ -106,6 +109,7 @@ public final class SavingsAccountTransaction extends AbstractPersistableCustom {
     @Column(name = "created_date", nullable = false)
     private LocalDateTime createdDate;
 
+    @Getter
     @ManyToOne
     @JoinColumn(name = "appuser_id", nullable = true)
     private AppUser appUser;
@@ -146,6 +150,11 @@ public final class SavingsAccountTransaction extends AbstractPersistableCustom {
 
     @Column(name = "is_account_transfer", nullable = false)
     private Boolean isAccountTransfer = false;
+
+    @Getter
+    @Setter
+    @Transient
+    private List<Map<String, Object>> deletedTransactions = new ArrayList<>();
 
     SavingsAccountTransaction() {
         this.dateOf = null;
@@ -1106,4 +1115,5 @@ public final class SavingsAccountTransaction extends AbstractPersistableCustom {
     public void setBalanceNumberOfDays(int i) {
         this.balanceNumberOfDays = i;
     }
+
 }
