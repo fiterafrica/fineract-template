@@ -450,6 +450,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             final Note note = Note.savingsTransactionNote(account, deposit, noteText);
             this.noteRepository.save(note);
         }
+        changes.put("DeleteAccrualsAndInterestTransactions", deposit.getDeletedTransactions());
 
         return new CommandProcessingResultBuilder() //
                 .withEntityId(deposit.getId()) //
@@ -557,6 +558,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final CommandProcessingResultBuilder builder = new CommandProcessingResultBuilder();
         savingsAccountTransactionLimitPlatformService.handleApprovalsForSessionTransactionLimits(command, account, withdrawal,
                 account.getClient(), builder);
+        changes.put("DeleteAccrualsAndInterestTransactions", withdrawal.getDeletedTransactions());
 
         //
         return builder.withEntityId(withdrawal.getId()) //

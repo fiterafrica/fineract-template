@@ -155,6 +155,7 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountStatusType;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransaction;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransactionRepository;
 import org.apache.fineract.portfolio.savings.domain.SavingsProduct;
+import org.apache.fineract.portfolio.savings.domain.DeletedSavingsAccountTransactionRepository;
 import org.apache.fineract.portfolio.savings.exception.DepositAccountTransactionNotAllowedException;
 import org.apache.fineract.portfolio.savings.exception.Fx_RateTableShouldBeExistException;
 import org.apache.fineract.portfolio.savings.exception.InsufficientAccountBalanceException;
@@ -224,6 +225,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
     private final PaymentTypeRepositoryWrapper repositoryWrapper;
     private final PaymentDetailRepository paymentDetailRepository;
+    private final DeletedSavingsAccountTransactionRepository deletedSavingsAccountTransactionRepository;
 
     @Autowired
     public DepositAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -251,7 +253,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                                                                AccountingProcessorHelper helper, RecurringDepositProductRepository recurringDepositProductRepository,
                                                                SavingsAccountWritePlatformService savingsAccountWritePlatformService, SavingsAccountRepository savingsAccountRepository,
                                                                ChargeSlabRepository chargeSlabRepository, SavingsAccountReadPlatformService savingsAccountReadPlatformService,
-                                                               ChargeReadPlatformService chargeReadPlatformService, final PaymentTypeRepositoryWrapper repositoryWrapper, PaymentDetailRepository paymentDetailRepository) {
+                                                               ChargeReadPlatformService chargeReadPlatformService, final PaymentTypeRepositoryWrapper repositoryWrapper, PaymentDetailRepository paymentDetailRepository, DeletedSavingsAccountTransactionRepository deletedSavingsAccountTransactionRepository) {
 
         this.context = context;
         this.savingAccountRepositoryWrapper = savingAccountRepositoryWrapper;
@@ -290,6 +292,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         this.chargeReadPlatformService = chargeReadPlatformService;
         this.repositoryWrapper = repositoryWrapper;
         this.paymentDetailRepository = paymentDetailRepository;
+        this.deletedSavingsAccountTransactionRepository = deletedSavingsAccountTransactionRepository;
     }
 
     @Transactional
@@ -582,6 +585,10 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         final BigDecimal transactionAmount = command.bigDecimalValueOfParameterNamed("transactionAmount");
 
         final Map<String, Object> changes = new LinkedHashMap<>();
+
+//        List<SavingsAccountTransaction> affectedTransactions = new ArrayList<>();
+//        affectedTransactions = fetchAffectedAccrualAndInterestTransaction(account, affectedTransactions, transactionDate);
+
         final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createAndPersistPaymentDetail(command, changes);
         final SavingsAccountTransaction deposit = this.depositAccountDomainService.handleRDDeposit(account, fmt, transactionDate,
                 transactionAmount, paymentDetail, isRegularTransaction);
@@ -591,6 +598,9 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             final Note note = Note.savingsTransactionNote(account, deposit, noteText);
             this.noteRepository.save(note);
         }
+        // When Backdated transactions will be happen
+       // processDeletedTransaction(affectedTransactions, deposit, changes);
+        changes.put("DeleteAccrualsAndInterestTransactions", deposit.getDeletedTransactions());
 
         return new CommandProcessingResultBuilder() //
                 .withEntityId(deposit.getId()) //
@@ -645,6 +655,9 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
         final SavingsAccount account = this.depositAccountAssembler.assembleFrom(savingsId, depositAccountType);
 
+//        List<SavingsAccountTransaction> affectedTransactions = new ArrayList<>();
+//        affectedTransactions = fetchAffectedAccrualAndInterestTransaction(account, affectedTransactions, transactionDate);
+
         checkClientOrGroupActive(account);
 
         if (depositAccountType.isRecurringDeposit()) {
@@ -672,6 +685,10 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             final Note note = Note.savingsTransactionNote(account, withdrawal, noteText);
             this.noteRepository.save(note);
         }
+
+        // When Backdated transactions will be happen
+    //    processDeletedTransaction(affectedTransactions, withdrawal, changes);
+        changes.put("DeleteAccrualsAndInterestTransactions", withdrawal.getDeletedTransactions());
 
         return new CommandProcessingResultBuilder() //
                 .withEntityId(withdrawal.getId()) //
@@ -2515,5 +2532,68 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         }
         return 0;
     }
+
+//    @Transactional
+//    public void saveDeletedInterestAndAccruedTransactionsInBatches(List<DeletedSavingsAccountTransaction> transactions) {
+//        int batchSize = 50;
+//        int totalSize = transactions.size();
+//
+//        for (int i = 0; i < totalSize; i += batchSize) {
+//            LOG.info("Start processing persist deleted accrual and interest posting transaction for back date transaction");
+//            int end = Math.min(i + batchSize, totalSize);
+//            List<DeletedSavingsAccountTransaction> batch = transactions.subList(i, end);
+//            deletedSavingsAccountTransactionRepository.saveAllAndFlush(batch);
+//            LOG.info("Batch of deleted accrual and interest posting transaction for back date transaction persisted");
+//        }
+//        LOG.info("All deleted accrual and interest posting transaction for back date transaction persisted{}", totalSize);
+//    }
+//
+//    private List<SavingsAccountTransaction> fetchAffectedAccrualAndInterestTransaction(SavingsAccount account, List<SavingsAccountTransaction>
+//            affectedTransactions, LocalDate transactionDate){
+//        if(account.getTransactions().stream().anyMatch(txn -> (txn.isAccrualInterestPostingAndNotReversed() ||
+//                txn.isInterestPostingAndNotReversed()) && txn.transactionLocalDate().isAfter(transactionDate))){
+//            affectedTransactions = account.getTransactions().stream()
+//                    .filter(txn -> (txn.isAccrualInterestPostingAndNotReversed() ||
+//                            txn.isInterestPostingAndNotReversed()) && txn.transactionLocalDate().isAfter(transactionDate))
+//                    .toList();
+//
+//        }
+//        return affectedTransactions;
+//    }
+//
+//    private void processDeletedTransaction(List<SavingsAccountTransaction> affectedTransactions, SavingsAccountTransaction backdatedTransaction, Map<String, Object> changes){
+//        if(!affectedTransactions.isEmpty()){
+//            List<DeletedSavingsAccountTransaction> deletedTransactions = affectedTransactions.stream()
+//                    .map(txn -> new DeletedSavingsAccountTransaction(
+//                            txn.getSavingsAccount(), txn.getId(), txn.getTypeOf(), txn.transactionLocalDate(),
+//                            txn.getAmount(), txn.isReversed(), txn.getRunningBalance(txn.getSavingsAccount().getCurrency()).getAmount(),
+//                            txn.getCumulativeBalance(), txn.getCreatedDate(), txn.getAppUser(),
+//                            txn.getRefNo(), backdatedTransaction.getId()
+//                    ))
+//                    .toList();
+//            saveDeletedInterestAndAccruedTransactionsInBatches(deletedTransactions);
+//            changes.put("DeletedAccrualsInterestTransactions", deletedTransactions.stream()
+//                    .map(txn -> {
+//                        Map<String, Object> txnMap = new HashMap<>();
+//                        txnMap.put("id", txn.getId());
+//                        txnMap.put("savingsAccountId", txn.getSavingsAccount().getId());
+//                        txnMap.put("deletedTransactionId", txn.getDeletedTransactionId());
+//                        txnMap.put("deletedByTransactionId", backdatedTransaction.getId());
+//                        txnMap.put("transactionType", txn.getTypeOf());
+//                        txnMap.put("transactionDate", txn.getDateOf().toString());
+//                        txnMap.put("amount", txn.getAmount());
+//                        txnMap.put("isReversed", txn.isReversed());
+//                        txnMap.put("runningBalance", txn.getRunningBalance());
+//                        txnMap.put("cumulativeBalance", txn.getCumulativeBalance());
+//                        txnMap.put("createdDate", txn.getCreatedDate().toString());
+//                        txnMap.put("appUserId", txn.getAppUser() != null ? txn.getAppUser().getId() : null);
+//                        txnMap.put("refNo", txn.getRefNo());
+//                        return txnMap;
+//                    })
+//                    .collect(Collectors.toList()) // Convert Stream to List
+//            );
+//        }
+//
+//    }
 
 }

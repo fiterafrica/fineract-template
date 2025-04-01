@@ -88,5 +88,6 @@
     <include file="parts/FSMA-103_fix_grouping_for_WITHDRAWAL_REDRAW.xml" relativeToChangelogFile="true" />
     <include file="parts/FSMA-104_add_bvn_in_m_client.xml" relativeToChangelogFile="true" />
     <include file="parts/FSMA-155.xml" relativeToChangelogFile="true" />
+    <include file="parts/MON-192_deleted_savings_account_transaction.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>
