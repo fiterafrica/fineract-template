@@ -99,6 +99,11 @@ dependencies {
     implementation ('com.nimbusds:nimbus-jose-jwt:9.37.3') {
         force = true
     }
+    implementation ('org.springframework:spring-webmvc') {
+        version {
+            strictly '6.1.14'
+        }
+    }
 
     implementation('org.springframework.boot:spring-boot-starter-jersey') {
         exclude group: 'org.glassfish.hk2.external', module: 'aopalliance-repackaged'
