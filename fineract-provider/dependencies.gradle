@@ -104,6 +104,9 @@ dependencies {
             strictly '6.1.14'
         }
     }
+    implementation ('com.squareup.okio:okio:3.4.0') {
+        force = true
+    }
 
     implementation('org.springframework.boot:spring-boot-starter-jersey') {
         exclude group: 'org.glassfish.hk2.external', module: 'aopalliance-repackaged'

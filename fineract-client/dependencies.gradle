@@ -35,4 +35,11 @@ dependencies {
         exclude group: 'org.apache.oltu.oauth2', module: 'org.apache.oltu.oauth2.common'
         exclude group: 'org.slf4j'
     }
+
+    implementation ("com.squareup.okio:okio") {
+        version {
+            strictly '3.4.0'
+        }
+        exclude module: 'org.yaml'
+    }
 }
