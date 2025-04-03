@@ -111,6 +111,7 @@ dependencies {
         force = true
     }
 
+
     implementation('org.springframework.boot:spring-boot-starter-jersey') {
         exclude group: 'org.glassfish.hk2.external', module: 'aopalliance-repackaged'
         exclude group: 'org.glassfish.hk2', module: 'hk2-runlevel'
@@ -158,6 +159,10 @@ dependencies {
         exclude group: 'commons-lang'
         exclude group: 'spotbugs-annotations'
         exclude group: 'xml-apis'
+    }
+
+    implementation ('commons-fileupload:commons-fileupload:1.5') {
+        force = true
     }
 
     runtimeOnly('org.glassfish.jaxb:jaxb-runtime') {
