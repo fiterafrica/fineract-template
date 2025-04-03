@@ -99,11 +99,11 @@ dependencies {
     implementation ('com.nimbusds:nimbus-jose-jwt:9.37.3') {
         force = true
     }
-    implementation ('org.springframework:spring-webmvc') {
-        version {
-            strictly '6.1.14'
-        }
-    }
+//    implementation ('org.springframework:spring-webmvc') {
+//        version {
+//            strictly '6.1.14'
+//        }
+//    }
     implementation ('com.squareup.okio:okio:3.4.0') {
         force = true
     }
