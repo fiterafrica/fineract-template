@@ -39,6 +39,9 @@ dependencies {
         exclude group: 'com.sun.xml.bind'
     }
     testImplementation 'org.awaitility:awaitility'
+    implementation ('org.yaml:snakeyaml:1.31') {
+        force = true
+    }
 
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'

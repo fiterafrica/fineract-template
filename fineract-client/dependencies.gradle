@@ -29,7 +29,11 @@ dependencies {
             'io.gsonfire:gson-fire',
             'com.google.code.findbugs:jsr305',
             'com.squareup.okhttp3:logging-interceptor',
-            )
+
+    )
+    implementation ('com.squareup.okio:okio:3.4.0') {
+        force = true
+    }
     // org.apache.oltu.oauth2 is used in org.apache.fineract.client.auth.OAuthOkHttpClient (only; can be excluded by consumers not requiring OAuth)
     implementation('org.apache.oltu.oauth2:org.apache.oltu.oauth2.client') {
         exclude group: 'org.apache.oltu.oauth2', module: 'org.apache.oltu.oauth2.common'

@@ -39,6 +39,9 @@ dependencies {
     implementation 'org.openjdk.nashorn:nashorn-core:15.1'
     implementation 'org.codehaus.groovy:groovy-jsr223:3.0.10'
 
+    implementation ('org.yaml:snakeyaml:1.31') {
+        force = true
+    }
     //Fiter custom dependencies
     implementation 'org.json:json:20171018'
     implementation 'org.apache.pdfbox:pdfbox:2.0.20'
