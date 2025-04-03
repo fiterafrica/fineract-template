@@ -6890,6 +6890,8 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
 
             }
         }
+        // Reprocess loans in-case the transactions need remapping
+        restoreLoanScheduleAndTransactions();
     }
 
     public void restoreLoanScheduleAndTransactions() {
