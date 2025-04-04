@@ -28,6 +28,9 @@ dependencies {
             'org.bouncycastle:bcpkix-jdk15to18',
             'org.bouncycastle:bcprov-jdk15to18',
             )
+    testImplementation ('org.yaml:snakeyaml:1.31') {
+        force = true
+    }
     testImplementation ('io.rest-assured:rest-assured') {
         exclude group: 'commons-logging'
         exclude group: 'org.apache.sling'

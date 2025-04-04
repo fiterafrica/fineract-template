@@ -88,7 +88,7 @@ dependencies {
                 include '*.jar' },
             'org.openjdk.nashorn:nashorn-core',
             'org.mapstruct:mapstruct',
-            'org.ff4j:ff4j-config-yaml:1.8.13',
+            'org.ff4j:ff4j-config-yaml:1.9',
             'com.google.re2j:re2j:1.7'
             )
 
@@ -99,11 +99,18 @@ dependencies {
     implementation ('com.nimbusds:nimbus-jose-jwt:9.37.3') {
         force = true
     }
-    implementation ('org.springframework:spring-webmvc') {
-        version {
-            strictly '6.1.14'
-        }
+//    implementation ('org.springframework:spring-webmvc') {
+//        version {
+//            strictly '6.1.14'
+//        }
+//    }
+    implementation ('com.squareup.okio:okio:3.4.0') {
+        force = true
     }
+    implementation ('org.yaml:snakeyaml:1.31') {
+        force = true
+    }
+
 
     implementation('org.springframework.boot:spring-boot-starter-jersey') {
         exclude group: 'org.glassfish.hk2.external', module: 'aopalliance-repackaged'
@@ -152,6 +159,10 @@ dependencies {
         exclude group: 'commons-lang'
         exclude group: 'spotbugs-annotations'
         exclude group: 'xml-apis'
+    }
+
+    implementation ('commons-fileupload:commons-fileupload:1.5') {
+        force = true
     }
 
     runtimeOnly('org.glassfish.jaxb:jaxb-runtime') {
