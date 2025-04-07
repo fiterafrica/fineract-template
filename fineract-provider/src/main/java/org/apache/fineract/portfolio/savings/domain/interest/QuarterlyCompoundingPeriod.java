@@ -23,11 +23,13 @@ import java.math.MathContext;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.infrastructure.core.domain.LocalDateInterval;
 import org.apache.fineract.organisation.monetary.domain.MoneyHelper;
 import org.apache.fineract.portfolio.savings.SavingsCompoundingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.SavingsInterestCalculationType;
 
+@Slf4j
 public final class QuarterlyCompoundingPeriod implements CompoundingPeriod {
 
     private final LocalDateInterval periodInterval;
@@ -146,8 +148,9 @@ public final class QuarterlyCompoundingPeriod implements CompoundingPeriod {
                     interestOnBalanceUnrounded = balance.calculateInterestOnBalance(interestToCompound, interestRateAsFraction, daysInYear,
                             minBalanceForInterestCalculation, overdraftInterestRateAsFraction, minOverdraftForInterestCalculation);
                 break;
-                // case NO_COMPOUNDING_SIMPLE_INTEREST:
-                // break;
+                case NONE:
+                    log.info("Interest calculation type is NONE");
+                break;
                 case INVALID:
                 break;
             }
@@ -250,6 +253,9 @@ public final class QuarterlyCompoundingPeriod implements CompoundingPeriod {
                     interestOnBalanceUnrounded
                             .addAll(balance.calculateInterestOnBalances(interestToCompound, interestRateAsFraction, daysInYear,
                                     minBalanceForInterestCalculation, overdraftInterestRateAsFraction, minOverdraftForInterestCalculation));
+                break;
+                case NONE:
+                    log.info("Interest calculation type is NONE");
                 break;
                 case INVALID:
                 break;

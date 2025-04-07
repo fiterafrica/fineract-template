@@ -545,11 +545,8 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                 + " where sa.id = ? and sa.deposit_type_enum = ? and pd.check_number= ?";
 
         try {
-            List<SavingsAccountTransactionData> transactions = this.jdbcTemplate.query(
-                    sql,
-                    this.transactionsMapperCheckNumber,
-                    new Object[] { savingsId, depositAccountType.getValue(), checkNumber }
-            );
+            List<SavingsAccountTransactionData> transactions = this.jdbcTemplate.query(sql, this.transactionsMapperCheckNumber,
+                    new Object[] { savingsId, depositAccountType.getValue(), checkNumber });
 
             if (transactions.isEmpty()) {
                 throw new SavingsAccountTransactionNotFoundException(checkNumber, savingsId);

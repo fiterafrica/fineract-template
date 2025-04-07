@@ -22,9 +22,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
 
+@Slf4j
 public class CompoundInterestHelper {
 
     /**
@@ -80,7 +83,8 @@ public class CompoundInterestHelper {
             if (ignorecompounding) {
                 compoundInterestValues = new CompoundInterestValues(BigDecimal.ZERO, BigDecimal.ZERO);
             }
-
+            log.info(">>>>> >>>>> Closing Balance {} ",postingPeriod.closingBalance().getAmount());
+            log.info(">>>>> >>>>> Date Of Posting -- Transaction {} ",postingPeriod.dateOfPostingTransaction());
             final List<BigDecimal> interestEarnedThisPeriod = postingPeriod.calculateInterests(compoundInterestValues);
 
             for (BigDecimal interest : interestEarnedThisPeriod) {

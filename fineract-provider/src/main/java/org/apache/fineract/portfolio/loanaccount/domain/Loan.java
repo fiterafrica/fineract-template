@@ -1273,7 +1273,8 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
             LoanRepaymentScheduleInstallment modifiedInstallment) {
         this.getLoanCharges().forEach(charge -> {
             if (charge.isOverdueInstallmentCharge()) {
-                if (existingInstallment.getInstallmentNumber().equals(charge.getOverdueInstallmentCharge().getInstallment().getInstallmentNumber())) {
+                if (existingInstallment.getInstallmentNumber()
+                        .equals(charge.getOverdueInstallmentCharge().getInstallment().getInstallmentNumber())) {
                     charge.getOverdueInstallmentCharge().updateLoanRepaymentScheduleInstallment(modifiedInstallment);
                 }
             }

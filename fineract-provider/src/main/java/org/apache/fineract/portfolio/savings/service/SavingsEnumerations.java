@@ -20,6 +20,7 @@ package org.apache.fineract.portfolio.savings.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.accounting.common.AccountingEnumerations;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.portfolio.savings.DepositAccountOnClosureType;
@@ -41,6 +42,7 @@ import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionEnumD
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountStatusType;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountSubStatusEnum;
 
+@Slf4j
 public final class SavingsEnumerations {
 
     private SavingsEnumerations() {
@@ -458,6 +460,11 @@ public final class SavingsEnumerations {
             case AT_MATURITY:
                 optionData = new EnumOptionData(SavingsCompoundingInterestPeriodType.AT_MATURITY.getValue().longValue(),
                         codePrefix + SavingsCompoundingInterestPeriodType.AT_MATURITY.getCode(), "At-Maturity");
+            break;
+            case NONE:
+                optionData = new EnumOptionData(SavingsCompoundingInterestPeriodType.NONE.getValue().longValue(),
+                        codePrefix + SavingsCompoundingInterestPeriodType.NONE.getCode(), "None");
+                log.info("SavingsCompoundingInterestPeriodType.NONE.getValue() : {}", SavingsCompoundingInterestPeriodType.NONE.getValue());
             break;
         }
 

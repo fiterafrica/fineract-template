@@ -105,8 +105,8 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
 
     @Override
     @Transactional
-    public void addPeriodicAccruals(final LocalDate tilldate, Long loanId, Collection<LoanScheduleAccrualData> loanScheduleAccrualDatas, boolean isRescheduleLoan)
-            throws Exception {
+    public void addPeriodicAccruals(final LocalDate tilldate, Long loanId, Collection<LoanScheduleAccrualData> loanScheduleAccrualDatas,
+            boolean isRescheduleLoan) throws Exception {
         boolean firstTime = true;
         LocalDate accruredTill = null;
         Collection<LoanChargeData> chargeData = this.loanChargeReadPlatformService.retrieveLoanChargesForAccural(loanId);
@@ -129,7 +129,8 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
                     addAccrualTillSpecificDate(tilldate, accrualData);
                 }
             } else {
-                updateCharges(chargeData, accrualData, accrualData.getFromDateAsLocaldate(), accrualData.getDueDateAsLocaldate(), isRescheduleLoan);
+                updateCharges(chargeData, accrualData, accrualData.getFromDateAsLocaldate(), accrualData.getDueDateAsLocaldate(),
+                        isRescheduleLoan);
                 updateInterestIncome(accrualData, loanWaiverTansactionData, loanWaiverScheduleData, tilldate);
                 addAccrualAccounting(accrualData);
                 accruredTill = accrualData.getDueDateAsLocaldate();
@@ -402,7 +403,8 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
                     chargeAmount = chargeAmount.subtract(loanCharge.getAmountUnrecognized());
                 }
                 boolean canAddCharge = chargeAmount.compareTo(BigDecimal.ZERO) > 0;
-                if (canAddCharge && (loanCharge.getAmountAccrued() == null || chargeAmount.compareTo(loanCharge.getAmountAccrued()) == 0 || isRescheduleLoan)) {
+                if (canAddCharge && (loanCharge.getAmountAccrued() == null || chargeAmount.compareTo(loanCharge.getAmountAccrued()) == 0
+                        || isRescheduleLoan)) {
                     BigDecimal amountForAccrual = chargeAmount;
                     if (loanCharge.getAmountAccrued() != null) {
                         amountForAccrual = chargeAmount.subtract(loanCharge.getAmountAccrued());

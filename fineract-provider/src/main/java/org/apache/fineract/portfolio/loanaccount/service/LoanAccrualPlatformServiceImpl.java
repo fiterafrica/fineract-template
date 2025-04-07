@@ -96,8 +96,8 @@ public class LoanAccrualPlatformServiceImpl implements LoanAccrualPlatformServic
     }
 
     @Override
-    public void addPeriodicAccruals(final LocalDate tilldate, Collection<LoanScheduleAccrualData> loanScheduleAccrualDatas, boolean isRescheduleLoan)
-            throws JobExecutionException {
+    public void addPeriodicAccruals(final LocalDate tilldate, Collection<LoanScheduleAccrualData> loanScheduleAccrualDatas,
+            boolean isRescheduleLoan) throws JobExecutionException {
         Map<Long, Collection<LoanScheduleAccrualData>> loanDataMap = new HashMap<>();
         for (final LoanScheduleAccrualData accrualData : loanScheduleAccrualDatas) {
             if (loanDataMap.containsKey(accrualData.getLoanId())) {
@@ -112,7 +112,8 @@ public class LoanAccrualPlatformServiceImpl implements LoanAccrualPlatformServic
         List<Throwable> errors = new ArrayList<>();
         for (Map.Entry<Long, Collection<LoanScheduleAccrualData>> mapEntry : loanDataMap.entrySet()) {
             try {
-                this.loanAccrualWritePlatformService.addPeriodicAccruals(tilldate, mapEntry.getKey(), mapEntry.getValue(), isRescheduleLoan);
+                this.loanAccrualWritePlatformService.addPeriodicAccruals(tilldate, mapEntry.getKey(), mapEntry.getValue(),
+                        isRescheduleLoan);
             } catch (Exception e) {
                 LOG.error("Failed to add accural transaction for loan {}", mapEntry.getKey(), e);
                 errors.add(e);
