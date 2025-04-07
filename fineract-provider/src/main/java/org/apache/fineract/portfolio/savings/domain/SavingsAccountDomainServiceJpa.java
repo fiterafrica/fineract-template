@@ -27,8 +27,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.fineract.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
@@ -54,12 +56,16 @@ import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionDTO;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionDataValidator;
 import org.apache.fineract.portfolio.savings.exception.DepositAccountTransactionNotAllowedException;
 import org.apache.fineract.useradministration.domain.AppUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SavingsAccountDomainServiceJpa.class);
 
     private final PlatformSecurityContext context;
     private final SavingsAccountRepositoryWrapper savingsAccountRepository;
@@ -75,18 +81,19 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
     private final SavingsAccountTransactionDataValidator savingsAccountTransactionDataValidator;
 
     private final GlobalConfigurationRepositoryWrapper globalConfigurationRepository;
+    private final DeletedSavingsAccountTransactionRepository deletedSavingsAccountTransactionRepository;
 
     @Autowired
     public SavingsAccountDomainServiceJpa(final SavingsAccountRepositoryWrapper savingsAccountRepository,
-            final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
-            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
-            final JournalEntryWritePlatformService journalEntryWritePlatformService,
-            final ConfigurationDomainService configurationDomainService, final PlatformSecurityContext context,
-            final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
-            final BusinessEventNotifierService businessEventNotifierService,
-            final SavingsAccountTransactionDataValidator savingsAccountTransactionDataValidator,
-            final SavingsAccountAssembler savingAccountAssembler, final LoanReadPlatformService loanReadPlatformService,
-            final GlobalConfigurationRepositoryWrapper globalConfigurationRepository) {
+                                          final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
+                                          final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
+                                          final JournalEntryWritePlatformService journalEntryWritePlatformService,
+                                          final ConfigurationDomainService configurationDomainService, final PlatformSecurityContext context,
+                                          final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
+                                          final BusinessEventNotifierService businessEventNotifierService,
+                                          final SavingsAccountTransactionDataValidator savingsAccountTransactionDataValidator,
+                                          final SavingsAccountAssembler savingAccountAssembler, final LoanReadPlatformService loanReadPlatformService,
+                                          final GlobalConfigurationRepositoryWrapper globalConfigurationRepository, DeletedSavingsAccountTransactionRepository deletedSavingsAccountTransactionRepository) {
 
         this.savingsAccountRepository = savingsAccountRepository;
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
@@ -100,6 +107,7 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         this.savingAccountAssembler = savingAccountAssembler;
         this.loanReadPlatformService = loanReadPlatformService;
         this.globalConfigurationRepository = globalConfigurationRepository;
+        this.deletedSavingsAccountTransactionRepository = deletedSavingsAccountTransactionRepository;
     }
 
     private BigDecimal getOverdueLoanAmountForClient(SavingsAccount savingsAccount, boolean isTransferToLoanAccount) {
@@ -166,6 +174,9 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
 
         final LocalDate today = DateUtils.getBusinessLocalDate();
 
+        List<SavingsAccountTransaction> affectedTransactions = new ArrayList<>();
+        affectedTransactions = fetchAffectedAccrualAndInterestTransaction(account, affectedTransactions, transactionDate);
+
         if (account.isBeforeLastPostingPeriod(transactionDate, backdatedTxnsAllowedTill)) {
             account.postInterest(mc, today, transactionBooleanValues.isInterestTransfer(), isSavingsInterestPostingAtCurrentPeriodEnd,
                     financialYearBeginningMonth, postInterestOnDate, backdatedTxnsAllowedTill, postReversals);
@@ -213,6 +224,8 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
                 backdatedTxnsAllowedTill);
 
         businessEventNotifierService.notifyPostBusinessEvent(new SavingsWithdrawalBusinessEvent(withdrawal));
+        // When Backdated transactions will be happen
+        processDeletedTransaction(affectedTransactions, withdrawal);
         return withdrawal;
     }
 
@@ -274,6 +287,9 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
             this.savingsAccountTransactionDataValidator.validateCumulativeBalanceByLimit(account, transactionAmount);
         }
 
+        List<SavingsAccountTransaction> affectedTransactions = new ArrayList<>();
+        affectedTransactions = fetchAffectedAccrualAndInterestTransaction(account, affectedTransactions, transactionDate);
+
         // Global configurations
         final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
                 .isSavingsInterestPostingAtCurrentPeriodEnd();
@@ -329,6 +345,9 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
 
         postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer, backdatedTxnsAllowedTill);
         businessEventNotifierService.notifyPostBusinessEvent(new SavingsDepositBusinessEvent(deposit));
+
+        // When Backdated transactions will be happen
+        processDeletedTransaction(affectedTransactions, deposit);
         return deposit;
     }
 
@@ -476,4 +495,77 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         }
         return newTransactions;
     }
+
+    private List<SavingsAccountTransaction> fetchAffectedAccrualAndInterestTransaction(
+            SavingsAccount account, List<SavingsAccountTransaction> affectedTransactions, LocalDate transactionDate) {
+
+        affectedTransactions = account.getTransactions().stream()
+                .filter(txn -> (txn.isAccrualInterestPostingAndNotReversed() || txn.isInterestPostingAndNotReversed())
+                        && !txn.transactionLocalDate().isBefore(transactionDate))
+                .toList();
+
+        return affectedTransactions;
+    }
+
+
+    private void processDeletedTransaction(List<SavingsAccountTransaction> affectedTransactions,
+                                           SavingsAccountTransaction backdatedTransaction) {
+        if (!affectedTransactions.isEmpty()) {
+            List<DeletedSavingsAccountTransaction> deletedTransactions = affectedTransactions.stream()
+                    .map(txn -> mapToDeletedTransaction(txn, backdatedTransaction.getId()))
+                    .toList();
+
+            saveDeletedInterestAndAccruedTransactionsInBatches(deletedTransactions);
+
+            backdatedTransaction.setDeletedTransactions(deletedTransactions.stream()
+                    .map(this::mapToTransactionMap)
+                    .collect(Collectors.toList()));
+        }
+    }
+
+    private DeletedSavingsAccountTransaction mapToDeletedTransaction(SavingsAccountTransaction txn, Long backdatedTransactionId) {
+        return new DeletedSavingsAccountTransaction(
+                txn.getSavingsAccount(), txn.getId(), txn.getTypeOf(), txn.transactionLocalDate(),
+                txn.getAmount(), txn.isReversed(), txn.getRunningBalance(txn.getSavingsAccount().getCurrency()).getAmount(),
+                txn.getCumulativeBalance(), txn.getCreatedDate(), txn.getAppUser(),
+                txn.getRefNo(), backdatedTransactionId
+        );
+    }
+
+    private Map<String, Object> mapToTransactionMap(DeletedSavingsAccountTransaction txn) {
+        Map<String, Object> txnMap = new HashMap<>();
+        txnMap.put("id", txn.getId());
+        txnMap.put("savingsAccountId", txn.getSavingsAccount().getId());
+        txnMap.put("deletedTransactionId", txn.getDeletedTransactionId());
+        txnMap.put("deletedByTransactionId", txn.getDeletedByTransactionId());
+        txnMap.put("transactionType", txn.getTypeOf());
+        txnMap.put("transactionDate", txn.getDateOf().toString());
+        txnMap.put("amount", txn.getAmount());
+        txnMap.put("isReversed", txn.isReversed());
+        txnMap.put("runningBalance", txn.getRunningBalance());
+        txnMap.put("cumulativeBalance", txn.getCumulativeBalance());
+        txnMap.put("createdDate", txn.getCreatedDate().toString());
+        txnMap.put("appUserId", txn.getAppUser() != null ? txn.getAppUser().getId() : null);
+        txnMap.put("refNo", txn.getRefNo());
+        return txnMap;
+    }
+
+
+    @Transactional
+    public void saveDeletedInterestAndAccruedTransactionsInBatches(List<DeletedSavingsAccountTransaction> transactions) {
+        final int batchSize = 50;
+        final int totalSize = transactions.size();
+
+        for (int i = 0; i < totalSize; i += batchSize) {
+            int end = Math.min(i + batchSize, totalSize);
+            List<DeletedSavingsAccountTransaction> batch = transactions.subList(i, end);
+
+            LOG.info("Persisting batch of deleted accrual and interest posting transactions: {} to {}", i + 1, end);
+            deletedSavingsAccountTransactionRepository.saveAllAndFlush(batch);
+            LOG.info("Batch of deleted accrual and interest posting transactions persisted successfully: {} to {}", i + 1, end);
+        }
+
+        LOG.info("Total deleted accrual and interest posting transactions persisted: {}", totalSize);
+    }
+
 }
