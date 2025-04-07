@@ -50,7 +50,8 @@ public class CompoundInterestHelper {
         final CompoundInterestValues compoundInterestValues = new CompoundInterestValues(compoundedInterest, unCompoundedInterest);
         for (final PostingPeriod postingPeriod : allPeriods) {
 
-            final BigDecimal interestEarnedThisPeriod = postingPeriod.calculateInterest(compoundInterestValues);
+            //did rounding for each end of day balance to fix discrepancy
+            final BigDecimal interestEarnedThisPeriod = postingPeriod.calculateInterestRounded(compoundInterestValues, currency);
 
             final Money moneyToBePostedForPeriod = Money.of(currency, interestEarnedThisPeriod);
 

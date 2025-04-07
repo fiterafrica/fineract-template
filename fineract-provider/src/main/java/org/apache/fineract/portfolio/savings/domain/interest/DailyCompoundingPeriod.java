@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.fineract.infrastructure.core.domain.LocalDateInterval;
+import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.portfolio.savings.SavingsCompoundingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.SavingsInterestCalculationType;
 
@@ -96,6 +97,32 @@ public final class DailyCompoundingPeriod implements CompoundingPeriod {
 
         return interestEarned;
     }
+
+    @Override
+    public BigDecimal calculateInterestRounded(final SavingsCompoundingInterestPeriodType compoundingInterestPeriodType,
+                                        final SavingsInterestCalculationType interestCalculationType, final BigDecimal interestFromPreviousPostingPeriod,
+                                        final BigDecimal interestRateAsFraction, final long daysInYear, final BigDecimal minBalanceForInterestCalculation,
+                                        final BigDecimal overdraftInterestRateAsFraction, final BigDecimal minOverdraftForInterestCalculation,
+                                        MonetaryCurrency currency) {
+        BigDecimal interestEarned = BigDecimal.ZERO;
+
+        // for daily compounding - each interest calculated from previous daily
+        // calculations is 'compounded'
+        BigDecimal interestToCompound = interestFromPreviousPostingPeriod;
+        for (final EndOfDayBalance balance : this.endOfDayBalances) {
+            if (balance.getNumberOfDays() != null && balance.getNumberOfDays() < 0) {
+                continue;
+            }
+            final BigDecimal interestOnBalanceUnrounded = balance.calculateInterestOnBalanceAndInterest(interestToCompound,
+                    interestRateAsFraction, daysInYear, minBalanceForInterestCalculation, overdraftInterestRateAsFraction,
+                    minOverdraftForInterestCalculation);
+            interestToCompound = interestToCompound.add(interestOnBalanceUnrounded, MathContext.DECIMAL64).setScale(9);
+            interestEarned = interestEarned.add(interestOnBalanceUnrounded);
+        }
+
+        return interestEarned;
+    }
+
 
     @Override
     public LocalDateInterval getPeriodInterval() {

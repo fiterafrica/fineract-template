@@ -435,6 +435,40 @@ public final class PostingPeriod {
         return interestEarned;
     }
 
+    public BigDecimal calculateInterestRounded(final CompoundInterestValues compoundInterestValues, MonetaryCurrency currency) {
+        BigDecimal interestEarned = BigDecimal.ZERO;
+
+        // for each compounding period accumulate the amount of interest
+        // to be applied to the balanced for interest calculation
+        for (final CompoundingPeriod compoundingPeriod : this.compoundingPeriods) {
+
+            final BigDecimal interestUnrounded = compoundingPeriod.calculateInterestRounded(this.interestCompoundingType,
+                    this.interestCalculationType, compoundInterestValues.getcompoundedInterest(), this.interestRateAsFraction,
+                    this.daysInYear, this.minBalanceForInterestCalculation.getAmount(), this.overdraftInterestRateAsFraction,
+                    this.minOverdraftForInterestCalculation.getAmount(), currency);
+            BigDecimal unCompoundedInterest = compoundInterestValues.getuncompoundedInterest().add(interestUnrounded);
+            compoundInterestValues.setuncompoundedInterest(unCompoundedInterest);
+            LocalDate compoundingPeriodEndDate = compoundingPeriod.getPeriodInterval().endDate();
+            if (!SavingsCompoundingInterestPeriodType.DAILY.equals(this.interestCompoundingType)) {
+                compoundingPeriodEndDate = determineInterestPeriodEndDateFrom(compoundingPeriod.getPeriodInterval().startDate(),
+                        this.interestCompoundingType, compoundingPeriod.getPeriodInterval().endDate(),
+                        this.getFinancialYearBeginningMonth());
+            }
+
+            if (compoundingPeriodEndDate.equals(compoundingPeriod.getPeriodInterval().endDate())) {
+                BigDecimal interestCompounded = compoundInterestValues.getcompoundedInterest().add(unCompoundedInterest);
+                compoundInterestValues.setcompoundedInterest(interestCompounded);
+                compoundInterestValues.setZeroForInterestToBeUncompounded();
+            }
+            interestEarned = interestEarned.add(interestUnrounded);
+        }
+
+        this.interestEarnedUnrounded = interestEarned;
+        this.interestEarnedRounded = Money.of(this.currency, this.interestEarnedUnrounded);
+
+        return interestEarned;
+    }
+
     public List<Money> getInterestEarneds() {
         return this.interestEarnedRoundeds;
     }

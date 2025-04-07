@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.fineract.infrastructure.core.domain.LocalDateInterval;
+import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.MoneyHelper;
 import org.apache.fineract.portfolio.savings.SavingsCompoundingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.SavingsInterestCalculationType;
@@ -65,6 +66,32 @@ public final class QuarterlyCompoundingPeriod implements CompoundingPeriod {
 
         return interestEarned;
     }
+
+    @Override
+    public BigDecimal calculateInterestRounded(final SavingsCompoundingInterestPeriodType compoundingInterestPeriodType,
+                                        final SavingsInterestCalculationType interestCalculationType, final BigDecimal interestToCompound,
+                                        final BigDecimal interestRateAsFraction, final long daysInYear, final BigDecimal minBalanceForInterestCalculation,
+                                        final BigDecimal overdraftInterestRateAsFraction, final BigDecimal minOverdraftForInterestCalculation,
+                                        MonetaryCurrency currency) {
+
+        BigDecimal interestEarned = BigDecimal.ZERO;
+
+        switch (interestCalculationType) {
+            case DAILY_BALANCE:
+                interestEarned = calculateUsingDailyBalanceMethod(compoundingInterestPeriodType, interestToCompound, interestRateAsFraction,
+                        daysInYear, minBalanceForInterestCalculation, overdraftInterestRateAsFraction, minOverdraftForInterestCalculation);
+                break;
+            case AVERAGE_DAILY_BALANCE:
+                interestEarned = calculateUsingAverageDailyBalanceMethod(interestToCompound, interestRateAsFraction, daysInYear,
+                        minBalanceForInterestCalculation, overdraftInterestRateAsFraction, minOverdraftForInterestCalculation);
+                break;
+            case INVALID:
+                break;
+        }
+
+        return interestEarned;
+    }
+
 
     private BigDecimal calculateUsingAverageDailyBalanceMethod(final BigDecimal interestToCompound, final BigDecimal interestRateAsFraction,
             final long daysInYear, final BigDecimal minBalanceForInterestCalculation, final BigDecimal overdraftInterestRateAsFraction,

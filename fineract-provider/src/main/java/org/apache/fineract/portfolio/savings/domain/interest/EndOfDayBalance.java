@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.fineract.infrastructure.core.domain.LocalDateInterval;
+import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.organisation.monetary.domain.MoneyHelper;
 
@@ -88,6 +89,35 @@ public class EndOfDayBalance {
         }
         return interest;
     }
+
+    public BigDecimal calculateInterestOnBalanceRounded(final BigDecimal interestToCompound, final BigDecimal interestRateAsFraction,
+                                                 final long daysInYear, final BigDecimal minBalanceForInterestCalculation, final BigDecimal overdraftInterestRateAsFraction,
+                                                 final BigDecimal minOverdraftForInterestCalculation, MonetaryCurrency currency, int numberOfDays) {
+
+        BigDecimal interest = BigDecimal.ZERO.setScale(currency.getDigitsAfterDecimal(), MoneyHelper.getRoundingMode());
+        final BigDecimal realBalanceForInterestCalculation = this.endOfDayBalance.getAmount().add(interestToCompound);
+        if (realBalanceForInterestCalculation.compareTo(BigDecimal.ZERO) >= 0) {
+            if (realBalanceForInterestCalculation.compareTo(minBalanceForInterestCalculation) >= 0) {
+                final BigDecimal multiplicand = BigDecimal.ONE.divide(BigDecimal.valueOf(daysInYear), MathContext.DECIMAL64);
+                final BigDecimal dailyInterestRate = interestRateAsFraction.multiply(multiplicand, MathContext.DECIMAL64);
+                final BigDecimal periodicInterestRate = dailyInterestRate.multiply(BigDecimal.valueOf(numberOfDays),
+                        MathContext.DECIMAL64);
+                interest = realBalanceForInterestCalculation.multiply(periodicInterestRate, MathContext.DECIMAL64).setScale(currency.getDigitsAfterDecimal(),
+                        MoneyHelper.getRoundingMode());
+            }
+        } else {
+            if (realBalanceForInterestCalculation.compareTo(minOverdraftForInterestCalculation.negate()) < 0) {
+                final BigDecimal multiplicand = BigDecimal.ONE.divide(BigDecimal.valueOf(daysInYear), MathContext.DECIMAL64);
+                final BigDecimal dailyInterestRate = overdraftInterestRateAsFraction.multiply(multiplicand, MathContext.DECIMAL64);
+                final BigDecimal periodicInterestRate = dailyInterestRate.multiply(BigDecimal.valueOf(numberOfDays),
+                        MathContext.DECIMAL64);
+                interest = realBalanceForInterestCalculation.multiply(periodicInterestRate, MathContext.DECIMAL64).setScale(currency.getDigitsAfterDecimal(),
+                        MoneyHelper.getRoundingMode());
+            }
+        }
+        return interest;
+    }
+
 
     /**
      * Future Value (FV) = PV x (1+r)^n
