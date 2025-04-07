@@ -20,6 +20,7 @@ package org.apache.fineract.portfolio.loanaccount.service;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.IOException;
@@ -325,11 +326,16 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
 
                 JsonObject jsonResponse = JsonParser.parseString(resObject).getAsJsonObject();
                 log.info("Consumer Credit Response from TransUnion :=>" + resObject);
-
-                Integer code = jsonResponse.get("responseCode").getAsInt();
-                if (code == 200) {
-                    return jsonResponse.get("callbackId").getAsString();
+                JsonElement responseCodeElement = jsonResponse.get("responseCode");
+                if (responseCodeElement != null) {
+                    Integer code = responseCodeElement.getAsInt();
+                    if (code == 200) {
+                        return jsonResponse.get("callbackId").getAsString();
+                    } else {
+                        handleAPIIntegrityIssues(resObject);
+                    }
                 } else {
+                    log.error("Null Response Code  ::--> ");
                     handleAPIIntegrityIssues(resObject);
                 }
             }
