@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.fineract.infrastructure.core.domain.LocalDateInterval;
+import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.MoneyHelper;
 import org.apache.fineract.portfolio.savings.SavingsCompoundingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.SavingsInterestCalculationType;
@@ -62,6 +63,31 @@ public final class AnnualCompoundingPeriod implements CompoundingPeriod {
             break;
             case INVALID:
             break;
+        }
+
+        return interestEarned;
+    }
+
+    @Override
+    public BigDecimal calculateInterestRounded(final SavingsCompoundingInterestPeriodType compoundingInterestPeriodType,
+                                        final SavingsInterestCalculationType interestCalculationType, final BigDecimal interestToCompound,
+                                        final BigDecimal interestRateAsFraction, final long daysInYear, final BigDecimal minBalanceForInterestCalculation,
+                                        final BigDecimal overdraftInterestRateAsFraction, final BigDecimal minOverdraftForInterestCalculation,
+                                               MonetaryCurrency currency) {
+
+        BigDecimal interestEarned = BigDecimal.ZERO;
+
+        switch (interestCalculationType) {
+            case DAILY_BALANCE:
+                interestEarned = calculateUsingDailyBalanceMethodRounded(compoundingInterestPeriodType, interestToCompound, interestRateAsFraction,
+                        daysInYear, minBalanceForInterestCalculation, overdraftInterestRateAsFraction, minOverdraftForInterestCalculation, currency);
+                break;
+            case AVERAGE_DAILY_BALANCE:
+                interestEarned = calculateUsingAverageDailyBalanceMethod(interestToCompound, interestRateAsFraction, daysInYear,
+                        minBalanceForInterestCalculation, overdraftInterestRateAsFraction, minOverdraftForInterestCalculation);
+                break;
+            case INVALID:
+                break;
         }
 
         return interestEarned;
@@ -148,6 +174,42 @@ public final class AnnualCompoundingPeriod implements CompoundingPeriod {
             }
 
             interestEarned = interestEarned.add(interestOnBalanceUnrounded);
+        }
+        return interestEarned;
+    }
+
+    private BigDecimal calculateUsingDailyBalanceMethodRounded(final SavingsCompoundingInterestPeriodType compoundingInterestPeriodType,
+                                                        final BigDecimal interestToCompound, final BigDecimal interestRateAsFraction, final long daysInYear,
+                                                        final BigDecimal minBalanceForInterestCalculation, final BigDecimal overdraftInterestRateAsFraction,
+                                                        final BigDecimal minOverdraftForInterestCalculation, MonetaryCurrency currency) {
+
+        BigDecimal interestEarned = BigDecimal.ZERO;
+        BigDecimal interestOnBalanceUnrounded = BigDecimal.ZERO;
+        for (final EndOfDayBalance balance : this.endOfDayBalances) {
+            if (balance.getNumberOfDays() != null && balance.getNumberOfDays() < 0) {
+                continue;
+            }
+            for(int i = 0; i < balance.getNumberOfDays(); i++) {
+                switch (compoundingInterestPeriodType) {
+                    case DAILY:
+                        interestOnBalanceUnrounded = balance.calculateInterestOnBalanceAndInterest(interestToCompound, interestRateAsFraction,
+                                daysInYear, minBalanceForInterestCalculation, overdraftInterestRateAsFraction,
+                                minOverdraftForInterestCalculation);
+                        break;
+                    case MONTHLY:
+                    case QUATERLY:
+                    case BI_ANNUAL:
+                    case ANNUAL:
+                    case AT_MATURITY:
+                        interestOnBalanceUnrounded = balance.calculateInterestOnBalanceRounded(interestToCompound, interestRateAsFraction, daysInYear,
+                                minBalanceForInterestCalculation, overdraftInterestRateAsFraction, minOverdraftForInterestCalculation, currency, 1);
+                        break;
+                    case INVALID:
+                        break;
+                }
+
+                interestEarned = interestEarned.add(interestOnBalanceUnrounded);
+            }
         }
         return interestEarned;
     }
