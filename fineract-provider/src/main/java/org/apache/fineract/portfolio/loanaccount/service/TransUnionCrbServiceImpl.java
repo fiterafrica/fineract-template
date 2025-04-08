@@ -377,11 +377,15 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
 
                 JsonObject jsonResponse = JsonParser.parseString(resObject).getAsJsonObject();
                 log.info("Corporate Credit Response from TransUnion :=>" + resObject);
-
-                Integer code = jsonResponse.get("responseCode").getAsInt();
+                JsonElement responseCodeElement = jsonResponse.get("responseCode");
+                if (responseCodeElement != null) {
+                    Integer code = responseCodeElement.getAsInt();
                 if (code == 200) {
                     return jsonResponse.get("callbackId").getAsString();
                 } else {
+                    handleAPIIntegrityIssues(resObject);
+                }
+                }else{
                     handleAPIIntegrityIssues(resObject);
                 }
                 return null;
