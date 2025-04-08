@@ -25,7 +25,7 @@ dependencies {
             'com.intuit.karate:karate-apache:0.9.6',
             )
 
-    testImplementation ('org.apache.tomcat.embed:tomcat-embed-el:11.0.0') {
+    testImplementation ('org.apache.tomcat.embed:tomcat-embed-el:11.0.3') {
         force = true
     }
     implementation ('com.github.javafaker:javafaker:1.0.2'){ exclude module: 'org.yaml' }

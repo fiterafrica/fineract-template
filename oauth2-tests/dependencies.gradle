@@ -30,7 +30,7 @@ dependencies {
     testImplementation ('org.yaml:snakeyaml:2.4') {
         force = true
     }
-    testImplementation ('org.apache.tomcat.embed:tomcat-embed-el:11.0.0') {
+    testImplementation ('org.apache.tomcat.embed:tomcat-embed-el:11.0.3') {
         force = true
     }
     testImplementation ('io.rest-assured:rest-assured') {
