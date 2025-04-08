@@ -30,7 +30,7 @@ dependencies {
             'com.google.code.findbugs:jsr305',
             'com.squareup.okhttp3:logging-interceptor',
 
-    )
+            )
     implementation ('com.squareup.okio:okio:3.4.0') {
         force = true
     }
