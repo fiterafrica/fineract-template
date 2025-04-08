@@ -21,7 +21,7 @@ dependencies {
     implementation(project(':module:dummy:core'),
             project(':module:dummy:service'),
             'org.springframework.boot:spring-boot-starter')
-    implementation ('org.yaml:snakeyaml:1.31') {
+    implementation ('org.yaml:snakeyaml:2.4') {
         force = true
     }
     testImplementation('io.cucumber:cucumber-spring')
