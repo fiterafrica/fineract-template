@@ -39,7 +39,7 @@ dependencies {
         exclude group: 'com.sun.xml.bind'
     }
     testImplementation 'org.awaitility:awaitility'
-    implementation ('org.yaml:snakeyaml:1.31') {
+    implementation ('org.yaml:snakeyaml:2.0') {
         force = true
     }
     implementation ('org.apache.tomcat.embed:tomcat-embed-el:11.0.3') {
