@@ -72,9 +72,10 @@ public final class BiAnnualCompoundingPeriod implements CompoundingPeriod {
 
     @Override
     public BigDecimal calculateInterestRounded(final SavingsCompoundingInterestPeriodType compoundingInterestPeriodType,
-                                        final SavingsInterestCalculationType interestCalculationType, final BigDecimal interestToCompound,
-                                        final BigDecimal interestRateAsFraction, final long daysInYear, final BigDecimal minBalanceForInterestCalculation,
-                                        final BigDecimal overdraftInterestRateAsFraction, final BigDecimal minOverdraftForInterestCalculation, MonetaryCurrency currency) {
+            final SavingsInterestCalculationType interestCalculationType, final BigDecimal interestToCompound,
+            final BigDecimal interestRateAsFraction, final long daysInYear, final BigDecimal minBalanceForInterestCalculation,
+            final BigDecimal overdraftInterestRateAsFraction, final BigDecimal minOverdraftForInterestCalculation,
+            MonetaryCurrency currency) {
 
         BigDecimal interestEarned = BigDecimal.ZERO;
 
@@ -82,18 +83,17 @@ public final class BiAnnualCompoundingPeriod implements CompoundingPeriod {
             case DAILY_BALANCE:
                 interestEarned = calculateUsingDailyBalanceMethod(compoundingInterestPeriodType, interestToCompound, interestRateAsFraction,
                         daysInYear, minBalanceForInterestCalculation, overdraftInterestRateAsFraction, minOverdraftForInterestCalculation);
-                break;
+            break;
             case AVERAGE_DAILY_BALANCE:
                 interestEarned = calculateUsingAverageDailyBalanceMethod(interestToCompound, interestRateAsFraction, daysInYear,
                         minBalanceForInterestCalculation, overdraftInterestRateAsFraction, minOverdraftForInterestCalculation);
-                break;
+            break;
             case INVALID:
-                break;
+            break;
         }
 
         return interestEarned;
     }
-
 
     private BigDecimal calculateUsingAverageDailyBalanceMethod(final BigDecimal interestToCompound, final BigDecimal interestRateAsFraction,
             final long daysInYear, final BigDecimal minBalanceForInterestCalculation, final BigDecimal overdraftInterestRateAsFraction,

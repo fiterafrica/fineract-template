@@ -24,10 +24,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -85,15 +85,16 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
 
     @Autowired
     public SavingsAccountDomainServiceJpa(final SavingsAccountRepositoryWrapper savingsAccountRepository,
-                                          final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
-                                          final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
-                                          final JournalEntryWritePlatformService journalEntryWritePlatformService,
-                                          final ConfigurationDomainService configurationDomainService, final PlatformSecurityContext context,
-                                          final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
-                                          final BusinessEventNotifierService businessEventNotifierService,
-                                          final SavingsAccountTransactionDataValidator savingsAccountTransactionDataValidator,
-                                          final SavingsAccountAssembler savingAccountAssembler, final LoanReadPlatformService loanReadPlatformService,
-                                          final GlobalConfigurationRepositoryWrapper globalConfigurationRepository, DeletedSavingsAccountTransactionRepository deletedSavingsAccountTransactionRepository) {
+            final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
+            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
+            final JournalEntryWritePlatformService journalEntryWritePlatformService,
+            final ConfigurationDomainService configurationDomainService, final PlatformSecurityContext context,
+            final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
+            final BusinessEventNotifierService businessEventNotifierService,
+            final SavingsAccountTransactionDataValidator savingsAccountTransactionDataValidator,
+            final SavingsAccountAssembler savingAccountAssembler, final LoanReadPlatformService loanReadPlatformService,
+            final GlobalConfigurationRepositoryWrapper globalConfigurationRepository,
+            DeletedSavingsAccountTransactionRepository deletedSavingsAccountTransactionRepository) {
 
         this.savingsAccountRepository = savingsAccountRepository;
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
@@ -496,8 +497,8 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         return newTransactions;
     }
 
-    private List<SavingsAccountTransaction> fetchAffectedAccrualAndInterestTransaction(
-            SavingsAccount account, List<SavingsAccountTransaction> affectedTransactions, LocalDate transactionDate) {
+    private List<SavingsAccountTransaction> fetchAffectedAccrualAndInterestTransaction(SavingsAccount account,
+            List<SavingsAccountTransaction> affectedTransactions, LocalDate transactionDate) {
 
         affectedTransactions = account.getTransactions().stream()
                 .filter(txn -> (txn.isAccrualInterestPostingAndNotReversed() || txn.isInterestPostingAndNotReversed())
@@ -507,29 +508,23 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         return affectedTransactions;
     }
 
-
     private void processDeletedTransaction(List<SavingsAccountTransaction> affectedTransactions,
-                                           SavingsAccountTransaction backdatedTransaction) {
+            SavingsAccountTransaction backdatedTransaction) {
         if (!affectedTransactions.isEmpty()) {
             List<DeletedSavingsAccountTransaction> deletedTransactions = affectedTransactions.stream()
-                    .map(txn -> mapToDeletedTransaction(txn, backdatedTransaction.getId()))
-                    .toList();
+                    .map(txn -> mapToDeletedTransaction(txn, backdatedTransaction.getId())).toList();
 
             saveDeletedInterestAndAccruedTransactionsInBatches(deletedTransactions);
 
-            backdatedTransaction.setDeletedTransactions(deletedTransactions.stream()
-                    .map(this::mapToTransactionMap)
-                    .collect(Collectors.toList()));
+            backdatedTransaction
+                    .setDeletedTransactions(deletedTransactions.stream().map(this::mapToTransactionMap).collect(Collectors.toList()));
         }
     }
 
     private DeletedSavingsAccountTransaction mapToDeletedTransaction(SavingsAccountTransaction txn, Long backdatedTransactionId) {
-        return new DeletedSavingsAccountTransaction(
-                txn.getSavingsAccount(), txn.getId(), txn.getTypeOf(), txn.transactionLocalDate(),
+        return new DeletedSavingsAccountTransaction(txn.getSavingsAccount(), txn.getId(), txn.getTypeOf(), txn.transactionLocalDate(),
                 txn.getAmount(), txn.isReversed(), txn.getRunningBalance(txn.getSavingsAccount().getCurrency()).getAmount(),
-                txn.getCumulativeBalance(), txn.getCreatedDate(), txn.getAppUser(),
-                txn.getRefNo(), backdatedTransactionId
-        );
+                txn.getCumulativeBalance(), txn.getCreatedDate(), txn.getAppUser(), txn.getRefNo(), backdatedTransactionId);
     }
 
     private Map<String, Object> mapToTransactionMap(DeletedSavingsAccountTransaction txn) {
@@ -549,7 +544,6 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         txnMap.put("refNo", txn.getRefNo());
         return txnMap;
     }
-
 
     @Transactional
     public void saveDeletedInterestAndAccruedTransactionsInBatches(List<DeletedSavingsAccountTransaction> transactions) {

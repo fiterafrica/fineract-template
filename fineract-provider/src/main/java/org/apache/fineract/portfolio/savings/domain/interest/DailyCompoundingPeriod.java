@@ -100,10 +100,10 @@ public final class DailyCompoundingPeriod implements CompoundingPeriod {
 
     @Override
     public BigDecimal calculateInterestRounded(final SavingsCompoundingInterestPeriodType compoundingInterestPeriodType,
-                                        final SavingsInterestCalculationType interestCalculationType, final BigDecimal interestFromPreviousPostingPeriod,
-                                        final BigDecimal interestRateAsFraction, final long daysInYear, final BigDecimal minBalanceForInterestCalculation,
-                                        final BigDecimal overdraftInterestRateAsFraction, final BigDecimal minOverdraftForInterestCalculation,
-                                        MonetaryCurrency currency) {
+            final SavingsInterestCalculationType interestCalculationType, final BigDecimal interestFromPreviousPostingPeriod,
+            final BigDecimal interestRateAsFraction, final long daysInYear, final BigDecimal minBalanceForInterestCalculation,
+            final BigDecimal overdraftInterestRateAsFraction, final BigDecimal minOverdraftForInterestCalculation,
+            MonetaryCurrency currency) {
         BigDecimal interestEarned = BigDecimal.ZERO;
 
         // for daily compounding - each interest calculated from previous daily
@@ -122,7 +122,6 @@ public final class DailyCompoundingPeriod implements CompoundingPeriod {
 
         return interestEarned;
     }
-
 
     @Override
     public LocalDateInterval getPeriodInterval() {

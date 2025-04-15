@@ -416,7 +416,7 @@ public class ChargeReadPlatformServiceImpl implements ChargeReadPlatformService 
         final ChargeMapper rm = new ChargeMapper();
 
         String sql = "select " + rm.chargeSchema()
-                + " where c.is_deleted=false and c.is_active=true and c.charge_applies_to_enum=? and c.charge_time_enum <> ? ";
+                + " where c.is_deleted=false and c.is_active=true and c.is_penalty=false and c.charge_applies_to_enum=? and c.charge_time_enum <> ? ";
         if (feeChargesOnly) {
             sql = "select " + rm.chargeSchema()
                     + " where c.is_deleted=false and c.is_active=true and c.is_penalty=false and c.charge_applies_to_enum=? and c.charge_time_enum <> ? ";
