@@ -33,9 +33,9 @@ public interface CompoundingPeriod {
             BigDecimal overdraftInterestRateAsFraction, BigDecimal minOverdraftForInterestCalculation);
 
     BigDecimal calculateInterestRounded(SavingsCompoundingInterestPeriodType compoundingInterestPeriodType,
-                                 SavingsInterestCalculationType interestCalculationType, BigDecimal interestFromPreviousPostingPeriod,
-                                 BigDecimal interestRateAsFraction, long daysInYear, BigDecimal minBalanceForInterestCalculation,
-                                 BigDecimal overdraftInterestRateAsFraction, BigDecimal minOverdraftForInterestCalculation, MonetaryCurrency currency);
+            SavingsInterestCalculationType interestCalculationType, BigDecimal interestFromPreviousPostingPeriod,
+            BigDecimal interestRateAsFraction, long daysInYear, BigDecimal minBalanceForInterestCalculation,
+            BigDecimal overdraftInterestRateAsFraction, BigDecimal minOverdraftForInterestCalculation, MonetaryCurrency currency);
 
     LocalDateInterval getPeriodInterval();
 

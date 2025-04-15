@@ -134,6 +134,7 @@ import org.apache.fineract.portfolio.savings.data.DepositAccountTransactionDataV
 import org.apache.fineract.portfolio.savings.data.RecurringMissedTargetData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountChargeDataValidator;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionDTO;
+import org.apache.fineract.portfolio.savings.domain.DeletedSavingsAccountTransactionRepository;
 import org.apache.fineract.portfolio.savings.domain.DepositAccountAssembler;
 import org.apache.fineract.portfolio.savings.domain.DepositAccountDomainService;
 import org.apache.fineract.portfolio.savings.domain.DepositAccountOnHoldTransaction;
@@ -155,7 +156,6 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountStatusType;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransaction;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransactionRepository;
 import org.apache.fineract.portfolio.savings.domain.SavingsProduct;
-import org.apache.fineract.portfolio.savings.domain.DeletedSavingsAccountTransactionRepository;
 import org.apache.fineract.portfolio.savings.exception.DepositAccountTransactionNotAllowedException;
 import org.apache.fineract.portfolio.savings.exception.Fx_RateTableShouldBeExistException;
 import org.apache.fineract.portfolio.savings.exception.InsufficientAccountBalanceException;
@@ -254,7 +254,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             SavingsAccountWritePlatformService savingsAccountWritePlatformService, SavingsAccountRepository savingsAccountRepository,
             ChargeSlabRepository chargeSlabRepository, SavingsAccountReadPlatformService savingsAccountReadPlatformService,
             ChargeReadPlatformService chargeReadPlatformService, final PaymentTypeRepositoryWrapper repositoryWrapper,
-            PaymentDetailRepository paymentDetailRepository, DeletedSavingsAccountTransactionRepository deletedSavingsAccountTransactionRepository) {
+            PaymentDetailRepository paymentDetailRepository,
+            DeletedSavingsAccountTransactionRepository deletedSavingsAccountTransactionRepository) {
 
         this.context = context;
         this.savingAccountRepositoryWrapper = savingAccountRepositoryWrapper;

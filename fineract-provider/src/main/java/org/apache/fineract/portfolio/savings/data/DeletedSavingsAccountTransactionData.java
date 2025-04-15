@@ -18,14 +18,14 @@
  */
 package org.apache.fineract.portfolio.savings.data;
 
-import lombok.Data;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import lombok.Data;
 
 @Data
 public class DeletedSavingsAccountTransactionData {
+
     private Long deletedTransactionId;
     private Long deletedByTransactionId;
     private Integer transactionTypeOf;
@@ -37,16 +37,12 @@ public class DeletedSavingsAccountTransactionData {
     private String transactionAppUser;
     private String transactionRefNo;
 
-
     // Constructors
-    public DeletedSavingsAccountTransactionData() {
-    }
+    public DeletedSavingsAccountTransactionData() {}
 
     public DeletedSavingsAccountTransactionData(Long deletedTransactionId, Long deletedByTransactionId, Integer deleteTransactionTypeOf,
-                                               LocalDate deleteTransactionDateOf, BigDecimal deleteTransactionAmount,
-                                               BigDecimal deletedTransactionRunningBalance,
-                                               BigDecimal deletedTransactionCumulativeBalance, LocalDateTime deleteTransactionCreatedDate,
-                                               String deleteTransactionRefNo) {
+            LocalDate deleteTransactionDateOf, BigDecimal deleteTransactionAmount, BigDecimal deletedTransactionRunningBalance,
+            BigDecimal deletedTransactionCumulativeBalance, LocalDateTime deleteTransactionCreatedDate, String deleteTransactionRefNo) {
         this.deletedTransactionId = deletedTransactionId;
         this.deletedByTransactionId = deletedByTransactionId;
         this.transactionTypeOf = deleteTransactionTypeOf;

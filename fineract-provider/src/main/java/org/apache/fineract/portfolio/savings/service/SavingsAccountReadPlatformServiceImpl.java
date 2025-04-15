@@ -74,6 +74,7 @@ import org.apache.fineract.portfolio.savings.SavingsInterestCalculationType;
 import org.apache.fineract.portfolio.savings.SavingsPeriodFrequencyType;
 import org.apache.fineract.portfolio.savings.SavingsPostingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.WithdrawalFrequency;
+import org.apache.fineract.portfolio.savings.data.DeletedSavingsAccountTransactionData;
 import org.apache.fineract.portfolio.savings.data.RecurringMissedTargetData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountApplicationTimelineData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountBlockNarrationHistoryData;
@@ -87,13 +88,12 @@ import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionEnumData;
 import org.apache.fineract.portfolio.savings.data.SavingsProductData;
 import org.apache.fineract.portfolio.savings.data.SavingsProductFloatingInterestRateData;
-import org.apache.fineract.portfolio.savings.data.DeletedSavingsAccountTransactionData;
+import org.apache.fineract.portfolio.savings.domain.DeletedSavingsAccountTransaction;
+import org.apache.fineract.portfolio.savings.domain.DeletedSavingsAccountTransactionRepository;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountAssembler;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountChargesPaidByData;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountStatusType;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountSubStatusEnum;
-import org.apache.fineract.portfolio.savings.domain.DeletedSavingsAccountTransactionRepository;
-import org.apache.fineract.portfolio.savings.domain.DeletedSavingsAccountTransaction;
 import org.apache.fineract.portfolio.savings.exception.SavingsAccountNotFoundException;
 import org.apache.fineract.portfolio.savings.exception.SavingsAccountSearchParameterNotProvidedException;
 import org.apache.fineract.portfolio.savings.exception.SavingsAccountTransactionNotFoundException;
@@ -151,15 +151,16 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
 
     @Autowired
     public SavingsAccountReadPlatformServiceImpl(final PlatformSecurityContext context, final JdbcTemplate jdbcTemplate,
-                                                 final ClientReadPlatformService clientReadPlatformService, final GroupReadPlatformService groupReadPlatformService,
-                                                 final SavingsProductReadPlatformService savingProductReadPlatformService,
-                                                 final StaffReadPlatformService staffReadPlatformService, final SavingsDropdownReadPlatformService dropdownReadPlatformService,
-                                                 final ChargeReadPlatformService chargeReadPlatformService,
-                                                 final EntityDatatableChecksReadService entityDatatableChecksReadService, final ColumnValidator columnValidator,
-                                                 final SavingsAccountAssembler savingAccountAssembler, PaginationHelper paginationHelper,
-                                                 DatabaseSpecificSQLGenerator sqlGenerator, final CodeValueReadPlatformService codeValueReadPlatformService,
-                                                 final SavingsProductFloatingInterestRateReadPlatformService savingsProductFloatingInterestRateReadPlatformService,
-                                                 SearchReadPlatformService searchReadPlatformService, DeletedSavingsAccountTransactionRepository deletedSavingsAccountTransactionRepository) {
+            final ClientReadPlatformService clientReadPlatformService, final GroupReadPlatformService groupReadPlatformService,
+            final SavingsProductReadPlatformService savingProductReadPlatformService,
+            final StaffReadPlatformService staffReadPlatformService, final SavingsDropdownReadPlatformService dropdownReadPlatformService,
+            final ChargeReadPlatformService chargeReadPlatformService,
+            final EntityDatatableChecksReadService entityDatatableChecksReadService, final ColumnValidator columnValidator,
+            final SavingsAccountAssembler savingAccountAssembler, PaginationHelper paginationHelper,
+            DatabaseSpecificSQLGenerator sqlGenerator, final CodeValueReadPlatformService codeValueReadPlatformService,
+            final SavingsProductFloatingInterestRateReadPlatformService savingsProductFloatingInterestRateReadPlatformService,
+            SearchReadPlatformService searchReadPlatformService,
+            DeletedSavingsAccountTransactionRepository deletedSavingsAccountTransactionRepository) {
         this.context = context;
         this.jdbcTemplate = jdbcTemplate;
         this.clientReadPlatformService = clientReadPlatformService;
@@ -556,9 +557,13 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                         "Duplicate checkNumber " + checkNumber + " found for savings account " + savingsId, "checkNumber", checkNumber);
             }
             SavingsAccountTransactionData transactionData = transactions.get(0);
-            List<DeletedSavingsAccountTransaction> deletedTransactions = this.deletedSavingsAccountTransactionRepository.findByDeletedByTransactionId(transactionData.getId());
-            List<DeletedSavingsAccountTransactionData> deletedTransactionsData = deletedTransactions.stream().map(entity -> new DeletedSavingsAccountTransactionData(entity.getDeletedTransactionId(), entity.getDeletedByTransactionId(), entity.getTypeOf(), entity.getDateOf(),entity.getAmount(),
-                    entity.getRunningBalance(), entity.getCumulativeBalance(), entity.getCreatedDate(), entity.getRefNo())).toList();
+            List<DeletedSavingsAccountTransaction> deletedTransactions = this.deletedSavingsAccountTransactionRepository
+                    .findByDeletedByTransactionId(transactionData.getId());
+            List<DeletedSavingsAccountTransactionData> deletedTransactionsData = deletedTransactions.stream()
+                    .map(entity -> new DeletedSavingsAccountTransactionData(entity.getDeletedTransactionId(),
+                            entity.getDeletedByTransactionId(), entity.getTypeOf(), entity.getDateOf(), entity.getAmount(),
+                            entity.getRunningBalance(), entity.getCumulativeBalance(), entity.getCreatedDate(), entity.getRefNo()))
+                    .toList();
             transactionData.setDeletedSavingsAccountTransactions(deletedTransactionsData);
 
             return transactionData;
