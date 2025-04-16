@@ -272,7 +272,7 @@ public class LoanApplicationWritePlatformServiceJpaRepositoryImpl implements Loa
 
             this.fromApiJsonDeserializer.validateForCreate(command.json(), isMeetingMandatoryForJLGLoans, loanProduct);
 
-            // validate if fund source is kive desc should be more than 150 words
+            // validate if fund source is kive desc should be less than 150 words
             final Long fundId = this.fromJsonHelper.extractLongNamed("fundId", command.parsedJson());
             if (fundId != null) {
                 FundData fundSource = this.fundReadPlatformService.retrieveFund(fundId);
