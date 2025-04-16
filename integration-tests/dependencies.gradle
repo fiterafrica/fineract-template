@@ -42,7 +42,10 @@ dependencies {
     implementation ('org.yaml:snakeyaml:1.31') {
         force = true
     }
-    implementation ('org.apache.tomcat.embed:tomcat-embed-el:11.0.3') {
+    implementation ('org.apache.tomcat.embed:tomcat-embed-el:11.0.6') {
+        force = true
+    }
+    implementation ('org.apache.tomcat.embed:tomcat-embed-core:9.0.100') {
         force = true
     }
 
