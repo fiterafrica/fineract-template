@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements. See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership. The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+    <changeSet id="CGLT-260_create_kiva_activities_table" author="niceta@inkomoko.com">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="m_kiva_sector_activity"/>
+            </not>
+        </preConditions>
+        <createTable tableName="m_kiva_sector_activity">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="activity_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="sector_name" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="activity_name" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="niceta@inkomoko.com" id="CGLT-260_insert_kiva_sectors_and_activities" >
+        <sql splitStatements="true" stripComments="true">
+            INSERT INTO m_kiva_sector_activity (activity_id, sector_name, activity_name) VALUES
+            (120, 'Agriculture', 'Agriculture'),
+            (110, 'Agriculture', 'Animal Sales'),
+            (218, 'Agriculture', 'Aquaculture'),
+            (217, 'Agriculture', 'Beekeeping'),
+            (56, 'Agriculture', 'Cattle'),
+            (61, 'Agriculture', 'Dairy'),
+            (68, 'Agriculture', 'Farm Supplies'),
+            (31, 'Agriculture', 'Farming'),
+            (177, 'Agriculture', 'Flowers'),
+            (11, 'Agriculture', 'Land Rental'),
+            (73, 'Agriculture', 'Livestock'),
+            (99, 'Agriculture', 'Pigs'),
+            (102, 'Agriculture', 'Poultry'),
+            (13, 'Agriculture', 'Veterinary Sales'),
+            (37, 'Transportation', 'Motorcycle Transport'),
+            (156, 'Transportation', 'Rickshaw'),
+            (59, 'Transportation', 'Taxi'),
+            (107, 'Transportation', 'Transportation'),
+            (207, 'Services', 'Adult Care'),
+            (105, 'Services', 'Air Conditioning'),
+            (92, 'Services', 'Auto Repair'),
+            (28, 'Services', 'Barber Shop'),
+            (49, 'Services', 'Beauty Salon'),
+            (21, 'Services', 'Bicycle Repair'),
+            (159, 'Services', 'Bookbinding'),
+            (157, 'Services', 'Call Center'),
+            (129, 'Services', 'Child Care'),
+            (204, 'Services', 'Cleaning Services'),
+            (101, 'Services', 'Cobbler'),
+            (206, 'Services', 'Communications'),
+            (111, 'Services', 'Computers'),
+            (116, 'Services', 'Electrician'),
+            (104, 'Services', 'Electronics Repair'),
+            (208, 'Services', 'Energy'),
+            (226, 'Services', 'Event Planning'),
+            (146, 'Services', 'Hotel'),
+            (172, 'Services', 'Internet Cafe'),
+            (210, 'Services', 'Landscaping / Gardening'),
+            (85, 'Services', 'Laundry'),
+            (184, 'Services', 'Machinery Rental'),
+            (225, 'Services', 'Mobile Transactions'),
+            (135, 'Services', 'Motorcycle Repair'),
+            (100, 'Services', 'Phone Repair'),
+            (62, 'Services', 'Photography'),
+            (66, 'Services', 'Printing'),
+            (138, 'Services', 'Recycling'),
+            (114, 'Services', 'Secretarial Services'),
+            (121, 'Services', 'Services'),
+            (47, 'Services', 'Sewing'),
+            (32, 'Services', 'Tailoring'),
+            (216, 'Services', 'Technology'),
+            (133, 'Services', 'Tourism'),
+            (167, 'Services', 'Upholstery'),
+            (137, 'Services', 'Utilities'),
+            (54, 'Services', 'Vehicle Repairs'),
+            (163, 'Services', 'Waste Management'),
+            (18, 'Services', 'Water Distribution'),
+            (183, 'Clothing', 'Clothing'),
+            (9, 'Clothing', 'Clothing Sales'),
+            (84, 'Clothing', 'Used Clothing'),
+            (199, 'Clothing', 'Used Shoes'),
+            (115, 'Health', 'Dental'),
+            (123, 'Health', 'Health'),
+            (70, 'Health', 'Medical Clinic'),
+            (143, 'Health', 'Natural Medicines'),
+            (192, 'Health', 'Personal Medical Expenses'),
+            (65, 'Health', 'Pharmacy'),
+            (76, 'Retail', 'Bicycle Sales'),
+            (14, 'Retail', 'Bookstore'),
+            (60, 'Retail', 'Charcoal Sales'),
+            (171, 'Retail', 'Cloth &amp; Dressmaking Supplies'),
+            (19, 'Retail', 'Cosmetics Sales'),
+            (98, 'Retail', 'Decorations Sales'),
+            (131, 'Retail', 'Electrical Goods'),
+            (51, 'Retail', 'Electronics Sales'),
+            (209, 'Retail', 'Florist'),
+            (130, 'Retail', 'Fuel/Firewood'),
+            (57, 'Retail', 'General Store'),
+            (81, 'Retail', 'Hardware'),
+            (29, 'Retail', 'Home Products Sales'),
+            (170, 'Retail', 'Jewelry'),
+            (117, 'Retail', 'Mobile Phones'),
+            (161, 'Retail', "Movie Tapes &amp; DVDs"),
+            (151, 'Retail', 'Music Discs &amp; Tapes'),
+            (80, 'Retail', 'Office Supplies'),
+            (103, 'Retail', 'Paper Sales'),
+            (127, 'Retail', 'Party Supplies'),
+            (109, 'Retail', 'Perfumes'),
+            (142, 'Retail', 'Personal Products Sales'),
+            (96, 'Retail', 'Phone Accessories'),
+            (40, 'Retail', 'Phone Use Sales'),
+            (26, 'Retail', 'Plastics Sales'),
+            (202, 'Retail', 'Recycled Materials'),
+            (132, 'Retail', 'Religious Articles'),
+            (201, 'Retail', 'Renewable Energy Products'),
+            (88, 'Retail', 'Retail'),
+            (23, 'Retail', 'Shoe Sales'),
+            (140, 'Retail', 'Souvenir Sales'),
+            (141, 'Retail', 'Spare Parts'),
+            (41, 'Retail', 'Sporting Good Sales'),
+            (12, 'Retail', 'Traveling Sales'),
+            (108, 'Manufacturing', 'Blacksmith'),
+            (33, 'Manufacturing', 'Furniture Making'),
+            (95, 'Manufacturing', 'Machine Shop'),
+            (124, 'Manufacturing', 'Manufacturing'),
+            (52, 'Manufacturing', 'Metal Shop'),
+            (221, 'Manufacturing', 'Personal Care Products'),
+            (125, 'Arts', 'Arts'),
+            (72, 'Arts', 'Crafts'),
+            (149, 'Arts', 'Embroidery'),
+            (164, 'Arts', 'Film'),
+            (165, 'Arts', 'Knitting'),
+            (78, 'Arts', 'Musical Instruments'),
+            (75, 'Arts', 'Patchwork'),
+            (86, 'Arts', 'Textiles'),
+            (145, 'Arts', 'Weaving'),
+            (134, 'Housing', 'Personal Housing Expenses'),
+            (193, 'Housing', 'Property'),
+            (27, 'Food', 'Bakery'),
+            (186, 'Food', 'Balut-Making'),
+            (220, 'Food', 'Beverages'),
+            (34, 'Food', 'Butcher Shop'),
+            (25, 'Food', 'Cafe'),
+            (45, 'Food', 'Catering'),
+            (112, 'Food', 'Cereals'),
+            (35, 'Food', 'Cheese Making'),
+            (63, 'Food', 'Fish Selling'),
+            (89, 'Food', 'Fishing'),
+            (181, 'Food', 'Food'),
+            (87, 'Food', 'Food Market'),
+            (67, 'Food', 'Food Production/Sales'),
+            (185, 'Food', 'Food Stall'),
+            (169, 'Food', 'Fruits &amp; Vegetables'),
+            (15, 'Food', 'Grocery Store'),
+            (162, 'Food', 'Liquor Store / Off-License'),
+            (91, 'Food', 'Milk Sales'),
+            (94, 'Food', 'Pub'),
+            (46, 'Food', 'Restaurant'),
+            (144, 'Wholesale', 'Goods Distribution'),
+            (180, 'Wholesale', 'Wholesale'),
+            (79, 'Construction', 'Bricks'),
+            (43, 'Construction', 'Carpentry'),
+            (97, 'Construction', 'Cement'),
+            (39, 'Construction', 'Construction'),
+            (24, 'Construction', 'Construction Supplies'),
+            (119, 'Construction', 'Quarrying'),
+            (128, 'Construction', 'Timber Sales'),
+            (147, 'Construction', 'Well digging'),
+            (219, 'Education', 'Computer'),
+            (176, 'Education', 'Education provider'),
+            (200, 'Education', 'Higher education costs'),
+            (158, 'Education', 'Primary/secondary school costs'),
+            (223, 'Personal Use', 'Celebrations'),
+            (194, 'Personal Use', 'Consumer Goods'),
+            (222, 'Personal Use', 'Funerals'),
+            (195, 'Personal Use', 'Home Appliances'),
+            (203, 'Personal Use', 'Home Energy'),
+            (224, 'Personal Use', 'Personal Expenses'),
+            (196, 'Personal Use', 'Vehicle'),
+            (197, 'Personal Use', 'Wedding Expenses'),
+            (174, 'Entertainment', 'Entertainment'),
+            (175, 'Entertainment', 'Games'),
+            (17, 'Entertainment', 'Musical Performance');
+        </sql>
+    </changeSet>
+</databaseChangeLog>
