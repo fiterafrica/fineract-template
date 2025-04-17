@@ -997,6 +997,23 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
     @Transactional
     @Override
+    public CommandProcessingResult undoLoanForclosure(final Long loanId, final JsonCommand command) {
+
+        final AppUser currentUser = getAppUserIfPresent();
+        final Loan loan = this.loanAssembler.assembleFrom(loanId);
+
+        return new CommandProcessingResultBuilder() //
+                .withCommandId(command.commandId()) //
+                .withEntityId(loan.getId()) //
+                .withOfficeId(loan.getOfficeId()) //
+                .withClientId(loan.getClientId()) //
+                .withGroupId(loan.getGroupId()) //
+                .withLoanId(loanId) //
+                .build();
+    }
+
+    @Transactional
+    @Override
     public CommandProcessingResult makeGLIMLoanRepayment(final Long loanId, final JsonCommand command) {
 
         final Long parentLoanId = loanId;
