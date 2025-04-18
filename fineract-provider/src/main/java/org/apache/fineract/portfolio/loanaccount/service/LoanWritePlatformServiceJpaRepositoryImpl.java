@@ -997,19 +997,51 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
     @Transactional
     @Override
-    public CommandProcessingResult undoLoanForclosure(final Long loanId, final JsonCommand command) {
+    public CommandProcessingResult undoLoanForeclosure(final Long loanId, final JsonCommand command) {
 
-        final AppUser currentUser = getAppUserIfPresent();
         final Loan loan = this.loanAssembler.assembleFrom(loanId);
 
-        return new CommandProcessingResultBuilder() //
-                .withCommandId(command.commandId()) //
-                .withEntityId(loan.getId()) //
-                .withOfficeId(loan.getOfficeId()) //
-                .withClientId(loan.getClientId()) //
-                .withGroupId(loan.getGroupId()) //
-                .withLoanId(loanId) //
-                .build();
+        if (loan.getLoanStatus() != 600 || loan.getLoanSubStatus() != 100 || loan.getClosedOnDate() == null) {
+            throw new GeneralPlatformDomainRuleException("error.msg.undo.loan.foreclosure.not.allowed",
+                    "Undo loan foreclosure is not allowed for this loan");
+        }
+
+        LoanTransaction matchingTransaction = loan.getLoanTransactions().stream()
+                .filter(loanTransaction -> loan.getClosedOnDate() != null
+                        && loan.getClosedOnDate().isEqual(loanTransaction.getTransactionDate()) && loanTransaction.isRepayment())
+                .reduce((first, second) -> second) // Get the last matching transaction
+                .orElse(null);
+
+        if (matchingTransaction == null) {
+            throw new GeneralPlatformDomainRuleException("error.msg.undo.loan.foreclosure.not.allowed.because.transaction.does.not.exist",
+                    "Undo loan foreclosure is not allowed for this loan because transaction does not exist");
+        }
+
+        Long transactionId = matchingTransaction.getId();
+
+        final LocalDate transactionDate = matchingTransaction.getTransactionDate();
+        final BigDecimal transactionAmount = matchingTransaction.getAmount(loan.getCurrency()).getAmount();
+        final String txnExternalId = matchingTransaction.getExternalId();
+        final String paymentTypeId = null;
+
+        // Build JSON body
+        final JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("transactionDate", transactionDate.toString());
+        jsonObject.addProperty("transactionAmount", BigDecimal.ZERO);
+        if (txnExternalId != null) {
+            jsonObject.addProperty("externalId", txnExternalId);
+        }
+        jsonObject.addProperty("locale", "en");
+        jsonObject.addProperty("dateFormat", "yyyy-MM-dd");
+
+        final String jsonBody = jsonObject.toString();
+
+        final JsonElement parsedCommand = this.fromApiJsonHelper.parse(jsonBody);
+        JsonCommand adjustmentCommand = JsonCommand.from(jsonBody, parsedCommand, this.fromApiJsonHelper, null, null, null, null, null,
+                null, null, null, null, null, null, null);
+
+        return adjustLoanTransaction(loanId, transactionId, adjustmentCommand, Boolean.TRUE);
+
     }
 
     @Transactional
@@ -1214,14 +1246,15 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
     @Transactional
     @Override
-    public CommandProcessingResult adjustLoanTransaction(final Long loanId, final Long transactionId, final JsonCommand command) {
+    public CommandProcessingResult adjustLoanTransaction(final Long loanId, final Long transactionId, final JsonCommand command,
+            Boolean isUndoForeClosure) {
 
         AppUser currentUser = getAppUserIfPresent();
 
         this.loanEventApiJsonValidator.validateTransaction(command.json());
 
         final Loan loan = this.loanAssembler.assembleFrom(loanId);
-        if (loan.status().isClosed() && loan.getLoanSubStatus() != null
+        if (isUndoForeClosure == false && loan.status().isClosed() && loan.getLoanSubStatus() != null
                 && loan.getLoanSubStatus().equals(LoanSubStatus.FORECLOSED.getValue())) {
             final String defaultUserMessage = "The loan cannot reopend as it is foreclosed.";
             throw new LoanForeclosureException("loan.cannot.be.reopened.as.it.is.foreclosured", defaultUserMessage, loanId);

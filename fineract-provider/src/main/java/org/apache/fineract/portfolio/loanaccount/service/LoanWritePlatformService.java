@@ -45,14 +45,15 @@ public interface LoanWritePlatformService {
             Boolean isAccountTransfer);
 
     CommandProcessingResult undoLoanDisbursal(Long loanId, JsonCommand command);
-    CommandProcessingResult undoLoanForclosure(Long loanId, JsonCommand command);
+
+    CommandProcessingResult undoLoanForeclosure(Long loanId, JsonCommand command);
 
     CommandProcessingResult makeLoanRepayment(LoanTransactionType repaymentTransactionType, Long loanId, JsonCommand command,
             boolean isRecoveryRepayment, final boolean isPayOff);
 
     Map<String, Object> makeLoanBulkRepayment(CollectionSheetBulkRepaymentCommand bulkRepaymentCommand);
 
-    CommandProcessingResult adjustLoanTransaction(Long loanId, Long transactionId, JsonCommand command);
+    CommandProcessingResult adjustLoanTransaction(Long loanId, Long transactionId, JsonCommand command, Boolean isUndoForeClosure);
 
     CommandProcessingResult waiveInterestOnLoan(Long loanId, JsonCommand command);
 

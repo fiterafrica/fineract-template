@@ -380,12 +380,12 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
                 JsonElement responseCodeElement = jsonResponse.get("responseCode");
                 if (responseCodeElement != null) {
                     Integer code = responseCodeElement.getAsInt();
-                if (code == 200) {
-                    return jsonResponse.get("callbackId").getAsString();
+                    if (code == 200) {
+                        return jsonResponse.get("callbackId").getAsString();
+                    } else {
+                        handleAPIIntegrityIssues(resObject);
+                    }
                 } else {
-                    handleAPIIntegrityIssues(resObject);
-                }
-                }else{
                     handleAPIIntegrityIssues(resObject);
                 }
                 return null;

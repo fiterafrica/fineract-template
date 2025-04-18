@@ -1309,7 +1309,7 @@ public class LoansApiResource {
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
     public String undoForeClosure(@PathParam("loanId") @Parameter(description = "loanId") final Long loanId,
-                                   final String apiRequestBodyAsJson) {
+            final String apiRequestBodyAsJson) {
 
         final CommandWrapperBuilder builder = new CommandWrapperBuilder().withJson(apiRequestBodyAsJson);
         final CommandWrapper commandRequest = builder.undoForeClosure(loanId).build();

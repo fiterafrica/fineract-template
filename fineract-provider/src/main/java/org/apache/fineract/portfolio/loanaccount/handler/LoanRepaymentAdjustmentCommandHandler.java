@@ -38,6 +38,6 @@ public class LoanRepaymentAdjustmentCommandHandler implements NewCommandSourceHa
     @Override
     public CommandProcessingResult processCommand(final JsonCommand command) {
 
-        return this.writePlatformService.adjustLoanTransaction(command.getLoanId(), command.entityId(), command);
+        return this.writePlatformService.adjustLoanTransaction(command.getLoanId(), command.entityId(), command, Boolean.FALSE);
     }
 }

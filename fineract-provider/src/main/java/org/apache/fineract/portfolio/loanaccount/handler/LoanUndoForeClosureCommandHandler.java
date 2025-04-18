@@ -38,6 +38,6 @@ public class LoanUndoForeClosureCommandHandler implements NewCommandSourceHandle
     @Override
     public CommandProcessingResult processCommand(final JsonCommand command) {
 
-        return this.writePlatformService.undoLoanForclosure(command.entityId(), command);
+        return this.writePlatformService.undoLoanForeclosure(command.entityId(), command);
     }
 }
