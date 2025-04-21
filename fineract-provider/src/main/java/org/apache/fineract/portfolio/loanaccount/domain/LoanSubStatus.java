@@ -35,6 +35,7 @@ public enum LoanSubStatus {
         switch (statusValue) {
             case 100:
                 enumeration = LoanSubStatus.FORECLOSED;
+            break;
             case 200:
                 enumeration = LoanSubStatus.PENDINGDISBURSEMENT;
             break;

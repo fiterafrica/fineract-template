@@ -3702,6 +3702,15 @@ public class CommandWrapperBuilder {
         return this;
     }
 
+    public CommandWrapperBuilder undoForeClosure(Long loanId) {
+        this.actionName = "UNDOFORECLOSURE";
+        this.entityName = "LOAN";
+        this.entityId = loanId;
+        this.loanId = loanId;
+        this.href = "/loans/" + loanId;
+        return this;
+    }
+
     public CommandWrapperBuilder undoLoanReschedule(String entityName, Long loanId) {
         this.actionName = "UNDO";
         this.entityName = entityName;
