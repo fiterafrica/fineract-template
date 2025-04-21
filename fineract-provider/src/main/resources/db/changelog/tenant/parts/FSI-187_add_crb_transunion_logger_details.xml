@@ -178,4 +178,33 @@ ORDER BY logger.id DESC "/>
         </insert>
     </changeSet>
 
+    <changeSet author="bosco@fiter.io" id="add_m_permission_CREATE_UNDOFORECLOSURE_LOAN">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM m_permission WHERE code = 'UNDOFORECLOSURE_LOAN'
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="m_permission">
+            <column name="grouping" value="transaction_loan"/>
+            <column name="code" value="UNDOFORECLOSURE_LOAN"/>
+            <column name="entity_name" value="LOAN"/>
+            <column name="action_name" value="UNDOFORECLOSURE"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+    <changeSet author="bosco@fiter.io" id="add_m_permission_UNDOFORECLOSURE_LOAN_CHECKER">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM m_permission WHERE code = 'UNDOFORECLOSURE_LOAN_CHECKER'
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="m_permission">
+            <column name="grouping" value="transaction_loan"/>
+            <column name="code" value="UNDOFORECLOSURE_LOAN_CHECKER"/>
+            <column name="entity_name" value="LOAN"/>
+            <column name="action_name" value="UNDOFORECLOSURE_CHECKER"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+
 </databaseChangeLog>

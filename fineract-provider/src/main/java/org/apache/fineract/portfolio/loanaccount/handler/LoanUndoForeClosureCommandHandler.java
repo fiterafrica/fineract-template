@@ -29,8 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@CommandType(entity = "LOAN", action = "ADJUST")
-public class LoanRepaymentAdjustmentCommandHandler implements NewCommandSourceHandler {
+@CommandType(entity = "LOAN", action = "UNDOFORECLOSURE")
+public class LoanUndoForeClosureCommandHandler implements NewCommandSourceHandler {
 
     private final LoanWritePlatformService writePlatformService;
 
@@ -38,6 +38,6 @@ public class LoanRepaymentAdjustmentCommandHandler implements NewCommandSourceHa
     @Override
     public CommandProcessingResult processCommand(final JsonCommand command) {
 
-        return this.writePlatformService.adjustLoanTransaction(command.getLoanId(), command.entityId(), command, Boolean.FALSE);
+        return this.writePlatformService.undoLoanForeclosure(command.entityId(), command);
     }
 }
