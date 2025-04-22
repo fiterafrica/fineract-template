@@ -29,7 +29,7 @@ public class SavingsAccountTransactionDTO {
 
     private final DateTimeFormatter formatter;
     private final LocalDate transactionDate;
-    private final BigDecimal transactionAmount;
+    private BigDecimal transactionAmount;
     private final PaymentDetail paymentDetail;
     private final LocalDateTime createdDate;
     private final Long savingsAccountId;
@@ -104,4 +104,7 @@ public class SavingsAccountTransactionDTO {
         return this.depositAccountType;
     }
 
+    public void setTransactionAmount(BigDecimal amount) {
+        this.transactionAmount = amount;
+    }
 }

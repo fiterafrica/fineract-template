@@ -169,7 +169,7 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         final SavingsAccountTransactionDTO transactionDTO = new SavingsAccountTransactionDTO(fmt, transactionDate, transactionAmount,
                 paymentDetail, DateUtils.getLocalDateTimeOfSystem(), user, accountType);
         UUID refNo = UUID.randomUUID();
-        final SavingsAccountTransaction withdrawal = account.withdraw(transactionDTO, transactionBooleanValues.isApplyWithdrawFee(),
+        SavingsAccountTransaction withdrawal = account.withdraw(transactionDTO, transactionBooleanValues.isApplyWithdrawFee(),
                 backdatedTxnsAllowedTill, relaxingDaysConfigForPivotDate, refNo.toString());
         final MathContext mc = MathContext.DECIMAL64;
 
@@ -200,9 +200,30 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
                     .findBySavingsAccountAndReversedFalseOrderByCreatedDateAsc(account);
         }
 
+        if(transactionBooleanValues.isInterestTransfer()) {
+            SavingsAccountTransaction interestTransactions = account.getTransactions().parallelStream()
+                    .filter(transaction -> transaction.isInterestPostingAndNotReversed() &&
+                            transaction.getTransactionLocalDate().isEqual(transactionDate.minusDays(1))).findFirst()
+                    .orElse(null);
+
+            SavingsAccountTransaction withHoldTransactions = account.getTransactions().parallelStream()
+                    .filter(transaction -> transaction.isWithHoldTaxAndNotReversed() &&
+                            transaction.getTransactionLocalDate().isEqual(transactionDate.minusDays(1))).findFirst()
+                    .orElse(null);
+
+            if (interestTransactions != null && withHoldTransactions != null) {
+                BigDecimal finalWithdrawalAmount = interestTransactions.getAmount().subtract(withHoldTransactions.getAmount());
+                withdrawal.updateAmount(Money.of(withdrawal.getSavingsAccount().currency, finalWithdrawalAmount));
+                account.calculateInterestUsing(mc, today, transactionBooleanValues.isInterestTransfer(),
+                        isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, postInterestOnDate, true,
+                        backdatedTxnsAllowedTill, false);
+            }
+        }
+
         // do check total loan overdue amount and consider is while applying min balance check
         account.validateAccountBalanceDoesNotBecomeNegative(transactionAmount, transactionBooleanValues.isExceptionForBalanceCheck(),
                 depositAccountOnHoldTransactions, backdatedTxnsAllowedTill, getOverdueLoanAmountForClient(account, isAccountTransfer));
+
 
         saveTransactionToGenerateTransactionId(withdrawal);
         if (backdatedTxnsAllowedTill) {
