@@ -64,6 +64,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.Authentication;
@@ -123,8 +124,12 @@ public class AuthenticationApiResource {
                 .retrieveGlobalConfiguration(AccountLockConfigurationConstants.FAILED_LOGIN_ATTEMPTS).getValue().intValue();
         int lockoutDuration = configurationReadPlatformService
                 .retrieveGlobalConfiguration(AccountLockConfigurationConstants.ACCOUNT_LOCK_DURATION).getValue().intValue();
-
-        AppUser appUser = (AppUser) platformUserDetailsService.loadUserByUsername(request.username);
+        AppUser appUser = null;
+        try {
+            appUser = (AppUser) platformUserDetailsService.loadUserByUsername(request.username);
+        } catch (Exception e) {
+            throw new BadCredentialsException("Invalid username or password");
+        }
         if (appUser.isLockedOut()) {
             throw new UserLockedOutException();
         }
