@@ -34,6 +34,7 @@ import org.apache.fineract.infrastructure.core.domain.LocalDateInterval;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
+import org.apache.fineract.organisation.monetary.domain.MoneyHelper;
 import org.apache.fineract.portfolio.savings.SavingsCompoundingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.SavingsInterestCalculationType;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountData;
@@ -919,7 +920,7 @@ public final class PostingPeriod {
             log.info("Forcing direct calculation for NONE compounding type");
 
             // Get the principal amount and number of days
-            BigDecimal principalAmount = this.openingBalance.getAmount();
+            BigDecimal principalAmount = this.closingBalance.getAmount();
             int numberOfDays = this.periodInterval.daysInPeriodInclusiveOfEndDate();
 
             log.info("Principal: {}, Days: {}, Interest Rate: {}, Days in Year: {}", principalAmount, numberOfDays,
@@ -929,7 +930,7 @@ public final class PostingPeriod {
             BigDecimal dailyInterestRate = this.interestRateAsFraction.divide(BigDecimal.valueOf(this.daysInYear), MathContext.DECIMAL64);
 
             BigDecimal interest = principalAmount.multiply(this.interestRateAsFraction).multiply(BigDecimal.valueOf(numberOfDays))
-                    .divide(BigDecimal.valueOf(this.daysInYear), MathContext.DECIMAL64);
+                    .divide(BigDecimal.valueOf(this.daysInYear), MathContext.DECIMAL64).setScale(9, MoneyHelper.getRoundingMode());
 
             // Add calculated interest to results
             if (interest.compareTo(BigDecimal.ZERO) > 0) {
