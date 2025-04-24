@@ -18,6 +18,8 @@
  */
 package org.apache.fineract.portfolio.loanaccount.service;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -71,6 +73,7 @@ import org.apache.fineract.portfolio.loanaccount.data.KivaLocationData;
 import org.apache.fineract.portfolio.loanaccount.data.KivaSupportedCurrencyData;
 import org.apache.fineract.portfolio.loanaccount.data.KivaSupportedLocationData;
 import org.apache.fineract.portfolio.loanaccount.data.KivaSupportedThemeData;
+import org.apache.fineract.portfolio.loanaccount.data.KivaLoanExceptions;
 import org.apache.fineract.portfolio.loanaccount.data.LoanDetailToKivaData;
 import org.apache.fineract.portfolio.loanaccount.data.ThemeData;
 import org.apache.fineract.portfolio.loanaccount.domain.KivaCurrency;
@@ -128,6 +131,8 @@ public class KivaLoanServiceImpl implements KivaLoanService {
     private static final String KIVA_DEPARTMENT_NOT_FOUND = "Loan Department not supported by kiva";
     private static final String KIVA_SECTOR_ACTIVITY_MISMATCH = "The Sector and Activity are not compatible with Kiva";
 
+    @JsonIgnoreProperties({"stackTrace", "suppressed", "localizedMessage"})
+    static abstract class ThrowableMixin {}
     @Override
     @CronTarget(jobName = JobName.POST_LOAN_ACCOUNTS_TO_KIVA)
     public void postLoanAccountsToKiva() {
@@ -140,6 +145,8 @@ public class KivaLoanServiceImpl implements KivaLoanService {
         notPictured.add(Boolean.TRUE);
 
         List<Loan> loanList = loanRepository.findLoanAccountsToBePostedToKiva();
+
+        ArrayList<KivaLoanExceptions> kivaLoanExceptions = new ArrayList<>();
 
         List<Throwable> exceptions = new ArrayList<>();
 
@@ -156,8 +163,21 @@ public class KivaLoanServiceImpl implements KivaLoanService {
                     loanRepository.saveAndFlush(loan);
                 } catch (Exception e) {
                     log.error("Post Loan to KIVA has failed" + e);
-                    exceptions.add(e);
+                    KivaLoanExceptions kivaLoanException = new KivaLoanExceptions();
+                    kivaLoanException.setError(e);
+                    kivaLoanException.setLoanId(loan.getAccountNumber());
+                    kivaLoanExceptions.add(kivaLoanException);
                 }
+            }
+            try{
+                if(!CollectionUtils.isEmpty(kivaLoanExceptions)){
+                    postKivaExceptions(kivaLoanExceptions);
+                    RuntimeException exception = new RuntimeException("There were " + kivaLoanExceptions.size() + " kiva exceptions.");
+                    exceptions.add(exception);
+                }}
+            catch (Exception e){
+                log.error("Could not post errors to external service" + e);
+                exceptions.add(e);
             }
             if (!CollectionUtils.isEmpty(exceptions)) {
                 try {
@@ -166,6 +186,31 @@ public class KivaLoanServiceImpl implements KivaLoanService {
                     throw new RuntimeException(e);
                 }
             }
+        }
+    }
+
+    private void postKivaExceptions(ArrayList<KivaLoanExceptions> kivaLoanExceptions) {
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.addMixIn(Throwable.class, ThrowableMixin.class);
+
+        String json = null;
+        try {
+            json = mapper.writeValueAsString(kivaLoanExceptions);
+
+            OkHttpClient client = new OkHttpClient().newBuilder().build();
+
+            RequestBody body = RequestBody.create(json, MediaType.parse(org.springframework.http.MediaType.APPLICATION_JSON_VALUE));
+            Request request = new Request.Builder()
+                    .url(getConfigProperty("fineract.integrations.kiva.logsUrl"))
+                    .method("POST", body)
+                    .addHeader(FORM_URL_CONTENT_TYPE, org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+                    .build();
+                Response response = client.newCall(request).execute();
+
+                log.info("External log service response: "+ response.body().string());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -222,7 +267,6 @@ public class KivaLoanServiceImpl implements KivaLoanService {
             List<Boolean> notPictured, Loan loan) {
 
         Client client = loan.getClient();
-        Long activityId = getActivityId(client);
         String gender = (client.gender() != null) ? client.gender().label().toLowerCase() : "unknown";
         String loanPurpose = (loan.getLoanPurpose() != null) ? loan.getLoanPurpose().label() : "Not Defined";
         String clientKivaId = client.getKivaId();
@@ -254,6 +298,7 @@ public class KivaLoanServiceImpl implements KivaLoanService {
                 LoanEnumerations.interestType(loan.getLoanProductRelatedDetail().getInterestMethod().getValue()).getValue(),
                 loan.getLoanProductRelatedDetail().getAnnualNominalInterestRate().toString());
 
+        Long activityId = getActivityId(client);
         // build final object
         LoanDetailToKivaData loanDetailToKivaData = new LoanDetailToKivaData(activityId, Boolean.TRUE, loan.getCurrencyCode(),
                 loan.getDescription(), DESCRIPTION_LANGUAGE_ID, Date.valueOf(loan.getDisbursementDate()), " ", base64Image,
