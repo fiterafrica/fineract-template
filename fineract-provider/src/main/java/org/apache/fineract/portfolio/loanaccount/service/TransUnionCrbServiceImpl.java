@@ -84,9 +84,6 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
         LOG.info("Starting Consumer Credit Data Upload To TransUnion CRB");
         final AppUser currentUser = this.context.authenticatedUser();
 
-        String token = authenticateToTransUnionRestApi();
-        LOG.info("CRB Token == > " + token);
-
         List<Integer> loansNotToBeRePostedTransUnion = new ArrayList<>();
         Collection<TransUnionRwandaConsumerCreditData> transUnionRwandaConsumerCreditDataCollection = transUnionCrbPostConsumerCreditReadPlatformServiceImpl
                 .retrieveAllConsumerCredits();
@@ -179,8 +176,6 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
         LOG.info("Starting Corporate Credit Data Upload To TransUnion CRB");
         final AppUser currentUser = this.context.authenticatedUser();
 
-        String token = authenticateToTransUnionRestApi();
-        LOG.info("CRB Token == > " + token);
 
         List<Integer> loansNotToBeRePostedTransUnion = new ArrayList<>();
         Collection<TransUnionRwandaCorporateCreditData> transUnionRwandaCorporateCreditDataCollection = transUnionCrbPostCorporateCreditReadPlatformServiceImpl
