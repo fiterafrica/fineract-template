@@ -16,32 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.organisation.tasks.handler;
+package org.apache.fineract.portfolio.loanaccount.handler;
 
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.commands.annotation.CommandType;
 import org.apache.fineract.commands.handler.NewCommandSourceHandler;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
-import org.apache.fineract.organisation.tasks.service.TaskWritePlatformService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.fineract.portfolio.loanaccount.service.LoanWritePlatformService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@CommandType(entity = "TASK", action = "UPDATE")
-public class UpdateTaskCommandHandler implements NewCommandSourceHandler {
+@RequiredArgsConstructor
+@CommandType(entity = "LOAN", action = "UNDOFORECLOSURE")
+public class LoanUndoForeClosureCommandHandler implements NewCommandSourceHandler {
 
-    private final TaskWritePlatformService writePlatformService;
-
-    @Autowired
-    public UpdateTaskCommandHandler(final TaskWritePlatformService writePlatformService) {
-        this.writePlatformService = writePlatformService;
-    }
+    private final LoanWritePlatformService writePlatformService;
 
     @Transactional
     @Override
     public CommandProcessingResult processCommand(final JsonCommand command) {
 
-        return this.writePlatformService.updateTask(command.entityId(), command);
+        return this.writePlatformService.undoLoanForeclosure(command.entityId(), command);
     }
 }

@@ -43,8 +43,13 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.fineract.infrastructure.codes.data.CodeValueData;
+import org.apache.fineract.infrastructure.codes.service.CodeValueReadPlatformService;
 import org.apache.fineract.infrastructure.core.exception.GeneralPlatformDomainRuleException;
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
+import org.apache.fineract.infrastructure.dataqueries.data.GenericResultsetData;
+import org.apache.fineract.infrastructure.dataqueries.data.ResultsetRowData;
+import org.apache.fineract.infrastructure.dataqueries.service.ReadWriteNonCoreDataService;
 import org.apache.fineract.infrastructure.documentmanagement.data.DocumentData;
 import org.apache.fineract.infrastructure.documentmanagement.domain.StorageType;
 import org.apache.fineract.infrastructure.documentmanagement.service.DocumentReadPlatformServiceImpl;
@@ -76,6 +81,8 @@ import org.apache.fineract.portfolio.loanaccount.domain.KivaLocation;
 import org.apache.fineract.portfolio.loanaccount.domain.KivaLocationRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.KivaTheme;
 import org.apache.fineract.portfolio.loanaccount.domain.KivaThemeRepository;
+import org.apache.fineract.portfolio.loanaccount.domain.KivaSectorActivity;
+import org.apache.fineract.portfolio.loanaccount.domain.KivaSectorActivityRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepository;
@@ -112,10 +119,14 @@ public class KivaLoanServiceImpl implements KivaLoanService {
     private final KivaThemeRepository kivaThemeRepository;
     private final KivaLocationRepository kivaLocationRepository;
     private final KivaCurrencyRepository kivaCurrencyRepository;
+    private final KivaSectorActivityRepository kivaSectorActivityRepository;
+    private final ReadWriteNonCoreDataService readWriteNonCoreDataService;
+    private final CodeValueReadPlatformService codeValueReadPlatformService;
     @Autowired
     private Environment env;
 
     private static final String KIVA_DEPARTMENT_NOT_FOUND = "Loan Department not supported by kiva";
+    private static final String KIVA_SECTOR_ACTIVITY_MISMATCH = "The Sector and Activity are not compatible with Kiva";
 
     @Override
     @CronTarget(jobName = JobName.POST_LOAN_ACCOUNTS_TO_KIVA)
@@ -211,6 +222,7 @@ public class KivaLoanServiceImpl implements KivaLoanService {
             List<Boolean> notPictured, Loan loan) {
 
         Client client = loan.getClient();
+        Long activityId = getActivityId(client);
         String gender = (client.gender() != null) ? client.gender().label().toLowerCase() : "unknown";
         String loanPurpose = (loan.getLoanPurpose() != null) ? loan.getLoanPurpose().label() : "Not Defined";
         String clientKivaId = client.getKivaId();
@@ -243,7 +255,7 @@ public class KivaLoanServiceImpl implements KivaLoanService {
                 loan.getLoanProductRelatedDetail().getAnnualNominalInterestRate().toString());
 
         // build final object
-        LoanDetailToKivaData loanDetailToKivaData = new LoanDetailToKivaData(ACTIVITY_ID, Boolean.TRUE, loan.getCurrencyCode(),
+        LoanDetailToKivaData loanDetailToKivaData = new LoanDetailToKivaData(activityId, Boolean.TRUE, loan.getCurrencyCode(),
                 loan.getDescription(), DESCRIPTION_LANGUAGE_ID, Date.valueOf(loan.getDisbursementDate()), " ", base64Image,
                 client.getId().toString(), generateInternalLoanId(loan.getDisbursementDate(), loan.getId()), loanPurpose, location,
                 getKivaLoanDepartmentThemeType(loan), kivaLoanAccounts, kivaLoanAccountSchedules, notPictured, scheduleParameters);
@@ -289,6 +301,34 @@ public class KivaLoanServiceImpl implements KivaLoanService {
             return kivaTheme.get().getThemeId().intValue();
         } else {
             throw new LoanDueDiligenceException("validation.msg.loan.department.not.supported.by.kiva", KIVA_DEPARTMENT_NOT_FOUND);
+        }
+    }
+
+    private Long getActivityId(Client client){
+
+        final String datatableName = "Kiva Business Details";
+        final Long clientId = client.getId();
+
+        GenericResultsetData data = this.readWriteNonCoreDataService.retrieveDataTableGenericResultSet(
+                datatableName, clientId, null, null, null, null);
+
+        if (data.getData().isEmpty()){
+            throw new LoanDueDiligenceException("validation.msg.loan.sector.activity.missing", "Client is missing Kiva business details");
+        }
+
+        ResultsetRowData kivaResultsRowData = data.getData().get(0);
+        Long sectorId = Long.valueOf(kivaResultsRowData.getRow().get(1));
+        Long activityId = Long.valueOf(kivaResultsRowData.getRow().get(2));
+
+        CodeValueData sectorCodeValue = this.codeValueReadPlatformService.retrieveCodeValue(sectorId);
+        CodeValueData activityCoderValue = this.codeValueReadPlatformService.retrieveCodeValue(activityId);
+
+        Optional<KivaSectorActivity> kivaSectorActivity =  this.kivaSectorActivityRepository.findBySectorAndActivity(sectorCodeValue.getName(),activityCoderValue.getName());
+
+        if (kivaSectorActivity.isPresent()) {
+            return kivaSectorActivity.get().getActivityId();
+        } else {
+            throw new LoanDueDiligenceException("validation.msg.loan.sector.activity.not.supported.by.kiva", KIVA_SECTOR_ACTIVITY_MISMATCH);
         }
     }
 
@@ -604,6 +644,8 @@ public class KivaLoanServiceImpl implements KivaLoanService {
         } catch (EmptyResultDataAccessException e) {
             throw new LoanDueDiligenceException("validation.msg.loan.profile.image.not.uploaded", "Loan profile image not uploaded");
         }
+
+        getActivityId(loan.client());
 
         return true;
     }

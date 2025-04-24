@@ -223,10 +223,8 @@ public final class LoanApplicationCommandFromApiJsonHelper {
         }
 
         final String fundIdParameterName = "fundId";
-        if (this.fromApiJsonHelper.parameterExists(fundIdParameterName, element)) {
-            final Long fundId = this.fromApiJsonHelper.extractLongNamed(fundIdParameterName, element);
-            baseDataValidator.reset().parameter(fundIdParameterName).value(fundId).ignoreIfNull().integerGreaterThanZero();
-        }
+        final Long fundId = this.fromApiJsonHelper.extractLongNamed(fundIdParameterName, element);
+        baseDataValidator.reset().parameter(fundIdParameterName).value(fundId).notNull().integerGreaterThanZero();
 
         // This Supports Department Param passed via Bulk Import
         final Integer departmentId = this.fromApiJsonHelper.extractIntegerWithLocaleNamed("departmentId", element);

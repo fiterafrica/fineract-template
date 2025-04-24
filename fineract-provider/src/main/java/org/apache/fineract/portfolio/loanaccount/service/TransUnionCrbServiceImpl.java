@@ -20,6 +20,7 @@ package org.apache.fineract.portfolio.loanaccount.service;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.IOException;
@@ -82,8 +83,7 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
     public void ConsumerCreditDataUploadToTransUnion() {
         LOG.info("Starting Consumer Credit Data Upload To TransUnion CRB");
         final AppUser currentUser = this.context.authenticatedUser();
-        String token = authenticateToTransUnionRestApi();
-        LOG.info("CRB Token == > " + token);
+
         List<Integer> loansNotToBeRePostedTransUnion = new ArrayList<>();
         Collection<TransUnionRwandaConsumerCreditData> transUnionRwandaConsumerCreditDataCollection = transUnionCrbPostConsumerCreditReadPlatformServiceImpl
                 .retrieveAllConsumerCredits();
@@ -100,7 +100,12 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
                 rwandaConsumerCreditData.setConsumerCreditInformationRecord(creditData);
                 rwandaConsumerCreditData.setRecordType("IC");
                 String callbackId = null;
+
+                String token = null;
                 try {
+                    token = authenticateToTransUnionRestApi();
+                    LOG.info("CRB Token == > " + token);
+
                     callbackId = postRwandaConsumerCreditToTransUnion(token, convertConsumerCreditPayloadToJson(rwandaConsumerCreditData));
 
                     if (callbackId != null && !creditData.getLoanStatus().equals(LoanStatus.ACTIVE.getValue())) {
@@ -170,8 +175,8 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
     public void CorporateCreditDataUploadToTransUnion() {
         LOG.info("Starting Corporate Credit Data Upload To TransUnion CRB");
         final AppUser currentUser = this.context.authenticatedUser();
-        String token = authenticateToTransUnionRestApi();
-        LOG.info("CRB Token == > " + token);
+
+
         List<Integer> loansNotToBeRePostedTransUnion = new ArrayList<>();
         Collection<TransUnionRwandaCorporateCreditData> transUnionRwandaCorporateCreditDataCollection = transUnionCrbPostCorporateCreditReadPlatformServiceImpl
                 .retrieveAllCorporateCredits();
@@ -186,7 +191,11 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
                 rwandaCorporateCreditData.setRecordType("CI");
                 String callbackId = null;
 
+                String token = null;
                 try {
+                    token = authenticateToTransUnionRestApi();
+                    LOG.info("CRB Token == > " + token);
+
                     callbackId = postRwandaCorporateCreditToTransUnion(token,
                             convertConsumerCreditPayloadToJson(rwandaCorporateCreditData));
 
@@ -325,11 +334,16 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
 
                 JsonObject jsonResponse = JsonParser.parseString(resObject).getAsJsonObject();
                 log.info("Consumer Credit Response from TransUnion :=>" + resObject);
-
-                Integer code = jsonResponse.get("responseCode").getAsInt();
-                if (code == 200) {
-                    return jsonResponse.get("callbackId").getAsString();
+                JsonElement responseCodeElement = jsonResponse.get("responseCode");
+                if (responseCodeElement != null) {
+                    Integer code = responseCodeElement.getAsInt();
+                    if (code == 200) {
+                        return jsonResponse.get("callbackId").getAsString();
+                    } else {
+                        handleAPIIntegrityIssues(resObject);
+                    }
                 } else {
+                    log.error("Null Response Code  ::--> ");
                     handleAPIIntegrityIssues(resObject);
                 }
             }
@@ -371,10 +385,14 @@ public class TransUnionCrbServiceImpl implements TransUnionCrbService {
 
                 JsonObject jsonResponse = JsonParser.parseString(resObject).getAsJsonObject();
                 log.info("Corporate Credit Response from TransUnion :=>" + resObject);
-
-                Integer code = jsonResponse.get("responseCode").getAsInt();
-                if (code == 200) {
-                    return jsonResponse.get("callbackId").getAsString();
+                JsonElement responseCodeElement = jsonResponse.get("responseCode");
+                if (responseCodeElement != null) {
+                    Integer code = responseCodeElement.getAsInt();
+                    if (code == 200) {
+                        return jsonResponse.get("callbackId").getAsString();
+                    } else {
+                        handleAPIIntegrityIssues(resObject);
+                    }
                 } else {
                     handleAPIIntegrityIssues(resObject);
                 }
