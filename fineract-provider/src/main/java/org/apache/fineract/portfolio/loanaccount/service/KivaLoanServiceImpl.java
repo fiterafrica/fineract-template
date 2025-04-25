@@ -61,6 +61,7 @@ import org.apache.fineract.infrastructure.jobs.service.JobName;
 import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.client.domain.ClientRecruitmentSurvey;
 import org.apache.fineract.portfolio.client.domain.ClientRecruitmentSurveyRepository;
+import org.apache.fineract.portfolio.client.domain.LegalForm;
 import org.apache.fineract.portfolio.loanaccount.data.KivaLoanAccount;
 import org.apache.fineract.portfolio.loanaccount.data.KivaLoanAccountSchedule;
 import org.apache.fineract.portfolio.loanaccount.data.KivaLoanAccountScheduleParameters;
@@ -351,7 +352,8 @@ public class KivaLoanServiceImpl implements KivaLoanService {
 
     private Long getActivityId(Client client){
 
-        final String datatableName = "Kiva Business Details";
+        final String datatableName = LegalForm.fromInt(client.getLegalForm()).isPerson() ? "Kiva Business Details" : "Entity Kiva Business Details";
+
         final Long clientId = client.getId();
 
         GenericResultsetData data = this.readWriteNonCoreDataService.retrieveDataTableGenericResultSet(
