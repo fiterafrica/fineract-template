@@ -34,15 +34,16 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.FormBody;
-import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.HttpUrl;
+import okhttp3.FormBody;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.fineract.infrastructure.codes.data.CodeValueData;
 import org.apache.fineract.infrastructure.codes.service.CodeValueReadPlatformService;
@@ -162,7 +163,7 @@ public class KivaLoanServiceImpl implements KivaLoanService {
                     loan.setKivaUUId(loanDraftUUID);
                     loanRepository.saveAndFlush(loan);
                 } catch (Exception e) {
-                    log.error("Post Loan to KIVA has failed" + e);
+                    log.error("Post Loan to KIVA has failed " + e);
                     KivaLoanExceptions kivaLoanException = new KivaLoanExceptions();
                     kivaLoanException.setError(e);
                     kivaLoanException.setLoanId(loan.getAccountNumber());
@@ -208,7 +209,19 @@ public class KivaLoanServiceImpl implements KivaLoanService {
                     .build();
                 Response response = client.newCall(request).execute();
 
-                log.info("External log service response: "+ response.body().string());
+                String responseBody = response.body().string();
+
+                log.info("External log service response: "+ responseBody);
+
+            if (response.isSuccessful()) {
+                JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
+                if (!jsonResponse.get("success").getAsBoolean()){
+                    handleAPIIntegrityIssues(String.valueOf(response.code()));
+                }
+            } else {
+                log.error("Posting Error logs failed" );
+                handleAPIIntegrityIssues(String.valueOf(response.code()));
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
