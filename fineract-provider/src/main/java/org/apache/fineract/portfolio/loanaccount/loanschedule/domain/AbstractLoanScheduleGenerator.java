@@ -50,6 +50,7 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanInterestRecalcualtio
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransaction;
 import org.apache.fineract.portfolio.loanaccount.domain.transactionprocessor.LoanRepaymentScheduleTransactionProcessor;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanTermVariationType;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanScheduleDTO;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanScheduleParams;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.exception.MultiDisbursementEmiAmountException;
@@ -279,12 +280,27 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
             // backup for pre-close transaction
             updateCompoundingDetails(scheduleParams, periodStartDateApplicableForInterest);
 
-            if ((loanApplicationTerms.getPrincipalGrace() != null || loanApplicationTerms.getInterestPaymentGrace() != null)
-                    && !loanApplicationTerms.getInterestMethod().isDecliningBalnce()) {
-                Money totalInterestDueForLoan = loanApplicationTerms
-                        .calculateTotalInterestChargedWithGrace(this.paymentPeriodsInOneYearCalculator, mc);
-                loanApplicationTerms.updateTotalInterestDue(totalInterestDueForLoan);
+          //  boolean expectionData = false;
+            List<LoanTermVariationsData> exceptionDataList = loanApplicationTerms.getLoanTermVariations().getExceptionData();
+
+            if (exceptionDataList != null && !exceptionDataList.isEmpty()) {
+                for (LoanTermVariationsData exp : exceptionDataList) {
+                    if ((LoanTermVariationType.fromInt(exp.getTermType().getId().intValue()).isGraceOnInterest() ||
+                            LoanTermVariationType.fromInt(exp.getTermType().getId().intValue()).isGraceOnPrincipal())
+                    && !exp.isActive()) {
+                        Money totalInterestDueForLoan = loanApplicationTerms
+                                .calculateTotalInterestChargedWithGrace(this.paymentPeriodsInOneYearCalculator, mc);
+                        loanApplicationTerms.updateTotalInterestDue(totalInterestDueForLoan);
+                    }
+                }
             }
+//            if (((loanApplicationTerms.getPrincipalGrace() != null && loanApplicationTerms.getPrincipalGrace() > 0)
+//                    || (loanApplicationTerms.getInterestPaymentGrace() != null && loanApplicationTerms.getInterestPaymentGrace() > 0))
+//                    && !loanApplicationTerms.getInterestMethod().isDecliningBalnce() && expectionData) {
+//                Money totalInterestDueForLoan = loanApplicationTerms
+//                        .calculateTotalInterestChargedWithGrace(this.paymentPeriodsInOneYearCalculator, mc);
+//                loanApplicationTerms.updateTotalInterestDue(totalInterestDueForLoan);
+//            }
 
             // 5 determine principal,interest of repayment period
             PrincipalInterest principalInterestForThisPeriod = calculatePrincipalInterestComponentsForPeriod(

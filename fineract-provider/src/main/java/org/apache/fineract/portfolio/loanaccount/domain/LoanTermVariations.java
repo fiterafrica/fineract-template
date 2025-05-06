@@ -116,7 +116,7 @@ public class LoanTermVariations extends AbstractPersistableCustom {
     public LoanTermVariationsData toData() {
         EnumOptionData type = LoanEnumerations.loanvariationType(this.termType);
         return new LoanTermVariationsData(getId(), type, this.termApplicableFrom, this.decimalValue, this.dateValue,
-                this.isSpecificToInstallment);
+                this.isSpecificToInstallment, this.isActive);
     }
 
     public LocalDate getTermApplicableFrom() {

@@ -1710,7 +1710,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
     private static final class LoanTermVariationsMapper implements RowMapper<LoanTermVariationsData> {
 
         public String schema() {
-            return "tv.id as id,tv.applicable_date as variationApplicableFrom,tv.decimal_value as decimalValue, tv.date_value as dateValue, tv.is_specific_to_installment as isSpecificToInstallment "
+            return "tv.id as id,tv.applicable_date as variationApplicableFrom,tv.decimal_value as decimalValue, tv.date_value as dateValue, tv.is_specific_to_installment as isSpecificToInstallment, tv.is_active as isActive "
                     + "from m_loan_term_variations tv";
         }
 
@@ -1721,9 +1721,10 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
             final BigDecimal decimalValue = rs.getBigDecimal("decimalValue");
             final LocalDate dateValue = JdbcSupport.getLocalDate(rs, "dateValue");
             final boolean isSpecificToInstallment = rs.getBoolean("isSpecificToInstallment");
+            final boolean isActive = rs.getBoolean("isActive");
 
             return new LoanTermVariationsData(id, LoanEnumerations.loanvariationType(LoanTermVariationType.EMI_AMOUNT),
-                    variationApplicableFrom, decimalValue, dateValue, isSpecificToInstallment);
+                    variationApplicableFrom, decimalValue, dateValue, isSpecificToInstallment, isActive);
         }
 
     }
