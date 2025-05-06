@@ -280,7 +280,6 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
             // backup for pre-close transaction
             updateCompoundingDetails(scheduleParams, periodStartDateApplicableForInterest);
 
-          //  boolean expectionData = false;
             List<LoanTermVariationsData> exceptionDataList = loanApplicationTerms.getLoanTermVariations().getExceptionData();
 
             if (exceptionDataList != null && !exceptionDataList.isEmpty()) {
@@ -294,13 +293,6 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                     }
                 }
             }
-//            if (((loanApplicationTerms.getPrincipalGrace() != null && loanApplicationTerms.getPrincipalGrace() > 0)
-//                    || (loanApplicationTerms.getInterestPaymentGrace() != null && loanApplicationTerms.getInterestPaymentGrace() > 0))
-//                    && !loanApplicationTerms.getInterestMethod().isDecliningBalnce() && expectionData) {
-//                Money totalInterestDueForLoan = loanApplicationTerms
-//                        .calculateTotalInterestChargedWithGrace(this.paymentPeriodsInOneYearCalculator, mc);
-//                loanApplicationTerms.updateTotalInterestDue(totalInterestDueForLoan);
-//            }
 
             // 5 determine principal,interest of repayment period
             PrincipalInterest principalInterestForThisPeriod = calculatePrincipalInterestComponentsForPeriod(
