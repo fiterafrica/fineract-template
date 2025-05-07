@@ -489,6 +489,10 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
             }
             for (LoanRescheduleRequestToTermVariationMapping mapping : loanRescheduleRequest
                     .getLoanRescheduleRequestToTermVariationMappings()) {
+                if(mapping.getLoanTermVariations().getTermType().isGraceOnInterest()
+                        && mapping.getLoanTermVariations().getTermType().isGraceOnPrincipal() && !mapping.getLoanTermVariations().isActive()){
+                    loanApplicationTerms.setUnApprovedExceptionVariations(true);
+                }
                 mapping.getLoanTermVariations().updateIsActive(true);
             }
             BigDecimal annualNominalInterestRate = null;

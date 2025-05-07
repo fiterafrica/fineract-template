@@ -286,7 +286,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                 for (LoanTermVariationsData exp : exceptionDataList) {
                     if ((LoanTermVariationType.fromInt(exp.getTermType().getId().intValue()).isGraceOnInterest()
                             || LoanTermVariationType.fromInt(exp.getTermType().getId().intValue()).isGraceOnPrincipal())
-                            && !exp.isActive()) {
+                            && !loanApplicationTerms.isUnApprovedExceptionVariations()) {
                         Money totalInterestDueForLoan = loanApplicationTerms
                                 .calculateTotalInterestChargedWithGrace(this.paymentPeriodsInOneYearCalculator, mc);
                         loanApplicationTerms.updateTotalInterestDue(totalInterestDueForLoan);
