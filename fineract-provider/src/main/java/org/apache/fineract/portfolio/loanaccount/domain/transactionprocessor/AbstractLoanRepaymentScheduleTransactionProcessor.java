@@ -26,6 +26,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.portfolio.loanaccount.data.LoanChargePaidDetail;
@@ -51,6 +52,7 @@ import org.apache.fineract.portfolio.loanaccount.domain.transactionprocessor.imp
  * @see HeavensFamilyLoanRepaymentScheduleTransactionProcessor
  * @see CreocoreLoanRepaymentScheduleTransactionProcessor
  */
+@Slf4j
 public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implements LoanRepaymentScheduleTransactionProcessor {
 
     /**
@@ -368,19 +370,22 @@ public abstract class AbstractLoanRepaymentScheduleTransactionProcessor implemen
             if (loanCharge.getAmountOutstanding(currency).isGreaterThanZero() && !loanCharge.isDueAtDisbursement()) {
                 if (loanCharge.isInstalmentFee()) {
                     LoanInstallmentCharge unpaidLoanChargePerInstallment = loanCharge.getUnpaidInstallmentLoanCharge();
-                    if (chargePerInstallment == null || chargePerInstallment.getRepaymentInstallment().getDueDate()
-                            .isAfter(unpaidLoanChargePerInstallment.getRepaymentInstallment().getDueDate())) {
-                        installemntCharge = loanCharge;
-                        chargePerInstallment = unpaidLoanChargePerInstallment;
+                    if (unpaidLoanChargePerInstallment != null) {
+                        if (chargePerInstallment == null || chargePerInstallment.getRepaymentInstallment().getDueDate()
+                                .isAfter(unpaidLoanChargePerInstallment.getRepaymentInstallment().getDueDate())) {
+                            installemntCharge = loanCharge;
+                            chargePerInstallment = unpaidLoanChargePerInstallment;
+                        }
                     }
                 } else if (earliestUnpaidCharge == null || loanCharge.getDueLocalDate().isBefore(earliestUnpaidCharge.getDueLocalDate())) {
                     earliestUnpaidCharge = loanCharge;
                 }
             }
         }
+        // Only return installemntCharge if chargePerInstallment is not null
         if (earliestUnpaidCharge == null || (chargePerInstallment != null
                 && earliestUnpaidCharge.getDueLocalDate().isAfter(chargePerInstallment.getRepaymentInstallment().getDueDate()))) {
-            earliestUnpaidCharge = installemntCharge;
+            return installemntCharge != null ? installemntCharge : earliestUnpaidCharge;
         }
 
         return earliestUnpaidCharge;

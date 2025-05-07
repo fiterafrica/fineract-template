@@ -200,16 +200,16 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
                     .findBySavingsAccountAndReversedFalseOrderByCreatedDateAsc(account);
         }
 
-        if(transactionBooleanValues.isInterestTransfer()) {
+        if (transactionBooleanValues.isInterestTransfer()) {
             SavingsAccountTransaction interestTransactions = account.getTransactions().parallelStream()
-                    .filter(transaction -> transaction.isInterestPostingAndNotReversed() &&
-                            transaction.getTransactionLocalDate().isEqual(transactionDate.minusDays(1))).findFirst()
-                    .orElse(null);
+                    .filter(transaction -> transaction.isInterestPostingAndNotReversed()
+                            && transaction.getTransactionLocalDate().isEqual(transactionDate.minusDays(1)))
+                    .findFirst().orElse(null);
 
             SavingsAccountTransaction withHoldTransactions = account.getTransactions().parallelStream()
-                    .filter(transaction -> transaction.isWithHoldTaxAndNotReversed() &&
-                            transaction.getTransactionLocalDate().isEqual(transactionDate.minusDays(1))).findFirst()
-                    .orElse(null);
+                    .filter(transaction -> transaction.isWithHoldTaxAndNotReversed()
+                            && transaction.getTransactionLocalDate().isEqual(transactionDate.minusDays(1)))
+                    .findFirst().orElse(null);
 
             if (interestTransactions != null && withHoldTransactions != null) {
                 BigDecimal finalWithdrawalAmount = interestTransactions.getAmount().subtract(withHoldTransactions.getAmount());
@@ -223,7 +223,6 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         // do check total loan overdue amount and consider is while applying min balance check
         account.validateAccountBalanceDoesNotBecomeNegative(transactionAmount, transactionBooleanValues.isExceptionForBalanceCheck(),
                 depositAccountOnHoldTransactions, backdatedTxnsAllowedTill, getOverdueLoanAmountForClient(account, isAccountTransfer));
-
 
         saveTransactionToGenerateTransactionId(withdrawal);
         if (backdatedTxnsAllowedTill) {
