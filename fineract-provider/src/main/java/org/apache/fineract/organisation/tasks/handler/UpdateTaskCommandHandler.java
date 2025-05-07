@@ -28,7 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@CommandType(entity = "STAFF", action = "UPDATE")
+@CommandType(entity = "TASKS", action = "UPDATE")
 public class UpdateTaskCommandHandler implements NewCommandSourceHandler {
 
     private final TaskWritePlatformService writePlatformService;
