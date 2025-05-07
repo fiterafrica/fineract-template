@@ -48,9 +48,9 @@ import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanCharge;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanInterestRecalcualtionAdditionalDetails;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanTermVariationType;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransaction;
 import org.apache.fineract.portfolio.loanaccount.domain.transactionprocessor.LoanRepaymentScheduleTransactionProcessor;
-import org.apache.fineract.portfolio.loanaccount.domain.LoanTermVariationType;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanScheduleDTO;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanScheduleParams;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.exception.MultiDisbursementEmiAmountException;
@@ -284,9 +284,9 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
 
             if (exceptionDataList != null && !exceptionDataList.isEmpty()) {
                 for (LoanTermVariationsData exp : exceptionDataList) {
-                    if ((LoanTermVariationType.fromInt(exp.getTermType().getId().intValue()).isGraceOnInterest() ||
-                            LoanTermVariationType.fromInt(exp.getTermType().getId().intValue()).isGraceOnPrincipal())
-                    && !exp.isActive()) {
+                    if ((LoanTermVariationType.fromInt(exp.getTermType().getId().intValue()).isGraceOnInterest()
+                            || LoanTermVariationType.fromInt(exp.getTermType().getId().intValue()).isGraceOnPrincipal())
+                            && !exp.isActive()) {
                         Money totalInterestDueForLoan = loanApplicationTerms
                                 .calculateTotalInterestChargedWithGrace(this.paymentPeriodsInOneYearCalculator, mc);
                         loanApplicationTerms.updateTotalInterestDue(totalInterestDueForLoan);
