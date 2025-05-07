@@ -100,7 +100,8 @@ public class LoanRescheduleRequestReadPlatformServiceImpl implements LoanResched
             sqlBuilder.append("tv.applicable_date as variationApplicableFrom, ");
             sqlBuilder.append("tv.decimal_value as decimalValue, ");
             sqlBuilder.append("tv.date_value as dateValue, ");
-            sqlBuilder.append("tv.is_specific_to_installment as isSpecificToInstallment ");
+            sqlBuilder.append("tv.is_specific_to_installment as isSpecificToInstallment, ");
+            sqlBuilder.append("tv.is_active as isActive ");
 
             sqlBuilder.append("from " + loanRescheduleRequestTableName() + " lr ");
             sqlBuilder.append("left join m_code_value cv on cv.id = lr.reschedule_reason_cv_id ");
@@ -184,9 +185,10 @@ public class LoanRescheduleRequestReadPlatformServiceImpl implements LoanResched
             final LocalDate dateValue = JdbcSupport.getLocalDate(rs, "dateValue");
             final boolean isSpecificToInstallment = rs.getBoolean("isSpecificToInstallment");
             final int termType = rs.getInt("termType");
+            final boolean isActive = rs.getBoolean("isActive");
 
             return new LoanTermVariationsData(id, LoanEnumerations.loanvariationType(termType), variationApplicableFrom, decimalValue,
-                    dateValue, isSpecificToInstallment);
+                    dateValue, isSpecificToInstallment, isActive);
         }
 
     }

@@ -33,15 +33,18 @@ public class LoanTermVariationsData implements Comparable<LoanTermVariationsData
     private final LocalDate dateValue;
     private final boolean isSpecificToInstallment;
     private Boolean isProcessed;
+    private Boolean isActive;
 
     public LoanTermVariationsData(final Long id, final EnumOptionData termType, final LocalDate termVariationApplicableFrom,
-            final BigDecimal decimalValue, final LocalDate dateValue, final boolean isSpecificToInstallment) {
+            final BigDecimal decimalValue, final LocalDate dateValue, final boolean isSpecificToInstallment,
+                                  final boolean isActive) {
         this.id = id;
         this.termType = termType;
         this.termVariationApplicableFrom = termVariationApplicableFrom;
         this.decimalValue = decimalValue;
         this.dateValue = dateValue;
         this.isSpecificToInstallment = isSpecificToInstallment;
+        this.isActive = isActive;
     }
 
     public LoanTermVariationsData(final EnumOptionData termType, final LocalDate termVariationApplicableFrom, final BigDecimal decimalValue,
@@ -96,6 +99,9 @@ public class LoanTermVariationsData implements Comparable<LoanTermVariationsData
 
     public Boolean isProcessed() {
         return this.isProcessed == null ? false : this.isProcessed;
+    }
+    public Boolean isActive() {
+        return this.isActive;
     }
 
     public void setProcessed(Boolean isProcessed) {
