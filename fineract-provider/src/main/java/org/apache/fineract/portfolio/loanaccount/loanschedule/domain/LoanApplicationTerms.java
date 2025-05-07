@@ -215,6 +215,7 @@ public final class LoanApplicationTerms {
     private boolean advancePaymentInterestForExactDaysInPeriod;
 
     private Integer originalNumberOfPeriods;
+    private boolean unApprovedExceptionVariations;
 
     public static LoanApplicationTerms assembleFrom(final ApplicationCurrency currency, final Integer loanTermFrequency,
             final PeriodFrequencyType loanTermPeriodFrequencyType, final Integer numberOfRepayments, final Integer repaymentEvery,
@@ -1902,5 +1903,13 @@ public final class LoanApplicationTerms {
             return this.numberOfRepayments;
         }
         return this.originalNumberOfPeriods;
+    }
+
+    public boolean isUnApprovedExceptionVariations() {
+        return unApprovedExceptionVariations;
+    }
+
+    public void setUnApprovedExceptionVariations(boolean unApprovedExceptionVariations) {
+        this.unApprovedExceptionVariations = unApprovedExceptionVariations;
     }
 }
