@@ -71,7 +71,7 @@ public class GmailBackedPlatformEmailService implements PlatformEmailService {
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", "true");
-        props.put("mail.debug", "true");
+        props.put("mail.debug", "false");
 
         // these are the added lines
         props.put("mail.smtp.starttls.enable", "true");
