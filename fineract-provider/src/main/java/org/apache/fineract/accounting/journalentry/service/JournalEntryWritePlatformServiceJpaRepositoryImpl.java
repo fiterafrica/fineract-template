@@ -68,6 +68,7 @@ import org.apache.fineract.infrastructure.core.domain.FineractContext;
 import org.apache.fineract.infrastructure.core.exception.GeneralPlatformDomainRuleException;
 import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
+import org.apache.fineract.infrastructure.core.persistence.AfterCommitExecutor;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.hooks.event.HookEvent;
@@ -126,6 +127,7 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
     private final FinancialActivityAccountRepositoryWrapper financialActivityAccountRepositoryWrapper;
     private final CashBasedAccountingProcessorForClientTransactions accountingProcessorForClientTransactions;
     private final ApplicationEventPublisher eventPublisher;
+    private final AfterCommitExecutor afterCommitExecutor;
 
     @Transactional
     @Override
@@ -500,8 +502,8 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
             final AccountingProcessorForLoan accountingProcessorForLoan = this.accountingProcessorForLoanFactory
                     .determineProcessor(loanDTO);
             accountingProcessorForLoan.createJournalEntriesForLoan(loanDTO);
-
-            postHookForLoanJournalEntries(loanDTO);
+            // ensure to post only after the commit
+            afterCommitExecutor.execute(() -> postHookForLoanJournalEntries(loanDTO));
         }
     }
 
