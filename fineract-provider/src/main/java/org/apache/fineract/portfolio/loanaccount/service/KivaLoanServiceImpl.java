@@ -270,6 +270,7 @@ public class KivaLoanServiceImpl implements KivaLoanService {
             List<Boolean> notPictured, Loan loan) {
 
         Client client = loan.getClient();
+        Long activityId = getActivityId(client);
         String gender = (client.gender() != null) ? client.gender().label().toLowerCase() : "unknown";
         String loanPurpose = (loan.getLoanPurpose() != null) ? loan.getLoanPurpose().label() : "Not Defined";
         String clientKivaId = client.getKivaId();
@@ -399,6 +400,7 @@ public class KivaLoanServiceImpl implements KivaLoanService {
         String activity = (String) kivaBusinessDetails.get("activity");
 
         Optional<KivaSectorActivity> kivaSectorActivity =  this.kivaSectorActivityRepository.findBySectorAndActivity(sector,activity);
+
 
         if (kivaSectorActivity.isPresent()) {
             return kivaSectorActivity.get().getActivityId();
