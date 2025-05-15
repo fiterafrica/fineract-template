@@ -875,4 +875,13 @@
                 stripComments="true"/>
     </changeSet>
 
+    <changeSet author="bosco@fiter.io" id="FSI-219-update_portfolio_management_table_reports-ClientType_latest_2_fix" context="mysql">
+        <sqlFile
+                encoding="utf8"
+                path="db/changelog/tenant/commands/update_portfolio_management_table_reports_clientType_latest_fix.sql"
+                relativeToChangelogFile="false"
+                splitStatements="true"
+                stripComments="true"/>
+    </changeSet>
+
 </databaseChangeLog>

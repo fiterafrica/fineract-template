@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.portfolio.loanaccount.service;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -33,21 +34,25 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.HashMap;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.FormBody;
-import okhttp3.HttpUrl;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.HttpUrl;
+import okhttp3.FormBody;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.fineract.infrastructure.codes.data.CodeValueData;
 import org.apache.fineract.infrastructure.codes.service.CodeValueReadPlatformService;
 import org.apache.fineract.infrastructure.core.exception.GeneralPlatformDomainRuleException;
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.apache.fineract.infrastructure.dataqueries.data.GenericResultsetData;
+import org.apache.fineract.infrastructure.dataqueries.data.ResultsetColumnHeaderData;
 import org.apache.fineract.infrastructure.dataqueries.data.ResultsetRowData;
 import org.apache.fineract.infrastructure.dataqueries.service.ReadWriteNonCoreDataService;
 import org.apache.fineract.infrastructure.documentmanagement.data.DocumentData;
@@ -71,6 +76,7 @@ import org.apache.fineract.portfolio.loanaccount.data.KivaLocationData;
 import org.apache.fineract.portfolio.loanaccount.data.KivaSupportedCurrencyData;
 import org.apache.fineract.portfolio.loanaccount.data.KivaSupportedLocationData;
 import org.apache.fineract.portfolio.loanaccount.data.KivaSupportedThemeData;
+import org.apache.fineract.portfolio.loanaccount.data.KivaLoanExceptions;
 import org.apache.fineract.portfolio.loanaccount.data.LoanDetailToKivaData;
 import org.apache.fineract.portfolio.loanaccount.data.ThemeData;
 import org.apache.fineract.portfolio.loanaccount.domain.KivaCurrency;
@@ -108,7 +114,7 @@ public class KivaLoanServiceImpl implements KivaLoanService {
     public static final String FORM_URL_CONTENT_TYPE = "Content-Type";
     public static final String LOAN_STATUS = "payingBack";
     public static final Integer INITIAL_LOAN_LIMIT = 100;
-    public static final Long ACTIVITY_ID = 110L;
+    public static final String LOAN_USE = "loanUse";
     public static final Integer DESCRIPTION_LANGUAGE_ID = 1;
 
     private final LoanRepository loanRepository;
@@ -128,6 +134,8 @@ public class KivaLoanServiceImpl implements KivaLoanService {
     private static final String KIVA_DEPARTMENT_NOT_FOUND = "Loan Department not supported by kiva";
     private static final String KIVA_SECTOR_ACTIVITY_MISMATCH = "The Sector and Activity are not compatible with Kiva";
 
+    @JsonIgnoreProperties({"stackTrace", "suppressed", "localizedMessage"})
+    static abstract class ThrowableMixin {}
     @Override
     @CronTarget(jobName = JobName.POST_LOAN_ACCOUNTS_TO_KIVA)
     public void postLoanAccountsToKiva() {
@@ -140,6 +148,8 @@ public class KivaLoanServiceImpl implements KivaLoanService {
         notPictured.add(Boolean.TRUE);
 
         List<Loan> loanList = loanRepository.findLoanAccountsToBePostedToKiva();
+
+        ArrayList<KivaLoanExceptions> kivaLoanExceptions = new ArrayList<>();
 
         List<Throwable> exceptions = new ArrayList<>();
 
@@ -156,8 +166,21 @@ public class KivaLoanServiceImpl implements KivaLoanService {
                     loanRepository.saveAndFlush(loan);
                 } catch (Exception e) {
                     log.error("Post Loan to KIVA has failed" + e);
-                    exceptions.add(e);
+                    KivaLoanExceptions kivaLoanException = new KivaLoanExceptions();
+                    kivaLoanException.setError(e);
+                    kivaLoanException.setLoanId(loan.getAccountNumber());
+                    kivaLoanExceptions.add(kivaLoanException);
                 }
+            }
+            try{
+                if(!CollectionUtils.isEmpty(kivaLoanExceptions)){
+                    postKivaExceptions(kivaLoanExceptions);
+                    RuntimeException exception = new RuntimeException("There were " + kivaLoanExceptions.size() + " kiva exceptions.");
+                    exceptions.add(exception);
+                }}
+            catch (Exception e){
+                log.error("Could not post errors to external service" + e);
+                exceptions.add(e);
             }
             if (!CollectionUtils.isEmpty(exceptions)) {
                 try {
@@ -166,6 +189,31 @@ public class KivaLoanServiceImpl implements KivaLoanService {
                     throw new RuntimeException(e);
                 }
             }
+        }
+    }
+
+    private void postKivaExceptions(ArrayList<KivaLoanExceptions> kivaLoanExceptions) {
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.addMixIn(Throwable.class, ThrowableMixin.class);
+
+        String json = null;
+        try {
+            json = mapper.writeValueAsString(kivaLoanExceptions);
+
+            OkHttpClient client = new OkHttpClient().newBuilder().build();
+
+            RequestBody body = RequestBody.create(json, MediaType.parse(org.springframework.http.MediaType.APPLICATION_JSON_VALUE));
+            Request request = new Request.Builder()
+                    .url(getConfigProperty("fineract.integrations.kiva.logsUrl"))
+                    .method("POST", body)
+                    .addHeader(FORM_URL_CONTENT_TYPE, org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+                    .build();
+                Response response = client.newCall(request).execute();
+
+                log.info("External log service response: "+ response.body().string());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -222,7 +270,6 @@ public class KivaLoanServiceImpl implements KivaLoanService {
             List<Boolean> notPictured, Loan loan) {
 
         Client client = loan.getClient();
-        Long activityId = getActivityId(client);
         String gender = (client.gender() != null) ? client.gender().label().toLowerCase() : "unknown";
         String loanPurpose = (loan.getLoanPurpose() != null) ? loan.getLoanPurpose().label() : "Not Defined";
         String clientKivaId = client.getKivaId();
@@ -253,6 +300,8 @@ public class KivaLoanServiceImpl implements KivaLoanService {
                         .getValue().toLowerCase(),
                 LoanEnumerations.interestType(loan.getLoanProductRelatedDetail().getInterestMethod().getValue()).getValue(),
                 loan.getLoanProductRelatedDetail().getAnnualNominalInterestRate().toString());
+
+        Long activityId = getActivityId(loan);
 
         // build final object
         LoanDetailToKivaData loanDetailToKivaData = new LoanDetailToKivaData(activityId, Boolean.TRUE, loan.getCurrencyCode(),
@@ -304,26 +353,53 @@ public class KivaLoanServiceImpl implements KivaLoanService {
         }
     }
 
-    private Long getActivityId(Client client){
+    private Map<String,Object> getKivaBusinessDetails(Long loanId){
 
-        final String datatableName = "Kiva Business Details";
-        final Long clientId = client.getId();
+        Map<String,Object> kivaBusinessDetails = new HashMap<>();
+        final String datatableName =  "Kiva Business Details";
 
         GenericResultsetData data = this.readWriteNonCoreDataService.retrieveDataTableGenericResultSet(
-                datatableName, clientId, null, null, null, null);
+                datatableName, loanId, null, null, null, null);
 
         if (data.getData().isEmpty()){
-            throw new LoanDueDiligenceException("validation.msg.loan.sector.activity.missing", "Client is missing Kiva business details");
+            throw new LoanDueDiligenceException("validation.msg.loan.sector.activity.missing", "Loan is missing Kiva business details");
         }
 
         ResultsetRowData kivaResultsRowData = data.getData().get(0);
-        Long sectorId = Long.valueOf(kivaResultsRowData.getRow().get(1));
-        Long activityId = Long.valueOf(kivaResultsRowData.getRow().get(2));
+        List<ResultsetColumnHeaderData> columns = data.getColumnHeaders();
+
+        Long sectorId = null;
+        Long activityId = null;
+        String loanUse = null;
+
+        for (int i = 0; i < columns.size() ;i++ ){
+            ResultsetColumnHeaderData columnHeader = columns.get(i);
+            if(columnHeader.getColumnName().equals("KivaSector_cd_Sector")) sectorId = Long.valueOf(kivaResultsRowData.getRow().get(i));
+            else if (columnHeader.getColumnName().equals("KivaActivity_cd_Activity")) activityId = Long.valueOf(kivaResultsRowData.getRow().get(i));
+            else if(columnHeader.getColumnName().equals("Loan Use")) loanUse = String.valueOf(kivaResultsRowData.getRow().get(i));
+        }
 
         CodeValueData sectorCodeValue = this.codeValueReadPlatformService.retrieveCodeValue(sectorId);
         CodeValueData activityCoderValue = this.codeValueReadPlatformService.retrieveCodeValue(activityId);
 
-        Optional<KivaSectorActivity> kivaSectorActivity =  this.kivaSectorActivityRepository.findBySectorAndActivity(sectorCodeValue.getName(),activityCoderValue.getName());
+        kivaBusinessDetails.put("activity",activityCoderValue.getName());
+        kivaBusinessDetails.put("sector",sectorCodeValue.getName());
+        kivaBusinessDetails.put(LOAN_USE, loanUse);
+
+        return kivaBusinessDetails;
+    }
+
+    private Long getActivityId(Loan loan){
+
+        final Long loanId = loan.getId();
+
+        Map<String,Object> kivaBusinessDetails = getKivaBusinessDetails(loanId);
+
+        String sector = (String) kivaBusinessDetails.get("sector");
+        String activity = (String) kivaBusinessDetails.get("activity");
+
+        Optional<KivaSectorActivity> kivaSectorActivity =  this.kivaSectorActivityRepository.findBySectorAndActivity(sector,activity);
+
 
         if (kivaSectorActivity.isPresent()) {
             return kivaSectorActivity.get().getActivityId();
@@ -594,8 +670,11 @@ public class KivaLoanServiceImpl implements KivaLoanService {
 
     @Override
     public boolean validateLoanKivaDetails(Loan loan) {
-        if (loan.getLoanPurpose() == null) {
-            throw new LoanDueDiligenceException("validation.msg.loan.loanPurposeId.cannot.be.blank", "Loan purpose required.");
+        Map<String,Object> kivaBusinessDetails = getKivaBusinessDetails(loan.getId());
+        String loanUse = (String) kivaBusinessDetails.get(LOAN_USE);
+
+        if ( loanUse == null || loanUse.isEmpty()) {
+            throw new LoanDueDiligenceException("validation.msg.loan.loanUse.cannot.be.blank", "Loan Use is required.");
         }
         if (loan.getDescription() == null) {
             throw new LoanDueDiligenceException("validation.msg.loan.description.cannot.be.blank", "Loan description required.");
@@ -645,7 +724,7 @@ public class KivaLoanServiceImpl implements KivaLoanService {
             throw new LoanDueDiligenceException("validation.msg.loan.profile.image.not.uploaded", "Loan profile image not uploaded");
         }
 
-        getActivityId(loan.client());
+        getActivityId(loan); //used to verify if the sector and activity are as expected
 
         return true;
     }
