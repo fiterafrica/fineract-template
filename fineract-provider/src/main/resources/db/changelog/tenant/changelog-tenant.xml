@@ -151,4 +151,5 @@
     <include file="parts/FSI-94-add-client-id-to-guarantor.xml" relativeToChangelogFile="true"/>
     <include file="parts/FSI-187_add_crb_transunion_logger_details.xml" relativeToChangelogFile="true"/>
     <include file="parts/FSI_209_update_stretchy_report_sql_for_portfolio_management.xml" relativeToChangelogFile="true"/>
+    <include file="parts/FSI-222_update_penalties_section_portfolio_management_report.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>
