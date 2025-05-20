@@ -271,7 +271,6 @@ public class KivaLoanServiceImpl implements KivaLoanService {
 
         Client client = loan.getClient();
         String gender = (client.gender() != null) ? client.gender().label().toLowerCase() : "unknown";
-        String loanPurpose = (loan.getLoanPurpose() != null) ? loan.getLoanPurpose().label() : "Not Defined";
         String clientKivaId = client.getKivaId();
         String base64Image = generateBase64Image(loan);
 
@@ -301,12 +300,14 @@ public class KivaLoanServiceImpl implements KivaLoanService {
                 LoanEnumerations.interestType(loan.getLoanProductRelatedDetail().getInterestMethod().getValue()).getValue(),
                 loan.getLoanProductRelatedDetail().getAnnualNominalInterestRate().toString());
 
+        Map<String,Object> kivaBusinessDetails = getKivaBusinessDetails(loan.getId());
+        String loanUse = (String) kivaBusinessDetails.get(LOAN_USE);
         Long activityId = getActivityId(loan);
 
         // build final object
         LoanDetailToKivaData loanDetailToKivaData = new LoanDetailToKivaData(activityId, Boolean.TRUE, loan.getCurrencyCode(),
                 loan.getDescription(), DESCRIPTION_LANGUAGE_ID, Date.valueOf(loan.getDisbursementDate()), " ", base64Image,
-                client.getId().toString(), generateInternalLoanId(loan.getDisbursementDate(), loan.getId()), loanPurpose, location,
+                client.getId().toString(), generateInternalLoanId(loan.getDisbursementDate(), loan.getId()), loanUse, location,
                 getKivaLoanDepartmentThemeType(loan), kivaLoanAccounts, kivaLoanAccountSchedules, notPictured, scheduleParameters);
 
         Gson gson = new GsonBuilder().registerTypeAdapter(Date.class, new KivaDateSerializerApi()).create();
