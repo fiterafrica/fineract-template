@@ -586,9 +586,15 @@ configure(project.fineractJavaProjects) {
                 'io.cucumber:cucumber-junit-platform-engine',
                 )
     }
+    // Exclude older versions if necessary
     configurations.all {
         resolutionStrategy {
             force 'org.apache.commons:commons-text:1.10.0'
+            eachDependency { DependencyResolveDetails details ->
+                if (details.requested.group == 'org.apache.commons' && details.requested.name == 'commons-text') {
+                    details.useVersion '1.10.0'
+                }
+            }
         }
     }
     test {
