@@ -71,7 +71,7 @@ public class LoanRepaymentWorkbookPopulator extends AbstractWorkbookPopulator {
         Sheet loanRepaymentSheet = workbook.createSheet(TemplatePopulateImportConstants.LOAN_REPAYMENT_SHEET_NAME);
         setLayout(loanRepaymentSheet);
         officeSheetPopulator.populate(workbook, dateFormat);
-        clientSheetPopulator.populate(workbook, dateFormat);
+//        clientSheetPopulator.populate(workbook, dateFormat);
         extrasSheetPopulator.populate(workbook, dateFormat);
         setClientIdToClientExternalId();
         populateLoansTable(loanRepaymentSheet, dateFormat);
@@ -96,6 +96,8 @@ public class LoanRepaymentWorkbookPopulator extends AbstractWorkbookPopulator {
                 row = worksheet.createRow(rowNo);
             }
 
+            writeFormula(LoanRepaymentConstants.OFFICE_NAME_COL, row, "IF($B"
+                            + (rowNo + 1) + "=\"\",\"\"," + TemplatePopulateImportConstants.OFFICE_SHEET_NAME + "!$B$2)");
             writeFormula(LoanRepaymentConstants.CLIENT_NAME_COL, row,
                     "IF(ISERROR(VLOOKUP($D" + (rowNo + 1) + ",$R$2:$X$" + (allloans.size() + 1) + ",2,FALSE)),\"\",(VLOOKUP($D"
                             + (rowNo + 1) + ",$R$2:$X$" + (allloans.size() + 1) + ",2,FALSE)))");
@@ -137,18 +139,18 @@ public class LoanRepaymentWorkbookPopulator extends AbstractWorkbookPopulator {
 
         setNames(worksheet);
 
-        DataValidationConstraint officeNameConstraint = validationHelper.createFormulaListConstraint("Office");
+//        DataValidationConstraint officeNameConstraint = validationHelper.createFormulaListConstraint("Office");
         DataValidationConstraint accountNumberConstraint = validationHelper.createFormulaListConstraint("LoanAccounts");
         DataValidationConstraint paymentTypeConstraint = validationHelper.createFormulaListConstraint("PaymentTypes");
         DataValidationConstraint repaymentDateConstraint = validationHelper
                 .createDateConstraint(DataValidationConstraint.OperatorType.BETWEEN, "01 January 1900", "=TODAY()", dateFormat);
 
-        DataValidation officeValidation = validationHelper.createValidation(officeNameConstraint, officeNameRange);
+//        DataValidation officeValidation = validationHelper.createValidation(officeNameConstraint, officeNameRange);
         DataValidation accountNumberValidation = validationHelper.createValidation(accountNumberConstraint, accountNumberRange);
         DataValidation repaymentTypeValidation = validationHelper.createValidation(paymentTypeConstraint, repaymentTypeRange);
         DataValidation repaymentDateValidation = validationHelper.createValidation(repaymentDateConstraint, repaymentDateRange);
 
-        worksheet.addValidationData(officeValidation);
+//        worksheet.addValidationData(officeValidation);
         worksheet.addValidationData(accountNumberValidation);
         worksheet.addValidationData(repaymentTypeValidation);
         worksheet.addValidationData(repaymentDateValidation);
