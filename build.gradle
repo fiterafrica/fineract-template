@@ -149,6 +149,9 @@ allprojects  {
             dependency 'org.pentaho.reporting.library:libserializer:9.2.0.0-SNAPSHOT'
             dependency 'org.pentaho.reporting.library:libsparkline:9.2.0.0-SNAPSHOT'
             dependency 'org.pentaho.reporting.library:libxml:9.2.0.0-SNAPSHOT'
+
+            dependency 'ch.qos.logback:logback-classic:1.4.14'
+            dependency 'ch.qos.logback:logback-core:1.4.14'
         }
     }
 
