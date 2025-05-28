@@ -1,3 +1,4 @@
+
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements. See the NOTICE file
 # distributed with this work for additional information
@@ -27,13 +28,9 @@ RUN ./gradlew --no-daemon -q  -x compileTestJava -x test bootJar
 RUN mv /fineract/fineract-provider/build/libs/*.jar /fineract/fineract-provider/build/libs/fineract-provider.jar
 
 
-# https://issues.apache.org/jira/browse/LEGAL-462
-# https://issues.apache.org/jira/browse/FINERACT-762
-# We include an alternative JDBC driver (which is faster, but not allowed to be default in Apache distribution)
-# allowing implementations to switch the driver used by changing start-up parameters (for both tenants and each tenant DB)
-# The commented out lines in the docker-compose.yml illustrate how to do this.
+# Download PostgreSQL JDBC driver
 WORKDIR /app/libs
-RUN wget -q https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.29/mysql-connector-java-8.0.29.jar
+RUN wget -q https://jdbc.postgresql.org/download/postgresql-42.6.0.jar
 # =========================================
 
 FROM azul/zulu-openjdk:17 as fineract
@@ -50,10 +47,10 @@ COPY --from=builder /fineract/fineract-provider/build/libs/ /app
 COPY --from=builder /app/libs /app/libs
 
 ENV TZ="UTC"
-ENV FINERACT_HIKARI_DRIVER_SOURCE_CLASS_NAME="com.mysql.cj.jdbc.Driver"
-ENV FINERACT_HIKARI_JDBC_URL="jdbc:mysql://localhost:3306/fineract_tenants"
-ENV FINERACT_HIKARI_USERNAME="root"
-ENV FINERACT_HIKARI_PASSWORD="mysql"
+ENV FINERACT_HIKARI_DRIVER_SOURCE_CLASS_NAME="org.postgresql.Driver"
+ENV FINERACT_HIKARI_JDBC_URL="jdbc:postgresql://localhost:5432/fineract_tenants"
+ENV FINERACT_HIKARI_USERNAME="postgres"
+ENV FINERACT_HIKARI_PASSWORD="postgres"
 ENV FINERACT_HIKARI_MINIMUM_IDLE="1"
 ENV FINERACT_HIKARI_MAXIMUM_POOL_SIZE="20"
 ENV FINERACT_HIKARI_IDLE_TIMEOUT="120000"
@@ -73,13 +70,13 @@ ENV FINERACT_HIKARI_DS_PROPERTIES_MAINTAIN_TIME_STATS="false"
 ENV FINERACT_HIKARI_DS_PROPERTIES_LOG_SLOW_QUERIES="true"
 ENV FINERACT_HIKARI_DS_PROPERTIES_DUMP_QUERIES_IN_EXCEPTION="true"
 ENV FINERACT_DEFAULT_TENANTDB_HOSTNAME="localhost"
-ENV FINERACT_DEFAULT_TENANTDB_PORT="3306"
-ENV FINERACT_DEFAULT_TENANTDB_UID="root"
-ENV FINERACT_DEFAULT_TENANTDB_PWD="mysql"
+ENV FINERACT_DEFAULT_TENANTDB_PORT="5432"
+ENV FINERACT_DEFAULT_TENANTDB_UID="postgres"
+ENV FINERACT_DEFAULT_TENANTDB_PWD="postgres"
 ENV FINERACT_DEFAULT_TENANTDB_TIMEZONE="Africa/Accra"
-ENV FINERACT_DEFAULT_TENANTDB_IDENTIFIER="moniafrica"
-ENV FINERACT_DEFAULT_TENANTDB_NAME="fineract_moniafrica"
-ENV FINERACT_DEFAULT_TENANTDB_DESCRIPTION="MoniAfrica Default Tenant"
+ENV FINERACT_DEFAULT_TENANTDB_IDENTIFIER="default"
+ENV FINERACT_DEFAULT_TENANTDB_NAME="fineract_default"
+ENV FINERACT_DEFAULT_TENANTDB_DESCRIPTION="Default Tenant"
 ENV FINERACT_SERVER_SSL_ENABLED="true"
 ENV FINERACT_SERVER_PORT="8443"
 
