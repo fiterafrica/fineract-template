@@ -155,7 +155,7 @@ configurations {
 }
 dependencies {
     driver 'org.mariadb.jdbc:mariadb-java-client:2.7.6'
-    driver 'org.postgresql:postgresql:42.4.0'
+    driver 'org.postgresql:postgresql:42.7.2'
     driver 'mysql:mysql-connector-java:8.0.29'
 }
 
@@ -227,7 +227,7 @@ bootRun {
 
     dependencies {
         implementation 'org.mariadb.jdbc:mariadb-java-client:2.7.6'
-        implementation 'org.postgresql:postgresql:42.4.0'
+        implementation 'org.postgresql:postgresql:42.7.2'
         implementation 'mysql:mysql-connector-java:8.0.29'
 
         implementation 'org.apache.poi:poi:4.1.2'
@@ -311,7 +311,7 @@ jib {
 
     dependencies {
         implementation 'org.mariadb.jdbc:mariadb-java-client:2.7.6'
-        implementation 'org.postgresql:postgresql:42.4.0'
+        implementation 'org.postgresql:postgresql:42.7.2'
     }
 
     pluginExtensions {
