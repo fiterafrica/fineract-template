@@ -488,4 +488,13 @@ boi.`COUNTRY_cd_Nationality` = cvbon.id
             <where>report_name='Portfolio Management'</where>
         </update>
     </changeSet>
+
+    <changeSet author="deepika@fiter.io" id="FSI-222_update_portfolio_management_table_reports" context="mysql">
+        <sqlFile
+                encoding="utf8"
+                path="db/changelog/tenant/commands/FSI-222_update_portfolio_management_table_reports.sql"
+                relativeToChangelogFile="false"
+                splitStatements="true"
+                stripComments="true"/>
+    </changeSet>
 </databaseChangeLog>
