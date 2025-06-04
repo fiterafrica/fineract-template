@@ -435,6 +435,9 @@ public class BulkImportWorkbookPopulatorServiceImpl implements BulkImportWorkboo
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.FUNDS_ENTITY_TYPE);
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.PAYMENT_TYPE_ENTITY_TYPE);
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.CURRENCY_ENTITY_TYPE);
+        if (officeId == null){
+            throw new GeneralPlatformDomainRuleException("error.msg.office.id.missing", "No office selected");
+        }
         List<OfficeData> offices = fetchOffices(officeId);
         List<ClientData> clients = fetchClients(officeId);
         List<FundData> funds = fetchFunds();
