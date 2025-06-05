@@ -497,4 +497,13 @@ boi.`COUNTRY_cd_Nationality` = cvbon.id
                 splitStatements="true"
                 stripComments="true"/>
     </changeSet>
+
+    <changeSet author="deepika@fiter.io" id="FSI-231_update_portfolio_management_table_reports" context="mysql">
+        <sqlFile
+                encoding="utf8"
+                path="db/changelog/tenant/commands/FSI-231_update_portfolio_management_table_reports.sql"
+                relativeToChangelogFile="false"
+                splitStatements="true"
+                stripComments="true"/>
+    </changeSet>
 </databaseChangeLog>
