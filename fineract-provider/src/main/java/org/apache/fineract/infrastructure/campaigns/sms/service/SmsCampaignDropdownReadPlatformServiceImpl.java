@@ -28,6 +28,7 @@ import org.apache.fineract.infrastructure.campaigns.constants.CampaignType;
 import org.apache.fineract.infrastructure.campaigns.helper.SmsConfigUtils;
 import org.apache.fineract.infrastructure.campaigns.sms.constants.SmsCampaignEnumerations;
 import org.apache.fineract.infrastructure.campaigns.sms.constants.SmsCampaignTriggerType;
+import org.apache.fineract.infrastructure.campaigns.sms.data.SmsGatewayResponse;
 import org.apache.fineract.infrastructure.campaigns.sms.data.SmsProviderData;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
@@ -37,7 +38,6 @@ import org.apache.fineract.portfolio.common.domain.PeriodFrequencyType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -73,15 +73,14 @@ public class SmsCampaignDropdownReadPlatformServiceImpl implements SmsCampaignDr
     @Override
     public Collection<SmsProviderData> retrieveSmsProviders() {
         Collection<SmsProviderData> smsProviderOptions = new ArrayList<>();
-        Map<String, Object> hostConfig = this.smsConfigUtils.getMessageGateWayRequestURI("smsbridges", null);
+        Map<String, Object> hostConfig = this.smsConfigUtils.getMessageGateWayRequestURI("providers", null);
         URI uri = (URI) hostConfig.get("uri");
         HttpEntity<?> entity = (HttpEntity<?>) hostConfig.get("entity");
 
-        ResponseEntity<Collection<SmsProviderData>> responseOne = null;
+        ResponseEntity<SmsGatewayResponse> responseOne = null;
 
         try {
-            responseOne = restTemplate.exchange(uri, HttpMethod.GET, entity,
-                    new ParameterizedTypeReference<Collection<SmsProviderData>>() {});
+            responseOne = restTemplate.exchange(uri, HttpMethod.GET, entity, SmsGatewayResponse.class);
         } catch (ResourceAccessException ex) {
             LOG.debug("Mobile service provider {} not available", uri, ex);
         }
@@ -91,7 +90,14 @@ public class SmsCampaignDropdownReadPlatformServiceImpl implements SmsCampaignDr
                     "Mobile service provider not available.");
         }
 
-        smsProviderOptions = responseOne.getBody();
+        SmsGatewayResponse body = responseOne.getBody();
+        if (body != null && body.getSupportedProviders() != null) {
+            for (String providerName : body.getSupportedProviders()) {
+                SmsProviderData providerData = new SmsProviderData(providerName);
+                smsProviderOptions.add(providerData);
+            }
+        }
+
         return smsProviderOptions;
     }
 
