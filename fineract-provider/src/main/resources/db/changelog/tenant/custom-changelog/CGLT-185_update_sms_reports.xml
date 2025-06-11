@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements. See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership. The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<databaseChangeLog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+
+    <!-- Update Loan in Arrears Report -->
+    <changeSet id="20250611-05-update-loan-arrears-report" author="niceta@inkomoko.com">
+        <update tableName="stretchy_report">
+            <column name="report_sql">
+                <![CDATA[
+                SELECT
+                    mc.id AS "id",
+                    mc.firstname AS "firstName",
+                    mc.middlename AS "middleName",
+                    mc.lastname AS "lastName",
+                    mc.display_name AS "fullName",
+                    mc.mobile_no AS "mobileNo",
+                    ml.principal_amount AS "loanAmount",
+                    (IFNULL(ml.principal_outstanding_derived, 0) +
+                     IFNULL(ml.interest_outstanding_derived, 0) +
+                     IFNULL(ml.fee_charges_outstanding_derived, 0) +
+                     IFNULL(ml.penalty_charges_outstanding_derived, 0)) AS "loanOutstanding",
+                    ml.principal_disbursed_derived AS "loanDisbursed",
+                    laa.overdue_since_date_derived AS "overdueSince",
+                    DATEDIFF(CURDATE(), laa.overdue_since_date_derived) AS "daysOverdue",
+                    IFNULL(laa.total_overdue_derived, 0) AS "totalDue",
+                    ounder.id AS "officeNumber",
+                    ml.account_no AS "loanAccountId",
+                    GROUP_CONCAT(DISTINCT gua.lastname SEPARATOR ', ') AS "guarantorLastNames",
+                    COUNT(DISTINCT gua.id) AS "numberOfGuarantors",
+                    MAX(g.display_name) AS "groupName"
+                FROM
+                    m_office mo
+                JOIN m_office ounder ON
+                    ounder.hierarchy LIKE CONCAT(mo.hierarchy, '%')
+                INNER JOIN m_client mc ON
+                    mc.office_id = ounder.id
+                INNER JOIN m_loan ml ON
+                    ml.client_id = mc.id
+                INNER JOIN r_enum_value rev ON
+                    rev.enum_id = ml.loan_status_id
+                    AND rev.enum_name = 'loan_status_id'
+                INNER JOIN m_loan_arrears_aging laa ON
+                    laa.loan_id = ml.id
+                LEFT JOIN m_currency cur ON
+                    cur.code = ml.currency_code
+                LEFT JOIN m_group_client gc ON
+                    gc.client_id = mc.id
+                LEFT JOIN m_group g ON
+                    g.id = gc.group_id
+                LEFT JOIN m_staff lo ON
+                    lo.id = ml.loan_officer_id
+                LEFT JOIN m_guarantor gua ON
+                    gua.loan_id = ml.id
+                WHERE
+                    ml.loan_status_id = 300
+                    AND mo.id = ${officeId}
+                    AND (IFNULL(ml.loan_officer_id, -10) = ${loanOfficerId} OR "-1" = ${loanOfficerId})
+                    AND (DATEDIFF(CURDATE(), laa.overdue_since_date_derived) BETWEEN ${fromX} AND ${toY})
+                GROUP BY
+                    mc.id,
+                    mc.firstname,
+                    mc.middlename,
+                    mc.lastname,
+                    mc.display_name,
+                    mc.mobile_no,
+                    ml.id,
+                    ml.principal_amount,
+                    ml.principal_outstanding_derived,
+                    ml.interest_outstanding_derived,
+                    ml.fee_charges_outstanding_derived,
+                    ml.penalty_charges_outstanding_derived,
+                    ml.principal_disbursed_derived,
+                    ml.account_no,
+                    laa.overdue_since_date_derived,
+                    laa.total_overdue_derived,
+                    ounder.id
+                ORDER BY
+                    ounder.hierarchy,
+                    ml.currency_code,
+                    mc.account_no,
+                    ml.account_no;
+            ]]>
+            </column>
+            <where>report_name='Loan in arrears'</where>
+        </update>
+    </changeSet>
+
+    <!-- Loan Disbursed -->
+    <changeSet id="20250611-01-insert-loan-disbursed-report" author="niceta@inkomoko.com">
+        <insert tableName="stretchy_report">
+            <column name="report_name" value="Loan Disbursed"/>
+            <column name="description" value="Loan and Client Data of Disbursed Loan"/>
+            <column name="report_type" value="SMS"/>
+            <column name="report_subtype" value="Triggered"/>
+            <column name="report_sql">
+                <![CDATA[
+                SELECT
+                    mc.id,
+                    mc.firstname,
+                    mc.middlename as middlename,
+                    mc.lastname,
+                    mc.display_name as FullName,
+                    mc.mobile_no as mobileNo,
+                    mc.group_name as GroupName,
+                    mo.name as officename,
+                    ml.id as loanId,
+                    ml.account_no as accountnumber,
+                    ml.principal_amount as loanamount,
+                    ml.annual_nominal_interest_rate as annualinterestrate
+                FROM
+                    m_office mo
+                JOIN m_office ounder ON
+                    ounder.hierarchy LIKE CONCAT(mo.hierarchy, '%')
+                    AND ounder.hierarchy like CONCAT('.', '%')
+                LEFT JOIN (
+                    select
+                        ml.id as loanId,
+                        ifnull(mc.id, mc2.id) as id,
+                        ifnull(mc.firstname, mc2.firstname) as firstname,
+                        ifnull(mc.middlename, ifnull(mc2.middlename,(''))) as middlename,
+                        ifnull(mc.lastname, mc2.lastname) as lastname,
+                        ifnull(mc.display_name, mc2.display_name) as display_name,
+                        ifnull(mc.status_enum, mc2.status_enum) as status_enum,
+                        ifnull(mc.mobile_no, mc2.mobile_no) as mobile_no,
+                        ifnull(mg.office_id, mc2.office_id) as office_id,
+                        ifnull(mg.staff_id, mc2.staff_id) as staff_id,
+                        mg.id as group_id,
+                        mg.display_name as group_name
+                    from
+                        m_loan ml
+                    left join m_group mg on
+                        mg.id = ml.group_id
+                    left join m_group_client mgc on
+                        mgc.group_id = mg.id
+                    left join m_client mc on
+                        mc.id = mgc.client_id
+                    left join m_client mc2 on
+                        mc2.id = ml.client_id
+                    order by
+                        loanId ) mc on
+                    mc.office_id = ounder.id
+                left join m_loan ml on
+                    ml.id = mc.loanId
+                WHERE
+                    mc.status_enum = 300
+                    and mc.mobile_no is not null
+                    and (mo.id = ${officeId}
+                        or ${officeId} = -1)
+                    and (mc.staff_id = ${loanOfficerId}
+                        or ${loanOfficerId} = -1)
+                    and (ml.id = ${loanId}
+                        or ${loanId} = -1)
+                    and (mc.id = ${clientId}
+                        or ${clientId} = -1)
+                    and (mc.group_id = ${groupId}
+                        or ${groupId} = -1)
+                    and (ml.loan_type_enum = ${loanType}
+                        or ${loanType} = -1)
+            ]]>
+            </column>
+            <column name="core_report" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+
+    <changeSet author="niceta@inkomoko.com" id="20250611-02-insert-loan-disbursed-report_params">
+    <sql>
+        INSERT INTO stretchy_report_parameter (report_id,parameter_id,report_parameter_name)
+        VALUES
+        ((SELECT id from stretchy_report where report_name = 'Loan Disbursed' and report_type ='SMS'),5,'officeId'),
+        ((SELECT id from stretchy_report where report_name = 'Loan Disbursed' and report_type ='SMS'),6,'loanOfficerId'),
+        ((SELECT id from stretchy_report where report_name = 'Loan Disbursed' and report_type ='SMS'),1017,'loanId'),
+        ((SELECT id from stretchy_report where report_name = 'Loan Disbursed' and report_type ='SMS'),1018,'clientId'),
+        ((SELECT id from stretchy_report where report_name = 'Loan Disbursed' and report_type ='SMS'),1019,'groupId'),
+        ((SELECT id from stretchy_report where report_name = 'Loan Disbursed' and report_type ='SMS'),1020,'loanType');
+    </sql>
+    </changeSet>
+
+    <!-- Loan Due in X days -->
+    <changeSet id="20250611-03-insert-payment-due-in-x-report" author="niceta@inkomoko.com">
+        <insert tableName="stretchy_report">
+            <column name="report_name" value="Loan Due in X days"/>
+            <column name="description" value="Client and loan details for loan due in x days"/>
+            <column name="report_type" value="SMS"/>
+            <column name="report_subtype" value="NonTriggered"/>
+            <column name="report_category" value="Loan"/>
+            <column name="report_sql">
+                <![CDATA[
+                SELECT
+                    cl.id AS `id`,
+                    cl.firstname AS `firstName`,
+                    cl.middlename AS `middleName`,
+                    cl.lastname AS `lastName`,
+                    cl.display_name AS `fullName`,
+                    cl.mobile_no AS `mobileNo`,
+                    l.principal_amount AS `loanAmount`,
+                    mo.id AS `officeNumber`,
+                    (IFNULL(l.principal_outstanding_derived, 0) + IFNULL(l.interest_outstanding_derived, 0) + IFNULL(l.fee_charges_outstanding_derived, 0) + IFNULL(l.penalty_charges_outstanding_derived, 0)) AS `loanOutstanding`,
+                    l.principal_disbursed_derived AS `loanDisbursed`,
+                    ls.duedate AS `paymentDueDate`,
+                    (
+                        IFNULL(SUM(ls.principal_amount), 0) - IFNULL(SUM(ls.principal_writtenoff_derived), 0)
+                        + IFNULL(SUM(ls.interest_amount), 0) - IFNULL(SUM(ls.interest_writtenoff_derived), 0) - IFNULL(SUM(ls.interest_waived_derived), 0)
+                        + IFNULL(SUM(ls.fee_charges_amount), 0) - IFNULL(SUM(ls.fee_charges_writtenoff_derived), 0) - IFNULL(SUM(ls.fee_charges_waived_derived), 0)
+                        + IFNULL(SUM(ls.penalty_charges_amount), 0) - IFNULL(SUM(ls.penalty_charges_writtenoff_derived), 0) - IFNULL(SUM(ls.penalty_charges_waived_derived), 0)
+                    ) AS `totalDue`,
+                    laa.total_overdue_derived AS `totalOverdue`,
+                    l.account_no AS `loanAccountId`,
+                    gua.lastname AS `guarantorLastName`,
+                    COUNT(gua.id) AS `numberOfGuarantors`,
+                    gp.display_name AS `groupName`
+                FROM
+                    m_office mo
+                LEFT JOIN m_client cl ON mo.id = cl.office_id
+                LEFT JOIN m_loan l ON cl.id = l.client_id
+                LEFT JOIN m_group_client gc ON gc.client_id = cl.id
+                LEFT JOIN m_group gp ON gp.id = l.group_id
+                LEFT JOIN m_loan_repayment_schedule ls ON l.id = ls.loan_id
+                LEFT JOIN m_guarantor gua ON gua.loan_id = l.id
+                LEFT JOIN m_loan_arrears_aging laa ON laa.loan_id = l.id
+                WHERE
+                    mo.id = ${officeId}
+                    AND (IFNULL(l.loan_officer_id, -10) = ${loanOfficerId} OR -1 = ${loanOfficerId})
+                    AND (DATEDIFF(ls.duedate, CURDATE()) = ${fromX})
+                    AND (
+                        mo.hierarchy LIKE CONCAT((
+                            SELECT ino.hierarchy
+                            FROM m_office ino
+                            WHERE ino.id = ${officeId}
+                        ), '%')
+                    )
+                    AND (laa.total_overdue_derived IS NULL OR laa.total_overdue_derived = 0)
+                    AND l.loan_status_id = 300
+                GROUP BY
+                    cl.id,
+                    cl.firstname,
+                    cl.middlename,
+                    cl.lastname,
+                    cl.display_name,
+                    cl.mobile_no,
+                    l.principal_amount,
+                    mo.id,
+                    l.principal_disbursed_derived,
+                    ls.duedate,
+                    laa.total_overdue_derived,
+                    l.account_no,
+                    gua.lastname,
+                    gp.display_name,
+                    l.id
+                ORDER BY
+                    mo.hierarchy,
+                    l.currency_code,
+                    cl.account_no,
+                    l.account_no;
+            ]]>
+            </column>
+            <column name="core_report" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+
+    <changeSet author="niceta@inkomoko.com" id="20250611-04-insert-loan-due-in-x-days-report_params">
+        <sql>
+            INSERT INTO stretchy_report_parameter (report_id,parameter_id,report_parameter_name)
+            VALUES
+            ((SELECT id from stretchy_report where report_name = 'Loan Due in X days' and report_type ='SMS'),5,'officeId'),
+            ((SELECT id from stretchy_report where report_name = 'Loan Due in X days' and report_type ='SMS'),6,'loanOfficerId'),
+            ((SELECT id from stretchy_report where report_name = 'Loan Due in X days' and report_type ='SMS'),1013,'fromX');
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
