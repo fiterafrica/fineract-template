@@ -18,17 +18,55 @@
  */
 package org.apache.fineract.infrastructure.sms.data;
 
+import lombok.Getter;
+
 /**
  * Immutable data object representing an outbound SMS message delivery report data
  **/
+@Getter
 public class SmsMessageDeliveryReportData {
 
+    /**
+     * -- GETTER --
+     *
+     * @return the id
+     */
     private Long id;
+    /**
+     * -- GETTER --
+     *
+     * @return the externalId
+     */
     private String externalId;
+    /**
+     * -- GETTER --
+     *
+     * @return the addedOnDate
+     */
     private String addedOnDate;
+    /**
+     * -- GETTER --
+     *
+     * @return the deliveredOnDate
+     */
     private String deliveredOnDate;
-    private Integer deliveryStatus;
+    /**
+     * -- GETTER --
+     *
+     * @return the deliveryStatus
+     */
+    private String deliveryStatus;
+    /**
+     * -- GETTER --
+     *
+     * @return the hasError
+     */
     private Boolean hasError;
+    /**
+     * -- GETTER --
+     *
+     * @return the errorMessage
+     */
     private String errorMessage;
 
     /**
@@ -36,7 +74,7 @@ public class SmsMessageDeliveryReportData {
      *
      *
      **/
-    private SmsMessageDeliveryReportData(Long id, String externalId, String addedOnDate, String deliveredOnDate, Integer deliveryStatus,
+    private SmsMessageDeliveryReportData(Long id, String externalId, String addedOnDate, String deliveredOnDate, String deliveryStatus,
             Boolean hasError, String errorMessage) {
         this.id = id;
         this.externalId = externalId;
@@ -58,57 +96,9 @@ public class SmsMessageDeliveryReportData {
      * @return an instance of the SmsMessageDeliveryReportData class
      **/
     public static SmsMessageDeliveryReportData getInstance(Long id, String externalId, String addedOnDate, String deliveredOnDate,
-            Integer deliveryStatus, Boolean hasError, String errorMessage) {
+            String deliveryStatus, Boolean hasError, String errorMessage) {
 
         return new SmsMessageDeliveryReportData(id, externalId, addedOnDate, deliveredOnDate, deliveryStatus, hasError, errorMessage);
     }
 
-    /**
-     * @return the id
-     */
-    public Long getId() {
-        return id;
-    }
-
-    /**
-     * @return the externalId
-     */
-    public String getExternalId() {
-        return externalId;
-    }
-
-    /**
-     * @return the addedOnDate
-     */
-    public String getAddedOnDate() {
-        return addedOnDate;
-    }
-
-    /**
-     * @return the deliveredOnDate
-     */
-    public String getDeliveredOnDate() {
-        return deliveredOnDate;
-    }
-
-    /**
-     * @return the deliveryStatus
-     */
-    public Integer getDeliveryStatus() {
-        return deliveryStatus;
-    }
-
-    /**
-     * @return the hasError
-     */
-    public Boolean getHasError() {
-        return hasError;
-    }
-
-    /**
-     * @return the errorMessage
-     */
-    public String getErrorMessage() {
-        return errorMessage;
-    }
 }
