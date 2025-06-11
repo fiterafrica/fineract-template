@@ -19,18 +19,21 @@
 package org.apache.fineract.infrastructure.sms.data;
 
 import com.google.gson.Gson;
+import lombok.Getter;
+
 import java.util.Collection;
 
 /**
  * Immutable data object representing the API request body sent in the POST request to the "/queue" resource
  **/
+@Getter
 public class SmsMessageApiQueueResourceData {
 
     private Long internalId;
     private String tenantId;
     private String createdOnDate;
     private String sourceAddress;
-    private String mobileNumber;
+    private String phoneNumber;
     private String message;
     private Long providerId;
 
@@ -43,7 +46,7 @@ public class SmsMessageApiQueueResourceData {
         this.tenantId = mifosTenantIdentifier;
         this.createdOnDate = createdOnDate;
         this.sourceAddress = sourceAddress;
-        this.mobileNumber = mobileNumber;
+        this.phoneNumber = mobileNumber;
         this.message = message;
         this.providerId = providerId;
     }
@@ -63,54 +66,6 @@ public class SmsMessageApiQueueResourceData {
                 providerId);
     }
 
-    /**
-     * @return the internalId
-     */
-    public Long getInternalId() {
-        return internalId;
-    }
-
-    /**
-     * @return the mifosTenantIdentifier
-     */
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    /**
-     * @return the createdOnDate
-     */
-    public String getCreatedOnDate() {
-        return createdOnDate;
-    }
-
-    /**
-     * @return the sourceAddress
-     */
-    public String getSourceAddress() {
-        return sourceAddress;
-    }
-
-    /**
-     * @return the mobileNumber
-     */
-    public String getMobileNumber() {
-        return mobileNumber;
-    }
-
-    /**
-     * @return the message
-     */
-    public String getMessage() {
-        return message;
-    }
-
-    /**
-     * @return the providerId
-     */
-    public Long getproviderId() {
-        return providerId;
-    }
 
     /**
      * Returns the JSOPN representation of the current object.
