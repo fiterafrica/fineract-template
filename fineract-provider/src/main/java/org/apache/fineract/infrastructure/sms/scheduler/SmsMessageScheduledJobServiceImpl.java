@@ -166,7 +166,13 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
             }
 
             // Push response to processor thread
-            genericExecutorService.submit(() -> processSmsGatewayResponse(response.getBody()));
+            genericExecutorService.execute(() -> {
+                try {
+                    processSmsGatewayResponse(response.getBody());
+                } catch (Exception e) {
+                    log.error("Error in async SMS processing", e);
+                }
+            });
 
         } catch (Exception e) {
             log.error("Error sending SMS batch to intermediate server", e);
@@ -183,11 +189,18 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
             for (Map<String, Object> item : responseList) {
                 Long internalId = Long.valueOf((String) item.get("id"));
                 String status = (String) item.get("status");
+                String error = (String) item.getOrDefault("error",null);
+
+
+//                if (status.equals("FAILED") && error==null) error = response;
 
                 Optional<SmsMessage> optionalSms = smsMessageRepository.findById(internalId);
                 if (optionalSms.isPresent()) {
                     SmsMessage sms = optionalSms.get();
                     sms.setStatusType(mapDeliveryStatusToEnum(status, SmsMessageStatusType.PENDING.getValue()));
+                    if (error != null || status.equals("FAILED")) {
+                        sms.setErrorMessage(error);
+                    }
                     smsMessageRepository.saveAndFlush(sms);
                 } else {
                     log.warn("SMS with internal ID {} not found", internalId);

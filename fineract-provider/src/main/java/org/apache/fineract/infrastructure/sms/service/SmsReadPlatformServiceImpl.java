@@ -75,7 +75,8 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
             sql.append("smo.mobile_no as mobileNo, ");
             sql.append("smo.message as message, ");
             sql.append("smc.provider_id as providerId, ");
-            sql.append("smc.campaign_name as campaignName ");
+            sql.append("smc.campaign_name as campaignName, ");
+            sql.append("smo.error_message as errorMessage ");
             sql.append("from sms_messages_outbound smo ");
             sql.append("join sms_campaign smc on smc.id = smo.campaign_id ");
 
@@ -97,18 +98,15 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
             final Long groupId = JdbcSupport.getLong(rs, "groupId");
             final Long clientId = JdbcSupport.getLong(rs, "clientId");
             final Long staffId = JdbcSupport.getLong(rs, "staffId");
-
             final String mobileNo = rs.getString("mobileNo");
             final String message = rs.getString("message");
-
             final Integer statusId = JdbcSupport.getInteger(rs, "statusId");
             final EnumOptionData status = SmsMessageEnumerations.status(statusId);
-
             final Long providerId = JdbcSupport.getLong(rs, "providerId");
-
             final String campaignName = rs.getString("campaignName");
+            final String errorMessage = rs.getString("errorMessage");
 
-            return SmsData.instance(id, groupId, clientId, staffId, status, mobileNo, message, providerId, campaignName);
+            return SmsData.instance(id, groupId, clientId, staffId, status, mobileNo, message, providerId, campaignName,errorMessage);
         }
     }
 
