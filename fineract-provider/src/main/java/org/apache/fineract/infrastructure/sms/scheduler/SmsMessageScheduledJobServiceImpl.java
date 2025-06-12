@@ -191,9 +191,6 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
                 String status = (String) item.get("status");
                 String error = (String) item.getOrDefault("error",null);
 
-
-//                if (status.equals("FAILED") && error==null) error = response;
-
                 Optional<SmsMessage> optionalSms = smsMessageRepository.findById(internalId);
                 if (optionalSms.isPresent()) {
                     SmsMessage sms = optionalSms.get();
@@ -288,7 +285,7 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
 
             try {
                 Map<String, Object> payload = new HashMap<>();
-                payload.put("service", "string"); // Replace with actual service name if needed
+                payload.put("service", FINERACT_SERVICE_NAME);
                 payload.put("internal_ids", internalIds);
 
                 String jsonPayload = new Gson().toJson(payload);

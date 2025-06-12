@@ -99,7 +99,7 @@
                     ounder.hierarchy,
                     ml.currency_code,
                     mc.account_no,
-                    ml.account_no;
+                    ml.account_no
             ]]>
             </column>
             <where>report_name='Loan in arrears'</where>
@@ -271,7 +271,7 @@
                     mo.hierarchy,
                     l.currency_code,
                     cl.account_no,
-                    l.account_no;
+                    l.account_no
             ]]>
             </column>
             <column name="core_report" valueBoolean="false"/>
