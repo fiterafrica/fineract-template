@@ -22,7 +22,6 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import javax.ws.rs.core.UriBuilder;
-import org.apache.fineract.infrastructure.campaigns.sms.constants.SmsCampaignConstants;
 import org.apache.fineract.infrastructure.campaigns.sms.data.MessageGatewayConfigurationData;
 import org.apache.fineract.infrastructure.configuration.service.ExternalServicesPropertiesReadPlatformService;
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
@@ -47,8 +46,6 @@ public class SmsConfigUtils {
         final FineractPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.add(SmsCampaignConstants.FINERACT_PLATFORM_TENANT_ID, tenant.getTenantIdentifier());
-        headers.add(SmsCampaignConstants.FINERACT_TENANT_APP_KEY, messageGatewayConfigurationData.getTenantAppKey());
         StringBuilder pathBuilder = new StringBuilder();
         String endPoint = messageGatewayConfigurationData.getEndPoint() == null || messageGatewayConfigurationData.getEndPoint().equals("/")
                 ? ""
