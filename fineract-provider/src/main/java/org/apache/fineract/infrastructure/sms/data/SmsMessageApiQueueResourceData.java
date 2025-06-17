@@ -19,33 +19,32 @@
 package org.apache.fineract.infrastructure.sms.data;
 
 import com.google.gson.Gson;
+import lombok.Getter;
+
 import java.util.Collection;
 
 /**
  * Immutable data object representing the API request body sent in the POST request to the "/queue" resource
  **/
+@Getter
 public class SmsMessageApiQueueResourceData {
 
     private Long internalId;
-    private String tenantId;
     private String createdOnDate;
-    private String sourceAddress;
-    private String mobileNumber;
+    private String phoneNumber;
     private String message;
-    private Long providerId;
+    private String service;
 
     /**
      * SmsMessageApiQueueResourceData constructor
      **/
-    private SmsMessageApiQueueResourceData(Long internalId, String mifosTenantIdentifier, String createdOnDate, String sourceAddress,
-            String mobileNumber, String message, Long providerId) {
+    private SmsMessageApiQueueResourceData(Long internalId, String createdOnDate,
+            String mobileNumber, String message, String service) {
         this.internalId = internalId;
-        this.tenantId = mifosTenantIdentifier;
         this.createdOnDate = createdOnDate;
-        this.sourceAddress = sourceAddress;
-        this.mobileNumber = mobileNumber;
+        this.phoneNumber = mobileNumber;
         this.message = message;
-        this.providerId = providerId;
+        this.service = service;
     }
 
     /**
@@ -56,61 +55,11 @@ public class SmsMessageApiQueueResourceData {
     /**
      * @return a new instance of the SmsMessageApiQueueResourceData class
      **/
-    public static final SmsMessageApiQueueResourceData instance(Long internalId, String mifosTenantIdentifier, String createdOnDate,
-            String sourceAddress, String mobileNumber, String message, Long providerId) {
+    public static final SmsMessageApiQueueResourceData instance(Long internalId, String createdOnDate, String mobileNumber, String message, String service) {
 
-        return new SmsMessageApiQueueResourceData(internalId, mifosTenantIdentifier, createdOnDate, sourceAddress, mobileNumber, message,
-                providerId);
+        return new SmsMessageApiQueueResourceData(internalId, createdOnDate, mobileNumber, message, service);
     }
 
-    /**
-     * @return the internalId
-     */
-    public Long getInternalId() {
-        return internalId;
-    }
-
-    /**
-     * @return the mifosTenantIdentifier
-     */
-    public String getTenantId() {
-        return tenantId;
-    }
-
-    /**
-     * @return the createdOnDate
-     */
-    public String getCreatedOnDate() {
-        return createdOnDate;
-    }
-
-    /**
-     * @return the sourceAddress
-     */
-    public String getSourceAddress() {
-        return sourceAddress;
-    }
-
-    /**
-     * @return the mobileNumber
-     */
-    public String getMobileNumber() {
-        return mobileNumber;
-    }
-
-    /**
-     * @return the message
-     */
-    public String getMessage() {
-        return message;
-    }
-
-    /**
-     * @return the providerId
-     */
-    public Long getproviderId() {
-        return providerId;
-    }
 
     /**
      * Returns the JSOPN representation of the current object.

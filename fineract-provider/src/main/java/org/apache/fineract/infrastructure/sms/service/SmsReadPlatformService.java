@@ -46,5 +46,7 @@ public interface SmsReadPlatformService {
 
     Page<Long> retrieveAllWaitingForDeliveryReport(Integer limit);
 
+    Page<Long> retrieveAllWaitingForDeliveryReport(int limit, int offset);
+
     List<Long> retrieveAllPending(Integer limit);
 }

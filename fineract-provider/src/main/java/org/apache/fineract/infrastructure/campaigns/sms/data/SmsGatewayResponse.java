@@ -20,22 +20,13 @@ package org.apache.fineract.infrastructure.campaigns.sms.data;
 
 import lombok.Data;
 
+import java.util.List;
+
+
 @Data
-public class SmsProviderData {
-
-    private Long id;
-
-    private String tenantId;
-
-    private String phoneNo;
-
-    private String providerAppKey;
-
-    private String providerName;
-
-    private String providerDescription;
-
-    public SmsProviderData(final String providerName) {
-        this.providerName = providerName;
-    }
+public class SmsGatewayResponse {
+    private String appName;
+    private String version;
+    private List<String> supportedProviders;
 }
+
