@@ -186,6 +186,14 @@ public final class DateUtils {
         return currentUTC.format(formatter);
     }
 
+    public static LocalDate getStartOfCurrentMonth() {
+        LocalDate currentDate = getBusinessLocalDate();
+        YearMonth currentMonth = YearMonth.from(currentDate);
+
+        // Get the last day of the current month
+        return currentMonth.atDay(1);
+    }
+
     public static LocalDate getLastDayOfPreviousMonth() {
         LocalDate currentDate = getBusinessLocalDate();
         YearMonth currentMonth = YearMonth.from(currentDate);

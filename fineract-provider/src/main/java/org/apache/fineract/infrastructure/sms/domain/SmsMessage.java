@@ -27,6 +27,9 @@ import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.campaigns.sms.domain.SmsCampaign;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
@@ -39,49 +42,48 @@ import org.apache.fineract.portfolio.group.domain.Group;
 
 @Entity
 @Table(name = "sms_messages_outbound")
+@Getter
+@Setter
 public class SmsMessage extends AbstractPersistableCustom {
 
-    @Column(name = "external_id", nullable = true)
+    @Column(name = "external_id")
     private String externalId;
 
     @ManyToOne
-    @JoinColumn(name = "group_id", nullable = true)
+    @JoinColumn(name = "group_id")
     private Group group;
 
     @ManyToOne
-    @JoinColumn(name = "client_id", nullable = true)
+    @JoinColumn(name = "client_id")
     private Client client;
 
     @ManyToOne
-    @JoinColumn(name = "staff_id", nullable = true)
+    @JoinColumn(name = "staff_id")
     private Staff staff;
 
     @ManyToOne
-    @JoinColumn(name = "campaign_id", nullable = true)
+    @JoinColumn(name = "campaign_id")
     private SmsCampaign smsCampaign;
 
     @Column(name = "status_enum", nullable = false)
     private Integer statusType;
 
-    @Column(name = "mobile_no", nullable = true, length = 50)
+    @Column(name = "mobile_no", length = 50)
     private String mobileNo;
 
     @Column(name = "message", nullable = false)
     private String message;
 
-    // @Column(name = "provider_id", nullable = true)
-    // private Long providerId;
-    //
-    // @Column(name = "campaign_name", nullable = true)
-    // private String campaignName;
-
-    @Column(name = "submittedon_date", nullable = true)
+    @Column(name = "submittedon_date")
     private LocalDate submittedOnDate;
 
-    @Column(name = "delivered_on_date", nullable = true)
+    @Column(name = "error_message", length = 1000)
+    private String errorMessage;
+
+    @Column(name = "delivered_on_date")
     private LocalDateTime deliveredOnDate;
 
-    @Column(name = "is_notification", nullable = true)
+    @Column(name = "is_notification")
     private boolean isNotification;
 
     public static SmsMessage pendingSms(final String externalId, final Group group, final Client client, final Staff staff,
@@ -132,58 +134,6 @@ public class SmsMessage extends AbstractPersistableCustom {
         }
 
         return actualChanges;
-    }
-
-    public String getExternalId() {
-        return this.externalId;
-    }
-
-    public SmsCampaign getSmsCampaign() {
-        return this.smsCampaign;
-    }
-
-    public Group getGroup() {
-        return group;
-    }
-
-    public Client getClient() {
-        return client;
-    }
-
-    public Staff getStaff() {
-        return staff;
-    }
-
-    public Integer getStatusType() {
-        return statusType;
-    }
-
-    public String getMobileNo() {
-        return mobileNo;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setExternalId(final String externalId) {
-        this.externalId = externalId;
-    }
-
-    public void setStatusType(final Integer statusType) {
-        this.statusType = statusType;
-    }
-
-    public LocalDate getSubmittedOnDate() {
-        return this.submittedOnDate;
-    }
-
-    public LocalDateTime getDeliveredOnDate() {
-        return this.deliveredOnDate;
-    }
-
-    public void setDeliveredOnDate(final LocalDateTime deliveredOnDate) {
-        this.deliveredOnDate = deliveredOnDate;
     }
 
     public boolean isNotification() {

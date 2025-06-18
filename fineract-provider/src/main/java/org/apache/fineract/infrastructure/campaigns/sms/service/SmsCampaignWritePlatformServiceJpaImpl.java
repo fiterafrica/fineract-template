@@ -299,7 +299,7 @@ public class SmsCampaignWritePlatformServiceJpaImpl implements SmsCampaignWriteP
                             SmsMessage smsMessage = SmsMessage.pendingSms(null, null, client, null, textMessage, mobileNumber, smsCampaign,
                                     smsCampaign.isNotification());
                             smsMessage.setStatusType(SmsMessageStatusType.WAITING_FOR_DELIVERY_REPORT.getValue());
-                            this.smsMessageRepository.save(smsMessage);
+                            this.smsMessageRepository.saveAndFlush(smsMessage);
                             Collection<SmsMessage> messages = new ArrayList<>();
                             messages.add(smsMessage);
                             Map<SmsCampaign, Collection<SmsMessage>> smsDataMap = new HashMap<>();
@@ -672,23 +672,4 @@ public class SmsCampaignWritePlatformServiceJpaImpl implements SmsCampaignWriteP
         }
         return today;
     }
-
-    // private String formatDestinationPhoneNumber(String phoneNumber, String
-    // countryCallingCode) {
-    // StringBuilder formatedPhoneNumber = new StringBuilder("+");
-    //
-    // try {
-    // Long phoneNumberToLong = Long.parseLong(phoneNumber);
-    // Long countryCallingCodeToLong = Long.parseLong(countryCallingCode);
-    // formatedPhoneNumber.append(Long.toString(countryCallingCodeToLong));
-    // formatedPhoneNumber.append(Long.toString(phoneNumberToLong));
-    // }
-    //
-    // catch (Exception e) {
-    // LOG.error("Invalid phone number or country calling code, must contain
-    // only numbers", e);
-    // }
-    //
-    // return formatedPhoneNumber.toString();
-    // }
 }

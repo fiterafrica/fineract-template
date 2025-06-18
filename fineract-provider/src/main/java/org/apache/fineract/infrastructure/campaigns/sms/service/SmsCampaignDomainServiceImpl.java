@@ -48,6 +48,7 @@ import org.apache.fineract.portfolio.businessevent.BusinessEventListener;
 import org.apache.fineract.portfolio.businessevent.domain.client.ClientActivateBusinessEvent;
 import org.apache.fineract.portfolio.businessevent.domain.client.ClientRejectBusinessEvent;
 import org.apache.fineract.portfolio.businessevent.domain.loan.LoanApprovedBusinessEvent;
+import org.apache.fineract.portfolio.businessevent.domain.loan.LoanDisbursalBusinessEvent;
 import org.apache.fineract.portfolio.businessevent.domain.loan.LoanRejectedBusinessEvent;
 import org.apache.fineract.portfolio.businessevent.domain.loan.transaction.LoanTransactionMakeRepaymentPostBusinessEvent;
 import org.apache.fineract.portfolio.businessevent.domain.savings.SavingsActivateBusinessEvent;
@@ -82,15 +83,22 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
 
     @PostConstruct
     public void addListeners() {
-        businessEventNotifierService.addPostBusinessEventListener(LoanApprovedBusinessEvent.class, new SendSmsOnLoanApproved());
-        businessEventNotifierService.addPostBusinessEventListener(LoanRejectedBusinessEvent.class, new SendSmsOnLoanRejected());
+        businessEventNotifierService.addPostBusinessEventListener(LoanApprovedBusinessEvent.class,
+                new SendSmsOnLoanApproved());
+        businessEventNotifierService.addPostBusinessEventListener(LoanDisbursalBusinessEvent.class,
+                new SendSmsOnLoanDisbused());
+        businessEventNotifierService.addPostBusinessEventListener(LoanRejectedBusinessEvent.class,
+                new SendSmsOnLoanRejected());
         businessEventNotifierService.addPostBusinessEventListener(LoanTransactionMakeRepaymentPostBusinessEvent.class,
                 new SendSmsOnLoanRepayment());
-        businessEventNotifierService.addPostBusinessEventListener(ClientActivateBusinessEvent.class, new ClientActivatedListener());
-        businessEventNotifierService.addPostBusinessEventListener(ClientRejectBusinessEvent.class, new ClientRejectedListener());
+        businessEventNotifierService.addPostBusinessEventListener(ClientActivateBusinessEvent.class,
+                new ClientActivatedListener());
+        businessEventNotifierService.addPostBusinessEventListener(ClientRejectBusinessEvent.class,
+                new ClientRejectedListener());
         businessEventNotifierService.addPostBusinessEventListener(SavingsActivateBusinessEvent.class,
                 new SavingsAccountActivatedListener());
-        businessEventNotifierService.addPostBusinessEventListener(SavingsRejectBusinessEvent.class, new SavingsAccountRejectedListener());
+        businessEventNotifierService.addPostBusinessEventListener(SavingsRejectBusinessEvent.class,
+                new SavingsAccountRejectedListener());
         businessEventNotifierService.addPostBusinessEventListener(SavingsDepositBusinessEvent.class,
                 new DepositSavingsAccountTransactionListener());
         businessEventNotifierService.addPostBusinessEventListener(SavingsWithdrawalBusinessEvent.class,
@@ -111,6 +119,15 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
 
     private void notifyAcceptedLoanOwner(Loan loan) {
         List<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("Loan Approved");
+        if (smsCampaigns.size() > 0) {
+            for (SmsCampaign campaign : smsCampaigns) {
+                this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(loan, campaign);
+            }
+        }
+    }
+
+    private void notifyDisbusedLoanOwner(Loan loan) {
+        List<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("Loan Disbursed");
         if (smsCampaigns.size() > 0) {
             for (SmsCampaign campaign : smsCampaigns) {
                 this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(loan, campaign);
@@ -378,6 +395,15 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
         public void onBusinessEvent(LoanApprovedBusinessEvent event) {
             Loan loan = event.get();
             notifyAcceptedLoanOwner(loan);
+        }
+    }
+
+    private class SendSmsOnLoanDisbused implements BusinessEventListener<LoanDisbursalBusinessEvent> {
+
+        @Override
+        public void onBusinessEvent(LoanDisbursalBusinessEvent event) {
+            Loan loan = event.get();
+            notifyDisbusedLoanOwner(loan);
         }
     }
 
