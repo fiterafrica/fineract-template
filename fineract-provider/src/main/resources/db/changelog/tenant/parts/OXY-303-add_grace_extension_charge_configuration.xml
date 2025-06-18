@@ -44,4 +44,15 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="update-regex-for-secure-password-validation-policy" author="bosco@fiter.io">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="1">Select count(0) from m_password_validation_policy where id = 2</sqlCheck>
+        </preConditions>
+        <sql>
+            <![CDATA[
+                UPDATE m_password_validation_policy SET regex = '^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*])(?!.*\\s).{6,50}$' WHERE id = 2;
+               ]]>
+        </sql>
+    </changeSet>
+
 </databaseChangeLog>
