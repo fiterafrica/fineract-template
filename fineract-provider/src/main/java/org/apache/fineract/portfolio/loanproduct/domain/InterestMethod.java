@@ -58,4 +58,8 @@ public enum InterestMethod {
     public boolean isDecliningBalnce() {
         return this.value.equals(InterestMethod.DECLINING_BALANCE.getValue());
     }
+
+    public boolean isFlat() {
+        return this.value.equals(InterestMethod.FLAT.getValue());
+    }
 }
