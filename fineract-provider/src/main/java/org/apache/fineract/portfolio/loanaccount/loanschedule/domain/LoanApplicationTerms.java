@@ -1645,6 +1645,11 @@ public final class LoanApplicationTerms {
         }
     }
 
+    /**
+     * Returns the nominal interest rate that applies to each repayment period.
+     * This value represents the fixed interest percentage before converting
+     * it to a decimal fraction (for example 4 for 4%).
+     */
     public BigDecimal getNominalInterestRatePerPeriod() {
         return this.interestRatePerPeriod;
     }
