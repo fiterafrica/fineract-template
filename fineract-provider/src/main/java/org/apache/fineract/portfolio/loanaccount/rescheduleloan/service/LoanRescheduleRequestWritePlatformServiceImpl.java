@@ -47,6 +47,7 @@ import org.apache.fineract.organisation.monetary.domain.ApplicationCurrency;
 import org.apache.fineract.organisation.monetary.domain.ApplicationCurrencyRepositoryWrapper;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.MoneyHelper;
+import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.portfolio.account.service.AccountTransfersWritePlatformService;
 import org.apache.fineract.portfolio.loanaccount.data.LoanTermVariationsData;
 import org.apache.fineract.portfolio.loanaccount.data.ScheduleGeneratorDTO;
@@ -75,6 +76,9 @@ import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanRepayme
 import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanRepaymentScheduleHistoryRepository;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanScheduleGenerator;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanScheduleGeneratorFactory;
+import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanScheduleModel;
+import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanScheduleModelPeriod;
+import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanScheduleModelRepaymentPeriod;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.service.LoanScheduleHistoryWritePlatformService;
 import org.apache.fineract.portfolio.loanaccount.rescheduleloan.RescheduleLoansApiConstants;
 import org.apache.fineract.portfolio.loanaccount.rescheduleloan.data.LoanRescheduleRequestDataValidator;
@@ -522,6 +526,11 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
             final LoanScheduleDTO loanSchedule = loanScheduleGenerator.rescheduleNextInstallments(mathContext, loanApplicationTerms, loan,
                     loanApplicationTerms.getHolidayDetailDTO(), loanRepaymentScheduleTransactionProcessor, rescheduleFromDate);
 
+            if (loanApplicationTerms.getInterestMethod().isFlat() && isRepaymentExtension(loanRescheduleRequest)) {
+                adjustFlatInterestForExtension(loanSchedule.getLoanScheduleModel(), loanSchedule.getInstallments(),
+                        loanApplicationTerms, rescheduleFromDate);
+            }
+
             loan.updateLoanSchedule(loanSchedule.getInstallments());
             loan.recalculateAllCharges();
             ChangedTransactionDetail changedTransactionDetail = loan.processTransactions();
@@ -603,6 +612,34 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
         final Map<String, Object> accountingBridgeData = loan.deriveAccountingBridgeData(applicationCurrency.toData(),
                 existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
         this.journalEntryWritePlatformService.createJournalEntriesForLoan(accountingBridgeData);
+    }
+
+    private boolean isRepaymentExtension(LoanRescheduleRequest loanRescheduleRequest) {
+        return loanRescheduleRequest.getLoanRescheduleRequestToTermVariationMappings().stream()
+                .anyMatch(m -> m.getLoanTermVariations().getTermType().isExtendRepaymentPeriod());
+    }
+
+    private void adjustFlatInterestForExtension(LoanScheduleModel loanScheduleModel,
+            List<LoanRepaymentScheduleInstallment> installments, LoanApplicationTerms terms, LocalDate fromDate) {
+        Money interestPerInstallment = terms.getPrincipal()
+                .percentageOf(terms.getNominalInterestRatePerPeriod(), MoneyHelper.getRoundingMode());
+        MonetaryCurrency currency = terms.getCurrency();
+
+        for (LoanScheduleModelPeriod period : loanScheduleModel.getPeriods()) {
+            if (period.isRepaymentPeriod() && !period.periodDueDate().isBefore(fromDate)) {
+                LoanScheduleModelRepaymentPeriod rp = (LoanScheduleModelRepaymentPeriod) period;
+                BigDecimal current = rp.interestDue() == null ? BigDecimal.ZERO : rp.interestDue();
+                Money currentInterest = Money.of(currency, current);
+                Money diff = interestPerInstallment.minus(currentInterest);
+                rp.addInterestAmount(diff);
+            }
+        }
+
+        for (LoanRepaymentScheduleInstallment installment : installments) {
+            if (!installment.getDueDate().isBefore(fromDate)) {
+                installment.updateInterestCharged(interestPerInstallment.getAmount());
+            }
+        }
     }
 
     @Override

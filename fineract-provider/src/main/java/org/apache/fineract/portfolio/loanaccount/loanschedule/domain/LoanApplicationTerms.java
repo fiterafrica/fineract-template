@@ -1645,6 +1645,10 @@ public final class LoanApplicationTerms {
         }
     }
 
+    public BigDecimal getNominalInterestRatePerPeriod() {
+        return this.interestRatePerPeriod;
+    }
+
     public BigDecimal getAnnualNominalInterestRate() {
         return this.annualNominalInterestRate;
     }

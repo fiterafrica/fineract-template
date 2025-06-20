@@ -20,11 +20,14 @@ package org.apache.fineract.portfolio.loanaccount.rescheduleloan.service;
 
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.apache.fineract.organisation.monetary.domain.MoneyHelper;
+import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
+import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.portfolio.loanaccount.data.LoanTermVariationsData;
 import org.apache.fineract.portfolio.loanaccount.data.ScheduleGeneratorDTO;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
@@ -40,6 +43,8 @@ import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanApplica
 import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanScheduleGenerator;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanScheduleGeneratorFactory;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanScheduleModel;
+import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanScheduleModelPeriod;
+import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanScheduleModelRepaymentPeriod;
 import org.apache.fineract.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleRequest;
 import org.apache.fineract.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleRequestRepositoryWrapper;
 import org.apache.fineract.portfolio.loanaccount.rescheduleloan.exception.LoanRescheduleRequestNotFoundException;
@@ -140,7 +145,34 @@ public class LoanReschedulePreviewPlatformServiceImpl implements LoanRescheduleP
         LoanScheduleModel loanScheduleModels = LoanScheduleModel.withLoanScheduleModelPeriods(loanScheduleModel.getPeriods(),
                 loanScheduleModel);
 
+        if (loanApplicationTerms.getInterestMethod().isFlat()
+                && isRepaymentExtension(loanRescheduleRequest)) {
+            adjustFlatInterestForExtension(loanScheduleModels, loanApplicationTerms, rescheduleFromDate);
+        }
+
         return loanScheduleModels;
+    }
+
+    private boolean isRepaymentExtension(LoanRescheduleRequest loanRescheduleRequest) {
+        return loanRescheduleRequest.getLoanRescheduleRequestToTermVariationMappings().stream()
+                .anyMatch(m -> m.getLoanTermVariations().getTermType().isExtendRepaymentPeriod());
+    }
+
+    private void adjustFlatInterestForExtension(LoanScheduleModel loanScheduleModel, LoanApplicationTerms terms,
+            LocalDate fromDate) {
+        Money interestPerInstallment = terms.getPrincipal()
+                .percentageOf(terms.getNominalInterestRatePerPeriod(), MoneyHelper.getRoundingMode());
+
+        for (LoanScheduleModelPeriod period : loanScheduleModel.getPeriods()) {
+            if (period.isRepaymentPeriod() && !period.periodDueDate().isBefore(fromDate)) {
+                LoanScheduleModelRepaymentPeriod rp = (LoanScheduleModelRepaymentPeriod) period;
+                MonetaryCurrency currency = terms.getCurrency();
+                BigDecimal current = rp.interestDue() == null ? BigDecimal.ZERO : rp.interestDue();
+                Money currentInterest = Money.of(currency, current);
+                Money difference = interestPerInstallment.minus(currentInterest);
+                rp.addInterestAmount(difference);
+            }
+        }
     }
 
 }
