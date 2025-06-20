@@ -70,8 +70,8 @@ public class FlatInterestLoanScheduleGenerator extends AbstractLoanScheduleGener
          * loanApplicationTerms.getTotalInterestDue(); totalInterestDueForLoan =
          * totalInterestDueForLoan.plus(loanApplicationTerms. getPartialTotalCumulativeInterest()); }
          */
-        interestForThisInstallment = loanApplicationTerms.adjustInterestIfLastRepaymentPeriod(interestForThisInstallment,
-                totalCumulativeInterestToDate, totalInterestDueForLoan, periodNumber);
+        // keep the same interest amount for each installment on flat interest loans
+        // regardless of previously accrued interest when rescheduling
 
         return new PrincipalInterest(principalForThisInstallment, interestForThisInstallment, interestBroughtForwardDueToGrace);
     }
