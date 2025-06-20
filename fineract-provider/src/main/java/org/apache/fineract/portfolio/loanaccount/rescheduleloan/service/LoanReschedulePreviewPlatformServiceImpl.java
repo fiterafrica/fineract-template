@@ -22,6 +22,7 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -145,9 +146,8 @@ public class LoanReschedulePreviewPlatformServiceImpl implements LoanRescheduleP
         LoanScheduleModel loanScheduleModels = LoanScheduleModel.withLoanScheduleModelPeriods(loanScheduleModel.getPeriods(),
                 loanScheduleModel);
 
-        if (loanApplicationTerms.getInterestMethod().isFlat()
-                && isRepaymentExtension(loanRescheduleRequest)) {
-            adjustFlatInterestForExtension(loanScheduleModels, loanApplicationTerms, rescheduleFromDate);
+        if (loanApplicationTerms.getInterestMethod().isFlat() && isRepaymentExtension(loanRescheduleRequest)) {
+            loanScheduleModels = adjustFlatInterestForExtension(loanScheduleModels, loanApplicationTerms, rescheduleFromDate);
         }
 
         return loanScheduleModels;
@@ -158,21 +158,49 @@ public class LoanReschedulePreviewPlatformServiceImpl implements LoanRescheduleP
                 .anyMatch(m -> m.getLoanTermVariations().getTermType().isExtendRepaymentPeriod());
     }
 
-    private void adjustFlatInterestForExtension(LoanScheduleModel loanScheduleModel, LoanApplicationTerms terms,
+    private LoanScheduleModel adjustFlatInterestForExtension(LoanScheduleModel loanScheduleModel, LoanApplicationTerms terms,
             LocalDate fromDate) {
         Money interestPerInstallment = terms.getPrincipal()
                 .percentageOf(terms.getNominalInterestRatePerPeriod(), MoneyHelper.getRoundingMode());
 
+        BigDecimal totalPrincipal = BigDecimal.ZERO;
+        BigDecimal totalInterest = BigDecimal.ZERO;
+        BigDecimal totalFees = BigDecimal.ZERO;
+        BigDecimal totalPenalty = BigDecimal.ZERO;
+        LocalDate lastDueDate = null;
+
         for (LoanScheduleModelPeriod period : loanScheduleModel.getPeriods()) {
-            if (period.isRepaymentPeriod() && !period.periodDueDate().isBefore(fromDate)) {
+            if (period.isRepaymentPeriod()) {
                 LoanScheduleModelRepaymentPeriod rp = (LoanScheduleModelRepaymentPeriod) period;
-                MonetaryCurrency currency = terms.getCurrency();
-                BigDecimal current = rp.interestDue() == null ? BigDecimal.ZERO : rp.interestDue();
-                Money currentInterest = Money.of(currency, current);
-                Money difference = interestPerInstallment.minus(currentInterest);
-                rp.addInterestAmount(difference);
+                if (!period.periodDueDate().isBefore(fromDate)) {
+                    MonetaryCurrency currency = terms.getCurrency();
+                    BigDecimal current = rp.interestDue() == null ? BigDecimal.ZERO : rp.interestDue();
+                    Money currentInterest = Money.of(currency, current);
+                    Money difference = interestPerInstallment.minus(currentInterest);
+                    rp.addInterestAmount(difference);
+                }
+
+                totalPrincipal = totalPrincipal.add(rp.principalDue() == null ? BigDecimal.ZERO : rp.principalDue());
+                totalInterest = totalInterest.add(rp.interestDue() == null ? BigDecimal.ZERO : rp.interestDue());
+                totalFees = totalFees.add(rp.feeChargesDue() == null ? BigDecimal.ZERO : rp.feeChargesDue());
+                totalPenalty = totalPenalty.add(rp.penaltyChargesDue() == null ? BigDecimal.ZERO : rp.penaltyChargesDue());
+                lastDueDate = rp.periodDueDate();
             }
         }
+
+        BigDecimal totalRepaymentExpected = totalPrincipal.add(totalInterest).add(totalFees).add(totalPenalty);
+        int loanTermInDays = 0;
+        if (lastDueDate != null) {
+            loanTermInDays = (int) ChronoUnit.DAYS.between(terms.getExpectedDisbursementDate(), lastDueDate);
+        }
+
+        LoanScheduleModel adjusted = LoanScheduleModel.from(loanScheduleModel.getPeriods(), terms.getApplicationCurrency(),
+                loanTermInDays, terms.getPrincipal(), totalPrincipal, BigDecimal.ZERO, totalInterest, totalFees, totalPenalty,
+                totalRepaymentExpected, BigDecimal.ZERO);
+
+        terms.updateTotalInterestDue(Money.of(terms.getCurrency(), totalInterest));
+
+        return adjusted;
     }
 
 }
