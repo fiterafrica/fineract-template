@@ -38,6 +38,8 @@ import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityEx
 import org.apache.fineract.infrastructure.documentmanagement.data.DocumentData;
 import org.apache.fineract.infrastructure.documentmanagement.service.DocumentReadPlatformService;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
+import org.apache.fineract.portfolio.businessevent.domain.loan.LoanDecisionAcceptedEvent;
+import org.apache.fineract.portfolio.businessevent.service.BusinessEventNotifierService;
 import org.apache.fineract.portfolio.client.data.ClientOtherInfoData;
 import org.apache.fineract.portfolio.client.exception.ClientOtherInfoNotFoundException;
 import org.apache.fineract.portfolio.client.service.ClientOtherInfoReadPlatformService;
@@ -66,6 +68,7 @@ import org.apache.fineract.portfolio.loanaccount.serialization.LoanDecisionTrans
 import org.apache.fineract.portfolio.note.domain.Note;
 import org.apache.fineract.portfolio.note.domain.NoteRepository;
 import org.apache.fineract.useradministration.domain.AppUser;
+import org.apache.fineract.useradministration.domain.AppUserRepository;
 import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -76,6 +79,7 @@ import org.springframework.util.CollectionUtils;
 public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanApplicationDecisionWritePlatformService {
 
     private final PlatformSecurityContext context;
+    private final AppUserRepository appUserRepository;
     private final LoanDecisionTransitionApiJsonValidator loanDecisionTransitionApiJsonValidator;
     private final LoanRepositoryWrapper loanRepositoryWrapper;
     private final LoanDecisionRepository loanDecisionRepository;
@@ -93,6 +97,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
     private final LoanUtilService loanUtilService;
     private final ClientOtherInfoReadPlatformService clientOtherInfoReadPlatformService;
     private final KivaLoanService kivaLoanService;
+    private final BusinessEventNotifierService businessEventNotifierService;
+
 
     @Override
     public CommandProcessingResult acceptLoanApplicationReview(final Long loanId, final JsonCommand command) {
@@ -101,11 +107,14 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         this.loanDecisionTransitionApiJsonValidator.validateApplicationReview(command.json());
 
+        final AppUser nextApprover = getNextApprover(command);
+
         final Loan loan = this.loanRepositoryWrapper.findOneWithNotFoundDetection(loanId, true);
         final LoanDecision loanDecision = this.loanDecisionRepository.findLoanDecisionByLoanId(loan.getId());
 
         validateReviewApplicationBusinessRule(command, loan, loanDecision);
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleFrom(command, loan, currentUser);
+        setNextApprover(loanDecisionObj,nextApprover);
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -116,6 +125,10 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             final Note note = Note.loanNote(loanObj, "Review Application: " + loanDecisionObj.getReviewApplicationNote());
             this.noteRepository.save(note);
         }
+
+        this.businessEventNotifierService.notifyPostBusinessEvent(
+                new LoanDecisionAcceptedEvent(loan, savedObj));
+
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
@@ -248,10 +261,12 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             loanDecision.setIdeaClient(true);
             validateRecommendedAmountShouldNotBeGreaterThanProposedAmount(loan.getProposedPrincipal(), recommendedAmount);
         }
+        final AppUser nextApprover = getNextApprover(command);
 
         validateDueDiligenceBusinessRule(command, loan, loanDecision);
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleDueDiligenceFrom(command, currentUser, loanDecision);
+        setNextApprover(loanDecisionObj,nextApprover);
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -265,6 +280,9 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                             + PeriodFrequencyType.fromInt(termPeriodFrequencyEnum));
             this.noteRepository.save(note);
         }
+
+        this.businessEventNotifierService.notifyPostBusinessEvent(
+                new LoanDecisionAcceptedEvent(loan, savedObj));
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
@@ -291,22 +309,29 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         this.loanDecisionTransitionApiJsonValidator.validateCollateralReview(command.json());
 
+        final AppUser nextApprover = getNextApprover(command);
+
         final Loan loan = this.loanRepositoryWrapper.findOneWithNotFoundDetection(loanId, true);
         final LoanDecision loanDecision = this.loanDecisionRepository.findLoanDecisionByLoanId(loan.getId());
 
         loanDecisionStateUtilService.validateCollateralReviewBusinessRule(command, loan, loanDecision);
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleCollateralReviewFrom(command, currentUser, loanDecision);
+        loanDecisionObj.setIcReviewDecisionLevelTwoBy(nextApprover);
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
         loanObj.setLoanDecisionState(LoanDecisionState.COLLATERAL_REVIEW.getValue());
+        setNextApprover(loanDecisionObj,nextApprover);
         this.loanRepositoryWrapper.saveAndFlush(loanObj);
 
         if (StringUtils.isNotBlank(loanDecisionObj.getCollateralReviewNote())) {
             final Note note = Note.loanNote(loanObj, "Collateral Review : " + loanDecisionObj.getCollateralReviewNote());
             this.noteRepository.save(note);
         }
+
+        this.businessEventNotifierService.notifyPostBusinessEvent(
+                new LoanDecisionAcceptedEvent(loan, savedObj));
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
@@ -440,6 +465,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             }
         }
 
+        final AppUser nextApprover = getNextApprover(command);
+
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
         // Determine the Next Level or stage to review
@@ -468,6 +495,9 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelOneFrom(command, currentUser, loanDecision, false,
                 icReviewOn, recommendedAmount, termFrequency, termPeriodFrequencyEnum);
+
+        setNextApprover(loanDecisionObj,nextApprover);
+
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -482,6 +512,9 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             this.noteRepository.save(note);
         }
         validateRecommendedAmountShouldNotBeGreaterThanProposedAmount(loan.getProposedPrincipal(), recommendedAmount);
+
+        this.businessEventNotifierService.notifyPostBusinessEvent(
+                new LoanDecisionAcceptedEvent(loan, savedObj));
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
@@ -525,6 +558,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             }
         }
 
+        final AppUser nextApprover = getNextApprover(command);
+
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
         // Determine the Next Level or stage to review
@@ -553,6 +588,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelTwoFrom(command, currentUser, loanDecision,
                 Boolean.FALSE, icReviewOn, recommendedAmount, termFrequency, termPeriodFrequencyEnum);
+
+        loanDecisionObj.setIcReviewDecisionLevelThreeBy(nextApprover);
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -567,6 +604,9 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             this.noteRepository.save(note);
         }
         validateRecommendedAmountShouldNotBeGreaterThanProposedAmount(loan.getProposedPrincipal(), recommendedAmount);
+
+        this.businessEventNotifierService.notifyPostBusinessEvent(
+                new LoanDecisionAcceptedEvent(loan, savedObj));
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
@@ -609,6 +649,7 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                         "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
             }
         }
+        final AppUser nextApprover = getNextApprover(command);
 
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
@@ -638,6 +679,7 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelThreeFrom(command, currentUser, loanDecision,
                 Boolean.FALSE, icReviewOn, recommendedAmount, termFrequency, termPeriodFrequencyEnum);
+        setNextApprover(loanDecisionObj,nextApprover);
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -652,6 +694,9 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             this.noteRepository.save(note);
         }
         validateRecommendedAmountShouldNotBeGreaterThanProposedAmount(loan.getProposedPrincipal(), recommendedAmount);
+
+        this.businessEventNotifierService.notifyPostBusinessEvent(
+                new LoanDecisionAcceptedEvent(loan, savedObj));
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
@@ -694,6 +739,7 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                         "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
             }
         }
+        final AppUser nextApprover = getNextApprover(command);
 
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
@@ -723,6 +769,7 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelFourFrom(command, currentUser, loanDecision,
                 Boolean.FALSE, icReviewOn, recommendedAmount, termFrequency, termPeriodFrequencyEnum);
+        setNextApprover(loanDecisionObj,nextApprover);
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -737,6 +784,9 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             this.noteRepository.save(note);
         }
         validateRecommendedAmountShouldNotBeGreaterThanProposedAmount(loan.getProposedPrincipal(), recommendedAmount);
+
+        this.businessEventNotifierService.notifyPostBusinessEvent(
+                new LoanDecisionAcceptedEvent(loan, savedObj));
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
@@ -780,6 +830,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             }
         }
 
+        final AppUser nextApprover = getNextApprover(command);
+
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
         // Determine the Next Level or stage to review
@@ -802,6 +854,7 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelFiveFrom(command, currentUser, loanDecision,
                 Boolean.FALSE, icReviewOn, recommendedAmount, termFrequency, termPeriodFrequencyEnum);
+        setNextApprover(loanDecisionObj,nextApprover);
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -816,6 +869,9 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             this.noteRepository.save(note);
         }
         validateRecommendedAmountShouldNotBeGreaterThanProposedAmount(loan.getProposedPrincipal(), recommendedAmount);
+
+        this.businessEventNotifierService.notifyPostBusinessEvent(
+                new LoanDecisionAcceptedEvent(loan, savedObj));
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
@@ -927,4 +983,28 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         return user;
     }
 
+    private AppUser getNextApprover(JsonCommand command) {
+        final Long nextApproverUserId = command.longValueOfParameterNamed("nextApproverUserId");
+        if (nextApproverUserId == null) {
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.next.approver.user.id.required",
+                    "The field 'nextApproverUserId' is required.");
+        }
+        final AppUser nextApprover = appUserRepository.findById(nextApproverUserId)
+                .orElseThrow(() -> new GeneralPlatformDomainRuleException("validation.msg.next.approver.user.id.invalid",
+                        "Next approver user not found for ID: " + nextApproverUserId));
+        return nextApprover;
+    }
+
+    private void setNextApprover(LoanDecision decision, AppUser nextApprover) {
+        Integer nextStage = decision.getNextLoanIcReviewDecisionState();
+        switch (LoanDecisionState.fromInt(nextStage)) {
+            case IC_REVIEW_LEVEL_ONE -> decision.setIcReviewDecisionLevelOneBy(nextApprover);
+            case IC_REVIEW_LEVEL_TWO -> decision.setIcReviewDecisionLevelTwoBy(nextApprover);
+            case IC_REVIEW_LEVEL_THREE -> decision.setIcReviewDecisionLevelThreeBy(nextApprover);
+            case IC_REVIEW_LEVEL_FOUR -> decision.setIcReviewDecisionLevelFourBy(nextApprover);
+            case IC_REVIEW_LEVEL_FIVE -> decision.setIcReviewDecisionLevelFiveBy(nextApprover);
+            case PREPARE_AND_SIGN_CONTRACT -> decision.setPrepareAndSignContractBy(nextApprover);
+        }
+
+    }
 }
