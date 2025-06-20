@@ -140,6 +140,23 @@ public class LoanReschedulePreviewPlatformServiceImpl implements LoanRescheduleP
         LoanScheduleModel loanScheduleModels = LoanScheduleModel.withLoanScheduleModelPeriods(loanScheduleModel.getPeriods(),
                 loanScheduleModel);
 
+        // ensure interest for each period is calculated using the fixed interest rate per period on the original principal
+        if (loanApplicationTerms.getInterestMethod().isFlat()) {
+            Money principal = loanApplicationTerms.getPrincipal();
+            BigDecimal ratePerPeriod = loanApplicationTerms.getNominalInterestRatePerPeriod();
+            for (LoanScheduleModelPeriod period : loanScheduleModels.getPeriods()) {
+                if (period.isRepaymentPeriod()) {
+                    BigDecimal expectedInterest = principal.getAmount().multiply(ratePerPeriod).divide(BigDecimal.valueOf(100));
+                    BigDecimal currentInterest = period.interestDue() == null ? BigDecimal.ZERO : period.interestDue();
+                    BigDecimal diff = expectedInterest.subtract(currentInterest);
+                    if (diff.compareTo(BigDecimal.ZERO) != 0) {
+                        ((LoanScheduleModelRepaymentPeriod) period)
+                                .addInterestAmount(Money.of(principal.getCurrency(), diff));
+                    }
+                }
+            }
+        }
+
         return loanScheduleModels;
     }
 
