@@ -1265,7 +1265,7 @@ public final class LoanDecisionTransitionApiJsonValidator {
         final Set<String> reviewParameters = new HashSet<>(Arrays.asList(LoanApiConstants.loanId,
                 LoanApiConstants.icReviewOnDateParameterName, LoanApiConstants.noteParameterName, LoanApiConstants.localeParameterName,
                 LoanApiConstants.dateFormatParameterName, LoanApiConstants.icReviewRecommendedAmount,
-                LoanApiConstants.icReviewTermFrequency, LoanApiConstants.icReviewTermPeriodFrequencyEnum));
+                LoanApiConstants.icReviewTermFrequency, LoanApiConstants.icReviewTermPeriodFrequencyEnum, LoanApiConstants.nextApproverUserId));
 
         final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
         this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, reviewParameters);
