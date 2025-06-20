@@ -37,10 +37,12 @@ public class FlatInterestLoanScheduleGenerator extends AbstractLoanScheduleGener
             @SuppressWarnings("unused") Map<LocalDate, Money> compoundingMap, LocalDate periodStartDate, LocalDate periodEndDate,
             @SuppressWarnings("unused") Collection<LoanTermVariationsData> termVariations) {
 
+        Money interestForThisInstallment = loanApplicationTerms.getPrincipal()
+                .percentageOf(loanApplicationTerms.getNominalInterestRatePerPeriod(), mc.getRoundingMode());
+
         final PrincipalInterest result = loanApplicationTerms.calculateTotalInterestForPeriod(calculator,
                 interestCalculationGraceOnRepaymentPeriodFraction, periodNumber, mc, cumulatingInterestPaymentDueToGrace,
                 outstandingBalance, periodStartDate, periodEndDate);
-        Money interestForThisInstallment = result.interest();
 
         Money principalForThisInstallment = loanApplicationTerms.calculateTotalPrincipalForPeriod(calculator, outstandingBalance,
                 periodNumber, mc, interestForThisInstallment);
