@@ -361,6 +361,9 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                     parent);
         }
 
+        // Extending the repayment period only adds new installments. For flat-interest loans the
+        // interest charged in each installment remains constant even after rescheduling. The
+        // schedule generator ensures this behaviour when processing the variation below.
         if (rescheduleFromDate != null && extraTerms != null) {
             LoanTermVariations parent = null;
             final Integer termType = LoanTermVariationType.EXTEND_REPAYMENT_PERIOD.getValue();

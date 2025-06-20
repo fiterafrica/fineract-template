@@ -1133,6 +1133,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                     Integer rescheduleNumberOfRepayments = loanApplicationTerms.getNumberOfRepayments();
                     rescheduleNumberOfRepayments += loanTermVariationsData.getDecimalValue().intValue();
                     loanApplicationTerms.updateNumberOfRepayments(rescheduleNumberOfRepayments);
+                    loanApplicationTerms.updateLoanTermFrequency(rescheduleNumberOfRepayments);
                     LocalDate loanEndDate = this.scheduledDateGenerator.getLastRepaymentDate(loanApplicationTerms,
                             loanApplicationTerms.getHolidayDetailDTO());
                     loanApplicationTerms.updateLoanEndDate(loanEndDate);
@@ -1243,6 +1244,7 @@ public abstract class AbstractLoanScheduleGenerator implements LoanScheduleGener
                     Integer rescheduleNumberOfRepayments = loanApplicationTerms.getNumberOfRepayments();
                     rescheduleNumberOfRepayments += loanTermVariationsData.getDecimalValue().intValue();
                     loanApplicationTerms.updateNumberOfRepayments(rescheduleNumberOfRepayments);
+                    loanApplicationTerms.updateLoanTermFrequency(rescheduleNumberOfRepayments);
                     // generate list of proposed schedule due dates
                     LocalDate loanEndDate = this.scheduledDateGenerator.getLastRepaymentDate(loanApplicationTerms,
                             loanApplicationTerms.getHolidayDetailDTO());
