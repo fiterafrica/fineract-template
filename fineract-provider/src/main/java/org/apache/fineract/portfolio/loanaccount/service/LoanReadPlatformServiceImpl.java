@@ -151,7 +151,9 @@ import org.apache.fineract.portfolio.paymenttype.service.PaymentTypeReadPlatform
 import org.apache.fineract.portfolio.savings.exception.SavingsAccountSearchParameterNotProvidedException;
 import org.apache.fineract.portfolio.savings.request.FilterSelection;
 import org.apache.fineract.portfolio.search.service.SearchReadPlatformService;
+import org.apache.fineract.useradministration.data.AppUserData;
 import org.apache.fineract.useradministration.domain.AppUser;
+import org.apache.fineract.useradministration.service.AppUserReadPlatformService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -197,25 +199,26 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
     private final LoanDueDiligenceInfoRepository loanDueDiligenceInfoRepository;
     private final CurrencyReadPlatformService currencyReadPlatformService;
     private final LoanTransactionRepository loanTransactionRepository;
+    private final AppUserReadPlatformService appUserReadPlatformService;
 
     @Autowired
     public LoanReadPlatformServiceImpl(final PlatformSecurityContext context,
-            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepository,
-            final LoanProductReadPlatformService loanProductReadPlatformService, final ClientReadPlatformService clientReadPlatformService,
-            final GroupReadPlatformService groupReadPlatformService, final LoanDropdownReadPlatformService loanDropdownReadPlatformService,
-            final FundReadPlatformService fundReadPlatformService, final ChargeReadPlatformService chargeReadPlatformService,
-            final CodeValueReadPlatformService codeValueReadPlatformService, final JdbcTemplate jdbcTemplate,
-            final NamedParameterJdbcTemplate namedParameterJdbcTemplate, final CalendarReadPlatformService calendarReadPlatformService,
-            final StaffReadPlatformService staffReadPlatformService, final PaymentTypeReadPlatformService paymentTypeReadPlatformService,
-            final LoanRepaymentScheduleTransactionProcessorFactory loanRepaymentScheduleTransactionProcessorFactory,
-            final FloatingRatesReadPlatformService floatingRatesReadPlatformService, final LoanUtilService loanUtilService,
-            final ConfigurationDomainService configurationDomainService,
-            final PortfolioAccountReadPlatformService portfolioAccountReadPlatformService,
-            final AccountDetailsReadPlatformService accountDetailsReadPlatformService, final LoanRepositoryWrapper loanRepositoryWrapper,
-            final ColumnValidator columnValidator, DatabaseSpecificSQLGenerator sqlGenerator, PaginationHelper paginationHelper,
-            SearchReadPlatformService searchReadPlatformService, final LoanDueDiligenceInfoRepository loanDueDiligenceInfoRepository,
-            final ConfigurationReadPlatformService configurationReadPlatformService,
-            final CurrencyReadPlatformService currencyReadPlatformService, final LoanTransactionRepository loanTransactionRepository) {
+                                       final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepository,
+                                       final LoanProductReadPlatformService loanProductReadPlatformService, final ClientReadPlatformService clientReadPlatformService,
+                                       final GroupReadPlatformService groupReadPlatformService, final LoanDropdownReadPlatformService loanDropdownReadPlatformService,
+                                       final FundReadPlatformService fundReadPlatformService, final ChargeReadPlatformService chargeReadPlatformService,
+                                       final CodeValueReadPlatformService codeValueReadPlatformService, final JdbcTemplate jdbcTemplate,
+                                       final NamedParameterJdbcTemplate namedParameterJdbcTemplate, final CalendarReadPlatformService calendarReadPlatformService,
+                                       final StaffReadPlatformService staffReadPlatformService, final PaymentTypeReadPlatformService paymentTypeReadPlatformService,
+                                       final LoanRepaymentScheduleTransactionProcessorFactory loanRepaymentScheduleTransactionProcessorFactory,
+                                       final FloatingRatesReadPlatformService floatingRatesReadPlatformService, final LoanUtilService loanUtilService,
+                                       final ConfigurationDomainService configurationDomainService,
+                                       final PortfolioAccountReadPlatformService portfolioAccountReadPlatformService,
+                                       final AccountDetailsReadPlatformService accountDetailsReadPlatformService, final LoanRepositoryWrapper loanRepositoryWrapper,
+                                       final ColumnValidator columnValidator, DatabaseSpecificSQLGenerator sqlGenerator, PaginationHelper paginationHelper,
+                                       SearchReadPlatformService searchReadPlatformService, final LoanDueDiligenceInfoRepository loanDueDiligenceInfoRepository,
+                                       final ConfigurationReadPlatformService configurationReadPlatformService,
+                                       final CurrencyReadPlatformService currencyReadPlatformService, final LoanTransactionRepository loanTransactionRepository, AppUserReadPlatformService appUserReadPlatformService) {
         this.context = context;
         this.loanRepositoryWrapper = loanRepositoryWrapper;
         this.applicationCurrencyRepository = applicationCurrencyRepository;
@@ -246,6 +249,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         this.configurationReadPlatformService = configurationReadPlatformService;
         this.currencyReadPlatformService = currencyReadPlatformService;
         this.loanTransactionRepository = loanTransactionRepository;
+        this.appUserReadPlatformService = appUserReadPlatformService;
     }
 
     @Override
@@ -683,7 +687,10 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         } else {
             approvedAmount = loan.getProposedPrincipal();
         }
-        return new LoanApprovalData(approvedAmount, DateUtils.getBusinessLocalDate(), loan.getNetDisbursalAmount());
+        LoanApprovalData loanApprovalData =  new LoanApprovalData(approvedAmount, DateUtils.getBusinessLocalDate(), loan.getNetDisbursalAmount());
+        Collection<AppUserData> approverOptions = this.appUserReadPlatformService.retrieveAllUsers();
+        loanApprovalData.setApproverOptionsOptions(approverOptions);
+        return loanApprovalData;
     }
 
     @Override
@@ -694,8 +701,10 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         final Collection<EnumOptionData> termFrequencyTypeOptions = this.loanDropdownReadPlatformService
                 .retrieveLoanTermFrequencyTypeOptions();
         final LoanDecisionData loanDecisionData = this.retrieveLoanDecisionByLoanId(loan.getId());
+        Collection<AppUserData> approverOptions = this.appUserReadPlatformService.retrieveAllUsers();
+
         return new LoanApprovalData(loan.getProposedPrincipal(), DateUtils.getBusinessLocalDate(), loan.getNetDisbursalAmount(),
-                termFrequencyTypeOptions, currency, loanDecisionData);
+                termFrequencyTypeOptions, currency, loanDecisionData, approverOptions);
     }
 
     @Override
@@ -2759,7 +2768,12 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         final Collection<EnumOptionData> termFrequencyTypeOptions = this.loanDropdownReadPlatformService
                 .retrieveLoanTermFrequencyTypeOptions();
 
+        final Collection<AppUserData> approvers = this.appUserReadPlatformService.retrieveAllUsers();
+
         loanAccountData.setTermFrequencyTypeOptions(termFrequencyTypeOptions);
+
+        loanAccountData.setApproverOptionsOptions(approvers);
+
         return loanAccountData;
     }
 
