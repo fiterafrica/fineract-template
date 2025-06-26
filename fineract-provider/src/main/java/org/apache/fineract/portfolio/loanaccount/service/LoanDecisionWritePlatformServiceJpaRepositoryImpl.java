@@ -24,6 +24,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import javax.persistence.PersistenceException;
+
+import jnr.ffi.annotations.In;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -114,7 +116,9 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         validateReviewApplicationBusinessRule(command, loan, loanDecision);
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleFrom(command, loan, currentUser);
-        setNextApprover(loanDecisionObj,nextApprover);
+        loanDecisionObj.setNextLoanIcReviewDecisionState(LoanDecisionState.DUE_DILIGENCE.getValue());
+        Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
+        setNextApprover(loanDecisionObj,nextStage,nextApprover);
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -266,7 +270,10 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         validateDueDiligenceBusinessRule(command, loan, loanDecision);
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleDueDiligenceFrom(command, currentUser, loanDecision);
-        setNextApprover(loanDecisionObj,nextApprover);
+        loanDecisionObj.setNextLoanIcReviewDecisionState(LoanDecisionState.IC_REVIEW_LEVEL_ONE.getValue());
+        Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
+        setNextApprover(loanDecisionObj,nextStage,nextApprover);
+
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -322,7 +329,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         Loan loanObj = loan;
         loanObj.setLoanDecisionState(LoanDecisionState.COLLATERAL_REVIEW.getValue());
-        setNextApprover(loanDecisionObj,nextApprover);
+        Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
+        setNextApprover(loanDecisionObj,nextStage,nextApprover);
         this.loanRepositoryWrapper.saveAndFlush(loanObj);
 
         if (StringUtils.isNotBlank(loanDecisionObj.getCollateralReviewNote())) {
@@ -496,7 +504,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelOneFrom(command, currentUser, loanDecision, false,
                 icReviewOn, recommendedAmount, termFrequency, termPeriodFrequencyEnum);
 
-        setNextApprover(loanDecisionObj,nextApprover);
+        Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
+        setNextApprover(loanDecisionObj,nextStage,nextApprover);
 
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
@@ -679,7 +688,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelThreeFrom(command, currentUser, loanDecision,
                 Boolean.FALSE, icReviewOn, recommendedAmount, termFrequency, termPeriodFrequencyEnum);
-        setNextApprover(loanDecisionObj,nextApprover);
+        Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
+        setNextApprover(loanDecisionObj,nextStage,nextApprover);
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -769,7 +779,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelFourFrom(command, currentUser, loanDecision,
                 Boolean.FALSE, icReviewOn, recommendedAmount, termFrequency, termPeriodFrequencyEnum);
-        setNextApprover(loanDecisionObj,nextApprover);
+        Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
+        setNextApprover(loanDecisionObj,nextStage,nextApprover);
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -854,7 +865,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelFiveFrom(command, currentUser, loanDecision,
                 Boolean.FALSE, icReviewOn, recommendedAmount, termFrequency, termPeriodFrequencyEnum);
-        setNextApprover(loanDecisionObj,nextApprover);
+        Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
+        setNextApprover(loanDecisionObj,nextStage,nextApprover);
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -995,8 +1007,8 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         return nextApprover;
     }
 
-    private void setNextApprover(LoanDecision decision, AppUser nextApprover) {
-        Integer nextStage = decision.getNextLoanIcReviewDecisionState();
+    private void setNextApprover(LoanDecision decision, Integer nextStage, AppUser nextApprover) {
+
         switch (LoanDecisionState.fromInt(nextStage)) {
             case REVIEW_APPLICATION -> decision.setReviewApplicationBy(nextApprover);
             case DUE_DILIGENCE -> decision.setDueDiligenceBy(nextApprover);
