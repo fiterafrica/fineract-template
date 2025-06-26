@@ -684,7 +684,7 @@ public class RecurringDepositAccount extends SavingsAccount {
                 }
             }
         }
-        applyWithholdTaxForDepositAccounts(interestPostingUpToDate, recalucateDailyBalanceDetails, backdatedTxnsAllowedTill);
+        applyWithholdTaxForDepositAccounts(interestPostingUpToDate, recalucateDailyBalanceDetails, backdatedTxnsAllowedTill,BigDecimal.ZERO);
         if (recalucateDailyBalanceDetails) {
             // update existing transactions so derived balance fields are
             // correct.
@@ -716,7 +716,7 @@ public class RecurringDepositAccount extends SavingsAccount {
             recalucateDailyBalance = true;
         }
 
-        applyWithholdTaxForDepositAccounts(accountCloseDate, recalucateDailyBalance, backdatedTxnsAllowedTill);
+        applyWithholdTaxForDepositAccounts(accountCloseDate, recalucateDailyBalance, backdatedTxnsAllowedTill,BigDecimal.ZERO);
         if (recalucateDailyBalance) {
             // update existing transactions so derived balance fields are
             // correct.

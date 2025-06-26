@@ -4125,11 +4125,14 @@ public class SavingsAccount extends AbstractPersistableCustom {
     }
 
     protected boolean applyWithholdTaxForDepositAccounts(final LocalDate interestPostingUpToDate, boolean recalucateDailyBalance,
-            final boolean backdatedTxnsAllowedTill) {
+            final boolean backdatedTxnsAllowedTill,BigDecimal penalCharge) {
         final List<SavingsAccountTransaction> withholdTransactions = findWithHoldTransactions();
         SavingsAccountTransaction withholdTransaction = findTransactionFor(interestPostingUpToDate, withholdTransactions);
+
         final BigDecimal totalInterestPosted = this.savingsAccountTransactionSummaryWrapper.calculateTotalInterestPosted(this.currency,
-                this.transactions);
+                this.transactions).subtract(penalCharge);
+
+        LOG.info("Interest value --- >"+totalInterestPosted);
         if (withholdTransaction == null && this.withHoldTax()) {
             boolean isWithholdTaxAdded = createWithHoldTransaction(totalInterestPosted, interestPostingUpToDate, backdatedTxnsAllowedTill);
             recalucateDailyBalance = recalucateDailyBalance || isWithholdTaxAdded;

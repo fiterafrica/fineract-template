@@ -527,10 +527,10 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         final Money interestOnMaturity = account.calculateInterestAtPrematureClosure(closedDate, isPreMatureClosure,
                 isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
         // Apply Penal charge
-        applyPrematureClosureCharge(account, user, closedDate, interestOnMaturity.getAmount());
+        BigDecimal penalCharge = applyPrematureClosureCharge(account, user, closedDate, interestOnMaturity.getAmount());
         // post interest
         account.postPreMaturityInterest(closedDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
-                financialYearBeginningMonth, true);
+                financialYearBeginningMonth, true,penalCharge);
 
         final Integer closureTypeValue = command.integerValueOfParameterNamed(DepositsApiConstants.onAccountClosureIdParamName);
         DepositAccountOnClosureType closureType = DepositAccountOnClosureType.fromInt(closureTypeValue);
@@ -570,7 +570,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         return savingsTransactionId;
     }
 
-    private void applyPrematureClosureCharge(FixedDepositAccount account, AppUser user, LocalDate closedDate, BigDecimal interest) {
+    private BigDecimal applyPrematureClosureCharge(FixedDepositAccount account, AppUser user, LocalDate closedDate, BigDecimal interest) {
 
         if (interest.compareTo(BigDecimal.ZERO) == 0) {
             throw new GeneralPlatformDomainRuleException("error.msg.interest.not.accrued.yet",
@@ -600,6 +600,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
                         DateTimeFormatter.ofPattern("dd MM yyyy"), user);
             }
         }
+        return amountToApplyPenalty;
     }
 
     @Transactional
@@ -732,7 +733,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
 
         // post interest
         account.postPreMaturityInterest(closedDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
-                financialYearBeginningMonth, !fixedDepositPreclosureReq.isTopUp());
+                financialYearBeginningMonth, !fixedDepositPreclosureReq.isTopUp(),BigDecimal.ZERO);
 
         boolean applyWithdrawalFeeForTransfer = account.withdrawalFeeApplicableForTransfer;
         if (account.shouldApplyPreclosureCharges()) {
