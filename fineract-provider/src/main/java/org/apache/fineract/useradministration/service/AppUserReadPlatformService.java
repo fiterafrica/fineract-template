@@ -27,6 +27,8 @@ public interface AppUserReadPlatformService {
 
     Collection<AppUserData> retrieveSearchTemplate();
 
+    Collection<AppUserData> retrieveAllUsersByParentHierarchy(Long officeId);
+
     AppUserData retrieveNewUserDetails();
 
     AppUserData retrieveUser(Long userId);

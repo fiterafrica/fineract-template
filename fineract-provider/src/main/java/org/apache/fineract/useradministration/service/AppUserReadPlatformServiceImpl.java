@@ -101,6 +101,28 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
     }
 
     @Override
+    public Collection<AppUserData> retrieveAllUsersByParentHierarchy(Long officeId) {
+        OfficeData office = this.officeReadPlatformService.retrieveOffice(officeId);
+        String hierarchy = office.getHierarchy(); // e.g., ".5.8.14."
+
+        String sql = """
+        select u.id as id, u.username as username, u.firstname as firstname, u.lastname as lastname,
+               u.email as email, u.password_never_expires as passwordNeverExpires, u.office_id as officeId,
+               o.name as officeName, u.staff_id as staffId, u.is_self_service_user as isSelfServiceUser
+        from m_appuser u 
+        join m_office o on o.id = u.office_id 
+        where ? like CONCAT(o.hierarchy, '%') and u.is_deleted = false 
+        order by u.username
+        """;
+
+        return this.jdbcTemplate.query(sql,
+                new AppUserMapper(roleReadPlatformService, staffReadPlatformService),
+                hierarchy);
+    }
+
+
+
+    @Override
     public AppUserData retrieveNewUserDetails() {
 
         final Collection<OfficeData> offices = this.officeReadPlatformService.retrieveAllOfficesForDropdown();

@@ -688,7 +688,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
             approvedAmount = loan.getProposedPrincipal();
         }
         LoanApprovalData loanApprovalData =  new LoanApprovalData(approvedAmount, DateUtils.getBusinessLocalDate(), loan.getNetDisbursalAmount());
-        Collection<AppUserData> approverOptions = this.appUserReadPlatformService.retrieveAllUsers();
+        Collection<AppUserData> approverOptions = this.appUserReadPlatformService.retrieveAllUsersByParentHierarchy(loan.getOfficeId());
         loanApprovalData.setApproverOptionsOptions(approverOptions);
         return loanApprovalData;
     }
@@ -701,7 +701,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         final Collection<EnumOptionData> termFrequencyTypeOptions = this.loanDropdownReadPlatformService
                 .retrieveLoanTermFrequencyTypeOptions();
         final LoanDecisionData loanDecisionData = this.retrieveLoanDecisionByLoanId(loan.getId());
-        Collection<AppUserData> approverOptions = this.appUserReadPlatformService.retrieveAllUsers();
+        Collection<AppUserData> approverOptions = this.appUserReadPlatformService.retrieveAllUsersByParentHierarchy(loan.getOfficeId());
 
         return new LoanApprovalData(loan.getProposedPrincipal(), DateUtils.getBusinessLocalDate(), loan.getNetDisbursalAmount(),
                 termFrequencyTypeOptions, currency, loanDecisionData, approverOptions);
@@ -2768,7 +2768,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         final Collection<EnumOptionData> termFrequencyTypeOptions = this.loanDropdownReadPlatformService
                 .retrieveLoanTermFrequencyTypeOptions();
 
-        final Collection<AppUserData> approvers = this.appUserReadPlatformService.retrieveAllUsers();
+        final Collection<AppUserData> approvers = this.appUserReadPlatformService.retrieveAllUsersByParentHierarchy(loanAccountData.officeId());
 
         loanAccountData.setTermFrequencyTypeOptions(termFrequencyTypeOptions);
 
