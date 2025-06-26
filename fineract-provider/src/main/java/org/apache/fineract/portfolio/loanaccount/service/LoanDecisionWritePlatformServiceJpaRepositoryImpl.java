@@ -998,12 +998,17 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
     private void setNextApprover(LoanDecision decision, AppUser nextApprover) {
         Integer nextStage = decision.getNextLoanIcReviewDecisionState();
         switch (LoanDecisionState.fromInt(nextStage)) {
+            case REVIEW_APPLICATION -> decision.setReviewApplicationBy(nextApprover);
+            case DUE_DILIGENCE -> decision.setDueDiligenceBy(nextApprover);
+            case COLLATERAL_REVIEW -> decision.setCollateralReviewBy(nextApprover);
             case IC_REVIEW_LEVEL_ONE -> decision.setIcReviewDecisionLevelOneBy(nextApprover);
             case IC_REVIEW_LEVEL_TWO -> decision.setIcReviewDecisionLevelTwoBy(nextApprover);
             case IC_REVIEW_LEVEL_THREE -> decision.setIcReviewDecisionLevelThreeBy(nextApprover);
             case IC_REVIEW_LEVEL_FOUR -> decision.setIcReviewDecisionLevelFourBy(nextApprover);
             case IC_REVIEW_LEVEL_FIVE -> decision.setIcReviewDecisionLevelFiveBy(nextApprover);
             case PREPARE_AND_SIGN_CONTRACT -> decision.setPrepareAndSignContractBy(nextApprover);
+            case INVALID -> {
+            }
         }
 
     }
