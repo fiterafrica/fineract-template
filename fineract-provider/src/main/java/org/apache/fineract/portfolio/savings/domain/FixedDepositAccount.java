@@ -41,6 +41,8 @@ import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.OneToOne;
 import javax.persistence.Transient;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
@@ -73,6 +75,8 @@ import org.apache.fineract.useradministration.domain.AppUser;
 @Entity
 @DiscriminatorValue("200")
 public class FixedDepositAccount extends SavingsAccount {
+
+    private static final Log log = LogFactory.getLog(FixedDepositAccount.class);
 
     @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
     private DepositAccountTermAndPreClosure accountTermAndPreClosure;
@@ -647,6 +651,13 @@ public class FixedDepositAccount extends SavingsAccount {
         this.summary.updateSummary(this.currency, this.savingsAccountTransactionSummaryWrapper, this.transactions);
         this.accountTermAndPreClosure.updateMaturityDetails(this.getAccountBalance(), this.maturityDate());
 
+    }
+
+    public Money calculateInterestAtPrematureClosure(LocalDate accountCloseDate, boolean isPreMatureClosure,
+            boolean isSavingsInterestPostingAtCurrentPeriodEnd, Integer financialYearBeginningMonth) {
+        final LocalDate interestCalculatedToDate = accountCloseDate.minusDays(1);
+        return calculatePreMatureInterest(interestCalculatedToDate, retreiveOrderedNonInterestPostingTransactions(), isPreMatureClosure,
+                isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
     }
 
     private boolean postInterestCarriedForward(LocalDate accountCloseDate, boolean recalculateDailyBalance) {
