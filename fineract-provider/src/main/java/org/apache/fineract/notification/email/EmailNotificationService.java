@@ -31,6 +31,7 @@ import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanDecision;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanDecisionState;
 import org.apache.fineract.useradministration.domain.AppUser;
+import org.apache.fineract.useradministration.domain.AppUserRepository;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,7 @@ public class EmailNotificationService {
 
     private final GmailBackedPlatformEmailService emailService;
     private final BusinessEventNotifierService businessEventNotifierService;
+    private final AppUserRepository appUserRepository;
 
     @Value("${mifos.system.base-url}")
     private String baseUrl;
@@ -60,8 +62,12 @@ public class EmailNotificationService {
         AppUser nextApprover = getNextApprover(decision, nextStage);
 
         if (nextApprover != null && StringUtils.isNotBlank(nextApprover.getEmail())) {
-            EmailDetail emailDetail = getLoanDecisionApproverEmail(loan, nextStage, nextApprover);
-
+            EmailDetail emailDetail;
+            if (decision.getLoanDecisionState().equals(LoanDecisionState.PREPARE_AND_SIGN_CONTRACT.getValue())){
+                emailDetail = getLoanOfficerEmail(loan, nextStage, nextApprover);
+            }else {
+                emailDetail = getLoanDecisionApproverEmail(loan, nextStage, nextApprover);
+            }
             emailService.sendDefinedEmail(emailDetail);
         }
     }
@@ -73,7 +79,7 @@ public class EmailNotificationService {
             case IC_REVIEW_LEVEL_THREE -> decision.getIcReviewDecisionLevelThreeBy();
             case IC_REVIEW_LEVEL_FOUR -> decision.getIcReviewDecisionLevelFourBy();
             case IC_REVIEW_LEVEL_FIVE -> decision.getIcReviewDecisionLevelFiveBy();
-            case PREPARE_AND_SIGN_CONTRACT -> decision.getPrepareAndSignContractBy();
+            case PREPARE_AND_SIGN_CONTRACT -> this.appUserRepository.findAppUserByStaff(decision.getLoan().getLoanOfficer());
             default -> null;
         };
     }
@@ -89,6 +95,28 @@ public class EmailNotificationService {
                         A business loan request for account <strong>%s</strong>, client <strong>%s</strong>, is awaiting your approval.<br><br>
 
                         Please <a href="%s">log in </a> to the system to review and take the next action.<br><br>
+                        
+                        Kind Regards.
+                """,
+                nextApprover.getDisplayName(),
+                loan.getAccountNumber(),
+                loan.getClient().getDisplayName(),
+                loanUrl
+        );
+        return new EmailDetail(subject,body, nextApprover.getEmail(), nextApprover.getDisplayName());
+    }
+
+    @NotNull
+    private EmailDetail getLoanOfficerEmail(Loan loan, Integer nextStage, AppUser nextApprover) {
+        String loanUrl = this.baseUrl + "/viewloanaccount/" + loan.getId();
+        String subject = "Loan Approval Required: Stage " + LoanDecisionState.fromInt(nextStage).toString();
+        String body = String.format(
+                """
+                        Dear %s,<br><br>
+
+                        A business loan for account <strong>%s</strong>, client <strong>%s</strong>, has been approved.<br><br>
+
+                        Please assign it to the appropriate person for the next stage of processing.<br><br>
                         
                         Kind Regards.
                 """,
