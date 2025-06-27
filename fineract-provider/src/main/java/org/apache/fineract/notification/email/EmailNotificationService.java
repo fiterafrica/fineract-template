@@ -122,8 +122,7 @@ public class EmailNotificationService {
                 """,
                 nextApprover.getDisplayName(),
                 loan.getAccountNumber(),
-                loan.getClient().getDisplayName(),
-                loanUrl
+                loan.getClient().getDisplayName()
         );
         return new EmailDetail(subject,body, nextApprover.getEmail(), nextApprover.getDisplayName());
     }

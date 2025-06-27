@@ -712,7 +712,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
             case IC_REVIEW_LEVEL_ONE -> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELTHREE";
             case IC_REVIEW_LEVEL_TWO -> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELFOUR";
             case IC_REVIEW_LEVEL_THREE-> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELFIVE";
-            case IC_REVIEW_LEVEL_FIVE, PREPARE_AND_SIGN_CONTRACT, COLLATERAL_REVIEW, INVALID -> {
+            case IC_REVIEW_LEVEL_FIVE, IC_REVIEW_LEVEL_FOUR, PREPARE_AND_SIGN_CONTRACT, COLLATERAL_REVIEW, INVALID -> {
             }
         }
         return nextStagePermission;

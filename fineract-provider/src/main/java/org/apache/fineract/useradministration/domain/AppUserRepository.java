@@ -20,7 +20,6 @@ package org.apache.fineract.useradministration.domain;
 
 import java.util.Collection;
 import org.apache.fineract.infrastructure.security.domain.PlatformUserRepository;
-import org.apache.fineract.organisation.staff.domain.Staff;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
