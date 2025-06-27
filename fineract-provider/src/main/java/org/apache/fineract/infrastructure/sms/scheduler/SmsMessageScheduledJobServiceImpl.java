@@ -168,6 +168,7 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
             // Push response to processor thread
             genericExecutorService.execute(() -> {
                 try {
+                    log.info("Processing SMS Response: {}", response.getBody());
                     processSmsGatewayResponse(response.getBody());
                 } catch (Exception e) {
                     log.error("Error in async SMS processing", e);
@@ -281,7 +282,10 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
             Page<Long> internalIdsPage = smsReadPlatformService.retrieveAllWaitingForDeliveryReport(pageSize, offset);
             List<Long> internalIds = internalIdsPage.getPageItems();
 
-            if (internalIds.isEmpty()) break;
+            if (internalIds.isEmpty()) {
+                log.info("No SMS awaiting delivery report");
+                break;
+            }
 
             try {
                 Map<String, Object> payload = new HashMap<>();
