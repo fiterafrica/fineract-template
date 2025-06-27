@@ -41,6 +41,8 @@ import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.OneToOne;
 import javax.persistence.Transient;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
@@ -73,6 +75,8 @@ import org.apache.fineract.useradministration.domain.AppUser;
 @Entity
 @DiscriminatorValue("200")
 public class FixedDepositAccount extends SavingsAccount {
+
+    private static final Log log = LogFactory.getLog(FixedDepositAccount.class);
 
     @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
     private DepositAccountTermAndPreClosure accountTermAndPreClosure;
@@ -601,7 +605,7 @@ public class FixedDepositAccount extends SavingsAccount {
         }
         recalucateDailyBalanceDetails = this.postInterestCarriedForward(interestPostingUpToDate, recalucateDailyBalanceDetails);
         recalucateDailyBalanceDetails = applyWithholdTaxForDepositAccounts(interestPostingUpToDate, recalucateDailyBalanceDetails,
-                backdatedTxnsAllowedTill);
+                backdatedTxnsAllowedTill, BigDecimal.ZERO);
         if (recalucateDailyBalanceDetails) {
             // update existing transactions so derived balance fields are
             // correct.
@@ -612,7 +616,8 @@ public class FixedDepositAccount extends SavingsAccount {
     }
 
     public void postPreMaturityInterest(final LocalDate accountCloseDate, final boolean isPreMatureClosure,
-            final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth, boolean postInterest) {
+            final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth, boolean postInterest,
+            BigDecimal penalCharge) {
 
         Money interestPostedToDate = totalInterestPosted();
         // calculate interest before one day of closure date
@@ -637,7 +642,8 @@ public class FixedDepositAccount extends SavingsAccount {
             recalculateDailyBalance = this.postInterestCarriedForward(accountCloseDate, recalculateDailyBalance);
         }
 
-        recalculateDailyBalance = applyWithholdTaxForDepositAccounts(accountCloseDate, recalculateDailyBalance, backdatedTxnsAllowedTill);
+        recalculateDailyBalance = applyWithholdTaxForDepositAccounts(accountCloseDate, recalculateDailyBalance, backdatedTxnsAllowedTill,
+                penalCharge);
         boolean postReversals = false;
         if (recalculateDailyBalance) {
             // update existing transactions so derived balance fields are
@@ -647,6 +653,13 @@ public class FixedDepositAccount extends SavingsAccount {
         this.summary.updateSummary(this.currency, this.savingsAccountTransactionSummaryWrapper, this.transactions);
         this.accountTermAndPreClosure.updateMaturityDetails(this.getAccountBalance(), this.maturityDate());
 
+    }
+
+    public Money calculateInterestAtPrematureClosure(LocalDate accountCloseDate, boolean isPreMatureClosure,
+            boolean isSavingsInterestPostingAtCurrentPeriodEnd, Integer financialYearBeginningMonth) {
+        final LocalDate interestCalculatedToDate = accountCloseDate.minusDays(1);
+        return calculatePreMatureInterest(interestCalculatedToDate, retreiveOrderedNonInterestPostingTransactionsExcludeAccruals(),
+                isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
     }
 
     private boolean postInterestCarriedForward(LocalDate accountCloseDate, boolean recalculateDailyBalance) {
@@ -678,8 +691,9 @@ public class FixedDepositAccount extends SavingsAccount {
 
         final Money interestPostedToDate = totalInterestPosted().copy();
 
-        final Money interestEarnedTillDate = calculatePreMatureInterest(preMatureDate, retreiveOrderedNonInterestPostingTransactions(),
-                isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
+        final Money interestEarnedTillDate = calculatePreMatureInterest(preMatureDate,
+                retreiveOrderedNonInterestPostingTransactionsExcludeAccruals(), isPreMatureClosure,
+                isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
 
         final Money accountBalance = Money.of(getCurrency(), getAccountBalance());
         final Money maturityAmount = accountBalance.minus(interestPostedToDate).plus(interestEarnedTillDate);

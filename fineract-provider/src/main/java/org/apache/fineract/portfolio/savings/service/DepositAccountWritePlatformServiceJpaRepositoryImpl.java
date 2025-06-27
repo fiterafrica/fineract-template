@@ -2028,7 +2028,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
         }
         checkClientOrGroupActive(account);
-        postAccrualInterest(account, transactionDate);
+        postAccrualInterest(account, transactionDate.minusDays(1));
         return new CommandProcessingResultBuilder() //
                 .withEntityId(command.entityId()) //
                 .withOfficeId(account.officeId()) //
@@ -2300,7 +2300,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                     DepositAccountType.FIXED_DEPOSIT);
             account.validationAccountStatus();
             account.postPreMaturityInterest(closedOnDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
-                    financialYearBeginningMonth, true);
+                    financialYearBeginningMonth, true, BigDecimal.ZERO);
             if (action.equals(DepositsApiConstants.liquidateParamName)) {
                 this.createPartialLiquidationChargeSummary(account);
             } else if (action.equals(DepositsApiConstants.preCloseParamName)) {
@@ -2341,7 +2341,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                     DepositAccountType.FIXED_DEPOSIT);
             account.validationAccountStatus();
             account.postPreMaturityInterest(closedOnDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
-                    financialYearBeginningMonth, true);
+                    financialYearBeginningMonth, true, BigDecimal.ZERO);
             withholdTransactions.addAll(account.findWithHoldTransactions());
         } else if (type.isRecurringDeposit()) {
             RecurringDepositAccount account = (RecurringDepositAccount) this.depositAccountAssembler.assembleFrom(savingsId,

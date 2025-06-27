@@ -35,7 +35,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.fineract.accounting.journalentry.service.JournalEntryWritePlatformService;
@@ -54,6 +53,7 @@ import org.apache.fineract.infrastructure.security.service.PlatformSecurityConte
 import org.apache.fineract.organisation.monetary.domain.ApplicationCurrency;
 import org.apache.fineract.organisation.monetary.domain.ApplicationCurrencyRepositoryWrapper;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
+import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.portfolio.account.PortfolioAccountType;
 import org.apache.fineract.portfolio.account.data.AccountTransferDTO;
 import org.apache.fineract.portfolio.account.domain.AccountAssociationType;
@@ -523,63 +523,17 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         final DateTimeFormatter fmt = DateTimeFormatter.ofPattern(command.dateFormat()).withLocale(locale);
         Long savingsTransactionId = null;
 
+        // calculate Interest
+        final Money interestOnMaturity = account.calculateInterestAtPrematureClosure(closedDate, isPreMatureClosure,
+                isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
+        // Apply Penal charge
+        BigDecimal penalCharge = applyPrematureClosureCharge(account, user, closedDate, interestOnMaturity.getAmount());
         // post interest
         account.postPreMaturityInterest(closedDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
-                financialYearBeginningMonth, true);
+                financialYearBeginningMonth, true, penalCharge);
 
         final Integer closureTypeValue = command.integerValueOfParameterNamed(DepositsApiConstants.onAccountClosureIdParamName);
         DepositAccountOnClosureType closureType = DepositAccountOnClosureType.fromInt(closureTypeValue);
-
-        List<SavingsAccountTransaction> savingsAccountTransactions = getAllWithholdingTransactions(account);
-        if (!CollectionUtils.isEmpty(savingsAccountTransactions) && savingsAccountTransactions.size() > 1) {
-            throw new GeneralPlatformDomainRuleException("error.msg.more.than.one.withholding.transaction.is.found",
-                    "More than one with-holding transaction is found");
-        }
-
-        if (account.getSummary().getTotalInterestPosted().compareTo(BigDecimal.ZERO) == 0) {
-            throw new GeneralPlatformDomainRuleException("error.msg.interest.not.accrued.yet",
-                    "No Interest accrued yet. Run Post Accrual Interest and try again later");
-        }
-
-        DepositPreClosureDetail preClosureDetail = account.getAccountTermAndPreClosure().getPreClosureDetail();
-
-        // Check if penal charge is configured to Apply on premature closure
-        if (preClosureDetail.preClosurePenalApplicable()) {
-            log.info("***** Accrued Interest ***** ::-->" + account.getSummary().getTotalInterestPosted());
-            BigDecimal amountToApplyPenalty = null;
-            if (CollectionUtils.isEmpty(savingsAccountTransactions) || !account.withHoldTax) {
-                // No withholding Tax Applied
-                BigDecimal interest = account.getSummary().getTotalInterestPosted();
-                BigDecimal penalty = preClosureDetail.preClosurePenalInterest();
-                amountToApplyPenalty = penalty.divide(BigDecimal.valueOf(100L)).multiply(interest);
-            } else {
-                // Withholding Tax Applied
-                SavingsAccountTransaction tx = savingsAccountTransactions.get(0);
-                if (tx.isWithHoldTaxAndNotReversed()) {
-                    log.info("***** Withholding Tax ***** ::-->" + tx.getAmount());
-                    BigDecimal interest = account.getSummary().getTotalInterestPosted().subtract(tx.getAmount());
-                    BigDecimal penalty = preClosureDetail.preClosurePenalInterest();
-                    amountToApplyPenalty = penalty.divide(BigDecimal.valueOf(100L)).multiply(interest);
-                }
-            }
-
-            // Apply pre-closure charges if applicable
-            if (account.shouldApplyPreclosureCharges()) {
-                // Apply pre-closure charge
-                this.applyPreclosureCharges(account, user, closedDate);
-                if (closureType.isTransferToSavings()) {
-                    // Apply withdrawal charges
-                    List<SavingsAccountCharge> withdrawalCharges = this.savingsAccountChargeRepository
-                            .findWithdrawalFeeByAccountId(account.getId(), ChargeTimeType.WITHDRAWAL_FEE.getValue());
-                    for (SavingsAccountCharge charge : withdrawalCharges) {
-                        charge.setAmountOutstanding(amountToApplyPenalty);
-                        charge.setAmount(amountToApplyPenalty);
-                        this.savingsAccountWritePlatformService.payCharge(charge, closedDate, charge.amount(),
-                                DateTimeFormatter.ofPattern("dd MM yyyy"), user);
-                    }
-                }
-            }
-        }
 
         if (closureType.isTransferToSavings()) {
             final boolean isExceptionForBalanceCheck = false;
@@ -616,9 +570,37 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         return savingsTransactionId;
     }
 
-    private List<SavingsAccountTransaction> getAllWithholdingTransactions(final SavingsAccount account) {
-        return account.getTransactions().stream().filter(SavingsAccountTransaction::isWithHoldTaxAndNotReversed)
-                .collect(Collectors.toList());
+    private BigDecimal applyPrematureClosureCharge(FixedDepositAccount account, AppUser user, LocalDate closedDate, BigDecimal interest) {
+
+        if (interest.compareTo(BigDecimal.ZERO) == 0) {
+            throw new GeneralPlatformDomainRuleException("error.msg.interest.not.accrued.yet",
+                    "No Interest accrued yet. Run Post Accrual Interest and try again later");
+        }
+
+        DepositPreClosureDetail preClosureDetail = account.getAccountTermAndPreClosure().getPreClosureDetail();
+
+        // Check if penal charge is configured to Apply on premature closure
+        BigDecimal amountToApplyPenalty = null;
+        if (preClosureDetail.preClosurePenalApplicable()) {
+
+            // No withholding Tax Applied
+            BigDecimal penalty = preClosureDetail.preClosurePenalInterest();
+            amountToApplyPenalty = penalty.divide(BigDecimal.valueOf(100L)).multiply(interest);
+
+            // Apply pre-closure charges if applicable
+            if (account.shouldApplyPreclosureCharges()) {
+
+                List<SavingsAccountCharge> withdrawalCharges = this.savingsAccountChargeRepository
+                        .findWithdrawalFeeByAccountId(account.getId(), ChargeTimeType.WITHDRAWAL_FEE.getValue());
+
+                SavingsAccountCharge charge = withdrawalCharges.get(0);
+                charge.setAmountOutstanding(amountToApplyPenalty);
+                charge.setAmount(amountToApplyPenalty);
+                this.savingsAccountWritePlatformService.payCharge(charge, closedDate, charge.amount(),
+                        DateTimeFormatter.ofPattern("dd MM yyyy"), user);
+            }
+        }
+        return amountToApplyPenalty;
     }
 
     @Transactional
@@ -751,7 +733,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
 
         // post interest
         account.postPreMaturityInterest(closedDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
-                financialYearBeginningMonth, !fixedDepositPreclosureReq.isTopUp());
+                financialYearBeginningMonth, !fixedDepositPreclosureReq.isTopUp(), BigDecimal.ZERO);
 
         boolean applyWithdrawalFeeForTransfer = account.withdrawalFeeApplicableForTransfer;
         if (account.shouldApplyPreclosureCharges()) {
