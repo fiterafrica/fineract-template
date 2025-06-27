@@ -109,16 +109,11 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         this.loanDecisionTransitionApiJsonValidator.validateApplicationReview(command.json());
 
-        final AppUser nextApprover = getNextApprover(command);
-
         final Loan loan = this.loanRepositoryWrapper.findOneWithNotFoundDetection(loanId, true);
         final LoanDecision loanDecision = this.loanDecisionRepository.findLoanDecisionByLoanId(loan.getId());
 
         validateReviewApplicationBusinessRule(command, loan, loanDecision);
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleFrom(command, loan, currentUser);
-        loanDecisionObj.setNextLoanIcReviewDecisionState(LoanDecisionState.DUE_DILIGENCE.getValue());
-        Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
-        setNextApprover(loanDecisionObj,nextStage,nextApprover);
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -132,7 +127,6 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         this.businessEventNotifierService.notifyPostBusinessEvent(
                 new LoanDecisionAcceptedEvent(loan, savedObj));
-
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
@@ -265,13 +259,15 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             loanDecision.setIdeaClient(true);
             validateRecommendedAmountShouldNotBeGreaterThanProposedAmount(loan.getProposedPrincipal(), recommendedAmount);
         }
-        final AppUser nextApprover = getNextApprover(command);
+
 
         validateDueDiligenceBusinessRule(command, loan, loanDecision);
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleDueDiligenceFrom(command, currentUser, loanDecision);
+
         loanDecisionObj.setNextLoanIcReviewDecisionState(LoanDecisionState.IC_REVIEW_LEVEL_ONE.getValue());
         Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
+        final AppUser nextApprover = getNextApprover(command, LoanDecisionState.fromInt(nextStage));
         setNextApprover(loanDecisionObj,nextStage,nextApprover);
 
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
@@ -316,21 +312,16 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         this.loanDecisionTransitionApiJsonValidator.validateCollateralReview(command.json());
 
-        final AppUser nextApprover = getNextApprover(command);
-
         final Loan loan = this.loanRepositoryWrapper.findOneWithNotFoundDetection(loanId, true);
         final LoanDecision loanDecision = this.loanDecisionRepository.findLoanDecisionByLoanId(loan.getId());
 
         loanDecisionStateUtilService.validateCollateralReviewBusinessRule(command, loan, loanDecision);
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleCollateralReviewFrom(command, currentUser, loanDecision);
-        loanDecisionObj.setIcReviewDecisionLevelTwoBy(nextApprover);
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
         loanObj.setLoanDecisionState(LoanDecisionState.COLLATERAL_REVIEW.getValue());
-        Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
-        setNextApprover(loanDecisionObj,nextStage,nextApprover);
         this.loanRepositoryWrapper.saveAndFlush(loanObj);
 
         if (StringUtils.isNotBlank(loanDecisionObj.getCollateralReviewNote())) {
@@ -473,8 +464,6 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             }
         }
 
-        final AppUser nextApprover = getNextApprover(command);
-
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
         // Determine the Next Level or stage to review
@@ -505,6 +494,7 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                 icReviewOn, recommendedAmount, termFrequency, termPeriodFrequencyEnum);
 
         Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
+        final AppUser nextApprover = getNextApprover(command, LoanDecisionState.fromInt(nextStage));
         setNextApprover(loanDecisionObj,nextStage,nextApprover);
 
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
@@ -567,8 +557,6 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             }
         }
 
-        final AppUser nextApprover = getNextApprover(command);
-
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
         // Determine the Next Level or stage to review
@@ -598,7 +586,10 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelTwoFrom(command, currentUser, loanDecision,
                 Boolean.FALSE, icReviewOn, recommendedAmount, termFrequency, termPeriodFrequencyEnum);
 
-        loanDecisionObj.setIcReviewDecisionLevelThreeBy(nextApprover);
+        Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
+        final AppUser nextApprover = getNextApprover(command, LoanDecisionState.fromInt(nextStage));
+        setNextApprover(loanDecisionObj,nextStage,nextApprover);
+
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -658,7 +649,6 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                         "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
             }
         }
-        final AppUser nextApprover = getNextApprover(command);
 
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
@@ -688,8 +678,11 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelThreeFrom(command, currentUser, loanDecision,
                 Boolean.FALSE, icReviewOn, recommendedAmount, termFrequency, termPeriodFrequencyEnum);
+
         Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
+        final AppUser nextApprover = getNextApprover(command, LoanDecisionState.fromInt(nextStage));
         setNextApprover(loanDecisionObj,nextStage,nextApprover);
+
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -749,7 +742,6 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
                         "Recommended amount can not be greater than auto-computed recommended amount", maxLoanAmountFromCashFlow);
             }
         }
-        final AppUser nextApprover = getNextApprover(command);
 
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
@@ -779,8 +771,11 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelFourFrom(command, currentUser, loanDecision,
                 Boolean.FALSE, icReviewOn, recommendedAmount, termFrequency, termPeriodFrequencyEnum);
+
         Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
+        final AppUser nextApprover = getNextApprover(command, LoanDecisionState.fromInt(nextStage));
         setNextApprover(loanDecisionObj,nextStage,nextApprover);
+
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -841,8 +836,6 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             }
         }
 
-        final AppUser nextApprover = getNextApprover(command);
-
         // Get Loan Matrix
         // Determine which cycle of this Loan Account
         // Determine the Next Level or stage to review
@@ -865,8 +858,11 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
         LoanDecision loanDecisionObj = loanDecisionAssembler.assembleIcReviewDecisionLevelFiveFrom(command, currentUser, loanDecision,
                 Boolean.FALSE, icReviewOn, recommendedAmount, termFrequency, termPeriodFrequencyEnum);
+
         Integer nextStage = loanDecisionObj.getNextLoanIcReviewDecisionState();
+        final AppUser nextApprover = getNextApprover(command, LoanDecisionState.fromInt(nextStage));
         setNextApprover(loanDecisionObj,nextStage,nextApprover);
+
         LoanDecision savedObj = loanDecisionRepository.saveAndFlush(loanDecisionObj);
 
         Loan loanObj = loan;
@@ -995,9 +991,9 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         return user;
     }
 
-    private AppUser getNextApprover(JsonCommand command) {
+    private AppUser getNextApprover(JsonCommand command, LoanDecisionState nextStage) {
         final Long nextApproverUserId = command.longValueOfParameterNamed("nextApproverUserId");
-        if (nextApproverUserId == null) {
+        if (nextApproverUserId == null && !nextStage.equals(LoanDecisionState.PREPARE_AND_SIGN_CONTRACT)) {
             throw new GeneralPlatformDomainRuleException("error.msg.loan.next.approver.user.id.required",
                     "The field 'nextApproverUserId' is required.");
         }
@@ -1010,17 +1006,15 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
     private void setNextApprover(LoanDecision decision, Integer nextStage, AppUser nextApprover) {
 
         switch (LoanDecisionState.fromInt(nextStage)) {
-            case REVIEW_APPLICATION -> decision.setReviewApplicationBy(nextApprover);
+
             case DUE_DILIGENCE -> decision.setDueDiligenceBy(nextApprover);
-            case COLLATERAL_REVIEW -> decision.setCollateralReviewBy(nextApprover);
             case IC_REVIEW_LEVEL_ONE -> decision.setIcReviewDecisionLevelOneBy(nextApprover);
             case IC_REVIEW_LEVEL_TWO -> decision.setIcReviewDecisionLevelTwoBy(nextApprover);
             case IC_REVIEW_LEVEL_THREE -> decision.setIcReviewDecisionLevelThreeBy(nextApprover);
             case IC_REVIEW_LEVEL_FOUR -> decision.setIcReviewDecisionLevelFourBy(nextApprover);
             case IC_REVIEW_LEVEL_FIVE -> decision.setIcReviewDecisionLevelFiveBy(nextApprover);
             case PREPARE_AND_SIGN_CONTRACT -> decision.setPrepareAndSignContractBy(nextApprover);
-            case INVALID -> {
-            }
+            case REVIEW_APPLICATION, COLLATERAL_REVIEW, INVALID -> {}
         }
 
     }
