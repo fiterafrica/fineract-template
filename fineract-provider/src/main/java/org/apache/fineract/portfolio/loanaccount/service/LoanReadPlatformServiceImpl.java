@@ -687,10 +687,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         } else {
             approvedAmount = loan.getProposedPrincipal();
         }
-        LoanApprovalData loanApprovalData =  new LoanApprovalData(approvedAmount, DateUtils.getBusinessLocalDate(), loan.getNetDisbursalAmount());
-        Collection<AppUserData> approverOptions = this.appUserReadPlatformService.retrieveAllUsersByParentHierarchy(loan.getOfficeId());
-        loanApprovalData.setApproverOptionsOptions(approverOptions);
-        return loanApprovalData;
+        return new LoanApprovalData(approvedAmount, DateUtils.getBusinessLocalDate(), loan.getNetDisbursalAmount());
     }
 
     @Override
@@ -701,10 +698,24 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         final Collection<EnumOptionData> termFrequencyTypeOptions = this.loanDropdownReadPlatformService
                 .retrieveLoanTermFrequencyTypeOptions();
         final LoanDecisionData loanDecisionData = this.retrieveLoanDecisionByLoanId(loan.getId());
-        Collection<AppUserData> approverOptions = this.appUserReadPlatformService.retrieveAllUsersByParentHierarchy(loan.getOfficeId());
-
+        Collection<AppUserData> approverOptions = this.appUserReadPlatformService.retrieveUsersByOfficeAndPermission(loan.getOfficeId(), getNextStageApproverPermission(loanDecisionData.getLoanDecisionState()));
         return new LoanApprovalData(loan.getProposedPrincipal(), DateUtils.getBusinessLocalDate(), loan.getNetDisbursalAmount(),
                 termFrequencyTypeOptions, currency, loanDecisionData, approverOptions);
+    }
+
+    private String getNextStageApproverPermission(Integer loanDecisionState) {
+        String nextStagePermission = null;
+        //the current state is the loan decsion state whic
+        switch (LoanDecisionState.fromInt(loanDecisionState)) {
+            case REVIEW_APPLICATION -> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELONE";
+            case DUE_DILIGENCE -> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELTWO";
+            case IC_REVIEW_LEVEL_ONE -> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELTHREE";
+            case IC_REVIEW_LEVEL_TWO -> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELFOUR";
+            case IC_REVIEW_LEVEL_THREE-> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELFIVE";
+            case IC_REVIEW_LEVEL_FIVE, PREPARE_AND_SIGN_CONTRACT, COLLATERAL_REVIEW, INVALID -> {
+            }
+        }
+        return nextStagePermission;
     }
 
     @Override
@@ -2767,8 +2778,9 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
 
         final Collection<EnumOptionData> termFrequencyTypeOptions = this.loanDropdownReadPlatformService
                 .retrieveLoanTermFrequencyTypeOptions();
+        Loan loan = this.loanRepositoryWrapper.findOneWithNotFoundDetection(loanId);
 
-        final Collection<AppUserData> approvers = this.appUserReadPlatformService.retrieveAllUsersByParentHierarchy(loanAccountData.officeId());
+        final Collection<AppUserData> approvers = this.appUserReadPlatformService.retrieveUsersByOfficeAndPermission(loanAccountData.officeId(),getNextStageApproverPermission(loan.getLoanDecisionState()));
 
         loanAccountData.setTermFrequencyTypeOptions(termFrequencyTypeOptions);
 

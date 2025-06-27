@@ -2276,4 +2276,8 @@ public final class LoanAccountData {
     public void setDepartmentId(Long departmentId) {
         this.departmentId = departmentId;
     }
+
+    public EnumOptionData getloanDecisionState(){
+       return this.loanDecisionState;
+    }
 }
