@@ -993,14 +993,15 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
 
     private AppUser getNextApprover(JsonCommand command, LoanDecisionState nextStage) {
         final Long nextApproverUserId = command.longValueOfParameterNamed("nextApproverUserId");
-        if (nextApproverUserId == null && !nextStage.equals(LoanDecisionState.PREPARE_AND_SIGN_CONTRACT)) {
+        if (nextApproverUserId != null && !nextStage.equals(LoanDecisionState.PREPARE_AND_SIGN_CONTRACT)) {
+            return appUserRepository.findById(nextApproverUserId)
+                    .orElseThrow(() -> new GeneralPlatformDomainRuleException("validation.msg.next.approver.user.id.invalid",
+                            "Next approver user not found for ID: " + nextApproverUserId));
+        } else if (nextApproverUserId == null && !nextStage.equals(LoanDecisionState.PREPARE_AND_SIGN_CONTRACT) ){
             throw new GeneralPlatformDomainRuleException("error.msg.loan.next.approver.user.id.required",
                     "The field 'nextApproverUserId' is required.");
         }
-        final AppUser nextApprover = appUserRepository.findById(nextApproverUserId)
-                .orElseThrow(() -> new GeneralPlatformDomainRuleException("validation.msg.next.approver.user.id.invalid",
-                        "Next approver user not found for ID: " + nextApproverUserId));
-        return nextApprover;
+        else return null;
     }
 
     private void setNextApprover(LoanDecision decision, Integer nextStage, AppUser nextApprover) {
@@ -1013,8 +1014,7 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
             case IC_REVIEW_LEVEL_THREE -> decision.setIcReviewDecisionLevelThreeBy(nextApprover);
             case IC_REVIEW_LEVEL_FOUR -> decision.setIcReviewDecisionLevelFourBy(nextApprover);
             case IC_REVIEW_LEVEL_FIVE -> decision.setIcReviewDecisionLevelFiveBy(nextApprover);
-            case PREPARE_AND_SIGN_CONTRACT -> decision.setPrepareAndSignContractBy(nextApprover);
-            case REVIEW_APPLICATION, COLLATERAL_REVIEW, INVALID -> {}
+            case PREPARE_AND_SIGN_CONTRACT, REVIEW_APPLICATION, COLLATERAL_REVIEW, INVALID -> {}
         }
 
     }

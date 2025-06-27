@@ -33,7 +33,7 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long>, JpaSpec
 
     Collection<AppUser> findByOfficeId(Long officeId);
 
-    @Query("Select appUser from AppUser appUser where appUser.staff = :staff")
-    AppUser findAppUserByStaff(@Param("staff") Staff staff);
+    @Query("SELECT u FROM AppUser u WHERE u.staff.id = :staffId")
+    AppUser findAppUserByStaffId(@Param("staffId") Long staffId);
 
 }

@@ -705,7 +705,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
 
     private String getNextStageApproverPermission(Integer loanDecisionState) {
         String nextStagePermission = null;
-        //the current state is the loan decsion state whic
+        //the current state is the loan decision state which
         switch (LoanDecisionState.fromInt(loanDecisionState)) {
             case REVIEW_APPLICATION -> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELONE";
             case DUE_DILIGENCE -> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELTWO";

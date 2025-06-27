@@ -63,7 +63,7 @@ public class EmailNotificationService {
 
         if (nextApprover != null && StringUtils.isNotBlank(nextApprover.getEmail())) {
             EmailDetail emailDetail;
-            if (decision.getLoanDecisionState().equals(LoanDecisionState.PREPARE_AND_SIGN_CONTRACT.getValue())){
+            if (nextStage.equals(LoanDecisionState.PREPARE_AND_SIGN_CONTRACT.getValue())){
                 emailDetail = getLoanOfficerEmail(loan, nextStage, nextApprover);
             }else {
                 emailDetail = getLoanDecisionApproverEmail(loan, nextStage, nextApprover);
@@ -79,7 +79,7 @@ public class EmailNotificationService {
             case IC_REVIEW_LEVEL_THREE -> decision.getIcReviewDecisionLevelThreeBy();
             case IC_REVIEW_LEVEL_FOUR -> decision.getIcReviewDecisionLevelFourBy();
             case IC_REVIEW_LEVEL_FIVE -> decision.getIcReviewDecisionLevelFiveBy();
-            case PREPARE_AND_SIGN_CONTRACT -> this.appUserRepository.findAppUserByStaff(decision.getLoan().getLoanOfficer());
+            case PREPARE_AND_SIGN_CONTRACT -> this.appUserRepository.findAppUserByStaffId(decision.getLoan().getLoanOfficer().getId());
             default -> null;
         };
     }
@@ -109,7 +109,7 @@ public class EmailNotificationService {
     @NotNull
     private EmailDetail getLoanOfficerEmail(Loan loan, Integer nextStage, AppUser nextApprover) {
         String loanUrl = this.baseUrl + "/viewloanaccount/" + loan.getId();
-        String subject = "Loan Approval Required: Stage " + LoanDecisionState.fromInt(nextStage).toString();
+        String subject = "Loan Action Required: Stage " + LoanDecisionState.fromInt(nextStage).toString();
         String body = String.format(
                 """
                         Dear %s,<br><br>
