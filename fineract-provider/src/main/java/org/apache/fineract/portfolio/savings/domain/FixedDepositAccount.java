@@ -605,7 +605,7 @@ public class FixedDepositAccount extends SavingsAccount {
         }
         recalucateDailyBalanceDetails = this.postInterestCarriedForward(interestPostingUpToDate, recalucateDailyBalanceDetails);
         recalucateDailyBalanceDetails = applyWithholdTaxForDepositAccounts(interestPostingUpToDate, recalucateDailyBalanceDetails,
-                backdatedTxnsAllowedTill,BigDecimal.ZERO);
+                backdatedTxnsAllowedTill, BigDecimal.ZERO);
         if (recalucateDailyBalanceDetails) {
             // update existing transactions so derived balance fields are
             // correct.
@@ -616,7 +616,8 @@ public class FixedDepositAccount extends SavingsAccount {
     }
 
     public void postPreMaturityInterest(final LocalDate accountCloseDate, final boolean isPreMatureClosure,
-            final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth, boolean postInterest,BigDecimal penalCharge) {
+            final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth, boolean postInterest,
+            BigDecimal penalCharge) {
 
         Money interestPostedToDate = totalInterestPosted();
         // calculate interest before one day of closure date
@@ -641,7 +642,8 @@ public class FixedDepositAccount extends SavingsAccount {
             recalculateDailyBalance = this.postInterestCarriedForward(accountCloseDate, recalculateDailyBalance);
         }
 
-        recalculateDailyBalance = applyWithholdTaxForDepositAccounts(accountCloseDate, recalculateDailyBalance, backdatedTxnsAllowedTill,penalCharge);
+        recalculateDailyBalance = applyWithholdTaxForDepositAccounts(accountCloseDate, recalculateDailyBalance, backdatedTxnsAllowedTill,
+                penalCharge);
         boolean postReversals = false;
         if (recalculateDailyBalance) {
             // update existing transactions so derived balance fields are
@@ -656,8 +658,8 @@ public class FixedDepositAccount extends SavingsAccount {
     public Money calculateInterestAtPrematureClosure(LocalDate accountCloseDate, boolean isPreMatureClosure,
             boolean isSavingsInterestPostingAtCurrentPeriodEnd, Integer financialYearBeginningMonth) {
         final LocalDate interestCalculatedToDate = accountCloseDate.minusDays(1);
-        return calculatePreMatureInterest(interestCalculatedToDate, retreiveOrderedNonInterestPostingTransactions(), isPreMatureClosure,
-                isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
+        return calculatePreMatureInterest(interestCalculatedToDate, retreiveOrderedNonInterestPostingTransactionsExcludeAccruals(),
+                isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
     }
 
     private boolean postInterestCarriedForward(LocalDate accountCloseDate, boolean recalculateDailyBalance) {
@@ -689,8 +691,9 @@ public class FixedDepositAccount extends SavingsAccount {
 
         final Money interestPostedToDate = totalInterestPosted().copy();
 
-        final Money interestEarnedTillDate = calculatePreMatureInterest(preMatureDate, retreiveOrderedNonInterestPostingTransactions(),
-                isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
+        final Money interestEarnedTillDate = calculatePreMatureInterest(preMatureDate,
+                retreiveOrderedNonInterestPostingTransactionsExcludeAccruals(), isPreMatureClosure,
+                isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
 
         final Money accountBalance = Money.of(getCurrency(), getAccountBalance());
         final Money maturityAmount = accountBalance.minus(interestPostedToDate).plus(interestEarnedTillDate);

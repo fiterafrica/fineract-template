@@ -530,7 +530,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         BigDecimal penalCharge = applyPrematureClosureCharge(account, user, closedDate, interestOnMaturity.getAmount());
         // post interest
         account.postPreMaturityInterest(closedDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
-                financialYearBeginningMonth, true,penalCharge);
+                financialYearBeginningMonth, true, penalCharge);
 
         final Integer closureTypeValue = command.integerValueOfParameterNamed(DepositsApiConstants.onAccountClosureIdParamName);
         DepositAccountOnClosureType closureType = DepositAccountOnClosureType.fromInt(closureTypeValue);
@@ -733,7 +733,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
 
         // post interest
         account.postPreMaturityInterest(closedDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
-                financialYearBeginningMonth, !fixedDepositPreclosureReq.isTopUp(),BigDecimal.ZERO);
+                financialYearBeginningMonth, !fixedDepositPreclosureReq.isTopUp(), BigDecimal.ZERO);
 
         boolean applyWithdrawalFeeForTransfer = account.withdrawalFeeApplicableForTransfer;
         if (account.shouldApplyPreclosureCharges()) {

@@ -1344,6 +1344,22 @@ public class SavingsAccount extends AbstractPersistableCustom {
         return orderedNonInterestPostingTransactions;
     }
 
+    protected List<SavingsAccountTransaction> retreiveOrderedNonInterestPostingTransactionsExcludeAccruals() {
+        final List<SavingsAccountTransaction> listOfTransactionsSorted = retreiveListOfTransactions();
+
+        final List<SavingsAccountTransaction> orderedNonInterestPostingTransactions = new ArrayList<>();
+
+        for (final SavingsAccountTransaction transaction : listOfTransactionsSorted) {
+            if (!(transaction.isInterestPostingAndNotReversed() || transaction.isOverdraftInterestAndNotReversed()
+                    || transaction.isAccrualInterestPostingAndNotReversed() || transaction.isOverdraftAccrualInterestAndNotReversed())
+                    && transaction.isNotReversed() && !transaction.isReversalTransaction()) {
+                orderedNonInterestPostingTransactions.add(transaction);
+            }
+        }
+        orderedNonInterestPostingTransactions.sort(new SavingsAccountTransactionComparator());
+        return orderedNonInterestPostingTransactions;
+    }
+
     protected List<SavingsAccountTransaction> retreiveOrderedNonInterestPostingSavingsTransactionsWithPivotConfig() {
         final List<SavingsAccountTransaction> listOfTransactionsSorted = retrieveSortedTransactions();
 
@@ -4125,14 +4141,14 @@ public class SavingsAccount extends AbstractPersistableCustom {
     }
 
     protected boolean applyWithholdTaxForDepositAccounts(final LocalDate interestPostingUpToDate, boolean recalucateDailyBalance,
-            final boolean backdatedTxnsAllowedTill,BigDecimal penalCharge) {
+            final boolean backdatedTxnsAllowedTill, BigDecimal penalCharge) {
         final List<SavingsAccountTransaction> withholdTransactions = findWithHoldTransactions();
         SavingsAccountTransaction withholdTransaction = findTransactionFor(interestPostingUpToDate, withholdTransactions);
 
-        final BigDecimal totalInterestPosted = this.savingsAccountTransactionSummaryWrapper.calculateTotalInterestPosted(this.currency,
-                this.transactions).subtract(penalCharge);
+        final BigDecimal totalInterestPosted = this.savingsAccountTransactionSummaryWrapper
+                .calculateTotalInterestPosted(this.currency, this.transactions).subtract(penalCharge);
 
-        LOG.info("Interest value --- >"+totalInterestPosted);
+        LOG.info("Interest value --- >" + totalInterestPosted);
         if (withholdTransaction == null && this.withHoldTax()) {
             boolean isWithholdTaxAdded = createWithHoldTransaction(totalInterestPosted, interestPostingUpToDate, backdatedTxnsAllowedTill);
             recalucateDailyBalance = recalucateDailyBalance || isWithholdTaxAdded;
