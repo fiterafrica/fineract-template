@@ -151,7 +151,9 @@ import org.apache.fineract.portfolio.paymenttype.service.PaymentTypeReadPlatform
 import org.apache.fineract.portfolio.savings.exception.SavingsAccountSearchParameterNotProvidedException;
 import org.apache.fineract.portfolio.savings.request.FilterSelection;
 import org.apache.fineract.portfolio.search.service.SearchReadPlatformService;
+import org.apache.fineract.useradministration.data.AppUserData;
 import org.apache.fineract.useradministration.domain.AppUser;
+import org.apache.fineract.useradministration.service.AppUserReadPlatformService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -197,25 +199,26 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
     private final LoanDueDiligenceInfoRepository loanDueDiligenceInfoRepository;
     private final CurrencyReadPlatformService currencyReadPlatformService;
     private final LoanTransactionRepository loanTransactionRepository;
+    private final AppUserReadPlatformService appUserReadPlatformService;
 
     @Autowired
     public LoanReadPlatformServiceImpl(final PlatformSecurityContext context,
-            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepository,
-            final LoanProductReadPlatformService loanProductReadPlatformService, final ClientReadPlatformService clientReadPlatformService,
-            final GroupReadPlatformService groupReadPlatformService, final LoanDropdownReadPlatformService loanDropdownReadPlatformService,
-            final FundReadPlatformService fundReadPlatformService, final ChargeReadPlatformService chargeReadPlatformService,
-            final CodeValueReadPlatformService codeValueReadPlatformService, final JdbcTemplate jdbcTemplate,
-            final NamedParameterJdbcTemplate namedParameterJdbcTemplate, final CalendarReadPlatformService calendarReadPlatformService,
-            final StaffReadPlatformService staffReadPlatformService, final PaymentTypeReadPlatformService paymentTypeReadPlatformService,
-            final LoanRepaymentScheduleTransactionProcessorFactory loanRepaymentScheduleTransactionProcessorFactory,
-            final FloatingRatesReadPlatformService floatingRatesReadPlatformService, final LoanUtilService loanUtilService,
-            final ConfigurationDomainService configurationDomainService,
-            final PortfolioAccountReadPlatformService portfolioAccountReadPlatformService,
-            final AccountDetailsReadPlatformService accountDetailsReadPlatformService, final LoanRepositoryWrapper loanRepositoryWrapper,
-            final ColumnValidator columnValidator, DatabaseSpecificSQLGenerator sqlGenerator, PaginationHelper paginationHelper,
-            SearchReadPlatformService searchReadPlatformService, final LoanDueDiligenceInfoRepository loanDueDiligenceInfoRepository,
-            final ConfigurationReadPlatformService configurationReadPlatformService,
-            final CurrencyReadPlatformService currencyReadPlatformService, final LoanTransactionRepository loanTransactionRepository) {
+                                       final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepository,
+                                       final LoanProductReadPlatformService loanProductReadPlatformService, final ClientReadPlatformService clientReadPlatformService,
+                                       final GroupReadPlatformService groupReadPlatformService, final LoanDropdownReadPlatformService loanDropdownReadPlatformService,
+                                       final FundReadPlatformService fundReadPlatformService, final ChargeReadPlatformService chargeReadPlatformService,
+                                       final CodeValueReadPlatformService codeValueReadPlatformService, final JdbcTemplate jdbcTemplate,
+                                       final NamedParameterJdbcTemplate namedParameterJdbcTemplate, final CalendarReadPlatformService calendarReadPlatformService,
+                                       final StaffReadPlatformService staffReadPlatformService, final PaymentTypeReadPlatformService paymentTypeReadPlatformService,
+                                       final LoanRepaymentScheduleTransactionProcessorFactory loanRepaymentScheduleTransactionProcessorFactory,
+                                       final FloatingRatesReadPlatformService floatingRatesReadPlatformService, final LoanUtilService loanUtilService,
+                                       final ConfigurationDomainService configurationDomainService,
+                                       final PortfolioAccountReadPlatformService portfolioAccountReadPlatformService,
+                                       final AccountDetailsReadPlatformService accountDetailsReadPlatformService, final LoanRepositoryWrapper loanRepositoryWrapper,
+                                       final ColumnValidator columnValidator, DatabaseSpecificSQLGenerator sqlGenerator, PaginationHelper paginationHelper,
+                                       SearchReadPlatformService searchReadPlatformService, final LoanDueDiligenceInfoRepository loanDueDiligenceInfoRepository,
+                                       final ConfigurationReadPlatformService configurationReadPlatformService,
+                                       final CurrencyReadPlatformService currencyReadPlatformService, final LoanTransactionRepository loanTransactionRepository, AppUserReadPlatformService appUserReadPlatformService) {
         this.context = context;
         this.loanRepositoryWrapper = loanRepositoryWrapper;
         this.applicationCurrencyRepository = applicationCurrencyRepository;
@@ -246,6 +249,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         this.configurationReadPlatformService = configurationReadPlatformService;
         this.currencyReadPlatformService = currencyReadPlatformService;
         this.loanTransactionRepository = loanTransactionRepository;
+        this.appUserReadPlatformService = appUserReadPlatformService;
     }
 
     @Override
@@ -694,8 +698,24 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         final Collection<EnumOptionData> termFrequencyTypeOptions = this.loanDropdownReadPlatformService
                 .retrieveLoanTermFrequencyTypeOptions();
         final LoanDecisionData loanDecisionData = this.retrieveLoanDecisionByLoanId(loan.getId());
+        Collection<AppUserData> approverOptions = this.appUserReadPlatformService.retrieveUsersByOfficeAndPermission(loan.getOfficeId(), getNextStageApproverPermission(loanDecisionData.getLoanDecisionState()));
         return new LoanApprovalData(loan.getProposedPrincipal(), DateUtils.getBusinessLocalDate(), loan.getNetDisbursalAmount(),
-                termFrequencyTypeOptions, currency, loanDecisionData);
+                termFrequencyTypeOptions, currency, loanDecisionData, approverOptions);
+    }
+
+    private String getNextStageApproverPermission(Integer loanDecisionState) {
+        String nextStagePermission = null;
+        //the current state is the loan decision state which
+        switch (LoanDecisionState.fromInt(loanDecisionState)) {
+            case REVIEW_APPLICATION -> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELONE";
+            case DUE_DILIGENCE -> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELTWO";
+            case IC_REVIEW_LEVEL_ONE -> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELTHREE";
+            case IC_REVIEW_LEVEL_TWO -> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELFOUR";
+            case IC_REVIEW_LEVEL_THREE-> nextStagePermission = "ACCEPT_LOANICREVIEWDECISIONLEVELFIVE";
+            case IC_REVIEW_LEVEL_FIVE, IC_REVIEW_LEVEL_FOUR, PREPARE_AND_SIGN_CONTRACT, COLLATERAL_REVIEW, INVALID -> {
+            }
+        }
+        return nextStagePermission;
     }
 
     @Override
@@ -2758,8 +2778,14 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
 
         final Collection<EnumOptionData> termFrequencyTypeOptions = this.loanDropdownReadPlatformService
                 .retrieveLoanTermFrequencyTypeOptions();
+        Loan loan = this.loanRepositoryWrapper.findOneWithNotFoundDetection(loanId);
+
+        final Collection<AppUserData> approvers = this.appUserReadPlatformService.retrieveUsersByOfficeAndPermission(loanAccountData.officeId(),getNextStageApproverPermission(loan.getLoanDecisionState()));
 
         loanAccountData.setTermFrequencyTypeOptions(termFrequencyTypeOptions);
+
+        loanAccountData.setApproverOptionsOptions(approvers);
+
         return loanAccountData;
     }
 

@@ -101,6 +101,33 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
     }
 
     @Override
+    public Collection<AppUserData> retrieveUsersByOfficeAndPermission(Long officeId,String permissionCode) {
+        OfficeData office = this.officeReadPlatformService.retrieveOffice(officeId);
+        String hierarchy = office.getHierarchy(); // e.g., ".5.8.14."
+
+        String sql = """
+            select distinct u.id as id, u.username as username, u.firstname as firstname, u.lastname as lastname,
+                           u.email as email, u.password_never_expires as passwordNeverExpires, u.office_id as officeId,
+                           o.name as officeName, u.staff_id as staffId, u.is_self_service_user as isSelfServiceUser
+           from m_appuser u
+           join m_office o on o.id = u.office_id
+           join m_appuser_role ur on ur.appuser_id = u.id
+           join m_role r on r.id = ur.role_id
+           join m_role_permission rp on rp.role_id = r.id
+           join m_permission p on p.id = rp.permission_id
+           where ? like concat(o.hierarchy, '%')
+             and u.is_deleted = false
+             and p.code = ?
+           order by u.username
+        """;
+
+        return this.jdbcTemplate.query(sql,
+                new AppUserMapper(roleReadPlatformService, staffReadPlatformService), hierarchy, permissionCode);
+    }
+
+
+
+    @Override
     public AppUserData retrieveNewUserDetails() {
 
         final Collection<OfficeData> offices = this.officeReadPlatformService.retrieveAllOfficesForDropdown();
