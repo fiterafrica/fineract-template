@@ -67,6 +67,11 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
 
     @Override
     public boolean isMakerCheckerEnabledForTask(final String taskPermissionCode) {
+        // Check if bypass maker-checker flag is set
+        if (ThreadLocalContextUtil.isBypassMakerChecker()) {
+            return false;
+        }
+
         if (StringUtils.isBlank(taskPermissionCode)) {
             throw new PermissionNotFoundException(taskPermissionCode);
         }
