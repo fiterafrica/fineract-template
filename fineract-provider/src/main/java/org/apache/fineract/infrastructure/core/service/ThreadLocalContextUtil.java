@@ -109,7 +109,8 @@ public final class ThreadLocalContextUtil {
     }
 
     public static FineractContext getContext() {
-        return new FineractContext(getDataSourceContext(), getTenant(), getAuthToken(), getBusinessDates(), getActionContext(), isBypassMakerChecker());
+        return new FineractContext(getDataSourceContext(), getTenant(), getAuthToken(), getBusinessDates(), getActionContext(),
+                isBypassMakerChecker());
     }
 
     public static void init(final FineractContext fineractContext) {
