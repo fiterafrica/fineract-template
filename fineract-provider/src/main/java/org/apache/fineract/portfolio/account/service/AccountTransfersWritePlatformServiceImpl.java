@@ -550,6 +550,11 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
     }
 
     @Override
+    /**
+     * Handles loan top-up by repaying the old loan using a repayment transaction
+     * instead of foreclosure, then disbursing a new loan.
+     * Uses makeRepayment() from 1.8.2 for clean accounting.
+     */
     public AccountTransferDetails repayLoanWithTopup(AccountTransferDTO accountTransferDTO) {
         final boolean isAccountTransfer = true;
         Loan fromLoanAccount = null;
@@ -571,19 +576,24 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
                 accountTransferDTO.getTransactionDate(), accountTransferDTO.getTransactionAmount(), accountTransferDTO.getPaymentDetail(),
                 accountTransferDTO.getNoteText(), accountTransferDTO.getTxnExternalId(), true);
 
-        this.loanScheduleHistoryWritePlatformService.createAndSaveLoanScheduleArchive(toLoanAccount.getRepaymentScheduleInstallments(),
-                toLoanAccount, null);
-        this.loanAccountDomainService.foreCloseLoan(toLoanAccount, accountTransferDTO.getTransactionDate(), null, true);
-
-        List<LoanTransaction> transactionList = this.loanTransactionRepository.findLastLoanTransaction(toLoanAccount.getId());
-        if (CollectionUtils.isEmpty(transactionList)) {
-            throw new GeneralPlatformDomainRuleException("Loan.topup-requires.repayment.transaction.but.non.is.non",
-                    "Loan TopUp requires Repayment Transaction but non is found");
-        }
-        LoanTransaction loanTransaction = transactionList.get(0);
+        LoanTransaction repayTransaction = this.loanAccountDomainService.makeRepayment(
+                LoanTransactionType.REPAYMENT,
+                toLoanAccount,
+                new CommandProcessingResultBuilder(), // required by 1.8.2
+                accountTransferDTO.getTransactionDate(),
+                accountTransferDTO.getTransactionAmount(),
+                accountTransferDTO.getPaymentDetail(),
+                null, // noteText
+                accountTransferDTO.getTxnExternalId(), // reuse same ID
+                false, // isRecoveryRepayment
+                isAccountTransfer,
+                null, // holidayDetailDto
+                true, // isHolidayValidationDone — assume already validated
+                isAccountTransfer
+        );
 
         AccountTransferDetails accountTransferDetails = this.accountTransferAssembler.assembleLoanToLoanTransfer(accountTransferDTO,
-                fromLoanAccount, toLoanAccount, disburseTransaction, loanTransaction);
+                fromLoanAccount, toLoanAccount, disburseTransaction, repayTransaction);
         this.accountTransferDetailRepository.saveAndFlush(accountTransferDetails);
 
         return accountTransferDetails;
