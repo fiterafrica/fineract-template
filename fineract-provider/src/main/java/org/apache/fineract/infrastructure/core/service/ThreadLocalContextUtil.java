@@ -38,6 +38,7 @@ public final class ThreadLocalContextUtil {
     private static final ThreadLocal<String> authTokenContext = new ThreadLocal<>();
     private static final ThreadLocal<HashMap<BusinessDateType, LocalDate>> businessDateContext = new ThreadLocal<>();
     private static final ThreadLocal<ActionContext> actionContext = new ThreadLocal<>();
+    private static final ThreadLocal<Boolean> bypassMakerCheckerContext = new ThreadLocal<>();
 
     private ThreadLocalContextUtil() {}
 
@@ -108,7 +109,7 @@ public final class ThreadLocalContextUtil {
     }
 
     public static FineractContext getContext() {
-        return new FineractContext(getDataSourceContext(), getTenant(), getAuthToken(), getBusinessDates(), getActionContext());
+        return new FineractContext(getDataSourceContext(), getTenant(), getAuthToken(), getBusinessDates(), getActionContext(), isBypassMakerChecker());
     }
 
     public static void init(final FineractContext fineractContext) {
@@ -118,6 +119,7 @@ public final class ThreadLocalContextUtil {
         setAuthToken(fineractContext.getAuthTokenContext());
         setBusinessDates(fineractContext.getBusinessDateContext());
         setActionContext(fineractContext.getActionContext());
+        setBypassMakerChecker(fineractContext.getBypassMakerCheckerContext());
     }
 
     public static void setJobParams(final Map<String, Object> params) {
@@ -126,5 +128,17 @@ public final class ThreadLocalContextUtil {
 
     public static Map<String, Object> getJobParams() {
         return jobParams.get();
+    }
+
+    public static Boolean isBypassMakerChecker() {
+        return bypassMakerCheckerContext.get() != null ? bypassMakerCheckerContext.get() : false;
+    }
+
+    public static void setBypassMakerChecker(final Boolean bypass) {
+        bypassMakerCheckerContext.set(bypass);
+    }
+
+    public static void clearBypassMakerChecker() {
+        bypassMakerCheckerContext.remove();
     }
 }

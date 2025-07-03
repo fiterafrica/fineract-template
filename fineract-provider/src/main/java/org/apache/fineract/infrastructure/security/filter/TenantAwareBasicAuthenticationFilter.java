@@ -88,6 +88,7 @@ public class TenantAwareBasicAuthenticationFilter extends BasicAuthenticationFil
     private BusinessDateReadPlatformService businessDateReadPlatformService;
 
     private final String tenantRequestHeader = "Fineract-Platform-TenantId";
+    private final String bypassMakerCheckerHeader = "X-Bypass-Maker-Checker";
     private final boolean exceptionIfHeaderMissing = true;
 
     public TenantAwareBasicAuthenticationFilter(final AuthenticationManager authenticationManager,
@@ -133,6 +134,14 @@ public class TenantAwareBasicAuthenticationFilter extends BasicAuthenticationFil
 
                 if (authToken != null && authToken.startsWith("Basic ")) {
                     ThreadLocalContextUtil.setAuthToken(authToken.replaceFirst("Basic ", ""));
+                }
+
+                // Check for bypass maker-checker header
+                String bypassMakerChecker = request.getHeader(this.bypassMakerCheckerHeader);
+                if (bypassMakerChecker != null && "true".equalsIgnoreCase(bypassMakerChecker)) {
+                    ThreadLocalContextUtil.setBypassMakerChecker(true);
+                } else {
+                    ThreadLocalContextUtil.setBypassMakerChecker(false);
                 }
 
                 if (!firstRequestProcessed) {
