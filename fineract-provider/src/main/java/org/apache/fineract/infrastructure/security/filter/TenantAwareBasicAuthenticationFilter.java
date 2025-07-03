@@ -88,7 +88,7 @@ public class TenantAwareBasicAuthenticationFilter extends BasicAuthenticationFil
     private BusinessDateReadPlatformService businessDateReadPlatformService;
 
     private final String tenantRequestHeader = "Fineract-Platform-TenantId";
-    private final String bypassMakerCheckerHeader = "X-Bypass-Maker-Checker";
+    private final String bypassMakerCheckerHeader = "Fineract-Bypass-Maker-Checker";
     private final boolean exceptionIfHeaderMissing = true;
 
     public TenantAwareBasicAuthenticationFilter(final AuthenticationManager authenticationManager,
