@@ -271,7 +271,7 @@ public class Charge extends AbstractPersistableCustom {
 
             ChargeTimeType chargeTimeType = ChargeTimeType.fromInt(getChargeTimeType());
             if (!(chargeTimeType.isWithdrawalFee() || chargeTimeType.isSavingsNoActivityFee() || chargeTimeType.isOverdraftFee()
-                    || chargeTimeType.isFdaPreclosureFee() || chargeTimeType.isFdaPartialLiquidationFee())
+                    || chargeTimeType.isFdaPreclosureFee() || chargeTimeType.isFdaPartialLiquidationFee() || chargeTimeType.isFdaEarlyLiquidationFee())
                     && ChargeCalculationType.fromInt(getChargeCalculation()).isPercentageOfAmount()) {
                 baseDataValidator.reset().parameter("chargeCalculationType").value(this.chargeCalculation)
                         .failWithCodeNoParameterAddedToErrorCode(
