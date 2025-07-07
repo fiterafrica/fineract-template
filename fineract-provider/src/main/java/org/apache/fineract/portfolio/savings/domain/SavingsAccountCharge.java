@@ -264,6 +264,10 @@ public class SavingsAccountCharge extends AbstractPersistableCustom {
         this.status = status;
         this.minAmount = chargeDefinition.getMinAmount();
         this.maxAmount = chargeDefinition.getMaxAmount();
+
+        if (isFdaEarlyLiquidationFee()) {
+            this.paid = false;
+        }
     }
 
     public void resetPropertiesForRecurringFees() {
@@ -752,6 +756,10 @@ public class SavingsAccountCharge extends AbstractPersistableCustom {
 
     public boolean isWithdrawalFee() {
         return ChargeTimeType.fromInt(this.chargeTime).isWithdrawalFee();
+    }
+
+    public boolean isFdaEarlyLiquidationFee() {
+        return ChargeTimeType.fromInt(this.chargeTime).isFdaEarlyLiquidationFee();
     }
 
     public boolean isOverdraftFee() {
