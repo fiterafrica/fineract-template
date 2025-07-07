@@ -39,8 +39,8 @@ public enum ChargeTimeType {
 
     SAVINGS_NOACTIVITY_FEE(16, "chargeTimeType.savingsNoActivityFee"), DISBURSE_TO_SAVINGS(17,
             "chargeTimeType.disburseToSavings"), FDA_PRE_CLOSURE_FEE(18, "chargeTimeType.fdaPreclosureFee"), FDA_PARTIAL_LIQUIDATION_FEE(19,
-                    "chargeTimeType.fdaPartialLiquidationFee"), INTEREST_FORFEITED(20, "chargeTimeType.interestForfeited"), FDA_EARLY_LIQUIDATION_FEE(21,
-            "chargeTimeType.fdaEarlyLiquidationFee");
+                    "chargeTimeType.fdaPartialLiquidationFee"), INTEREST_FORFEITED(20,
+                            "chargeTimeType.interestForfeited"), FDA_EARLY_LIQUIDATION_FEE(21, "chargeTimeType.fdaEarlyLiquidationFee");
 
     private final Integer value;
     private final String code;
@@ -74,7 +74,7 @@ public enum ChargeTimeType {
                 ChargeTimeType.SAVINGS_CLOSURE.getValue(), ChargeTimeType.WITHDRAWAL_FEE.getValue(), ChargeTimeType.ANNUAL_FEE.getValue(),
                 ChargeTimeType.MONTHLY_FEE.getValue(), ChargeTimeType.OVERDRAFT_FEE.getValue(), ChargeTimeType.WEEKLY_FEE.getValue(),
                 ChargeTimeType.SAVINGS_NOACTIVITY_FEE.getValue(), ChargeTimeType.FDA_PARTIAL_LIQUIDATION_FEE.getValue(),
-                ChargeTimeType.INTEREST_FORFEITED.getValue(),ChargeTimeType.FDA_EARLY_LIQUIDATION_FEE.getValue() };
+                ChargeTimeType.INTEREST_FORFEITED.getValue(), ChargeTimeType.FDA_EARLY_LIQUIDATION_FEE.getValue() };
     }
 
     public static Object[] validClientValues() {
@@ -152,7 +152,7 @@ public enum ChargeTimeType {
                 break;
                 case 21:
                     chargeTimeType = FDA_EARLY_LIQUIDATION_FEE;
-                    break;
+                break;
                 default:
                     chargeTimeType = INVALID;
                 break;
@@ -216,7 +216,8 @@ public enum ChargeTimeType {
 
     public boolean isAllowedSavingsChargeTime() {
         return isOnSpecifiedDueDate() || isSavingsActivation() || isSavingsClosure() || isWithdrawalFee() || isAnnualFee() || isMonthlyFee()
-                || isWeeklyFee() || isOverdraftFee() || isSavingsNoActivityFee() || isFdaPartialLiquidationFee() || isInterestForfeited() || isFdaEarlyLiquidationFee();
+                || isWeeklyFee() || isOverdraftFee() || isSavingsNoActivityFee() || isFdaPartialLiquidationFee() || isInterestForfeited()
+                || isFdaEarlyLiquidationFee();
     }
 
     public boolean isOverdraftFee() {

@@ -117,7 +117,7 @@ public final class ChargeEnumerations {
             case FDA_EARLY_LIQUIDATION_FEE:
                 optionData = new EnumOptionData(ChargeTimeType.FDA_EARLY_LIQUIDATION_FEE.getValue().longValue(),
                         ChargeTimeType.FDA_EARLY_LIQUIDATION_FEE.getCode(), "Early Liquidation Fee");
-                break;
+            break;
             default:
                 optionData = new EnumOptionData(ChargeTimeType.INVALID.getValue().longValue(), ChargeTimeType.INVALID.getCode(), "Invalid");
             break;

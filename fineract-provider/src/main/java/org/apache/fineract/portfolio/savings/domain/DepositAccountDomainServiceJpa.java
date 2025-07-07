@@ -35,7 +35,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -595,8 +594,9 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
                 List<SavingsAccountCharge> withdrawalCharges = this.savingsAccountChargeRepository
                         .findWithdrawalFeeByAccountId(account.getId(), ChargeTimeType.FDA_EARLY_LIQUIDATION_FEE.getValue());
 
-                if(CollectionUtils.isEmpty(withdrawalCharges)){
-                    throw new GeneralPlatformDomainRuleException("error.msg.no.early.liquidation.fee.was.found.on.this.account","Early Liquidation Fee charge is not found. So premature closure is terminated");
+                if (CollectionUtils.isEmpty(withdrawalCharges)) {
+                    throw new GeneralPlatformDomainRuleException("error.msg.no.early.liquidation.fee.was.found.on.this.account",
+                            "Early Liquidation Fee charge is not found. So premature closure is terminated");
                 }
 
                 SavingsAccountCharge charge = withdrawalCharges.get(0);
