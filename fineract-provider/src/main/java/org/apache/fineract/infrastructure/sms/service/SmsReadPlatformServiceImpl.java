@@ -177,6 +177,7 @@ public class SmsReadPlatformServiceImpl implements SmsReadPlatformService {
 
         final String sql = "SELECT id FROM " + this.smsRowMapper.tableName()
                 + " WHERE status_enum = " + SmsMessageStatusType.WAITING_FOR_DELIVERY_REPORT.getValue()
+                + " or status_enum = " + SmsMessageStatusType.SENT.getValue()
                 + " ORDER BY id " + limitOffsetSql;
 
         return this.paginationHelper.fetchPage(jdbcTemplate, sql, Long.class);

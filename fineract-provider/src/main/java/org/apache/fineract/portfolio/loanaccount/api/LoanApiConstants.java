@@ -35,6 +35,7 @@ public interface LoanApiConstants {
     String loanIdTobeApproved = "loanId";
     String loanId = "loanId";
     String postDatedChecks = "postDatedChecks";
+    String nextApproverUserId = "nextApproverUserId";
 
     String approvedLoanAmountParameterName = "approvedLoanAmount";
     String approvedOnDateParameterName = "approvedOnDate";

@@ -16,22 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.useradministration.service;
+package org.apache.fineract.portfolio.businessevent.domain.loan;
 
-import java.util.Collection;
-import org.apache.fineract.useradministration.data.AppUserData;
+import lombok.Getter;
+import org.apache.fineract.portfolio.loanaccount.domain.Loan;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanDecision;
 
-public interface AppUserReadPlatformService {
+@Getter
+public class LoanDecisionAcceptedEvent extends LoanBusinessEvent{
 
-    Collection<AppUserData> retrieveAllUsers();
+    private final LoanDecision loanDecision;
 
-    Collection<AppUserData> retrieveSearchTemplate();
-
-    Collection<AppUserData> retrieveUsersByOfficeAndPermission(Long officeId, String permissionCode);
-
-    AppUserData retrieveNewUserDetails();
-
-    AppUserData retrieveUser(Long userId);
-
-    boolean isUsernameExist(String username);
+    public LoanDecisionAcceptedEvent(Loan loan, LoanDecision loanDecision) {
+        super(loan);
+        this.loanDecision = loanDecision;
+    }
 }
+
