@@ -38,7 +38,6 @@
                 splitStatements="true"
                 stripComments="true"/>
     </changeSet>
-
     <changeSet author="deepika@fiter.io" id="FSI-212_update_IC_minutes_report_1" context="mysql">
         <sqlFile
                 encoding="utf8"

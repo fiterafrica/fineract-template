@@ -345,7 +345,7 @@ public class SmsMessageScheduledJobServiceImpl implements SmsMessageScheduledJob
     private int mapDeliveryStatusToEnum(String deliveryStatus, int fallback) {
         return switch (deliveryStatus.toUpperCase()) {
             case "INVALID" -> SmsMessageStatusType.INVALID.getValue();
-            case "SENT" -> SmsMessageStatusType.SENT.getValue();
+            case "SENT" -> SmsMessageStatusType.WAITING_FOR_DELIVERY_REPORT.getValue();
             case "DELIVERED" -> SmsMessageStatusType.DELIVERED.getValue();
             case "FAILED", "EXPIRED" -> SmsMessageStatusType.FAILED.getValue();
             default -> fallback;

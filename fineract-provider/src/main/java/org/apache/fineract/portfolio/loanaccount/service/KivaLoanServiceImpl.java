@@ -401,6 +401,7 @@ public class KivaLoanServiceImpl implements KivaLoanService {
 
         Optional<KivaSectorActivity> kivaSectorActivity =  this.kivaSectorActivityRepository.findBySectorAndActivity(sector,activity);
 
+
         if (kivaSectorActivity.isPresent()) {
             return kivaSectorActivity.get().getActivityId();
         } else {
