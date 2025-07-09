@@ -38,4 +38,12 @@
                 splitStatements="true"
                 stripComments="true"/>
     </changeSet>
+    <changeSet author="deepika@fiter.io" id="FSI-212_update_IC_minutes_report_1" context="mysql">
+        <sqlFile
+                encoding="utf8"
+                path="db/changelog/tenant/commands/FSI-212_update_ic_minutes_report_sql_query_1.sql"
+                relativeToChangelogFile="false"
+                splitStatements="true"
+                stripComments="true"/>
+    </changeSet>
 </databaseChangeLog>

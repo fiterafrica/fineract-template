@@ -54,6 +54,7 @@ import org.apache.fineract.portfolio.loanproduct.domain.LoanProductConfigurableA
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProductValueConditionType;
 import org.apache.fineract.portfolio.note.data.NoteData;
 import org.apache.fineract.portfolio.rate.data.RateData;
+import org.apache.fineract.useradministration.data.AppUserData;
 import org.springframework.util.CollectionUtils;
 
 /**
@@ -147,12 +148,14 @@ public final class LoanAccountData {
     // template
     private final Collection<LoanProductData> productOptions;
     private final Collection<StaffData> loanOfficerOptions;
+    private Collection<AppUserData> approverOptions;
     private final Collection<CodeValueData> loanPurposeOptions;
     private final Collection<FundData> fundOptions;
     private Collection<EnumOptionData> termFrequencyTypeOptions;
     private final Collection<EnumOptionData> repaymentFrequencyTypeOptions;
     private final Collection<EnumOptionData> repaymentFrequencyNthDayTypeOptions;
     private final Collection<EnumOptionData> repaymentFrequencyDaysOfWeekTypeOptions;
+
 
     private final Collection<EnumOptionData> interestRateFrequencyTypeOptions;
     private final Collection<EnumOptionData> amortizationTypeOptions;
@@ -2230,6 +2233,10 @@ public final class LoanAccountData {
         this.termFrequencyTypeOptions = termFrequencyTypeOptions;
     }
 
+    public void setApproverOptionsOptions(Collection<AppUserData> approvers) {
+        this.approverOptions = approvers;
+    }
+
     public void setApprovedICReview(BigDecimal approvedICReview) {
         this.approvedICReview = approvedICReview;
     }
@@ -2268,5 +2275,9 @@ public final class LoanAccountData {
 
     public void setDepartmentId(Long departmentId) {
         this.departmentId = departmentId;
+    }
+
+    public EnumOptionData getloanDecisionState(){
+       return this.loanDecisionState;
     }
 }
