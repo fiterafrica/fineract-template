@@ -126,6 +126,9 @@ public class AccountingProcessorHelper {
             final boolean reversed = (Boolean) map.get("reversed");
             final Long paymentTypeId = (Long) map.get("paymentTypeId");
 
+            final Long accountTransferId = (Long) map.get("accountTransferId");
+            isAccountTransfer = (Boolean) map.get("isAccountTransfer");
+
             final List<ChargePaymentDTO> feePaymentDetails = new ArrayList<>();
             final List<ChargePaymentDTO> penaltyPaymentDetails = new ArrayList<>();
             // extract charge payment details (if exists)
@@ -147,8 +150,7 @@ public class AccountingProcessorHelper {
             }
 
             if (!isAccountTransfer) {
-                isAccountTransfer = this.accountTransfersReadPlatformService.isAccountTransfer(Long.parseLong(transactionId),
-                        PortfolioAccountType.LOAN);
+                isAccountTransfer = this.accountTransfersReadPlatformService.isAccountTransferDetails(accountTransferId);
             }
             final LoanTransactionDTO transaction = new LoanTransactionDTO(transactionOfficeId, paymentTypeId, transactionId,
                     transactionDate, transactionType, amount, principal, interest, fees, penalties, overPayments, reversed,

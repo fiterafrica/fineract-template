@@ -121,6 +121,12 @@ public class LoanTransaction extends AbstractAuditableWithUTCDateTimeCustom {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER, mappedBy = "loanTransaction")
     private Set<LoanTransactionToRepaymentScheduleMapping> loanTransactionToRepaymentScheduleMappings = new HashSet<>();
 
+    @Column(name = "is_account_transfer")
+    private boolean isAccountTransfer;
+
+    @Column(name = "account_transfer_id", nullable = true)
+    private Long accountTransferId;
+
     protected LoanTransaction() {}
 
     public static LoanTransaction incomePosting(final Loan loan, final Office office, final LocalDate dateOf, final BigDecimal amount,
@@ -132,7 +138,7 @@ public class LoanTransaction extends AbstractAuditableWithUTCDateTimeCustom {
         final PaymentDetail paymentDetail = null;
         final String externalId = null;
         return new LoanTransaction(loan, office, typeOf, dateOf, amount, principalPortion, interestPortion, feeChargesPortion,
-                penaltyChargesPortion, overPaymentPortion, reversed, paymentDetail, externalId);
+                penaltyChargesPortion, overPaymentPortion, reversed, paymentDetail, externalId, null, false);
     }
 
     public static LoanTransaction disbursement(final Office office, final Money amount, final PaymentDetail paymentDetail,
@@ -199,7 +205,8 @@ public class LoanTransaction extends AbstractAuditableWithUTCDateTimeCustom {
         PaymentDetail paymentDetail = null;
         String externalId = null;
         return new LoanTransaction(loan, office, LoanTransactionType.ACCRUAL.getValue(), interestAppliedDate, interestPortion,
-                principalPortion, interestPortion, feesPortion, penaltiesPortion, overPaymentPortion, reversed, paymentDetail, externalId);
+                principalPortion, interestPortion, feesPortion, penaltiesPortion, overPaymentPortion, reversed, paymentDetail, externalId,
+                null, false);
     }
 
     public static LoanTransaction accrual(final Loan loan, final Office office, final Money amount, final Money interest,
@@ -216,28 +223,28 @@ public class LoanTransaction extends AbstractAuditableWithUTCDateTimeCustom {
         PaymentDetail paymentDetail = null;
         String externalId = null;
         return new LoanTransaction(loan, office, LoanTransactionType.ACCRUAL.getValue(), dateOf, amount, principalPortion, interestPortion,
-                feeChargesPortion, penaltyChargesPortion, overPaymentPortion, reversed, paymentDetail, externalId);
+                feeChargesPortion, penaltyChargesPortion, overPaymentPortion, reversed, paymentDetail, externalId, null, false);
     }
 
     public static LoanTransaction initiateTransfer(final Office office, final Loan loan, final LocalDate transferDate) {
         return new LoanTransaction(loan, office, LoanTransactionType.INITIATE_TRANSFER.getValue(), transferDate,
                 loan.getSummary().getTotalOutstanding(), loan.getSummary().getTotalPrincipalOutstanding(),
                 loan.getSummary().getTotalInterestOutstanding(), loan.getSummary().getTotalFeeChargesOutstanding(),
-                loan.getSummary().getTotalPenaltyChargesOutstanding(), null, false, null, null);
+                loan.getSummary().getTotalPenaltyChargesOutstanding(), null, false, null, null, null, false);
     }
 
     public static LoanTransaction approveTransfer(final Office office, final Loan loan, final LocalDate transferDate) {
         return new LoanTransaction(loan, office, LoanTransactionType.APPROVE_TRANSFER.getValue(), transferDate,
                 loan.getSummary().getTotalOutstanding(), loan.getSummary().getTotalPrincipalOutstanding(),
                 loan.getSummary().getTotalInterestOutstanding(), loan.getSummary().getTotalFeeChargesOutstanding(),
-                loan.getSummary().getTotalPenaltyChargesOutstanding(), null, false, null, null);
+                loan.getSummary().getTotalPenaltyChargesOutstanding(), null, false, null, null, null, false);
     }
 
     public static LoanTransaction withdrawTransfer(final Office office, final Loan loan, final LocalDate transferDate) {
         return new LoanTransaction(loan, office, LoanTransactionType.WITHDRAW_TRANSFER.getValue(), transferDate,
                 loan.getSummary().getTotalOutstanding(), loan.getSummary().getTotalPrincipalOutstanding(),
                 loan.getSummary().getTotalInterestOutstanding(), loan.getSummary().getTotalFeeChargesOutstanding(),
-                loan.getSummary().getTotalPenaltyChargesOutstanding(), null, false, null, null);
+                loan.getSummary().getTotalPenaltyChargesOutstanding(), null, false, null, null, null, false);
     }
 
     public static LoanTransaction refund(final Office office, final Money amount, final PaymentDetail paymentDetail,
@@ -261,7 +268,8 @@ public class LoanTransaction extends AbstractAuditableWithUTCDateTimeCustom {
         return new LoanTransaction(loanTransaction.loan, loanTransaction.office, loanTransaction.typeOf, loanTransaction.dateOf,
                 loanTransaction.amount, loanTransaction.principalPortion, loanTransaction.interestPortion,
                 loanTransaction.feeChargesPortion, loanTransaction.penaltyChargesPortion, loanTransaction.overPaymentPortion,
-                loanTransaction.reversed, loanTransaction.paymentDetail, loanTransaction.externalId);
+                loanTransaction.reversed, loanTransaction.paymentDetail, loanTransaction.externalId, loanTransaction.accountTransferId,
+                loanTransaction.isAccountTransfer);
     }
 
     public static LoanTransaction accrueLoanCharge(final Loan loan, final Office office, final Money amount, final LocalDate applyDate,
@@ -302,7 +310,7 @@ public class LoanTransaction extends AbstractAuditableWithUTCDateTimeCustom {
     private LoanTransaction(final Loan loan, final Office office, final Integer typeOf, final LocalDate dateOf, final BigDecimal amount,
             final BigDecimal principalPortion, final BigDecimal interestPortion, final BigDecimal feeChargesPortion,
             final BigDecimal penaltyChargesPortion, final BigDecimal overPaymentPortion, final boolean reversed,
-            final PaymentDetail paymentDetail, final String externalId) {
+            final PaymentDetail paymentDetail, final String externalId, final Long accountTransferId, final boolean isAccountTransfer) {
 
         this.loan = loan;
         this.typeOf = typeOf;
@@ -318,6 +326,8 @@ public class LoanTransaction extends AbstractAuditableWithUTCDateTimeCustom {
         this.office = office;
         this.externalId = externalId;
         this.submittedOnDate = DateUtils.getBusinessLocalDate();
+        this.accountTransferId = accountTransferId;
+        this.isAccountTransfer = isAccountTransfer;
     }
 
     public static LoanTransaction waiveLoanCharge(final Loan loan, final Office office, final Money waived, final LocalDate waiveDate,
@@ -653,6 +663,8 @@ public class LoanTransaction extends AbstractAuditableWithUTCDateTimeCustom {
         thisTransactionData.put("feeChargesPortion", this.feeChargesPortion);
         thisTransactionData.put("penaltyChargesPortion", this.penaltyChargesPortion);
         thisTransactionData.put("overPaymentPortion", this.overPaymentPortion);
+        thisTransactionData.put("accountTransferId", this.accountTransferId);
+        thisTransactionData.put("isAccountTransfer", this.isAccountTransfer);
 
         if (this.paymentDetail != null) {
             thisTransactionData.put("paymentTypeId", this.paymentDetail.getPaymentType().getId());
@@ -827,4 +839,20 @@ public class LoanTransaction extends AbstractAuditableWithUTCDateTimeCustom {
 
     // TODO missing hashCode(), equals(Object obj), but probably OK as long as
     // this is never stored in a Collection.
+
+    public Long getAccountTransferId() {
+        return accountTransferId;
+    }
+
+    public void setAccountTransferId(Long accountTransferId) {
+        this.accountTransferId = accountTransferId;
+    }
+
+    public boolean isAccountTransfer() {
+        return isAccountTransfer;
+    }
+
+    public void setAccountTransfer(boolean accountTransfer) {
+        isAccountTransfer = accountTransfer;
+    }
 }

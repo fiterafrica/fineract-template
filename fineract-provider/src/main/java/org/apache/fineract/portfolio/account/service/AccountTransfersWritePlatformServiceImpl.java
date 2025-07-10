@@ -438,12 +438,17 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
                         new CommandProcessingResultBuilder(), accountTransferDTO.getTransactionDate(),
                         accountTransferDTO.getTransactionAmount(), accountTransferDTO.getPaymentDetail(), null, null, isRecoveryRepayment,
                         isAccountTransfer, holidayDetailDto, isHolidayValidationDone);
+
             }
 
             accountTransferDetails = this.accountTransferAssembler.assembleSavingsToLoanTransfer(accountTransferDTO, fromSavingsAccount,
                     toLoanAccount, withdrawal, loanTransaction);
             this.accountTransferDetailRepository.saveAndFlush(accountTransferDetails);
             transferTransactionId = accountTransferDetails.getId();
+
+            loanTransaction.setAccountTransfer(Boolean.TRUE);
+            loanTransaction.setAccountTransferId(transferTransactionId);
+
         } else if (isSavingsToSavingsAccountTransfer(accountTransferDTO.getFromAccountType(), accountTransferDTO.getToAccountType())) {
 
             SavingsAccount fromSavingsAccount = null;

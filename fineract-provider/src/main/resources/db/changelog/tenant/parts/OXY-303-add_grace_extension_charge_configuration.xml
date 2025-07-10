@@ -55,4 +55,26 @@
         </sql>
     </changeSet>
 
+    <changeSet author="bosco@fiter.io" id="FSO-154-add_account_transfer_id-column-to-m_loan_transaction">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="m_loan_transaction" columnName="account_transfer_id"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="m_loan_transaction">
+            <column name="account_transfer_id" type="BIGINT"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet author="bosco@fiter.io" id="FSO-154-add_is_account_transfer-column-to-m_loan_transaction">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="m_loan_transaction" columnName="is_account_transfer"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="m_loan_transaction">
+            <column name="is_account_transfer" type="BOOLEAN"/>
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>
