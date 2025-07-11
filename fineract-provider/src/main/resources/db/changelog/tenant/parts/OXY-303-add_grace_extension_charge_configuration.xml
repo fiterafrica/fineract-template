@@ -55,4 +55,54 @@
         </sql>
     </changeSet>
 
+    <changeSet author="bosco@fiter.io" id="FSO-154-add_account_transfer_id-column-to-m_loan_transaction">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="m_loan_transaction" columnName="account_transfer_id"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="m_loan_transaction">
+            <column name="account_transfer_id" type="BIGINT"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet author="bosco@fiter.io" id="FSO-154-add_is_account_transfer-column-to-m_loan_transaction">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="m_loan_transaction" columnName="is_account_transfer"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="m_loan_transaction">
+            <column name="is_account_transfer" type="BOOLEAN"/>
+        </addColumn>
+    </changeSet>
+
+
+    <changeSet id="clean-up-loan-transaction-with-transfer-details-for-existing-loans_2" author="bosco@fiter.io">
+
+        <sql>
+            UPDATE m_loan_transaction mlt
+            SET account_transfer_id = (
+            SELECT matt.account_transfer_details_id
+            FROM m_account_transfer_transaction matt
+            INNER JOIN m_account_transfer_details matd ON matt.account_transfer_details_id = matd.id
+            WHERE matt.to_loan_transaction_id = mlt.id
+            AND matt.to_loan_transaction_id IS NOT NULL
+            AND matt.is_reversed = false
+            LIMIT 1
+            ),
+            is_account_transfer = true
+            WHERE EXISTS (
+            SELECT 1
+            FROM m_account_transfer_transaction matt2
+            INNER JOIN m_account_transfer_details matd2 ON matt2.account_transfer_details_id = matd2.id
+            WHERE matt2.to_loan_transaction_id = mlt.id
+            AND matt2.to_loan_transaction_id IS NOT NULL
+            AND matt2.is_reversed = false
+            )
+            AND (mlt.is_reversed = false OR mlt.is_reversed IS NULL)
+            AND mlt.account_transfer_id IS NULL;
+        </sql>
+    </changeSet>
+
 </databaseChangeLog>

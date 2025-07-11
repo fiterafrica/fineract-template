@@ -408,6 +408,14 @@ public class AccountTransfersReadPlatformServiceImpl implements AccountTransfers
     }
 
     @Override
+    public boolean isAccountTransferDetails(final Long accountTransferDetailsId) {
+        final String sql = "SELECT count(*) FROM m_account_transfer_transaction WHERE account_transfer_details_id = ?";
+
+        final int count = this.jdbcTemplate.queryForObject(sql, Integer.class, accountTransferDetailsId);
+        return count > 0;
+    }
+
+    @Override
     public Page<AccountTransferData> retrieveByStandingInstruction(final Long id, final SearchParameters searchParameters) {
 
         final StringBuilder sqlBuilder = new StringBuilder(200);

@@ -37,6 +37,8 @@ public interface AccountTransfersReadPlatformService {
 
     boolean isAccountTransfer(Long transactionId, PortfolioAccountType accountType);
 
+    boolean isAccountTransferDetails(Long accountTransferDetailsId);
+
     Page<AccountTransferData> retrieveByStandingInstruction(Long id, SearchParameters searchParameters);
 
     Collection<Long> fetchPostInterestTransactionIds(Long accountId);
