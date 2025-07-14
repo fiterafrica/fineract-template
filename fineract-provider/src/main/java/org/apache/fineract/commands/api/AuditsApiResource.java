@@ -192,7 +192,6 @@ public class AuditsApiResource {
         extraCriteria.addNonNullCriteria("aud.loan_id = ", loanId);
         extraCriteria.addNonNullCriteria("aud.savings_account_id = ", savingsAccountId);
 
-        // Fix the date range criteria - use proper parameters and convert to LocalDateTime
         LocalDateTime makerFromDateTime = null;
         LocalDateTime makerToDateTime = null;
 
@@ -200,7 +199,6 @@ public class AuditsApiResource {
             try {
                 makerFromDateTime = LocalDateTime.parse(makerDateTimeTo, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             } catch (DateTimeParseException e) {
-                // Try parsing as date only and add start of day
                 LocalDate date = LocalDate.parse(makerDateTimeTo, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
                 makerFromDateTime = date.atStartOfDay();
             }

@@ -164,16 +164,6 @@ public class SQLBuilder {
         return whereClause.toString();
     }
 
-    /**
-     * Adds a BETWEEN criteria for a SQL WHERE clause.
-     *
-     * @param columnName
-     *            The name of the column to be filtered (e.g. "aud.made_on_date")
-     * @param fromValue
-     *            The start value for the BETWEEN range
-     * @param toValue
-     *            The end value for the BETWEEN range
-     */
     public void addBetweenCriteria(String columnName, Object fromValue, Object toValue) {
         if (columnName == null || columnName.trim().isEmpty()) {
             throw new IllegalArgumentException("columnName cannot be null or empty");
@@ -202,16 +192,6 @@ public class SQLBuilder {
         args.add(toValue);
     }
 
-    /**
-     * Adds a BETWEEN criteria only if both fromValue and toValue are not null.
-     *
-     * @param columnName
-     *            The name of the column to be filtered
-     * @param fromValue
-     *            The start value for the BETWEEN range
-     * @param toValue
-     *            The end value for the BETWEEN range
-     */
     public void addNonNullBetweenCriteria(String columnName, Object fromValue, Object toValue) {
         if (fromValue != null && toValue != null) {
             addBetweenCriteria(columnName, fromValue, toValue);
