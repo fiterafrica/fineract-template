@@ -26,6 +26,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -180,16 +185,37 @@ public class AuditsApiResource {
         extraCriteria.addNonNullCriteria("aud.resource_id = ", resourceId);
         extraCriteria.addNonNullCriteria("aud.maker_id = ", makerId);
         extraCriteria.addNonNullCriteria("aud.checker_id = ", checkerId);
-        extraCriteria.addNonNullCriteria("aud.made_on_date >= ", makerDateTimeFrom);
-        extraCriteria.addNonNullCriteria("aud.made_on_date <= ", makerDateTimeTo);
-        extraCriteria.addNonNullCriteria("aud.checked_on_date >= ", checkerDateTimeFrom);
-        extraCriteria.addNonNullCriteria("aud.checked_on_date <= ", checkerDateTimeTo);
         extraCriteria.addNonNullCriteria("aud.processing_result_enum = ", processingResult);
         extraCriteria.addNonNullCriteria("aud.office_id = ", officeId);
         extraCriteria.addNonNullCriteria("aud.group_id = ", groupId);
         extraCriteria.addNonNullCriteria("aud.client_id = ", clientId);
         extraCriteria.addNonNullCriteria("aud.loan_id = ", loanId);
         extraCriteria.addNonNullCriteria("aud.savings_account_id = ", savingsAccountId);
+
+        // Fix the date range criteria - use proper parameters and convert to LocalDateTime
+        LocalDateTime makerFromDateTime = null;
+        LocalDateTime makerToDateTime = null;
+
+        if (makerDateTimeTo != null) {
+            try {
+                makerFromDateTime = LocalDateTime.parse(makerDateTimeTo, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            } catch (DateTimeParseException e) {
+                // Try parsing as date only and add start of day
+                LocalDate date = LocalDate.parse(makerDateTimeTo, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                makerFromDateTime = date.atStartOfDay();
+            }
+        }
+
+        if (checkerDateTimeTo != null) {
+            try {
+                makerToDateTime = LocalDateTime.parse(checkerDateTimeTo, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            } catch (DateTimeParseException e) {
+                LocalDate date = LocalDate.parse(checkerDateTimeTo, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                makerToDateTime = date.atTime(LocalTime.MAX);
+            }
+        }
+
+        extraCriteria.addNonNullBetweenCriteria("aud.made_on_date", makerFromDateTime, makerToDateTime);
 
         return extraCriteria;
     }

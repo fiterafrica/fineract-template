@@ -168,4 +168,13 @@ public final class DateUtils {
     public static LocalDateTime convertToLocalDateTime(Date date) {
         return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
     }
+
+    public static String convertToTimestampStartOfDay(String dateString) {
+        LocalDate date = LocalDate.parse(dateString);
+        LocalDateTime dateTime = date.atStartOfDay();
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
+        return dateTime.format(formatter);
+    }
+
 }
