@@ -153,4 +153,5 @@
     <include file="parts/FSI-209_update_stretchy_report_sql_for_portfolio_management.xml" relativeToChangelogFile="true"/>
     <include file="parts/FSI-222_update_penalties_section_portfolio_management_report.xml" relativeToChangelogFile="true"/>
     <include file="parts/FSI-93_update_IC_minutes_report.xml" relativeToChangelogFile="true"/>
+    <include file="parts/FSI-233_update_penalties_section_portfolio_management_report.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>
