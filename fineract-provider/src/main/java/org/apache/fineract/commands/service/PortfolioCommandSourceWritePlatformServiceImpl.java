@@ -22,6 +22,7 @@ import com.google.gson.JsonElement;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.security.SecureRandom;
 import java.time.ZonedDateTime;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.commands.domain.CommandSource;
@@ -30,8 +31,10 @@ import org.apache.fineract.commands.domain.CommandWrapper;
 import org.apache.fineract.commands.exception.CommandNotAwaitingApprovalException;
 import org.apache.fineract.commands.exception.CommandNotFoundException;
 import org.apache.fineract.commands.exception.RollbackTransactionAsCommandIsNotApprovedByCheckerException;
+import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
+import org.apache.fineract.infrastructure.core.exception.GeneralPlatformDomainRuleException;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
@@ -55,6 +58,7 @@ public class PortfolioCommandSourceWritePlatformServiceImpl implements Portfolio
     private final FromJsonHelper fromApiJsonHelper;
     private final CommandProcessingService processAndLogCommandService;
     private final SchedulerJobRunnerReadService schedulerJobRunnerReadService;
+    private final ConfigurationDomainService configurationDomainService;
 
     @Override
     @SuppressWarnings("AvoidHidingCauseException")
@@ -74,6 +78,10 @@ public class PortfolioCommandSourceWritePlatformServiceImpl implements Portfolio
             // if not user changing their own details - check user has
             // permission to perform specific task.
             this.context.authenticatedUser(wrapper).validateHasPermissionTo(wrapper.getTaskPermissionName());
+        }
+
+        if (!isApprovedByChecker && isMakerCheckerEnabled(wrapper)) {
+            validateNotDuplicate(wrapper);
         }
         validateIsUpdateAllowed();
 
@@ -120,6 +128,30 @@ public class PortfolioCommandSourceWritePlatformServiceImpl implements Portfolio
 
         return result;
     }
+
+    private boolean isMakerCheckerEnabled(CommandWrapper wrapper) {
+        return this.configurationDomainService.isMakerCheckerEnabledForTask(wrapper.taskPermissionName());
+    }
+
+    private void validateNotDuplicate(CommandWrapper wrapper) {
+        Optional<CommandSource> existingPending = commandSourceRepository.findPendingCommand(
+                wrapper.getEntityName(),
+                wrapper.getEntityId(),
+                wrapper.actionName()
+        );
+
+        if (existingPending.isPresent()) {
+            CommandSource pending = existingPending.get();
+            throw new GeneralPlatformDomainRuleException(
+                    "error.command.pending.approval.exists",
+                    String.format("Duplicate maker-checker task found: Submitted on %s by user ID %d",
+                            pending.getMadeOnDate(), pending.getMaker() != null ? pending.getMaker().getId() : null)
+            );
+        }
+
+    }
+
+
 
     @Override
     public CommandProcessingResult approveEntry(final Long makerCheckerId) {

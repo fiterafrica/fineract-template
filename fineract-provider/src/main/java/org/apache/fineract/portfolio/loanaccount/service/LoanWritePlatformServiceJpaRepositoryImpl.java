@@ -611,10 +611,11 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
         return new CommandProcessingResultBuilder() //
                 .withCommandId(command.commandId()) //
-                .withEntityId(entityId) //
+                .withEntityId(loan.getId()) //
                 .withOfficeId(loan.getOfficeId()) //
                 .withClientId(loan.getClientId()) //
                 .withGroupId(loan.getGroupId()) //
+                .withSubEntityId(entityId)
                 .withLoanId(loanId) //
                 .with(changes) //
                 .build();

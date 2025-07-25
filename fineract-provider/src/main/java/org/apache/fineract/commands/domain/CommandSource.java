@@ -25,6 +25,7 @@ import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
@@ -72,9 +73,11 @@ public class CommandSource extends AbstractPersistableCustom {
 
     @ManyToOne
     @JoinColumn(name = "maker_id", nullable = false)
+    @Getter
     private AppUser maker;
 
     @Column(name = "made_on_date", nullable = false)
+    @Getter
     private LocalDateTime madeOnDate;
 
     @ManyToOne
