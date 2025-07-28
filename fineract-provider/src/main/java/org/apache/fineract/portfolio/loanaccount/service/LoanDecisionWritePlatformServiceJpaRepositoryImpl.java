@@ -38,6 +38,7 @@ import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityEx
 import org.apache.fineract.infrastructure.documentmanagement.data.DocumentData;
 import org.apache.fineract.infrastructure.documentmanagement.service.DocumentReadPlatformService;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
+import org.apache.fineract.organisation.staff.domain.Staff;
 import org.apache.fineract.portfolio.businessevent.domain.loan.LoanDecisionAcceptedEvent;
 import org.apache.fineract.portfolio.businessevent.service.BusinessEventNotifierService;
 import org.apache.fineract.portfolio.client.data.ClientOtherInfoData;
@@ -998,8 +999,14 @@ public class LoanDecisionWritePlatformServiceJpaRepositoryImpl implements LoanAp
         } else if (nextApproverUserId == null && !nextStage.equals(LoanDecisionState.PREPARE_AND_SIGN_CONTRACT) ){
             throw new GeneralPlatformDomainRuleException("error.msg.loan.next.approver.user.id.required",
                     "The field 'nextApproverUserId' is required.");
+        }else {
+            final Loan loan = this.loanRepositoryWrapper.findOneWithNotFoundDetection(command.getLoanId(), true);
+            Staff loanOfficer =loan.getLoanOfficer();
+            if (loanOfficer == null)
+                throw new GeneralPlatformDomainRuleException("error.msg.loan.does.not.have.officer",
+                        "The loan is missing a loan officer");
         }
-        else return null;
+        return null;
     }
 
     private void setNextApprover(LoanDecision decision, Integer nextStage, AppUser nextApprover) {
