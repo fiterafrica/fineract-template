@@ -245,15 +245,27 @@ public class MetropolCrbVerificationWritePlatformServiceImpl implements Metropol
 
         Response response = httpClient.newCall(request).execute();
 
+        final String responseBodyString = response.body() != null ? response.body().string() : "";
+        final JsonObject jsonResponse = JsonParser.parseString(responseBodyString).getAsJsonObject();
+
         if (response.isSuccessful()) {
 
             String resObject = response.body().string();
             LOG.info("Response from Metropol CRB: " + resObject);
             return JsonParser.parseString(resObject).getAsJsonObject();
         } else {
-            LOG.info("Response from Metropol CRB: " + response.code() + ":" + response.message() + ";" + response);
-            throw new GeneralPlatformDomainRuleException("error.msg.loan.credit.info.enhanced.failed",
-                    "Credit Info Enhanced failed with error: " + response.code() + ":" + response.message() + "");
+            if (jsonResponse.has("api_code") && "E017".equals(jsonResponse.get("api_code").getAsString())) {
+                final String apiCodeDescription = jsonResponse.has("api_code_description")
+                        ? jsonResponse.get("api_code_description").getAsString()
+                        : "No Account Information";
+
+                LOG.info("Response from Metropol CRB --> {}: {}", jsonResponse.get("api_code").getAsString(), apiCodeDescription);
+                return null;
+            }else {
+                LOG.info("Response from Metropol CRB: " + response.code() + ":" + response.message() + ";" + response);
+                throw new GeneralPlatformDomainRuleException("error.msg.loan.credit.info.enhanced.failed",
+                        "Credit Info Enhanced failed with error: " + response.code() + ":" + response.message() + "");
+            }
         }
 
     }
