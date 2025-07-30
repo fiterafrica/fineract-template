@@ -20,14 +20,13 @@ package org.apache.fineract.portfolio.savings.domain;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.persistence.Transient;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.portfolio.savings.SavingsAccountTransactionType;
@@ -36,6 +35,7 @@ import org.apache.fineract.portfolio.savings.domain.interest.PostingPeriod;
 /**
  * {@link SavingsAccountSummary} encapsulates all the summary details of a {@link SavingsAccount}.
  */
+@Slf4j
 @Embeddable
 public final class SavingsAccountSummary {
 
@@ -101,7 +101,7 @@ public final class SavingsAccountSummary {
 
         this.totalDeposits = wrapper.calculateTotalDeposits(currency, transactions);
         this.totalWithdrawals = wrapper.calculateTotalWithdrawals(currency, transactions);
-        this.totalInterestPosted = wrapper.calculateTotalInterestPosted(currency, transactions);
+        this.totalInterestPosted = wrapper.calculateTotalAccruedInterestPosted(currency, transactions);
         this.totalWithdrawalFees = wrapper.calculateTotalWithdrawalFees(currency, transactions);
         this.totalAnnualFees = wrapper.calculateTotalAnnualFees(currency, transactions);
         this.totalFeeCharge = wrapper.calculateTotalFeesCharge(currency, transactions);
@@ -261,20 +261,22 @@ public final class SavingsAccountSummary {
     public void updateFromInterestPeriodSummaries(final MonetaryCurrency currency, final List<PostingPeriod> allPostingPeriods) {
         Money totalEarned = Money.zero(currency);
         Money overdraftEarned = Money.zero(currency);
-        LocalDate interestCalculationDate = DateUtils.getLocalDateOfTenant();
+        LocalDate interestCalculationDate = null;
+        if (CollectionUtils.isNotEmpty(allPostingPeriods)) {
+            final PostingPeriod lastPostingPeriod = allPostingPeriods.get(allPostingPeriods.size() - 1);
+            interestCalculationDate = lastPostingPeriod.getPeriodInterval().endDate();
+        }
+
         for (final PostingPeriod period : allPostingPeriods) {
-            if (CollectionUtils.isNotEmpty(period.interests())) {
-                for (Money interestEarned : period.interests()) {
-                    interestEarned = interestEarned == null ? Money.zero(currency) : interestEarned;
-                    if (interestEarned.isGreaterThanZero()) {
-                        totalEarned = totalEarned.plus(interestEarned);
-                    } else {
-                        overdraftEarned = overdraftEarned.plus(interestEarned);
-                    }
-                }
+            Money interestEarned = period.getInterestEarned();
+            interestEarned = interestEarned == null ? Money.zero(currency) : interestEarned;
+            if (interestEarned.isGreaterThanZero()) {
+                totalEarned = totalEarned.plus(interestEarned);
+            } else {
+                overdraftEarned = overdraftEarned.plus(interestEarned);
             }
         }
-        this.lastInterestCalculationDate = interestCalculationDate.atStartOfDay(ZoneId.systemDefault()).toLocalDate();
+        this.lastInterestCalculationDate = interestCalculationDate;
         this.totalInterestEarned = totalEarned.getAmount();
         this.totalOverdraftInterestEarned = overdraftEarned.getAmount().abs();
     }

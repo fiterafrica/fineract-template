@@ -20,6 +20,7 @@ package org.apache.fineract.portfolio.savings.domain;
 
 import java.math.BigDecimal;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
@@ -30,6 +31,7 @@ import org.springframework.stereotype.Component;
  * A wrapper for dealing with side-effect free functionality related to a {@link SavingsAccount}'s
  * {@link SavingsAccountTransaction}'s.
  */
+@Slf4j
 @Component
 public final class SavingsAccountTransactionSummaryWrapper {
 
@@ -78,6 +80,17 @@ public final class SavingsAccountTransactionSummaryWrapper {
         Money total = Money.zero(currency);
         for (final SavingsAccountTransaction transaction : transactions) {
             if (transaction.isInterestPostingAndNotReversed() && transaction.isNotReversed() && !transaction.isReversalTransaction()) {
+                total = total.plus(transaction.getAmount(currency));
+            }
+        }
+        return total.getAmountDefaultedToNullIfZero();
+    }
+
+    public BigDecimal calculateTotalAccruedInterestPosted(final MonetaryCurrency currency,
+            final List<SavingsAccountTransaction> transactions) {
+        Money total = Money.zero(currency);
+        for (final SavingsAccountTransaction transaction : transactions) {
+            if (transaction.isAccrualInterestPostingAndNotReversed() && transaction.isNotReversed()) {
                 total = total.plus(transaction.getAmount(currency));
             }
         }
