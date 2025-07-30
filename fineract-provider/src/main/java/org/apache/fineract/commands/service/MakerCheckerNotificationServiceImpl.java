@@ -20,6 +20,7 @@ package org.apache.fineract.commands.service;
 
 import org.apache.fineract.commands.domain.CommandSource;
 import org.apache.fineract.infrastructure.businessdate.domain.BusinessDateType;
+import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.apache.fineract.infrastructure.core.domain.EmailDetail;
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
 import org.apache.fineract.infrastructure.core.service.PlatformEmailService;
@@ -50,28 +51,33 @@ public class MakerCheckerNotificationServiceImpl implements MakerCheckerNotifica
     private final RoleRepository roleRepository;
     private final PlatformEmailService emailService;
     private final ExecutorService executor;
+    private final ConfigurationDomainService configurationDomainService;
+
 
     @Value("${mifos.system.base-url}")
     private String baseUrl;
 
 
-    public MakerCheckerNotificationServiceImpl(AppUserRepository appUserRepository, RoleRepository roleRepository, PlatformEmailService emailService) {
+    public MakerCheckerNotificationServiceImpl(AppUserRepository appUserRepository, RoleRepository roleRepository, PlatformEmailService emailService, ConfigurationDomainService configurationDomainService) {
         this.appUserRepository = appUserRepository;
         this.roleRepository = roleRepository;
         this.emailService = emailService;
+        this.configurationDomainService = configurationDomainService;
         this.executor = Executors.newSingleThreadExecutor();
     }
 
 
     @Override
     public void notifyCheckers(CommandSource commandSource) {
+        if (this.configurationDomainService.isMakerCheckerNotificationEnabled()) {
 
-        FineractPlatformTenant tenant = ThreadLocalContextUtil.getTenant(); // capture current tenant
+            FineractPlatformTenant tenant = ThreadLocalContextUtil.getTenant(); // capture current tenant
 
-        executor.submit(() -> {
+            executor.submit(() -> {
                 ThreadLocalContextUtil.setTenant(tenant);
                 sendEmailToCheckers(commandSource);
-        });
+            });
+        }
     }
 
     private void sendEmailToCheckers(CommandSource commandSource) {
