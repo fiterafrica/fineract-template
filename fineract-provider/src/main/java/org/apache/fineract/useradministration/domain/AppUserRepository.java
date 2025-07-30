@@ -19,6 +19,8 @@
 package org.apache.fineract.useradministration.domain;
 
 import java.util.Collection;
+import java.util.List;
+
 import org.apache.fineract.infrastructure.security.domain.PlatformUserRepository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -34,5 +36,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long>, JpaSpec
 
     @Query("SELECT u FROM AppUser u WHERE u.staff.id = :staffId")
     AppUser findAppUserByStaffId(@Param("staffId") Long staffId);
+
+    @Query("SELECT au FROM AppUser au JOIN au.roles r WHERE r = :role AND au.enabled = true AND au.deleted = false AND au.office.id = :officeId")
+    List<AppUser> findUsersByRoleAndOffice(@Param("role") Role role, @Param("officeId") Long officeId);
 
 }
