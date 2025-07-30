@@ -355,13 +355,13 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
                         + journalEntry.getTransactionId();
             }
             if (journalEntry.isDebitEntry()) {
-                reversalJournalEntry = JournalEntry.createNew(journalEntry.getOffice(), journalEntry.getPaymentDetails(),
+                reversalJournalEntry = JournalEntry.createNew(journalEntry.getOffice(), journalEntry.getPaymentDetail(),
                         journalEntry.getGlAccount(), journalEntry.getCurrencyCode(), reversalTransactionId, manualEntry,
                         journalEntry.getTransactionDate(), JournalEntryType.CREDIT, journalEntry.getAmount(), reversalComment, null, null,
                         journalEntry.getReferenceNumber(), journalEntry.getLoanTransaction(), journalEntry.getSavingsTransaction(),
                         journalEntry.getClientTransaction(), journalEntry.getShareTransactionId());
             } else {
-                reversalJournalEntry = JournalEntry.createNew(journalEntry.getOffice(), journalEntry.getPaymentDetails(),
+                reversalJournalEntry = JournalEntry.createNew(journalEntry.getOffice(), journalEntry.getPaymentDetail(),
                         journalEntry.getGlAccount(), journalEntry.getCurrencyCode(), reversalTransactionId, manualEntry,
                         journalEntry.getTransactionDate(), JournalEntryType.DEBIT, journalEntry.getAmount(), reversalComment, null, null,
                         journalEntry.getReferenceNumber(), journalEntry.getLoanTransaction(), journalEntry.getSavingsTransaction(),
@@ -386,14 +386,14 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
             String reversalComment = "Reversal entry for Journal Entry with Entry Id  :" + journalEntry.getId() + " and transaction Id "
                     + journalEntry.getTransactionId();
             if (journalEntry.isDebitEntry()) {
-                reversalJournalEntry = JournalEntry.createNew(journalEntry.getOffice(), journalEntry.getPaymentDetails(),
+                reversalJournalEntry = JournalEntry.createNew(journalEntry.getOffice(), journalEntry.getPaymentDetail(),
                         journalEntry.getGlAccount(), journalEntry.getCurrencyCode(), journalEntry.getTransactionId(), Boolean.FALSE,
                         reversalTransactionDate, JournalEntryType.CREDIT, journalEntry.getAmount(), reversalComment,
                         journalEntry.getEntityType(), journalEntry.getEntityId(), journalEntry.getReferenceNumber(),
                         journalEntry.getLoanTransaction(), journalEntry.getSavingsTransaction(), journalEntry.getClientTransaction(),
                         journalEntry.getShareTransactionId());
             } else {
-                reversalJournalEntry = JournalEntry.createNew(journalEntry.getOffice(), journalEntry.getPaymentDetails(),
+                reversalJournalEntry = JournalEntry.createNew(journalEntry.getOffice(), journalEntry.getPaymentDetail(),
                         journalEntry.getGlAccount(), journalEntry.getCurrencyCode(), journalEntry.getTransactionId(), Boolean.FALSE,
                         reversalTransactionDate, JournalEntryType.DEBIT, journalEntry.getAmount(), reversalComment,
                         journalEntry.getEntityType(), journalEntry.getEntityId(), journalEntry.getReferenceNumber(),
@@ -519,7 +519,7 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
             if(!Arrays.asList(new Long[]{1L, 2L, 4L, 5L, 6L, 8L, 9L, 10L, 19L, 26L, 27L}).contains(paymentTypeId.id()))
                 return; // not a transaction to post
 
-            List<JournalEntry> journalEntries = glJournalEntryRepository.findJournalEntriesByLoanTransactionId("L" + transactionId);
+            List<JournalEntry> journalEntries = glJournalEntryRepository.findJournalEntriesByLoanTransactionId(transactionId);
 
             if (journalEntries.isEmpty())
                 return;
@@ -645,14 +645,14 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
                 String reversalComment = "Reversal entry for Journal Entry with id  :" + journalEntry.getId() + " and transaction Id "
                         + journalEntry.getTransactionId();
                 if (journalEntry.isDebitEntry()) {
-                    reversalJournalEntry = JournalEntry.createNew(journalEntry.getOffice(), journalEntry.getPaymentDetails(),
+                    reversalJournalEntry = JournalEntry.createNew(journalEntry.getOffice(), journalEntry.getPaymentDetail(),
                             journalEntry.getGlAccount(), journalEntry.getCurrencyCode(), reversalTransactionId, Boolean.FALSE,
                             transactionDate, JournalEntryType.CREDIT, journalEntry.getAmount(), reversalComment,
                             journalEntry.getEntityType(), journalEntry.getEntityId(), journalEntry.getReferenceNumber(),
                             journalEntry.getLoanTransaction(), journalEntry.getSavingsTransaction(), journalEntry.getClientTransaction(),
                             journalEntry.getShareTransactionId());
                 } else {
-                    reversalJournalEntry = JournalEntry.createNew(journalEntry.getOffice(), journalEntry.getPaymentDetails(),
+                    reversalJournalEntry = JournalEntry.createNew(journalEntry.getOffice(), journalEntry.getPaymentDetail(),
                             journalEntry.getGlAccount(), journalEntry.getCurrencyCode(), reversalTransactionId, Boolean.FALSE,
                             transactionDate, JournalEntryType.DEBIT, journalEntry.getAmount(), reversalComment,
                             journalEntry.getEntityType(), journalEntry.getEntityId(), journalEntry.getReferenceNumber(),
