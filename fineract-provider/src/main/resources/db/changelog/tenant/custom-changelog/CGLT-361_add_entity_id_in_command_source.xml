@@ -27,4 +27,20 @@
             <column name="entity_id" type="bigint"/>
         </addColumn>
     </changeSet>
+    <changeSet author="niceta@inkomoko.com" id="add_maker-checker-notification_configurations" >
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="c_configuration"/>
+            <sqlCheck expectedResult="0">
+                select count(1) from c_configuration where name = 'maker-checker-notification';
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="c_configuration">
+            <column name="name" value="maker-checker-notification" />
+            <column name="value" value="null" />
+            <column name="date_value" value="null" />
+            <column name="enabled" valueBoolean="false" />
+            <column name="is_trap_door" valueBoolean="false" />
+            <column name="description" value="Enable or disable maker checker notifications" />
+        </insert>
+    </changeSet>
 </databaseChangeLog>
