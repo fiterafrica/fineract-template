@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.commands.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.commands.domain.CommandProcessingResultType;
 import org.apache.fineract.commands.domain.CommandSource;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
@@ -42,6 +43,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @Service
+@Slf4j
 public class MakerCheckerNotificationServiceImpl implements MakerCheckerNotificationService {
 
     private final AppUserRepository appUserRepository;
@@ -60,22 +62,17 @@ public class MakerCheckerNotificationServiceImpl implements MakerCheckerNotifica
         this.roleRepository = roleRepository;
         this.emailService = emailService;
         this.configurationDomainService = configurationDomainService;
-        this.executor = Executors.newSingleThreadExecutor();
+        this.executor = Executors.newFixedThreadPool(5);
     }
 
 
     @Override
     public void notifyCheckers(CommandSource commandSource) {
         if (this.configurationDomainService.isMakerCheckerNotificationEnabled()) {
-
-            FineractPlatformTenant tenant = ThreadLocalContextUtil.getTenant(); // capture current tenant
-
-            executor.submit(() -> {
-                ThreadLocalContextUtil.setTenant(tenant);
-                sendEmailToCheckers(commandSource);
-            });
+            sendEmailToCheckers(commandSource);
         }
     }
+
 
     @Override
     public void notifyMaker(CommandSource commandSource, CommandProcessingResultType processingResult) {
@@ -101,13 +98,23 @@ public class MakerCheckerNotificationServiceImpl implements MakerCheckerNotifica
             checkers.addAll(appUserRepository.findUsersByRoleAndOffice(role, officeId));
         }
 
+        FineractPlatformTenant tenant = ThreadLocalContextUtil.getTenant(); // capture once
+
         for (AppUser checker : checkers) {
             if (checker.getEmail() != null && !checker.equals(maker)) {
-                String loanUrl = this.baseUrl + "/tasks";
-                EmailDetail emailDetail = getChekerEmailDetail(commandSource, checker, loanUrl);
-                emailService.sendDefinedEmail(emailDetail);
+                executor.submit(() -> {
+                    try {
+                        ThreadLocalContextUtil.setTenant(tenant); // restore context in thread
+                        String loanUrl = this.baseUrl + "/tasks";
+                        EmailDetail emailDetail = getChekerEmailDetail(commandSource, checker, loanUrl);
+                        emailService.sendDefinedEmail(emailDetail);
+                    } catch (Exception e) {
+                        log.error("Failed to send email to checker {}", checker.getEmail(), e);
+                    }
+                });
             }
         }
+
     }
 
     private void sendEmailToMaker(CommandSource commandSource, CommandProcessingResultType processingResult) {
@@ -148,7 +155,7 @@ public class MakerCheckerNotificationServiceImpl implements MakerCheckerNotifica
         String body = String.format("""
                         Dear %s,<br><br>
 
-                        %s %s request for %s ID: %s has been %s and is awaiting your action.  <br><br>
+                        %s %s request for %s ID: %s has been %s.  <br><br>
                         Please <a href="%s">log in </a> to the system to review and take the next action.<br><br>
                         
                         Kind Regards.
