@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License. You may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -80,9 +80,14 @@ public class MakerCheckerNotificationServiceImpl implements MakerCheckerNotifica
 
             FineractPlatformTenant tenant = ThreadLocalContextUtil.getTenant(); // capture current tenant
 
-            executor.submit(() -> {
-                ThreadLocalContextUtil.setTenant(tenant);
-                sendEmailToMaker(commandSource,processingResult);
+            executor.execute(() -> {
+                try {
+                    ThreadLocalContextUtil.setTenant(tenant);
+                    sendEmailToMaker(commandSource,processingResult);
+                    log.info("Email successfully sent to maker");
+                } catch (Exception e) {
+                    log.error("Failed to send email to maker", e);
+                }
             });
         }
     }
@@ -102,12 +107,13 @@ public class MakerCheckerNotificationServiceImpl implements MakerCheckerNotifica
 
         for (AppUser checker : checkers) {
             if (checker.getEmail() != null && !checker.equals(maker)) {
-                executor.submit(() -> {
+                executor.execute(() -> {
                     try {
-                        ThreadLocalContextUtil.setTenant(tenant); // restore context in thread
+                        ThreadLocalContextUtil.setTenant(tenant); // restore tenant context
                         String loanUrl = this.baseUrl + "/tasks";
                         EmailDetail emailDetail = getChekerEmailDetail(commandSource, checker, loanUrl);
                         emailService.sendDefinedEmail(emailDetail);
+                        log.info("Email successfully sent to checker {}", checker.getEmail());
                     } catch (Exception e) {
                         log.error("Failed to send email to checker {}", checker.getEmail(), e);
                     }
