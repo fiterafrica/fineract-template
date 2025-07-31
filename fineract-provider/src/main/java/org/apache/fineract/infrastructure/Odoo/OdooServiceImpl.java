@@ -44,6 +44,7 @@ import java.util.Base64;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -437,37 +438,39 @@ public class OdooServiceImpl implements OdooService {
 
         List<JournalEntry> journalEntries = journalEntryRepository.findJournalEntriesByLoanTransactionId("L" + transactionId);
 
+        // Create a map of journal entry ID -> JournalEntry for fast lookup
+        Map<Long, JournalEntry> journalEntryMap = journalEntries.stream()
+                .collect(Collectors.toMap(JournalEntry::getId, je -> je));
+
         if ("POSTED".equals(responseCode) || "REVERSED".equals(responseCode) || "EXISTING".equals(responseCode)) {
             String odooJournalId = getStringField(odooRequest, "journal_entry_no");
-            BigDecimal debit = BigDecimal.ZERO;
-            BigDecimal credit = BigDecimal.ZERO;
 
-            if (odooJournalId != null) {
-                // Map type -> amount from journalDetails
-                Map<Integer, BigDecimal> amountMap = new HashMap<>(); // 1 -> credit, 2 -> debit
+            if (odooJournalId != null && odooRequest.has("journalDetails") && odooRequest.get("journalDetails").isJsonArray()) {
+                JsonArray journalDetails = odooRequest.getAsJsonArray("journalDetails");
 
-                if (odooRequest.has("journalDetails") && odooRequest.get("journalDetails").isJsonArray()) {
-                    JsonArray journalDetails = odooRequest.getAsJsonArray("journalDetails");
+                for (JsonElement element : journalDetails) {
+                    JsonObject detail = element.getAsJsonObject();
+                    if (!detail.has("id")) continue;
 
-                    // Process journalDetails if present
-                    for (JsonElement detailElement : journalDetails) {
-                        JsonObject detail = detailElement.getAsJsonObject();
-                        debit = detail.get("debit").getAsBigDecimal();
-                        credit = detail.get("credit").getAsBigDecimal();
+                    Long journalEntryId = detail.get("id").getAsLong();
+                    JournalEntry je = journalEntryMap.get(journalEntryId);
 
+                    if (je != null) {
+                        BigDecimal credit = detail.has("credit") ? detail.get("credit").getAsBigDecimal() : BigDecimal.ZERO;
+                        BigDecimal debit = detail.has("debit") ? detail.get("debit").getAsBigDecimal() : BigDecimal.ZERO;
+                        BigDecimal odooAmount = credit.compareTo(BigDecimal.ZERO) > 0 ? credit : debit;
+                        String oddAccountGl = detail.has("gl_account") ? detail.get("gl_account").getAsString() : null;
+
+                        je.setOdooAccountGl(oddAccountGl);
+                        je.setOdooAmount(odooAmount);
+                        je.setOddoPosted(true);
+                        je.setOdooJournalId(odooJournalId);
+                        je.setOdooResponse(responseCode);
+                        journalEntryRepository.saveAndFlush(je);
                     }
-
-                }
-
-                for (JournalEntry je : journalEntries) {
-                    if (je.getType() == 1) je.setOdooAmount(credit);
-                    if (je.getType() == 2) je.setOdooAmount(debit);
-                    je.setOddoPosted(true);
-                    je.setOdooJournalId(odooJournalId);
-                    je.setOdooResponse(responseCode);
-                    this.journalEntryRepository.saveAndFlush(je);
                 }
             }
+
         } else {
             LOG.info("Loan Transaction Not Posted to Odoo - Code:{} - Message: {}", responseCode, responseMessage);
             for (JournalEntry je : journalEntries) {
@@ -481,8 +484,6 @@ public class OdooServiceImpl implements OdooService {
         response.addProperty("ack", true);
         return response.toString();
     }
-
-
 
     private JsonObject sendRequest(String payload) throws IOException, NoSuchAlgorithmException, KeyManagementException {
 
