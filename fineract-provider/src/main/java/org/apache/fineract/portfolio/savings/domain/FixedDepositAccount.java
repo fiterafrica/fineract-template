@@ -701,6 +701,17 @@ public class FixedDepositAccount extends SavingsAccount {
         return maturityAmount.getAmount();
     }
 
+    public BigDecimal calculatePreMatureInterestAmount(final LocalDate preMatureDate, final boolean isPreMatureClosure,
+                                               final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth) {
+
+
+        final Money interestEarnedTillDate = calculatePreMatureInterest(preMatureDate,
+                retreiveOrderedNonInterestPostingTransactions(), isPreMatureClosure,
+                isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
+
+        return interestEarnedTillDate.getAmount();
+    }
+
     private Money calculatePreMatureInterest(final LocalDate preMatureDate, final List<SavingsAccountTransaction> transactions,
             final boolean isPreMatureClosure, final boolean isSavingsInterestPostingAtCurrentPeriodEnd,
             final Integer financialYearBeginningMonth) {
