@@ -1913,6 +1913,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
             // enforceMinRequiredBalance
             if (!isException && transaction.canProcessBalanceCheck() && !isOverdraft()) {
                 if (runningBalance.minus(minRequiredBalance).isLessThanZero()) {
+                    LOG.info("Account Balance ::-> "+getAccountBalance() + "---transactionAmount - >> "+transactionAmount);
                     throw new InsufficientAccountBalanceException("transactionAmount", getAccountBalance(), withdrawalFee,
                             transactionAmount);
                 }
