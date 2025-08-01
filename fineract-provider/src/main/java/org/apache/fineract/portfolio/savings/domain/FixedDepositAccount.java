@@ -692,10 +692,10 @@ public class FixedDepositAccount extends SavingsAccount {
         final Money interestPostedToDate = totalInterestPosted().copy();
 
         final Money interestEarnedTillDate = calculatePreMatureInterest(preMatureDate,
-                retreiveOrderedNonInterestPostingTransactionsExcludeAccruals(), isPreMatureClosure,
+                retreiveOrderedNonInterestPostingTransactions(), isPreMatureClosure,
                 isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
 
-        final Money accountBalance = Money.of(getCurrency(), getAccountBalance());
+        final Money accountBalance = Money.of(getCurrency(), getTotalDeposit());
         final Money maturityAmount = accountBalance.minus(interestPostedToDate).plus(interestEarnedTillDate);
 
         return maturityAmount.getAmount();
@@ -963,6 +963,10 @@ public class FixedDepositAccount extends SavingsAccount {
     @Override
     public BigDecimal getAccountBalance() {
         return this.summary.getAccountBalance(this.currency).getAmount();
+    }
+
+    public BigDecimal getTotalDeposit() {
+        return Money.of(this.currency,this.summary.getTotalDeposits()).getAmount();
     }
 
     public boolean isMatured() {
