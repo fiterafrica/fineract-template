@@ -20,6 +20,8 @@ package org.apache.fineract.infrastructure.core.service;
 
 import java.util.Properties;
 import javax.mail.internet.MimeMessage;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.infrastructure.configuration.data.SMTPCredentialsData;
 import org.apache.fineract.infrastructure.configuration.service.ExternalServicesPropertiesReadPlatformService;
 import org.apache.fineract.infrastructure.core.domain.EmailDetail;
@@ -29,6 +31,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class GmailBackedPlatformEmailService implements PlatformEmailService {
 
     private final ExternalServicesPropertiesReadPlatformService externalServicesReadPlatformService;
@@ -77,7 +80,7 @@ public class GmailBackedPlatformEmailService implements PlatformEmailService {
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", "true");
-        props.put("mail.debug", "true");
+        props.put("mail.debug", "false");
 
         // these are the added lines
         props.put("mail.smtp.starttls.enable", "true");
@@ -97,7 +100,10 @@ public class GmailBackedPlatformEmailService implements PlatformEmailService {
 
             mailSender.send(message);
 
+            log.info("Email successfully sent to: {}. Subject: {}", emailDetails.getAddress(), emailDetails.getSubject());
+
         } catch (Exception e) {
+            log.error("Email failed sending to: {}. Subject: {}", emailDetails.getAddress(), emailDetails.getSubject());
             throw new PlatformEmailSendException(e);
         }
     }

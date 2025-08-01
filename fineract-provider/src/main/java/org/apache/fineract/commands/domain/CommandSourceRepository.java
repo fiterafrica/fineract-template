@@ -20,7 +20,21 @@ package org.apache.fineract.commands.domain;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.Optional;
 
 public interface CommandSourceRepository extends JpaRepository<CommandSource, Long>, JpaSpecificationExecutor<CommandSource> {
     // no added behaviour
+    @Query("SELECT c FROM CommandSource c " +
+            "WHERE c.entityName = :entityName " +
+            "AND c.resourceId = :resourceId " +
+            "AND c.actionName = :actionName " +
+            "AND c.processingResult = 2")
+    Optional<CommandSource> findPendingCommand(@Param("entityName") String entityName,
+                                               @Param("resourceId") Long resourceId,
+                                               @Param("actionName") String actionName);
+
+
 }

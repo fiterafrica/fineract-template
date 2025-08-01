@@ -130,4 +130,6 @@ public interface ConfigurationDomainService {
     Long getMaxActiveLoans();
 
     public boolean isOdooIntegrationEnabled();
+
+    boolean isMakerCheckerNotificationEnabled();
 }

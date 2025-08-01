@@ -63,6 +63,7 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
     private final CommandSourceRepository commandSourceRepository;
     private final ConfigurationDomainService configurationDomainService;
     private final CommandHandlerProvider commandHandlerProvider;
+    private final MakerCheckerNotificationService notificationService;
 
     @Transactional
     @Override
@@ -138,6 +139,9 @@ public class SynchronousCommandProcessingService implements CommandProcessingSer
 
         commandSourceResult.markAsAwaitingApproval();
         commandSourceResult = this.commandSourceRepository.saveAndFlush(commandSourceResult);
+
+        // Send notification to checkers (asynchronously)
+        this.notificationService.notifyCheckers(commandSourceResult);
 
         return new CommandProcessingResultBuilder().withCommandId(commandSourceResult.getId())
                 .withEntityId(commandSourceResult.getResourceId()).build();
