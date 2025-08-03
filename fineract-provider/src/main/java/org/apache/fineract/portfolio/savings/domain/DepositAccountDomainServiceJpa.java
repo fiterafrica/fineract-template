@@ -526,10 +526,12 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
 
         // calculate Interest
 
-        final Money interestOnMaturity = Money.of(account.getCurrency(),account.calculatePreMatureInterestAmount(closedDate, isPreMatureClosure,
-                isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth));
+        final Money interestOnMaturity = account.calculateInterestAtPrematureClosure(closedDate, isPreMatureClosure,
+                isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
         // Apply Penal charge
+        log.info("****** Interest Before Penalty Charge ::-->"+interestOnMaturity.getAmount());
         BigDecimal penalCharge = applyPrematureClosureCharge(account, user, closedDate, interestOnMaturity.getAmount());
+        log.info("****** Penalty Charge ::-->"+penalCharge);
         // post interest
         account.postPreMaturityInterest(closedDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
                 financialYearBeginningMonth, true, penalCharge);
