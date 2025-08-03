@@ -2028,7 +2028,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
         }
         checkClientOrGroupActive(account);
-        postAccrualInterest(account, transactionDate.minusDays(1));
+        postAccrualInterest(account, transactionDate);
         return new CommandProcessingResultBuilder() //
                 .withEntityId(command.entityId()) //
                 .withOfficeId(account.officeId()) //
