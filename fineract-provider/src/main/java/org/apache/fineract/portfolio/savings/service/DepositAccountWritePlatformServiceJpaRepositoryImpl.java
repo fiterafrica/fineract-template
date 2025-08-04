@@ -1570,6 +1570,13 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                             amountForDeposit.getAmount(), null);
                 }
             }
+
+            BigDecimal totalAmount = Money.of(account.getCurrency(),account.getTransactions().stream()
+                    .filter(SavingsAccountTransaction::isAccrualInterestPosting).map(SavingsAccountTransaction::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)).getAmount();
+            LOG.info(account.getId()+" Job Accruals ---- Total Interest ::->"+totalAmount);
+            account.getSummary().setTotalInterestEarned(totalAmount);
+
         } else if (depositAccountType.isRecurringDeposit()) {
 
             ((RecurringDepositAccount) account).updateMaturityStatus(isSavingsInterestPostingAtCurrentPeriodEnd,
@@ -2028,7 +2035,14 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
         }
         checkClientOrGroupActive(account);
-        postAccrualInterest(account, transactionDate.minusDays(1));
+        postAccrualInterest(account, transactionDate);
+
+        BigDecimal totalAmount = Money.of(account.getCurrency(),account.getTransactions().stream()
+                .filter(SavingsAccountTransaction::isAccrualInterestPosting).map(SavingsAccountTransaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)).getAmount();
+
+
+        this.depositAccountAssembler.updateTotalAccrualTransaction(account.getId(),totalAmount);
         return new CommandProcessingResultBuilder() //
                 .withEntityId(command.entityId()) //
                 .withOfficeId(account.officeId()) //
