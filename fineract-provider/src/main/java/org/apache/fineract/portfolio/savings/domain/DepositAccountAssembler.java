@@ -758,4 +758,10 @@ public class DepositAccountAssembler {
         return account;
     }
 
+    public void updateTotalAccrualTransaction(final Long savingsId, BigDecimal amount) {
+        final SavingsAccount account = this.savingsAccountRepository.findOneWithNotFoundDetection(savingsId);
+        account.getSummary().setTotalInterestEarned(amount);
+        this.savingsAccountRepository.saveAndFlush(account);
+    }
+
 }
