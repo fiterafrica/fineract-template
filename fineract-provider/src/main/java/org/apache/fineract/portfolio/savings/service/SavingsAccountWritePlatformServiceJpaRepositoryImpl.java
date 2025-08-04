@@ -2365,6 +2365,13 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
         postAccrualInterest(account, true, transactionDate, isUserPosting);
 
+        BigDecimal totalAmount = Money.of(account.getCurrency(),account.getTransactions().stream()
+                .filter(SavingsAccountTransaction::isAccrualInterestPosting).map(SavingsAccountTransaction::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)).getAmount();
+
+
+        this.savingAccountAssembler.updateTotalAccrualTransaction(account.getId(),totalAmount);
+
         return new CommandProcessingResultBuilder() //
                 .withEntityId(savingsId) //
                 .withOfficeId(account.officeId()) //
