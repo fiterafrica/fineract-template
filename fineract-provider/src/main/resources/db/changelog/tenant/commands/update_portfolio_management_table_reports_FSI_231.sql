@@ -317,7 +317,7 @@ UPDATE stretchy_report SET report_sql = " SELECT
                                                       AND (DATE(t.transaction_date) BETWEEN DATE('${startDate}') AND DATE('${endDate}'))
                                                   GROUP BY t.loan_id
                                               ) waiverTblInterest ON waiverTblInterest.loan_id = l.id
-                                          	LEFT JOIN (
+                                              LEFT JOIN (
                                                   SELECT
                                                       t.loan_id,
                                                       SUM(IFNULL(t.interest_portion_derived, 0)) AS int_waived,
