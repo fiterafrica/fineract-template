@@ -840,7 +840,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
                         fromSavingsAccount.isWithdrawalFeeApplicableForTransfer(), false, false);
                 DateTimeFormatter fmt = DateUtils.getDefaultFormatter();
                 final SavingsAccountTransaction withdrawal = this.savingsAccountDomainService.handleWithdrawal(fromSavingsAccount, fmt,
-                        foreClosureDate, transactionAmount.getAmount(), paymentDetail, transactionBooleanValues, false, true);
+                        foreClosureDate, transactionAmount.getAmount(), paymentDetail, transactionBooleanValues, false, true, null);
                 final Boolean isHolidayValidationDone = false;
                 final HolidayDetailDTO holidayDetailDto = null;
                 final boolean isRecoveryRepayment = false;

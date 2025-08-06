@@ -1571,10 +1571,11 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                 }
             }
 
-            BigDecimal totalAmount = Money.of(account.getCurrency(),account.getTransactions().stream()
-                    .filter(SavingsAccountTransaction::isAccrualInterestPosting).map(SavingsAccountTransaction::getAmount)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add)).getAmount();
-            LOG.info(account.getId()+" Job Accruals ---- Total Interest ::->"+totalAmount);
+            BigDecimal totalAmount = Money.of(account.getCurrency(),
+                    account.getTransactions().stream().filter(SavingsAccountTransaction::isAccrualInterestPosting)
+                            .map(SavingsAccountTransaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add))
+                    .getAmount();
+            LOG.info(account.getId() + " Job Accruals ---- Total Interest ::->" + totalAmount);
             account.getSummary().setTotalInterestEarned(totalAmount);
 
         } else if (depositAccountType.isRecurringDeposit()) {
@@ -2037,12 +2038,12 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         checkClientOrGroupActive(account);
         postAccrualInterest(account, transactionDate);
 
-        BigDecimal totalAmount = Money.of(account.getCurrency(),account.getTransactions().stream()
-                .filter(SavingsAccountTransaction::isAccrualInterestPosting).map(SavingsAccountTransaction::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)).getAmount();
+        BigDecimal totalAmount = Money
+                .of(account.getCurrency(), account.getTransactions().stream().filter(SavingsAccountTransaction::isAccrualInterestPosting)
+                        .map(SavingsAccountTransaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add))
+                .getAmount();
 
-
-        this.depositAccountAssembler.updateTotalAccrualTransaction(account.getId(),totalAmount);
+        this.depositAccountAssembler.updateTotalAccrualTransaction(account.getId(), totalAmount);
         return new CommandProcessingResultBuilder() //
                 .withEntityId(command.entityId()) //
                 .withOfficeId(account.officeId()) //
