@@ -121,18 +121,18 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
     @Transactional
     @Override
     public SavingsAccountTransaction handleWithdrawal(final SavingsAccount account, final DateTimeFormatter fmt,
-                                                      final LocalDate transactionDate, final BigDecimal transactionAmount, final PaymentDetail paymentDetail,
-                                                      final SavingsTransactionBooleanValues transactionBooleanValues, final boolean backdatedTxnsAllowedTill,
-                                                      boolean isAccountTransfer, AccountTransferType transferType) {
+            final LocalDate transactionDate, final BigDecimal transactionAmount, final PaymentDetail paymentDetail,
+            final SavingsTransactionBooleanValues transactionBooleanValues, final boolean backdatedTxnsAllowedTill,
+            boolean isAccountTransfer, AccountTransferType transferType) {
 
         account.setSavingsAccountTransactionRepository(this.savingsAccountTransactionRepository);
         AppUser user = getAppUserIfPresent();
         account.validateForAccountBlock();
 
-        if(transferType != null && !transferType.isChargePayment()){
+        if (transferType != null && !transferType.isChargePayment()) {
             account.validateForDebitBlock();
         }
-            final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
+        final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
                 .isSavingsInterestPostingAtCurrentPeriodEnd();
         final Long relaxingDaysConfigForPivotDate = this.configurationDomainService.retrieveRelaxingDaysConfigForPivotDate();
         final boolean postReversals = this.configurationDomainService.isReversalTransactionAllowed();
