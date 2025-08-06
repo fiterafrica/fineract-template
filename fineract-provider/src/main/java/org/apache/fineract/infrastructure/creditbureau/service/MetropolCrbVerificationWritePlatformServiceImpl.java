@@ -251,9 +251,12 @@ public class MetropolCrbVerificationWritePlatformServiceImpl implements Metropol
             LOG.info("Response from Metropol CRB: " + resObject);
             return JsonParser.parseString(resObject).getAsJsonObject();
         } else {
-            LOG.info("Response from Metropol CRB: " + response.code() + ":" + response.message() + ";" + response);
-            throw new GeneralPlatformDomainRuleException("error.msg.loan.credit.info.enhanced.failed",
-                    "Credit Info Enhanced failed with error: " + response.code() + ":" + response.message() + "");
+            String resObject = response.body().string();
+
+                LOG.info("Response from Metropol CRB: " + response.code() + ":" + response.message() + ";" + response);
+                throw new GeneralPlatformDomainRuleException("error.msg.loan.credit.info.enhanced.failed",
+                        "Credit Info Enhanced failed with error: " + response.code() + ":" + response.message() + ""+resObject);
+
         }
 
     }
@@ -360,7 +363,7 @@ public class MetropolCrbVerificationWritePlatformServiceImpl implements Metropol
         enhancedReport.setApiCode(getStringField(jsonResponse, "api_code"));
         enhancedReport.setApiCodeDescription(getStringField(jsonResponse, "api_code_description"));
         enhancedReport.setApplicationRefNo(getStringField(jsonResponse, "application_ref_no"));
-        enhancedReport.setCreditScore(getIntegerField(jsonResponse, "credit_score").toString());
+        enhancedReport.setCreditScore(getIntegerField(jsonResponse, "credit_score")+"");
         enhancedReport.setDelinquencyCode(getStringField(jsonResponse, "delinquency_code"));
         enhancedReport.setHasError(getBooleanField(jsonResponse, "has_error"));
         enhancedReport.setHasFraud(getBooleanField(jsonResponse, "has_fraud"));
