@@ -192,7 +192,7 @@ public class AuditReadPlatformServiceImpl implements AuditReadPlatformService {
             this.columnValidator.validateSqlInjection(sqlBuilder.toString(), parameters.limitSql());
         }
 
-        log.info("sql: {}", sqlBuilder);
+        log.debug("sql: {}", sqlBuilder);
 
         return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlBuilder.toString(), extraCriteria.getArguments(), rm);
     }

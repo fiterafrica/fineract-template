@@ -26,6 +26,9 @@ import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.accounting.glaccount.domain.GLAccount;
 import org.apache.fineract.infrastructure.core.domain.AbstractAuditableCustom;
@@ -38,6 +41,8 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransaction;
 
 @Entity
 @Table(name = "acc_gl_journal_entry")
+@Getter
+@Setter
 public class JournalEntry extends AbstractAuditableCustom {
 
     @ManyToOne
@@ -116,6 +121,12 @@ public class JournalEntry extends AbstractAuditableCustom {
     @Column(name = "odoo_journal_id")
     private String odooJournalId;
 
+    @Column(name = "odoo_amount", scale = 6, precision = 19)
+    private BigDecimal odooAmount;
+
+    @Column(name = "odoo_account_gl")
+    private String odooAccountGl;
+
     public static JournalEntry createNew(final Office office, final PaymentDetail paymentDetail, final GLAccount glAccount,
             final String currencyCode, final String transactionId, final boolean manualEntry, final LocalDate transactionDate,
             final JournalEntryType journalEntryType, final BigDecimal amount, final String description, final Integer entityType,
@@ -160,86 +171,6 @@ public class JournalEntry extends AbstractAuditableCustom {
         return JournalEntryType.DEBIT.getValue().equals(this.type);
     }
 
-    public Integer getType() {
-        return this.type;
-    }
-
-    public Office getOffice() {
-        return this.office;
-    }
-
-    public GLAccount getGlAccount() {
-        return this.glAccount;
-    }
-
-    public LocalDate getTransactionDate() {
-        return this.transactionDate;
-    }
-
-    public BigDecimal getAmount() {
-        return this.amount;
-    }
-
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
-
-    public void setReversalJournalEntry(final JournalEntry reversalJournalEntry) {
-        this.reversalJournalEntry = reversalJournalEntry;
-    }
-
-    public void setReversed(final boolean reversed) {
-        this.reversed = reversed;
-    }
-
-    public String getReferenceNumber() {
-        return this.referenceNumber;
-    }
-
-    public String getCurrencyCode() {
-        return this.currencyCode;
-    }
-
-    public LoanTransaction getLoanTransaction() {
-        return this.loanTransaction;
-    }
-
-    public SavingsAccountTransaction getSavingsTransaction() {
-        return this.savingsTransaction;
-    }
-
-    public PaymentDetail getPaymentDetails() {
-        return this.paymentDetail;
-    }
-
-    public String getTransactionId() {
-        return transactionId;
-    }
-
-    public ClientTransaction getClientTransaction() {
-        return this.clientTransaction;
-    }
-
-    public Long getEntityId() {
-        return this.entityId;
-    }
-
-    public Integer getEntityType() {
-        return this.entityType;
-    }
-
-    public Long getShareTransactionId() {
-        return this.shareTransactionId;
-    }
-
-    public boolean isReversed() {
-        return this.reversed;
-    }
-
-    public String getDescription() {
-        return this.description;
-    }
-
     public Client getClient() {
         if (this.loanTransaction != null) {
             return this.loanTransaction.getLoan().getClient();
@@ -251,35 +182,5 @@ public class JournalEntry extends AbstractAuditableCustom {
         return null;
     }
 
-    public boolean isOddoPosted() {
-        return this.isOddoPosted;
-    }
-
-    public boolean isOdooAck() {
-        return this.odooAck;
-    }
-
-    public void setOddoPosted(boolean isOddoPosted) {
-        this.isOddoPosted = isOddoPosted;
-    }
-
-    public String getOdooResponse() {
-        return odooResponse;
-    }
-
-    public void setOdooResponse(String odooResponse) {
-        this.odooResponse = odooResponse;
-    }
-
-    public void setOdooAck(boolean odooAck) {
-        this.odooAck= odooAck;
-    }
-    public String getOdooJournalId() {
-        return this.odooJournalId;
-    }
-
-    public void setOdooJournalId(String odooJournalId) {
-        this.odooJournalId = odooJournalId;
-    }
 
 }

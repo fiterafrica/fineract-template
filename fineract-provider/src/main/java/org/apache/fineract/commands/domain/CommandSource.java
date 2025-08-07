@@ -25,6 +25,7 @@ import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
@@ -35,6 +36,7 @@ import org.apache.logging.log4j.util.Strings;
 
 @Entity
 @Table(name = "m_portfolio_command_source")
+@Getter
 public class CommandSource extends AbstractPersistableCustom {
 
     @Column(name = "action_name", nullable = true, length = 100)
@@ -42,6 +44,9 @@ public class CommandSource extends AbstractPersistableCustom {
 
     @Column(name = "entity_name", nullable = true, length = 100)
     private String entityName;
+
+    @Column(name = "entity_id", nullable = true)
+    private Long entityId;
 
     @Column(name = "office_id")
     private Long officeId;
@@ -72,9 +77,11 @@ public class CommandSource extends AbstractPersistableCustom {
 
     @ManyToOne
     @JoinColumn(name = "maker_id", nullable = false)
+    @Getter
     private AppUser maker;
 
     @Column(name = "made_on_date", nullable = false)
+    @Getter
     private LocalDateTime madeOnDate;
 
     @ManyToOne
@@ -100,7 +107,7 @@ public class CommandSource extends AbstractPersistableCustom {
     private Long organisationCreditBureauId;
 
     public static CommandSource fullEntryFrom(final CommandWrapper wrapper, final JsonCommand command, final AppUser maker) {
-        return new CommandSource(wrapper.actionName(), wrapper.entityName(), wrapper.getHref(), command.entityId(), command.subentityId(),
+        return new CommandSource(wrapper.actionName(), wrapper.entityName(), wrapper.getEntityId(), wrapper.getHref(), command.entityId(), command.subentityId(),
                 command.json(), maker, ZonedDateTime.now(DateUtils.getDateTimeZoneOfTenant()));
     }
 
@@ -108,10 +115,11 @@ public class CommandSource extends AbstractPersistableCustom {
         //
     }
 
-    private CommandSource(final String actionName, final String entityName, final String href, final Long resourceId,
+    private CommandSource(final String actionName, final String entityName, final Long entityId, final String href, final Long resourceId,
             final Long subresourceId, final String commandSerializedAsJson, final AppUser maker, final ZonedDateTime madeOnDateTime) {
         this.actionName = actionName;
         this.entityName = entityName;
+        this.entityId = entityId;
         this.resourceGetUrl = href;
         this.resourceId = resourceId;
         this.subresourceId = subresourceId;
@@ -121,16 +129,8 @@ public class CommandSource extends AbstractPersistableCustom {
         this.processingResult = CommandProcessingResultType.PROCESSED.getValue();
     }
 
-    public Long getCreditBureauId() {
-        return this.creditBureauId;
-    }
-
     public void setCreditBureauId(Long creditBureauId) {
         this.creditBureauId = creditBureauId;
-    }
-
-    public Long getOrganisationCreditBureauId() {
-        return this.organisationCreditBureauId;
     }
 
     public void setOrganisationCreditBureauId(Long organisationCreditBureauId) {
@@ -177,24 +177,8 @@ public class CommandSource extends AbstractPersistableCustom {
         return this.commandAsJson;
     }
 
-    public String getActionName() {
-        return this.actionName;
-    }
-
-    public String getEntityName() {
-        return this.entityName;
-    }
-
     public String getPermissionCode() {
         return this.actionName + "_" + this.entityName;
-    }
-
-    public Long getResourceId() {
-        return this.resourceId;
-    }
-
-    public Long getSubresourceId() {
-        return this.subresourceId;
     }
 
     public void markAsAwaitingApproval() {
@@ -218,56 +202,6 @@ public class CommandSource extends AbstractPersistableCustom {
         this.savingsId = savingsId;
         this.productId = productId;
         this.transactionId = transactionId;
-    }
-
-    public String getResourceGetUrl() {
-        return this.resourceGetUrl;
-    }
-
-    public Long getProductId() {
-        return this.productId;
-    }
-
-    /**
-     * @return the clientId
-     */
-    public Long getClientId() {
-        return clientId;
-    }
-
-    /**
-     * @return the groupId
-     */
-    public Long getGroupId() {
-        return groupId;
-    }
-
-    /**
-     * @return the loanId
-     */
-    public Long getLoanId() {
-        return loanId;
-    }
-
-    /**
-     * @return the officeId
-     */
-    public Long getOfficeId() {
-        return officeId;
-    }
-
-    /**
-     * @return the savingsId
-     */
-    public Long getSavingsId() {
-        return savingsId;
-    }
-
-    /**
-     * @return the transactionId
-     */
-    public String getTransactionId() {
-        return this.transactionId;
     }
 
     public void updateTransaction(final String transactionId) {

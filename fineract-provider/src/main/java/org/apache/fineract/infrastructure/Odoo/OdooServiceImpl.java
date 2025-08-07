@@ -21,6 +21,8 @@ package org.apache.fineract.infrastructure.Odoo;
 import com.google.common.base.Splitter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.IOException;
@@ -29,6 +31,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,6 +44,7 @@ import java.util.Base64;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -413,61 +418,72 @@ public class OdooServiceImpl implements OdooService {
 
     @Override
     public String updateJournalEntryWithOdooStatus(String stringRequest) {
-
-        LOG.info("Received Odoo Journal entry response " + stringRequest);
+        LOG.info("Received Odoo Journal entry response: {}", stringRequest);
 
         JsonObject odooRequest = JsonParser.parseString(stringRequest).getAsJsonObject();
         JsonObject response = new JsonObject();
 
         String responseCode = getStringField(odooRequest, "responseCode");
         String responseMessage = getStringField(odooRequest, "responseMessage");
-
-
         String transactionId = getStringField(odooRequest, "cbs_journal_entry_id");
 
-
-        if (transactionId != null) {
-            List<JournalEntry> journalEntries = this.journalEntryRepository.findJournalEntriesByLoanTransactionId("L" + transactionId);
-
-
-            if (responseCode.equals("POSTED") || responseCode.equals("REVERSED") || responseCode.equals("EXISTING")) {
-
-                String odooJournalId = getStringField(odooRequest, "journal_entry_no");
-
-                if (odooJournalId != null) {
-
-                    for (JournalEntry je : journalEntries) {
-                        je.setOddoPosted(true);
-                        je.setOdooJournalId(odooJournalId);
-                        je.setOdooResponse(responseCode);
-                        this.journalEntryRepository.saveAndFlush(je);
-                    }
-                }
-
-            } else {
-                LOG.info("Loan Transaction Not Posted to Odoo - Code:{} - Message: {} ", responseCode, responseMessage);
-                for (JournalEntry je : journalEntries) {
-                    je.setOdooResponse(responseCode + ":" + responseMessage);
-                    this.journalEntryRepository.saveAndFlush(je);
-                }
-            }
-
-            response.addProperty("success", true);
-            response.addProperty("message", "Successful");
-            response.addProperty( "ack", true);
-
-        } else {
-            LOG.info("Odoo response has no cbs transactionId");
-
+        if (transactionId == null) {
+            LOG.warn("Odoo response missing 'cbs_journal_entry_id'");
             response.addProperty("success", false);
             response.addProperty("message", "cbs_journal_entry_id not found");
             response.addProperty("data", stringRequest);
-            response.addProperty( "ack", true);
+            response.addProperty("ack", true);
+            return response.toString();
         }
 
-        return  response.toString();
-    }
+        List<JournalEntry> journalEntries = journalEntryRepository.findJournalEntriesByLoanTransactionId("L" + transactionId);
 
+        // Create a map of journal entry ID -> JournalEntry for fast lookup
+        Map<Long, JournalEntry> journalEntryMap = journalEntries.stream()
+                .collect(Collectors.toMap(JournalEntry::getId, je -> je));
+
+        if ("POSTED".equals(responseCode) || "REVERSED".equals(responseCode) || "EXISTING".equals(responseCode)) {
+            String odooJournalId = getStringField(odooRequest, "journal_entry_no");
+
+            if (odooJournalId != null && odooRequest.has("journalDetails") && odooRequest.get("journalDetails").isJsonArray()) {
+                JsonArray journalDetails = odooRequest.getAsJsonArray("journalDetails");
+
+                for (JsonElement element : journalDetails) {
+                    JsonObject detail = element.getAsJsonObject();
+                    if (!detail.has("id")) continue;
+
+                    Long journalEntryId = detail.get("id").getAsLong();
+                    JournalEntry je = journalEntryMap.get(journalEntryId);
+
+                    if (je != null) {
+                        BigDecimal credit = detail.has("credit") ? detail.get("credit").getAsBigDecimal() : BigDecimal.ZERO;
+                        BigDecimal debit = detail.has("debit") ? detail.get("debit").getAsBigDecimal() : BigDecimal.ZERO;
+                        BigDecimal odooAmount = credit.compareTo(BigDecimal.ZERO) > 0 ? credit : debit;
+                        String oddAccountGl = detail.has("gl_account") ? detail.get("gl_account").getAsString() : null;
+
+                        je.setOdooAccountGl(oddAccountGl);
+                        je.setOdooAmount(odooAmount);
+                        je.setOddoPosted(true);
+                        je.setOdooJournalId(odooJournalId);
+                        je.setOdooResponse(responseCode);
+                        journalEntryRepository.saveAndFlush(je);
+                    }
+                }
+            }
+
+        } else {
+            LOG.info("Loan Transaction Not Posted to Odoo - Code:{} - Message: {}", responseCode, responseMessage);
+            for (JournalEntry je : journalEntries) {
+                je.setOdooResponse(responseCode + ": " + responseMessage);
+                journalEntryRepository.saveAndFlush(je);
+            }
+        }
+
+        response.addProperty("success", true);
+        response.addProperty("message", "Successful");
+        response.addProperty("ack", true);
+        return response.toString();
+    }
 
     private JsonObject sendRequest(String payload) throws IOException, NoSuchAlgorithmException, KeyManagementException {
 
@@ -475,19 +491,19 @@ public class OdooServiceImpl implements OdooService {
         TrustManager[] trustAllCerts = new TrustManager[] {
                 new X509TrustManager() {
                     @Override
-                    public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType){}
+                    public void checkClientTrusted(X509Certificate[] chain, String authType){}
 
                     @Override
-                    public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType){}
+                    public void checkServerTrusted(X509Certificate[] chain, String authType){}
 
                     @Override
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() { return new java.security.cert.X509Certificate[]{}; }
+                    public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[]{}; }
                 }
         };
 
         // Install the all-trusting trust manager
         final SSLContext sslContext = SSLContext.getInstance("SSL");
-        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+        sslContext.init(null, trustAllCerts, new SecureRandom());
         final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
 
         // Create OkHttpClient that ignores SSL validation

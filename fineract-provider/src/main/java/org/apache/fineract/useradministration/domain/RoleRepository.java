@@ -23,6 +23,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface RoleRepository extends JpaRepository<Role, Long>, JpaSpecificationExecutor<Role> {
 
     @Query("SELECT COUNT(a) FROM AppUser a JOIN a.roles r WHERE r.id = :roleId AND a.deleted = false")
@@ -30,5 +32,8 @@ public interface RoleRepository extends JpaRepository<Role, Long>, JpaSpecificat
 
     @Query("SELECT role FROM Role role WHERE LOWER(role.name) = LOWER(:name)")
     Role getRoleByName(@Param("name") String name);
+
+    @Query("SELECT r FROM Role r JOIN r.permissions p WHERE p.code = :permissionCode")
+    List<Role> findRolesByPermission(@Param("permissionCode") String permissionCode);
 
 }
