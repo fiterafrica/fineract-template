@@ -85,4 +85,6 @@ public interface LoanAccountDomainService {
 
     CommandProcessingResultBuilder creditBalanceRefund(Long loanId, LocalDate transactionDate, BigDecimal transactionAmount,
             String noteText, String externalId);
+
+    Map<String, Object> foreCloseLoanForTopUp(Loan loan, LocalDate foreClourseDate, String noteText);
 }

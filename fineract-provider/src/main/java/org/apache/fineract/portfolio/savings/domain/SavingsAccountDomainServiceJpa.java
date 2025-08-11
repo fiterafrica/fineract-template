@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.fineract.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
@@ -131,7 +130,7 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         account.validateForAccountBlock();
 
         if (transferType == null || !transferType.isChargePayment()) {
-            //Don't block if it's pay-charge/s
+            // Don't block if it's pay-charge/s
             account.validateForDebitBlock();
         }
         final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
