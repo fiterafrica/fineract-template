@@ -1409,15 +1409,16 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
         final Money transactionAmountAsMoney = Money.of(loan.getCurrency(), transactionAmount);
         Money unrecognizedIncome = transactionAmountAsMoney.zero();
-        Money interestComponent = transactionAmountAsMoney;
         if (loan.isPeriodicAccrualAccountingEnabledOnLoanProduct()) {
             Money receivableInterest = loan.getReceivableInterest(transactionDate);
             if (transactionAmountAsMoney.isGreaterThan(receivableInterest)) {
-                interestComponent = receivableInterest;
-                unrecognizedIncome = transactionAmountAsMoney.minus(receivableInterest);
+                throw new GeneralPlatformDomainRuleException("error.msg.waived.interest.is.greater.than.available.accrued.interest",
+                        "Waived Interest is greater than available accrued Interest. You can only waive Interest Worth "
+                                + receivableInterest.getAmount() + " : " + loan.getCurrencyCode(),
+                        receivableInterest.getAmount(), loan.getCurrencyCode());
             }
         }
-        final LoanTransaction waiveInterestTransaction = LoanTransaction.waiver(loan.getOffice(), loan, interestComponent,
+        final LoanTransaction waiveInterestTransaction = LoanTransaction.waiver(loan.getOffice(), loan, transactionAmountAsMoney,
                 transactionDate, transactionAmountAsMoney, unrecognizedIncome, txnExternalId);
         businessEventNotifierService.notifyPreBusinessEvent(new LoanWaiveInterestBusinessEvent(waiveInterestTransaction));
         LocalDate recalculateFrom = null;
