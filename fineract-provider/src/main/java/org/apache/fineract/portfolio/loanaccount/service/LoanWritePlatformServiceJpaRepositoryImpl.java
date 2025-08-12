@@ -461,7 +461,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                                 "Topup loan amount should be greater than outstanding amount of loan to be closed.");
                     }
 
-                    disburseLoanToLoan(loan, loanToClose, command, loanOutstanding);
+                    disburseLoanToLoan(loan, command, loanOutstanding);
                     Money principalAmount = loan.getLoanRepaymentScheduleDetail().getPrincipal();
                     BigDecimal principalAmountWithLoanOutstanding = principalAmount.add(loanOutstanding).getAmount();
                     loan.getLoanRepaymentScheduleDetail().setPrincipal(principalAmountWithLoanOutstanding);
@@ -2081,7 +2081,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 .withSavingsId(portfolioAccountData.accountId()).build();
     }
 
-    public void disburseLoanToLoan(final Loan loan, final Loan loanToClose, final JsonCommand command, final BigDecimal amount) {
+    public void disburseLoanToLoan(final Loan loan, final JsonCommand command, final BigDecimal amount) {
 
         final LocalDate transactionDate = command.localDateValueOfParameterNamed("actualDisbursementDate");
         final String txnExternalId = command.stringValueOfParameterNamedAllowingNull("externalId");
@@ -2091,12 +2091,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         final AccountTransferDTO accountTransferDTO = new AccountTransferDTO(transactionDate, amount, PortfolioAccountType.LOAN,
                 PortfolioAccountType.LOAN, loan.getId(), loan.getTopupLoanDetails().getLoanIdToClose(), "Loan Topup", locale, fmt,
                 LoanTransactionType.DISBURSEMENT.getValue(), LoanTransactionType.REPAYMENT.getValue(), txnExternalId, loan, null);
-        this.accountTransfersWritePlatformService.repayLoanWithTopup(accountTransferDTO);
-
-        final CommandProcessingResultBuilder commandProcessingResultBuilder = new CommandProcessingResultBuilder();
-        this.loanAccountDomainService.makeRepayment(LoanTransactionType.REPAYMENT, loanToClose,
-                commandProcessingResultBuilder, transactionDate, amount, null, null, txnExternalId,
-                true, false, null, false);
+        AccountTransferDetails accountTransferDetails = this.accountTransfersWritePlatformService.repayLoanWithTopup(accountTransferDTO);
+        loan.getTopupLoanDetails().setAccountTransferDetails(accountTransferDetails.getId());
+        loan.getTopupLoanDetails().setTopupAmount(amount);
     }
 
     public void disburseLoanToSavings(final Loan loan, final JsonCommand command, final Money amount, final PaymentDetail paymentDetail) {
