@@ -127,7 +127,8 @@ public class AccountingProcessorHelper {
             final Long paymentTypeId = (Long) map.get("paymentTypeId");
 
             final Long accountTransferId = (Long) map.get("accountTransferId");
-            isAccountTransfer = (Boolean) map.get("isAccountTransfer");
+            final Object isAccountTransferObj = (Boolean) map.get("isAccountTransfer");
+            isAccountTransfer = isAccountTransferObj != null && (Boolean) isAccountTransferObj;
 
             final List<ChargePaymentDTO> feePaymentDetails = new ArrayList<>();
             final List<ChargePaymentDTO> penaltyPaymentDetails = new ArrayList<>();

@@ -919,4 +919,117 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
         }
     }
 
+    @Override
+    public Map<String, Object> foreCloseLoanForTopUp(final Loan loan, final LocalDate foreClosureDate, final String noteText) {
+        businessEventNotifierService.notifyPreBusinessEvent(new LoanForeClosurePreBusinessEvent(loan));
+        MonetaryCurrency currency = loan.getCurrency();
+        final Map<String, Object> changes = new LinkedHashMap<>();
+        List<LoanTransaction> newTransactions = new ArrayList<>();
+
+        final List<Long> existingTransactionIds = new ArrayList<>();
+        final List<Long> existingReversedTransactionIds = new ArrayList<>();
+        existingTransactionIds.addAll(loan.findExistingTransactionIds());
+        existingReversedTransactionIds.addAll(loan.findExistingReversedTransactionIds());
+        final ScheduleGeneratorDTO scheduleGeneratorDTO = null;
+        AppUser appUser = getAppUserIfPresent();
+        final LoanRepaymentScheduleInstallment foreCloseDetail = loan.fetchLoanForeclosureDetail(foreClosureDate);
+        if (loan.isPeriodicAccrualAccountingEnabledOnLoanProduct()
+                && (loan.getAccruedTill() == null || !foreClosureDate.isEqual(loan.getAccruedTill()))) {
+            loan.reverseAccrualsAfter(foreClosureDate);
+            Money[] accruedReceivables = loan.getReceivableIncome(foreClosureDate);
+            Money interestPortion = foreCloseDetail.getInterestCharged(currency).minus(accruedReceivables[0]);
+            Money feePortion = foreCloseDetail.getFeeChargesCharged(currency).minus(accruedReceivables[1]);
+            Money penaltyPortion = foreCloseDetail.getPenaltyChargesCharged(currency).minus(accruedReceivables[2]);
+            Money total = interestPortion.plus(feePortion).plus(penaltyPortion);
+            if (total.isGreaterThanZero()) {
+                LoanTransaction accrualTransaction = LoanTransaction.accrueTransaction(loan, loan.getOffice(), foreClosureDate,
+                        total.getAmount(), interestPortion.getAmount(), feePortion.getAmount(), penaltyPortion.getAmount());
+                LocalDate fromDate = loan.getDisbursementDate();
+                if (loan.getAccruedTill() != null) {
+                    fromDate = loan.getAccruedTill();
+                }
+                newTransactions.add(accrualTransaction);
+                loan.addLoanTransaction(accrualTransaction);
+                Set<LoanChargePaidBy> accrualCharges = accrualTransaction.getLoanChargesPaid();
+                for (LoanCharge loanCharge : loan.charges()) {
+                    if (loanCharge.isActive() && !loanCharge.isPaid()
+                            && (loanCharge.isDueForCollectionFromAndUpToAndIncluding(fromDate, foreClosureDate)
+                                    || loanCharge.isInstalmentFee()
+                                    || loanCharge.isDueForCollectionForDisburseToSavingsAndIncluding(fromDate))) {
+                        final LoanChargePaidBy loanChargePaidBy = new LoanChargePaidBy(accrualTransaction, loanCharge,
+                                loanCharge.getAmountOutstanding(currency).getAmount(), null);
+                        accrualCharges.add(loanChargePaidBy);
+                    }
+                }
+            }
+        }
+
+        Money interestPayable = foreCloseDetail.getInterestCharged(currency);
+        Money feePayable = foreCloseDetail.getFeeChargesCharged(currency);
+        Money penaltyPayable = foreCloseDetail.getPenaltyChargesCharged(currency);
+        Money payPrincipal = foreCloseDetail.getPrincipal(currency);
+        loan.updateInstallmentsPostDate(foreClosureDate);
+
+        LoanTransaction payment = null;
+        final boolean isRepayGreater = payPrincipal.plus(interestPayable).plus(feePayable).plus(penaltyPayable).isGreaterThanZero();
+        Money repaymentAmt = isRepayGreater ? payPrincipal.plus(interestPayable).plus(feePayable).plus(penaltyPayable)
+                : Money.of(currency, loan.getSummary().getTotalPrincipalOutstanding());
+        List<Long> transactionIds = new ArrayList<>();
+        if (isRepayGreater) {
+            payment = LoanTransaction.repayment(loan.getOffice(), isRepayGreater ? repaymentAmt : Money.zero(currency), null,
+                    foreClosureDate, null);
+            payment.updateLoan(loan);
+            newTransactions.add(payment);
+        } else {
+            final String errorMessage = "Loan Interest over paid ";
+            throw new InvalidLoanStateTransitionException("transaction", "loan.interest.over.paid", errorMessage);
+        }
+        final ChangedTransactionDetail changedTransactionDetail = loan.handleForeClosureTransactions(payment,
+                defaultLoanLifecycleStateMachine(), null);
+
+        /***
+         * TODO Vishwas Batch save is giving me a HibernateOptimisticLockingFailureException, looping and saving for the
+         * time being, not a major issue for now as this loop is entered only in edge cases (when a payment is made
+         * before the latest payment recorded against the loan)
+         ***/
+        for (LoanTransaction newTransaction : newTransactions) {
+            saveLoanTransactionWithDataIntegrityViolationChecks(newTransaction);
+            transactionIds.add(newTransaction.getId());
+        }
+        changes.put("transactions", transactionIds);
+        changes.put("eventAmount", payPrincipal.getAmount().negate());
+
+        if (changedTransactionDetail != null) {
+            for (Map.Entry<Long, LoanTransaction> mapEntry : changedTransactionDetail.getNewTransactionMappings().entrySet()) {
+                saveLoanTransactionWithDataIntegrityViolationChecks(mapEntry.getValue());
+                // update loan with references to the newly created transactions
+                loan.getLoanTransactions().add(mapEntry.getValue());
+                updateLoanTransaction(mapEntry.getKey(), mapEntry.getValue());
+            }
+        }
+
+        saveAndFlushLoanWithDataIntegrityViolationChecks(loan);
+
+        if (StringUtils.isNotBlank(noteText)) {
+            changes.put("note", noteText);
+            final Note note = Note.loanNote(loan, noteText);
+            this.noteRepository.save(note);
+        }
+
+        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, false);
+        businessEventNotifierService.notifyPostBusinessEvent(new LoanForeClosurePostBusinessEvent(payment));
+        if (!isRepayGreater) {
+            Money refundAmount = Money.of(currency,
+                    payPrincipal.plus(interestPayable).plus(feePayable).plus(penaltyPayable).getAmount().abs());
+            final LoanTransaction newCreditBalanceRefundTransaction = LoanTransaction.creditBalanceRefund(loan, loan.getOffice(),
+                    refundAmount, foreClosureDate, null);
+
+            loan.creditBalanceRefund(newCreditBalanceRefundTransaction, defaultLoanLifecycleStateMachine(), existingTransactionIds,
+                    existingReversedTransactionIds);
+            saveAndFlushLoanWithDataIntegrityViolationChecks(loan);
+        }
+        return changes;
+
+    }
+
 }

@@ -598,7 +598,7 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
 
         this.loanScheduleHistoryWritePlatformService.createAndSaveLoanScheduleArchive(toLoanAccount.getRepaymentScheduleInstallments(),
                 toLoanAccount, null);
-        this.loanAccountDomainService.foreCloseLoan(toLoanAccount, accountTransferDTO.getTransactionDate(), null);
+        this.loanAccountDomainService.foreCloseLoanForTopUp(toLoanAccount, accountTransferDTO.getTransactionDate(), null);
 
         List<LoanTransaction> transactionList = this.loanTransactionRepository.findLastLoanTransaction(toLoanAccount.getId());
         if (CollectionUtils.isEmpty(transactionList)) {
