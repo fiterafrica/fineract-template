@@ -652,7 +652,13 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
 
         final LoanTransactionEnumData transactionType = LoanEnumerations.transactionType(LoanTransactionType.WAIVE_INTEREST);
 
-        final BigDecimal amount = waiveOfInterest.getAmount(currency).getAmount();
+        BigDecimal amount = waiveOfInterest.getAmount(currency).getAmount();
+
+        // check for accrual periodic
+        if (loan.isPeriodicAccrualAccountingEnabledOnLoanProduct()) {
+            Money receivableInterest = loan.getReceivableInterest(DateUtils.getBusinessLocalDate());
+            amount = receivableInterest.getAmount();
+        }
 
         final BigDecimal outstandingLoanBalance = null;
         final BigDecimal unrecognizedIncomePortion = null;
