@@ -92,5 +92,6 @@
     <include file="parts/OXY-294-accout_lock_cofiguratio.xml" relativeToChangelogFile="true" />
     <include file="parts/OXY-298_add_details_to_account_transfer_transaction.xml" relativeToChangelogFile="true" />
     <include file="parts/OXY-303-add_grace_extension_charge_configuration.xml" relativeToChangelogFile="true" />
+    <include file="parts/FSO-251-Add-checker-maker-flag-on-gl-account.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>
