@@ -30,5 +30,28 @@
                ]]>
         </sql>
     </changeSet>
+    <changeSet id="update-add-checker-maker-flag-on-gl-accounting" author="bosco@fiter.io">
+        <insert tableName="m_permission">
+            <column name="grouping" value="accounting" />
+            <column name="code" value="UPDATE_GLACCOUNT_CHECKER" />
+            <column name="entity_name" value="GLACCOUNT" />
+            <column name="action_name" value="UPDATE_CHECKER" />
+            <column name="can_maker_checker" valueBoolean="false" />
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="accounting" />
+            <column name="code" value="DELETE_GLACCOUNT_CHECKER" />
+            <column name="entity_name" value="GLACCOUNT" />
+            <column name="action_name" value="DELETE_CHECKER" />
+            <column name="can_maker_checker" valueBoolean="false" />
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="accounting" />
+            <column name="code" value="CREATE_GLACCOUNT_CHECKER" />
+            <column name="entity_name" value="GLACCOUNT" />
+            <column name="action_name" value="CREATE_CHECKER" />
+            <column name="can_maker_checker" valueBoolean="false" />
+        </insert>
+    </changeSet>
 
 </databaseChangeLog>
