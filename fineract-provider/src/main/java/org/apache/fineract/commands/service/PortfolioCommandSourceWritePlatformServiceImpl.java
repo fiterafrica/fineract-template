@@ -19,12 +19,14 @@
 package org.apache.fineract.commands.service;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.security.SecureRandom;
 import java.time.ZonedDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.commands.domain.CommandProcessingResultType;
 import org.apache.fineract.commands.domain.CommandSource;
 import org.apache.fineract.commands.domain.CommandSourceRepository;
@@ -41,6 +43,16 @@ import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.jobs.service.SchedulerJobRunnerReadService;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
+import org.apache.fineract.portfolio.client.domain.Client;
+import org.apache.fineract.portfolio.client.domain.ClientRepositoryWrapper;
+import org.apache.fineract.portfolio.group.domain.Group;
+import org.apache.fineract.portfolio.group.domain.GroupRepositoryWrapper;
+import org.apache.fineract.portfolio.loanaccount.domain.Loan;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
+import org.apache.fineract.portfolio.note.domain.Note;
+import org.apache.fineract.portfolio.note.domain.NoteRepository;
+import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
+import org.apache.fineract.portfolio.savings.domain.SavingsAccountRepositoryWrapper;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -61,6 +73,11 @@ public class PortfolioCommandSourceWritePlatformServiceImpl implements Portfolio
     private final SchedulerJobRunnerReadService schedulerJobRunnerReadService;
     private final ConfigurationDomainService configurationDomainService;
     private final MakerCheckerNotificationService notificationService;
+    private final NoteRepository noteRepository;
+    private final LoanRepositoryWrapper loanRepositoryWrapper;
+    private final ClientRepositoryWrapper clientRepositoryWrapper;
+    private final GroupRepositoryWrapper groupRepositoryWrapper;
+    private final SavingsAccountRepositoryWrapper savingsAccountRepositoryWrapper;
 
     @Override
     @SuppressWarnings("AvoidHidingCauseException")
@@ -154,11 +171,12 @@ public class PortfolioCommandSourceWritePlatformServiceImpl implements Portfolio
     }
 
     @Override
-    public CommandProcessingResult approveEntry(final Long makerCheckerId) {
+    public CommandProcessingResult approveEntry(final Long makerCheckerId, final String note) {
 
         final CommandSource commandSourceInput = validateMakerCheckerTransaction(makerCheckerId);
         validateIsUpdateAllowed();
 
+        String noteText = saveNote(commandSourceInput,note);
         final CommandWrapper wrapper = CommandWrapper.fromExistingCommand(makerCheckerId, commandSourceInput.getActionName(),
                 commandSourceInput.getEntityName(), commandSourceInput.resourceId(), commandSourceInput.subresourceId(),
                 commandSourceInput.getResourceGetUrl(), commandSourceInput.getProductId(), commandSourceInput.getOfficeId(),
@@ -174,8 +192,51 @@ public class PortfolioCommandSourceWritePlatformServiceImpl implements Portfolio
                 commandSourceInput.getOrganisationCreditBureauId());
 
         final boolean makerCheckerApproval = true;
-        this.notificationService.notifyMaker(commandSourceInput, CommandProcessingResultType.PROCESSED);
+        this.notificationService.notifyMaker(commandSourceInput, CommandProcessingResultType.PROCESSED,noteText);
         return this.processAndLogCommandService.processAndLogCommand(wrapper, command, makerCheckerApproval);
+    }
+
+    private String saveNote (CommandSource commandSourceInput, final String noteValue){
+
+        String noteText = null;
+        if (StringUtils.isNotBlank(noteValue)) {
+            JsonElement jsonElement = this.fromApiJsonHelper.parse(noteValue);
+            if (jsonElement.isJsonObject()) {
+                JsonObject jsonObj = jsonElement.getAsJsonObject();
+                if (jsonObj.has("note") && !jsonObj.get("note").isJsonNull()) {
+                    noteText = "Maker Checker Note: "+ jsonObj.get("note").getAsString();
+                }
+            }
+        }
+
+        if (StringUtils.isNotBlank(noteText)) {
+            String entityName = commandSourceInput.getEntityName();
+
+            Note note = switch (entityName.toLowerCase()) {
+                case "loan" -> {
+                    final Loan loan = this.loanRepositoryWrapper.findOneWithNotFoundDetection(commandSourceInput.getLoanId(), true);
+                    yield Note.loanNote(loan, noteText);
+                }
+                case "client" -> {
+                    Client client = this.clientRepositoryWrapper.findOneWithNotFoundDetection(commandSourceInput.getClientId(),true);
+                    yield new Note(client, noteText);
+                }
+                case "group" -> {
+                    Group group = this.groupRepositoryWrapper.findOneWithNotFoundDetection(commandSourceInput.getGroupId());
+                    yield new Note(group, noteText);
+                }
+                case "saving" -> {
+                    SavingsAccount savingsAccount = this.savingsAccountRepositoryWrapper.findOneWithNotFoundDetection(commandSourceInput.getSavingsId());
+                    yield new Note(savingsAccount, noteText);
+                }
+                default -> null;
+            };
+
+            if (note != null) {
+                this.noteRepository.save(note);
+            }
+        }
+        return noteText;
     }
 
     @Transactional
@@ -209,13 +270,14 @@ public class PortfolioCommandSourceWritePlatformServiceImpl implements Portfolio
     }
 
     @Override
-    public Long rejectEntry(final Long makerCheckerId) {
+    public Long rejectEntry(final Long makerCheckerId, final String note) {
         final CommandSource commandSourceInput = validateMakerCheckerTransaction(makerCheckerId);
         validateIsUpdateAllowed();
+        String noteText = saveNote(commandSourceInput,note);
         final AppUser maker = this.context.authenticatedUser();
         commandSourceInput.markAsRejected(maker, ZonedDateTime.now(DateUtils.getDateTimeZoneOfTenant()));
         this.commandSourceRepository.save(commandSourceInput);
-        this.notificationService.notifyMaker(commandSourceInput, CommandProcessingResultType.REJECTED);
+        this.notificationService.notifyMaker(commandSourceInput, CommandProcessingResultType.REJECTED,noteText);
         return makerCheckerId;
     }
 }

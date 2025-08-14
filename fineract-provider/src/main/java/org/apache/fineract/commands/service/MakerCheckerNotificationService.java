@@ -24,5 +24,5 @@ import org.apache.fineract.commands.domain.CommandSource;
 public interface MakerCheckerNotificationService {
     void notifyCheckers(CommandSource commandSource);
 
-    void notifyMaker(CommandSource commandSource, CommandProcessingResultType processingResult);
+    void notifyMaker(CommandSource commandSource, CommandProcessingResultType processingResult,String note);
 }

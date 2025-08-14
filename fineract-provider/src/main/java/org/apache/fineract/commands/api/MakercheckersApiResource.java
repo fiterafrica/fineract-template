@@ -133,13 +133,13 @@ public class MakercheckersApiResource {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = MakercheckersApiResourceSwagger.PostMakerCheckersResponse.class))) })
     public String approveMakerCheckerEntry(@PathParam("auditId") @Parameter(description = "auditId") final Long auditId,
-            @QueryParam("command") @Parameter(description = "command") final String commandParam) {
+            @QueryParam("command") @Parameter(description = "command") final String commandParam, @Parameter(hidden = true) final String note) {
 
         CommandProcessingResult result = null;
         if (is(commandParam, "approve")) {
-            result = this.writePlatformService.approveEntry(auditId);
+            result = this.writePlatformService.approveEntry(auditId,note);
         } else if (is(commandParam, "reject")) {
-            final Long id = this.writePlatformService.rejectEntry(auditId);
+            final Long id = this.writePlatformService.rejectEntry(auditId,note);
             result = CommandProcessingResult.commandOnlyResult(id);
         } else {
             throw new UnrecognizedQueryParamException("command", commandParam);

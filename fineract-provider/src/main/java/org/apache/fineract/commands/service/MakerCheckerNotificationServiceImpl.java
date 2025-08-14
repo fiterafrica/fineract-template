@@ -75,7 +75,7 @@ public class MakerCheckerNotificationServiceImpl implements MakerCheckerNotifica
 
 
     @Override
-    public void notifyMaker(CommandSource commandSource, CommandProcessingResultType processingResult) {
+    public void notifyMaker(CommandSource commandSource, CommandProcessingResultType processingResult, String note) {
         if (this.configurationDomainService.isMakerCheckerNotificationEnabled()) {
 
             FineractPlatformTenant tenant = ThreadLocalContextUtil.getTenant(); // capture current tenant
@@ -83,7 +83,7 @@ public class MakerCheckerNotificationServiceImpl implements MakerCheckerNotifica
             executor.execute(() -> {
                 try {
                     ThreadLocalContextUtil.setTenant(tenant);
-                    sendEmailToMaker(commandSource,processingResult);
+                    sendEmailToMaker(commandSource,processingResult,note);
                     log.info("Email successfully sent to maker");
                 } catch (Exception e) {
                     log.error("Failed to send email to maker", e);
@@ -123,10 +123,10 @@ public class MakerCheckerNotificationServiceImpl implements MakerCheckerNotifica
 
     }
 
-    private void sendEmailToMaker(CommandSource commandSource, CommandProcessingResultType processingResult) {
+    private void sendEmailToMaker(CommandSource commandSource, CommandProcessingResultType processingResult,String note) {
         AppUser maker = commandSource.getMaker();
 
-        EmailDetail emailDetail = getMakerEmailDetail(commandSource, maker, baseUrl,processingResult);
+        EmailDetail emailDetail = getMakerEmailDetail(commandSource, maker, baseUrl,processingResult, note);
         emailService.sendDefinedEmail(emailDetail);
     }
 
@@ -152,7 +152,7 @@ public class MakerCheckerNotificationServiceImpl implements MakerCheckerNotifica
     }
 
 
-    private static EmailDetail getMakerEmailDetail(CommandSource commandSource, AppUser maker, String url, CommandProcessingResultType processingResult) {
+    private static EmailDetail getMakerEmailDetail(CommandSource commandSource, AppUser maker, String url, CommandProcessingResultType processingResult, String note) {
 
         String subject = String.format("CBS Task %s: %s",
                 processingResult.toString(),
@@ -161,13 +161,15 @@ public class MakerCheckerNotificationServiceImpl implements MakerCheckerNotifica
         String body = String.format("""
                         Dear %s,<br><br>
 
-                        %s %s request for %s ID: %s has been %s.  <br><br>
+                        %s %s request for %s ID: %s has been %s.  <br>
+                        %s <br><br>
+                        
                         Please <a href="%s">log in </a> to the system to review and take the next action.<br><br>
                         
                         Kind Regards.
                 """,
                 maker.getDisplayName(), article, commandSource.getActionName(), commandSource.getEntityName(),
-                resolveEntityIdFromCommandSource(commandSource), processingResult, url);
+                resolveEntityIdFromCommandSource(commandSource), processingResult, note, url);
         String address = maker.getEmail();
         String contactName = maker.getDisplayName();
 

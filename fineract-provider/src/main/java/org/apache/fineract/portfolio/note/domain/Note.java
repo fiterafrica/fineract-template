@@ -119,7 +119,7 @@ public class Note extends AbstractAuditableCustom {
         this.noteTypeId = NoteType.CLIENT.getValue();
     }
 
-    private Note(final Group group, final String note) {
+    public Note(final Group group, final String note) {
         this.group = group;
         this.note = note;
         this.client = null;
