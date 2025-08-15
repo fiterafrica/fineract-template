@@ -92,8 +92,12 @@ public class SmsCampaignDropdownReadPlatformServiceImpl implements SmsCampaignDr
 
         SmsGatewayResponse body = responseOne.getBody();
         if (body != null && body.getSupportedProviders() != null) {
-            for (String providerName : body.getSupportedProviders()) {
-                SmsProviderData providerData = new SmsProviderData(providerName);
+            for (Map<String, Object> provider : body.getSupportedProviders()) {
+                String providerName = (String) provider.get("name");
+                Integer providerId = (Integer) provider.get("id");
+                Boolean isActive = (Boolean) provider.get("is_active");
+
+                SmsProviderData providerData = new SmsProviderData(providerId.longValue(), providerName, isActive);
                 smsProviderOptions.add(providerData);
             }
         }
