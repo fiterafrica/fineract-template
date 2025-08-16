@@ -495,23 +495,6 @@ public class LoanCharge extends AbstractPersistableCustom {
         update(amount, dueDate, amountPercentageAppliedTo, numberOfRepayments, BigDecimal.ZERO);
     }
 
-    public void recalculateAmountForTopup(final BigDecimal topupAmount) {
-        switch (ChargeCalculationType.fromInt(this.chargeCalculation)) {
-            case PERCENT_OF_AMOUNT:
-            case PERCENT_OF_AMOUNT_AND_INTEREST:
-            case PERCENT_OF_INTEREST:
-            case PERCENT_OF_DISBURSEMENT_AMOUNT:
-                this.amountPercentageAppliedTo = topupAmount;
-                BigDecimal loanCharge = percentageOf(this.amountPercentageAppliedTo);
-                this.amount = minimumAndMaximumCap(loanCharge);
-                this.amountOutstanding = calculateOutstanding();
-                break;
-            default:
-                // do nothing for flat fees
-                break;
-        }
-    }
-
     public Map<String, Object> update(final JsonCommand command, final BigDecimal amount) {
 
         final Map<String, Object> actualChanges = new LinkedHashMap<>(7);

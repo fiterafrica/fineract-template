@@ -401,6 +401,13 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
     @Transient
     private boolean isDisburseToSavingsLoan = false;
 
+    @Transient
+    private BigDecimal topupAmount;
+
+    public void setTopupAmount(BigDecimal topupAmount) {
+        this.topupAmount = topupAmount;
+    }
+
     @Column(name = "total_extensions", nullable = true)
     private Integer total_extensions;
 
@@ -921,6 +928,11 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
         if (loanCharge.isOverdueInstallmentCharge()) {
             return loanCharge.getAmountPercentageAppliedTo();
         }
+
+        if (isTopup() && loanCharge.isDisburseToSavings() && this.topupAmount != null) {
+            return this.topupAmount;
+        }
+
         switch (loanCharge.getChargeCalculation()) {
             case PERCENT_OF_AMOUNT:
                 amount = getDerivedAmountForCharge(loanCharge);

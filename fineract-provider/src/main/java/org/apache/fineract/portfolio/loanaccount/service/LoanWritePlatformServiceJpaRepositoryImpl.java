@@ -464,14 +464,8 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                     disburseLoanToLoan(loan, command, loanOutstanding);
                     Money principalAmount = loan.getLoanRepaymentScheduleDetail().getPrincipal();
 
-                    if (isAccountTransfer) {
-                        BigDecimal topupAmount = principalAmount.getAmount();
-                        for (final LoanCharge loanCharge : loan.charges()) {
-                            if (loanCharge.isDisburseToSavings()) {
-                                loanCharge.recalculateAmountForTopup(topupAmount);
-                            }
-                        }
-                    }
+                    BigDecimal topupAmount = principalAmount.getAmount();
+                    loan.setTopupAmount(topupAmount);
 
                     BigDecimal principalAmountWithLoanOutstanding = principalAmount.add(loanOutstanding).getAmount();
                     loan.getLoanRepaymentScheduleDetail().setPrincipal(principalAmountWithLoanOutstanding);
