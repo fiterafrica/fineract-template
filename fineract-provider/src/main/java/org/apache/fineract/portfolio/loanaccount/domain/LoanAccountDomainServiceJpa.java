@@ -558,6 +558,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
         final Money amount = Money.of(loan.getCurrency(), transactionAmount);
         LoanTransaction disbursementTransaction = LoanTransaction.disbursement(loan.getOffice(), amount, paymentDetail, transactionDate,
                 txnExternalId);
+        disbursementTransaction.setAccountTransfer(isAccountTransfer);
 
         // Subtract Previous loan outstanding balance from netDisbursalAmount
         loan.deductFromNetDisbursalAmount(transactionAmount);
