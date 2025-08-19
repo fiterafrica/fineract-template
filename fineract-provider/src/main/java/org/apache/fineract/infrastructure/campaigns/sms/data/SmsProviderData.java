@@ -35,7 +35,11 @@ public class SmsProviderData {
 
     private String providerDescription;
 
-    public SmsProviderData(final String providerName) {
+    private Boolean isActive;
+
+    public SmsProviderData(final Long id, final String providerName, final Boolean isActive ) {
         this.providerName = providerName;
+        this.id = id;
+        this.isActive = isActive;
     }
 }

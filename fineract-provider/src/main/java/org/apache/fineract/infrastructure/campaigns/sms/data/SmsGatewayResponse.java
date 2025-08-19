@@ -21,12 +21,13 @@ package org.apache.fineract.infrastructure.campaigns.sms.data;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 
 @Data
 public class SmsGatewayResponse {
     private String appName;
     private String version;
-    private List<String> supportedProviders;
+    private List<Map<String, Object>> supportedProviders;
 }
 
