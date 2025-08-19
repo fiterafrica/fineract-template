@@ -18,7 +18,6 @@
  */
 package org.apache.fineract.infrastructure.sms.data;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import lombok.Getter;
 

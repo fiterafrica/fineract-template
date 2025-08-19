@@ -20,7 +20,6 @@ package org.apache.fineract.infrastructure.sms.data;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.util.Collection;
 
