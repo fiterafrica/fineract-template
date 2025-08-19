@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.accounting.closure.domain.GLClosure;
 import org.apache.fineract.accounting.common.AccountingConstants.AccrualAccountsForLoan;
 import org.apache.fineract.accounting.common.AccountingConstants.CashAccountsForLoan;
@@ -34,8 +35,10 @@ import org.apache.fineract.accounting.journalentry.data.ChargePaymentDTO;
 import org.apache.fineract.accounting.journalentry.data.LoanDTO;
 import org.apache.fineract.accounting.journalentry.data.LoanTransactionDTO;
 import org.apache.fineract.organisation.office.domain.Office;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanTransaction;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AccrualBasedAccountingProcessorForLoan implements AccountingProcessorForLoan {
@@ -108,6 +111,9 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
      */
     private void createJournalEntriesForDisbursements(final LoanDTO loanDTO, final LoanTransactionDTO loanTransactionDTO,
             final Office office) {
+        LoanTransaction transaction = this.helper.getLoanTransactionById(Long.parseLong(loanTransactionDTO.getTransactionId()));
+        log.error("Loan Tx Id-->"+transaction.getId()+" SubStatus -- > "+transaction.getLoan().getLoanSubStatus()+" Is TopUp :-"+transaction.getLoan().isTopup());
+        log.error("Tx Transfer --> "+transaction.isAccountTransfer());
 
         // loan properties
         final Long loanProductId = loanDTO.getLoanProductId();

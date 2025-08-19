@@ -460,7 +460,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                         throw new GeneralPlatformDomainRuleException("error.msg.loan.amount.less.than.outstanding.of.loan.to.be.closed",
                                 "Topup loan amount should be greater than outstanding amount of loan to be closed.");
                     }
-
+                    //When it's topup, Make sure this accomadates the reversal
                     disburseLoanToLoan(loan, command, loanOutstanding);
                     Money principalAmount = loan.getLoanRepaymentScheduleDetail().getPrincipal();
 
@@ -473,6 +473,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 }
 
                 if (isAccountTransfer) {
+                    //Make sure you don't call this when it's top and Heading to Savings account
                     disburseLoanToSavings(loan, command, amountToDisburse, paymentDetail);
                     existingTransactionIds.addAll(loan.findExistingTransactionIds());
                     existingReversedTransactionIds.addAll(loan.findExistingReversedTransactionIds());
