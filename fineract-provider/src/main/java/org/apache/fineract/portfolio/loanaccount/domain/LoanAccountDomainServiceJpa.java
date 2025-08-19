@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
@@ -115,6 +116,7 @@ import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
@@ -462,6 +464,10 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
     private void postJournalEntries(final Loan loanAccount, final List<Long> existingTransactionIds,
             final List<Long> existingReversedTransactionIds, boolean isAccountTransfer) {
         postJournalEntries(loanAccount, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer, false);
+    }
+    private void postJournalEntriesForLoanToLoan(final Loan loanAccount, final List<Long> existingTransactionIds,
+                                    final List<Long> existingReversedTransactionIds, boolean isAccountTransfer) {
+        postJournalEntries(loanAccount, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer, true);
     }
 
     private void postJournalEntries(final Loan loanAccount, final List<Long> existingTransactionIds,
@@ -1017,7 +1023,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
             this.noteRepository.save(note);
         }
 
-        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, false);
+        postJournalEntriesForLoanToLoan(loan, existingTransactionIds, existingReversedTransactionIds, true);
         businessEventNotifierService.notifyPostBusinessEvent(new LoanForeClosurePostBusinessEvent(payment));
         if (!isRepayGreater) {
             Money refundAmount = Money.of(currency,
