@@ -370,7 +370,6 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
         AccountTransferDetails accountTransferDetails = accountTransferDTO.getAccountTransferDetails();
         if (isSavingsToLoanAccountTransfer(accountTransferDTO.getFromAccountType(), accountTransferDTO.getToAccountType())) {
             //
-            log.error("--**-isSavingsToLoanAccountTransfer-**--");
             SavingsAccount fromSavingsAccount = null;
             Loan toLoanAccount = null;
             if (accountTransferDetails == null) {
@@ -452,7 +451,6 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             loanTransaction.setAccountTransferId(transferTransactionId);
 
         } else if (isSavingsToSavingsAccountTransfer(accountTransferDTO.getFromAccountType(), accountTransferDTO.getToAccountType())) {
-            log.error("--**-isSavingsToSavingsAccountTransfer-**--");
             SavingsAccount fromSavingsAccount = null;
             SavingsAccount toSavingsAccount = null;
             if (accountTransferDetails == null) {
@@ -521,7 +519,6 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             transferTransactionId = accountTransferDetails.getId();
 
         } else if (isLoanToSavingsAccountTransfer(accountTransferDTO.getFromAccountType(), accountTransferDTO.getToAccountType())) {
-            log.error("--**-isLoanToSavingsAccountTransfer-**--");
             Loan fromLoanAccount = null;
             SavingsAccount toSavingsAccount = null;
             if (accountTransferDetails == null) {

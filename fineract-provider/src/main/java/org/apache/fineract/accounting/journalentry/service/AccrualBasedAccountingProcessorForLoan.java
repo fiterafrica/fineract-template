@@ -113,8 +113,6 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
             final Office office) {
 
         LoanTransaction transaction = this.helper.getLoanTransactionById(Long.parseLong(loanTransactionDTO.getTransactionId()));
-        log.error("Loan Tx Id-->"+transaction.getId()+" SubStatus -- > "+transaction.getLoan().getLoanSubStatus()+" Is TopUp :-"+transaction.getLoan().isTopup());
-        log.error("Tx Transfer --> "+transaction.isAccountTransfer());
 
         // loan properties
         final Long loanProductId = loanDTO.getLoanProductId();
