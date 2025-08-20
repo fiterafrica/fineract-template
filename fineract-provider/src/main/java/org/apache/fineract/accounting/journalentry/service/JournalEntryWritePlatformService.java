@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.fineract.accounting.provisioning.domain.ProvisioningEntry;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanTransaction;
 
 public interface JournalEntryWritePlatformService {
 
@@ -46,5 +47,7 @@ public interface JournalEntryWritePlatformService {
     void createJournalEntriesForShares(Map<String, Object> accountingBridgeData);
 
     void revertShareAccountJournalEntries(ArrayList<Long> transactionId, LocalDate transactionDate);
+
+    void revertJournalEntriesForLoanTransactionTopUpForLiabilityTransfer(LoanTransaction transactionId);
 
 }
