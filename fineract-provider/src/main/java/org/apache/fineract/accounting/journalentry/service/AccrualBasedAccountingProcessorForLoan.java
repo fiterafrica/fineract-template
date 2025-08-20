@@ -49,7 +49,9 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
     public void createJournalEntriesForLoan(final LoanDTO loanDTO) {
         final GLClosure latestGLClosure = this.helper.getLatestClosureByBranch(loanDTO.getOfficeId());
         final Office office = this.helper.getOfficeById(loanDTO.getOfficeId());
+        log.error("Total Transaction Size ::-->"+loanDTO.getNewLoanTransactions().size());
         for (final LoanTransactionDTO loanTransactionDTO : loanDTO.getNewLoanTransactions()) {
+            log.error("Transaction ID "+loanTransactionDTO.getTransactionId()+ "- Amount - "+loanTransactionDTO.getAmount()+ " Type ::- "+loanTransactionDTO.getTransactionType().getCode());
             final LocalDate transactionDate = loanTransactionDTO.getTransactionDate();
             this.helper.checkForBranchClosures(latestGLClosure, transactionDate);
 
