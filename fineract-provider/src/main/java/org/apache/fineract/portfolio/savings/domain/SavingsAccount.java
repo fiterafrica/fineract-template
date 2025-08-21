@@ -74,6 +74,8 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.persistence.Version;
+
+import lombok.Setter;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
@@ -346,6 +348,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
     @JoinColumn(name = "tax_group_id")
     private TaxGroup taxGroup;
 
+    @Setter
     @Column(name = "total_savings_amount_on_hold", scale = 6, precision = 19, nullable = true)
     private BigDecimal savingsOnHoldAmount;
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "account", orphanRemoval = true, fetch = FetchType.LAZY)
@@ -2921,6 +2924,12 @@ public class SavingsAccount extends AbstractPersistableCustom {
 
         if (transactionToUndo == null) {
             throw new SavingsAccountTransactionNotFoundException(this.getId(), transactionId);
+        }
+
+        if(transactionToUndo.isAmountOnHoldNotReleased()){
+            transactionToUndo.setReleaseIdOfHoldAmountTransaction(transactionToUndo.getId());
+            transactionToUndo.getSavingsAccount().setSavingsOnHoldAmount(transactionToUndo.getSavingsAccount()
+                    .getSavingsHoldAmount().subtract(transactionToUndo.getAmount())) ;
         }
 
         validateAttemptToUndoTransferRelatedTransactions(transactionToUndo);
