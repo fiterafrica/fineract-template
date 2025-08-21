@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.accounting.closure.domain.GLClosure;
 import org.apache.fineract.accounting.common.AccountingConstants.AccrualAccountsForLoan;
 import org.apache.fineract.accounting.common.AccountingConstants.CashAccountsForLoan;
@@ -34,8 +35,10 @@ import org.apache.fineract.accounting.journalentry.data.ChargePaymentDTO;
 import org.apache.fineract.accounting.journalentry.data.LoanDTO;
 import org.apache.fineract.accounting.journalentry.data.LoanTransactionDTO;
 import org.apache.fineract.organisation.office.domain.Office;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanTransaction;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AccrualBasedAccountingProcessorForLoan implements AccountingProcessorForLoan {
@@ -109,6 +112,8 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
     private void createJournalEntriesForDisbursements(final LoanDTO loanDTO, final LoanTransactionDTO loanTransactionDTO,
             final Office office) {
 
+        LoanTransaction transaction = this.helper.getLoanTransactionById(Long.parseLong(loanTransactionDTO.getTransactionId()));
+
         // loan properties
         final Long loanProductId = loanDTO.getLoanProductId();
         final Long loanId = loanDTO.getLoanId();
@@ -123,7 +128,15 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
 
         // create journal entries for the disbursement (or disbursement
         // reversal)
-        if (loanTransactionDTO.isLoanToLoanTransfer()) {
+        if (transaction.getLoan().isTopup() && loanTransactionDTO.isLoanToLoanTransfer()) {
+            this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
+                    AccrualAccountsForLoan.LOAN_PORTFOLIO.getValue(), FinancialActivity.ASSET_TRANSFER.getValue(), loanProductId,
+                    paymentTypeId, loanId, transactionId, transactionDate, disbursalAmount, isReversed);
+            //For loan topups, reverse the journals to close off this loan account
+            this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
+                    AccrualAccountsForLoan.LOAN_PORTFOLIO.getValue(), FinancialActivity.ASSET_TRANSFER.getValue(), loanProductId,
+                    paymentTypeId, loanId, transactionId, transactionDate, disbursalAmount, true);
+        }else if (loanTransactionDTO.isLoanToLoanTransfer()) {
             this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
                     AccrualAccountsForLoan.LOAN_PORTFOLIO.getValue(), FinancialActivity.ASSET_TRANSFER.getValue(), loanProductId,
                     paymentTypeId, loanId, transactionId, transactionDate, disbursalAmount, isReversed);

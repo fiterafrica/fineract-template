@@ -417,8 +417,7 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
                     isRegularTransaction, fromSavingsAccount.isWithdrawalFeeApplicableForTransfer(),
                     AccountTransferType.fromInt(accountTransferDTO.getTransferType()).isInterestTransfer(),
                     accountTransferDTO.isExceptionForBalanceCheck());
-            log.info(accountTransferDTO.getFmt() + "Transfer Type :-> "
-                    + AccountTransferType.fromInt(accountTransferDTO.getTransferType()).getCode());
+
             final SavingsAccountTransaction withdrawal = this.savingsAccountDomainService.handleWithdrawal(fromSavingsAccount,
                     accountTransferDTO.getFmt(), accountTransferDTO.getTransactionDate(), accountTransferDTO.getTransactionAmount(),
                     accountTransferDTO.getPaymentDetail(), transactionBooleanValues, backdatedTxnsAllowedTill, isAccountTransfer,
@@ -452,7 +451,6 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             loanTransaction.setAccountTransferId(transferTransactionId);
 
         } else if (isSavingsToSavingsAccountTransfer(accountTransferDTO.getFromAccountType(), accountTransferDTO.getToAccountType())) {
-
             SavingsAccount fromSavingsAccount = null;
             SavingsAccount toSavingsAccount = null;
             if (accountTransferDetails == null) {
@@ -521,7 +519,6 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             transferTransactionId = accountTransferDetails.getId();
 
         } else if (isLoanToSavingsAccountTransfer(accountTransferDTO.getFromAccountType(), accountTransferDTO.getToAccountType())) {
-
             Loan fromLoanAccount = null;
             SavingsAccount toSavingsAccount = null;
             if (accountTransferDetails == null) {

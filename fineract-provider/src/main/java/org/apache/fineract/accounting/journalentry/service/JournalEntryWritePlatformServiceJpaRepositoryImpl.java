@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Comparator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -76,6 +77,7 @@ import org.apache.fineract.organisation.office.domain.Office;
 import org.apache.fineract.organisation.office.domain.OfficeRepositoryWrapper;
 import org.apache.fineract.organisation.office.domain.OrganisationCurrencyRepositoryWrapper;
 import org.apache.fineract.portfolio.client.domain.ClientTransaction;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanTransaction;
 import org.apache.fineract.portfolio.paymentdetail.domain.PaymentDetail;
 import org.apache.fineract.portfolio.paymentdetail.service.PaymentDetailWritePlatformService;
 import org.apache.fineract.useradministration.domain.AppUser;
@@ -756,6 +758,48 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
     public void createJournalEntriesForClientTransactions(Map<String, Object> accountingBridgeData) {
         final ClientTransactionDTO clientTransactionDTO = this.helper.populateClientTransactionDtoFromMap(accountingBridgeData);
         accountingProcessorForClientTransactions.createJournalEntriesForClientTransaction(clientTransactionDTO);
+    }
+
+    @Override
+    public void revertJournalEntriesForLoanTransactionTopUpForLiabilityTransfer(final LoanTransaction transactionId) {
+        List<JournalEntry> journalEntries = this.glJournalEntryRepository.findJournalEntriesForLoan(transactionId,
+                PortfolioProductType.LOAN.getValue());
+
+        if (journalEntries != null && journalEntries.size() >= 2) {
+
+            journalEntries.sort(Comparator.comparing(JournalEntry::getId).reversed());
+
+
+            List<JournalEntry> lastTwoEntries = journalEntries.subList(0, 2);
+            JournalEntry portfolioDebitEntry = null;
+            JournalEntry transitCreditEntry = null;
+
+            for (final JournalEntry journalEntry : lastTwoEntries) {
+                if (!journalEntry.isReversed()) {
+
+                    if (portfolioDebitEntry == null && journalEntry.isDebitEntry()) {
+                        portfolioDebitEntry = journalEntry;
+                    }
+                    else if (transitCreditEntry == null && !journalEntry.isDebitEntry()) {
+                        transitCreditEntry = journalEntry;
+                    }
+                }
+                if (portfolioDebitEntry != null && transitCreditEntry != null) {
+                    break;
+                }
+            }
+
+            if (portfolioDebitEntry != null) {
+             this.glJournalEntryRepository.delete(portfolioDebitEntry);
+            }
+            if (transitCreditEntry != null) {
+             this.glJournalEntryRepository.delete(transitCreditEntry);
+            }
+
+            if (portfolioDebitEntry != null || transitCreditEntry != null) {
+                this.glJournalEntryRepository.flush();
+            }
+        }
     }
 
     private static class OfficeCurrencyKey {

@@ -463,15 +463,24 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
 
                     disburseLoanToLoan(loan, command, loanOutstanding);
                     Money principalAmount = loan.getLoanRepaymentScheduleDetail().getPrincipal();
+
+                    BigDecimal topupAmount = principalAmount.getAmount();
+                    loan.setTopupAmount(topupAmount);
+
                     BigDecimal principalAmountWithLoanOutstanding = principalAmount.add(loanOutstanding).getAmount();
                     loan.getLoanRepaymentScheduleDetail().setPrincipal(principalAmountWithLoanOutstanding);
                     recalculateSchedule = true;
                 }
 
                 if (isAccountTransfer) {
+                    //Make sure you don't call this when it's top and Heading to Savings account
                     disburseLoanToSavings(loan, command, amountToDisburse, paymentDetail);
+                    if (loan.isTopup()) {
+                        reverseLoanToLoanTransferJournalEntries(loan);
+                    }
                     existingTransactionIds.addAll(loan.findExistingTransactionIds());
                     existingReversedTransactionIds.addAll(loan.findExistingReversedTransactionIds());
+                    //fix accounting
                 } else {
                     existingTransactionIds.addAll(loan.findExistingTransactionIds());
                     existingReversedTransactionIds.addAll(loan.findExistingReversedTransactionIds());
@@ -588,6 +597,22 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         } catch (final JpaSystemException | DataIntegrityViolationException dve) {
             handleLoanDataIntegrityIssues(command, dve.getMostSpecificCause(), dve);
             return CommandProcessingResult.empty();
+        }
+    }
+
+    private void reverseLoanToLoanTransferJournalEntries(final Loan loan) {
+        //Remove the two Wrongful transit GL and loan portfolio Journal entry transaction
+        LoanTransaction assetTransferTxn = null;
+        for (final LoanTransaction transaction : loan.getLoanTransactions()) {
+            if (transaction.isAccountTransfer() && transaction.isDisbursement()
+                    && loan.getTopupLoanDetails().getTopupAmount().compareTo(transaction.getAmount(loan.getCurrency()).getAmount()) == 0 && !transaction.isReversed()) {
+                assetTransferTxn = transaction;
+                break;
+            }
+        }
+
+        if (assetTransferTxn != null) {
+            this.journalEntryWritePlatformService.revertJournalEntriesForLoanTransactionTopUpForLiabilityTransfer(assetTransferTxn);
         }
     }
 
