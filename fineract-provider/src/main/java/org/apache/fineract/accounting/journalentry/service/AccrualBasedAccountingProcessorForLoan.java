@@ -69,6 +69,7 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
              ***/
             else if (loanTransactionDTO.getTransactionType().isRepaymentType()
                     || loanTransactionDTO.getTransactionType().isRepaymentAtDisbursement()
+                    || loanTransactionDTO.isDisburseToSavingsCharge()
                     || loanTransactionDTO.getTransactionType().isChargePayment()) {
                 createJournalEntriesForRepaymentsAndWriteOffs(loanDTO, loanTransactionDTO, office, false,
                         loanTransactionDTO.getTransactionType().isRepaymentAtDisbursement());
@@ -302,7 +303,7 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
                 if (loanTransactionDTO.isLoanToLoanTransfer()) {
                     this.helper.createDebitJournalEntryOrReversalForLoan(office, currencyCode, FinancialActivity.ASSET_TRANSFER.getValue(),
                             loanProductId, paymentTypeId, loanId, transactionId, transactionDate, totalDebitAmount, isReversal);
-                } else if (loanTransactionDTO.isAccountTransfer()) {
+                } else if (loanTransactionDTO.isAccountTransfer() || loanTransactionDTO.isDisburseToSavingsCharge()) {
                     this.helper.createDebitJournalEntryOrReversalForLoan(office, currencyCode,
                             FinancialActivity.LIABILITY_TRANSFER.getValue(), loanProductId, paymentTypeId, loanId, transactionId,
                             transactionDate, totalDebitAmount, isReversal);

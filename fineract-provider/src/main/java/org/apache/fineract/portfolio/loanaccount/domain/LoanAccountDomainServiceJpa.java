@@ -280,7 +280,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
             this.noteRepository.save(note);
         }
 
-        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer, isLoanToLoanTransfer);
+        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer, isLoanToLoanTransfer,false);
 
         recalculateAccruals(loan);
 
@@ -420,6 +420,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
             final BigDecimal transactionAmount, final PaymentDetail paymentDetail, final String noteText, final String txnExternalId,
             final Integer transactionType, Integer installmentNumber) {
         boolean isAccountTransfer = true;
+        boolean isDisburseToSavingsCharge = true;
         checkClientOrGroupActive(loan);
         businessEventNotifierService.notifyPreBusinessEvent(new LoanChargePaymentPreBusinessEvent(loan));
 
@@ -455,23 +456,23 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
             this.noteRepository.save(note);
         }
 
-        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
+        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer,isDisburseToSavingsCharge);
         recalculateAccruals(loan);
         businessEventNotifierService.notifyPostBusinessEvent(new LoanChargePaymentPostBusinessEvent(newPaymentTransaction));
         return newPaymentTransaction;
     }
 
     private void postJournalEntries(final Loan loanAccount, final List<Long> existingTransactionIds,
-            final List<Long> existingReversedTransactionIds, boolean isAccountTransfer) {
-        postJournalEntries(loanAccount, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer, false);
+            final List<Long> existingReversedTransactionIds, boolean isAccountTransfer,boolean isDisburseToSavingsCharge) {
+        postJournalEntries(loanAccount, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer, false,isDisburseToSavingsCharge);
     }
     private void postJournalEntriesForLoanToLoan(final Loan loanAccount, final List<Long> existingTransactionIds,
                                     final List<Long> existingReversedTransactionIds, boolean isAccountTransfer) {
-        postJournalEntries(loanAccount, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer, true);
+        postJournalEntries(loanAccount, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer, true,false);
     }
 
     private void postJournalEntries(final Loan loanAccount, final List<Long> existingTransactionIds,
-            final List<Long> existingReversedTransactionIds, boolean isAccountTransfer, boolean isLoanToLoanTransfer) {
+            final List<Long> existingReversedTransactionIds, boolean isAccountTransfer, boolean isLoanToLoanTransfer,boolean isDisburseToSavingsCharge) {
 
         final MonetaryCurrency currency = loanAccount.getCurrency();
         final ApplicationCurrency applicationCurrency = this.applicationCurrencyRepositoryWrapper.findOneWithNotFoundDetection(currency);
@@ -479,6 +480,8 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
         final Map<String, Object> accountingBridgeData = loanAccount.deriveAccountingBridgeData(applicationCurrency.toData(),
                 existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
         accountingBridgeData.put("isLoanToLoanTransfer", isLoanToLoanTransfer);
+        accountingBridgeData.put("isAccountTransfer", isAccountTransfer);
+        accountingBridgeData.put("isDisburseToSavingsCharge", isDisburseToSavingsCharge);
         this.journalEntryWritePlatformService.createJournalEntriesForLoan(accountingBridgeData);
     }
 
@@ -537,7 +540,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
         loanRepositoryWrapper.updateRedrawAmount(loan, currentUser, loan.getId(), refundAmount.getAmount(), false, transactionDate,
                 paymentDetail);
 
-        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
+        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer,false);
         businessEventNotifierService.notifyPostBusinessEvent(new LoanRefundPostBusinessEvent(newRefundTransaction));
         builderResult.withEntityId(newRefundTransaction.getId()).withOfficeId(loan.getOfficeId()).withClientId(loan.getClientId())
                 .withGroupId(loan.getGroupId());
@@ -579,7 +582,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
             this.noteRepository.save(note);
         }
 
-        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer, isLoanToLoanTransfer);
+        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer, isLoanToLoanTransfer,false);
         return disbursementTransaction;
     }
 
@@ -725,7 +728,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
             this.noteRepository.save(note);
         }
 
-        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, false);
+        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, false,false);
         recalculateAccruals(loan);
         businessEventNotifierService
                 .notifyPostBusinessEvent(new LoanCreditBalanceRefundPostBusinessEvent(newCreditBalanceRefundTransaction));
@@ -764,7 +767,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
             this.noteRepository.save(note);
         }
 
-        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, false);
+        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, false,false);
         recalculateAccruals(loan);
         businessEventNotifierService.notifyPostBusinessEvent(new LoanRefundPostBusinessEvent(newRefundTransaction));
 
@@ -903,7 +906,7 @@ public class LoanAccountDomainServiceJpa implements LoanAccountDomainService {
             this.noteRepository.save(note);
         }
 
-        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
+        postJournalEntries(loan, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer,false);
         businessEventNotifierService.notifyPostBusinessEvent(new LoanForeClosurePostBusinessEvent(payment));
         return changes;
 
