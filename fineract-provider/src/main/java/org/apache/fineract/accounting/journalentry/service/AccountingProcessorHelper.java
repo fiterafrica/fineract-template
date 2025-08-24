@@ -163,7 +163,7 @@ public class AccountingProcessorHelper {
             } else {
                 transaction.setLoanToLoanTransfer(false);
             }
-            transaction.setDisburseToSavingsCharge(isDisburseToSavingsCharge);
+            transaction.setDisburseToSavingsCharge(isDisburseToSavingsCharge != null && isDisburseToSavingsCharge);
             newLoanTransactions.add(transaction);
 
         }
