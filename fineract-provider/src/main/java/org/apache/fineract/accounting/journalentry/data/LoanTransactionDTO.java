@@ -53,6 +53,9 @@ public class LoanTransactionDTO {
     private final List<ChargePaymentDTO> feePayments;
 
     private final boolean isAccountTransfer;
+    //add new param to track Disburse to savings charges that get deducted from savings account on loan disbursement via savings
+    @Setter
+    private boolean isDisburseToSavingsCharge;
 
     @Setter
     private boolean isLoanToLoanTransfer;

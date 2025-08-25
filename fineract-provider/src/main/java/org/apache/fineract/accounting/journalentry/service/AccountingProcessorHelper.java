@@ -157,11 +157,13 @@ public class AccountingProcessorHelper {
                     transactionDate, transactionType, amount, principal, interest, fees, penalties, overPayments, reversed,
                     penaltyPaymentDetails, feePaymentDetails, isAccountTransfer);
             Boolean isLoanToLoanTransfer = (Boolean) accountingBridgeData.get("isLoanToLoanTransfer");
+            Boolean isDisburseToSavingsCharge = (Boolean) accountingBridgeData.get("isDisburseToSavingsCharge");
             if (isLoanToLoanTransfer != null && isLoanToLoanTransfer) {
                 transaction.setLoanToLoanTransfer(true);
             } else {
                 transaction.setLoanToLoanTransfer(false);
             }
+            transaction.setDisburseToSavingsCharge(isDisburseToSavingsCharge != null && isDisburseToSavingsCharge);
             newLoanTransactions.add(transaction);
 
         }

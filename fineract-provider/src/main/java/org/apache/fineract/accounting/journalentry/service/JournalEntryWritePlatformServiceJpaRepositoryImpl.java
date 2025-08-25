@@ -789,14 +789,9 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
                 }
             }
 
-            if (portfolioDebitEntry != null) {
-             this.glJournalEntryRepository.delete(portfolioDebitEntry);
-            }
-            if (transitCreditEntry != null) {
-             this.glJournalEntryRepository.delete(transitCreditEntry);
-            }
-
-            if (portfolioDebitEntry != null || transitCreditEntry != null) {
+            if (portfolioDebitEntry != null && transitCreditEntry != null) {
+                this.glJournalEntryRepository.delete(portfolioDebitEntry);
+                this.glJournalEntryRepository.delete(transitCreditEntry);
                 this.glJournalEntryRepository.flush();
             }
         }
