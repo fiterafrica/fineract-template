@@ -94,6 +94,7 @@ public interface LoanApiConstants {
     String inArrearsToleranceParameterName = "inArrearsTolerance";
     String interestChargedFromDateParameterName = "interestChargedFromDate";
     String submittedOnDateParameterName = "submittedOnDate";
+    String applicationDateParameterName = "applicationDate";
     String submittedOnNoteParameterName = "interestChargedFromDate";
     String collateralParameterName = "collateral";
     String syncDisbursementWithMeetingParameterName = "syncDisbursementWithMeeting";

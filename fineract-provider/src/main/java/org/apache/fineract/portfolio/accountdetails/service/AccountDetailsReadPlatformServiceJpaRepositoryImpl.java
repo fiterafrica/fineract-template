@@ -576,7 +576,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                     .append("l.total_repayment_derived as amountPaid,")
 
                     .append(" l.loan_product_counter as loanCycle,")
-
+                    .append(" l.application_date as applicationDate,")
                     .append(" l.submittedon_date as submittedOnDate,")
                     .append(" sbu.username as submittedByUsername, sbu.firstname as submittedByFirstname, sbu.lastname as submittedByLastname,")
 
@@ -632,6 +632,7 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
             final EnumOptionData loanType = AccountEnumerations.loanType(loanTypeId);
             final Integer loanCycle = JdbcSupport.getInteger(rs, "loanCycle");
 
+            final LocalDate applicationDate = JdbcSupport.getLocalDate(rs, "applicationDate");
             final LocalDate submittedOnDate = JdbcSupport.getLocalDate(rs, "submittedOnDate");
             final String submittedByUsername = rs.getString("submittedByUsername");
             final String submittedByFirstname = rs.getString("submittedByFirstname");
@@ -690,12 +691,12 @@ public class AccountDetailsReadPlatformServiceJpaRepositoryImpl implements Accou
                 loanSubStatus = LoanSubStatus.loanSubStatus(loanSubStatusId);
             }
 
-            final LoanApplicationTimelineData timeline = new LoanApplicationTimelineData(submittedOnDate, submittedByUsername,
-                    submittedByFirstname, submittedByLastname, rejectedOnDate, rejectedByUsername, rejectedByFirstname, rejectedByLastname,
-                    withdrawnOnDate, withdrawnByUsername, withdrawnByFirstname, withdrawnByLastname, approvedOnDate, approvedByUsername,
-                    approvedByFirstname, approvedByLastname, expectedDisbursementDate, actualDisbursementDate, disbursedByUsername,
-                    disbursedByFirstname, disbursedByLastname, closedOnDate, closedByUsername, closedByFirstname, closedByLastname,
-                    expectedMaturityDate, writtenOffOnDate, closedByUsername, closedByFirstname, closedByLastname);
+            final LoanApplicationTimelineData timeline = new LoanApplicationTimelineData(applicationDate, submittedOnDate,
+                    submittedByUsername, submittedByFirstname, submittedByLastname, rejectedOnDate, rejectedByUsername, rejectedByFirstname,
+                    rejectedByLastname, withdrawnOnDate, withdrawnByUsername, withdrawnByFirstname, withdrawnByLastname, approvedOnDate,
+                    approvedByUsername, approvedByFirstname, approvedByLastname, expectedDisbursementDate, actualDisbursementDate,
+                    disbursedByUsername, disbursedByFirstname, disbursedByLastname, closedOnDate, closedByUsername, closedByFirstname,
+                    closedByLastname, expectedMaturityDate, writtenOffOnDate, closedByUsername, closedByFirstname, closedByLastname);
 
             LoanAccountSummaryData loanAccountSummaryData = new LoanAccountSummaryData(id, accountNo, parentAccountNumber, externalId,
                     productId, loanProductName, shortLoanProductName, loanStatus, loanType, loanCycle, timeline, inArrears, originalLoan,

@@ -50,6 +50,7 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanDecision;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanDecisionRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanDecisionState;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionType;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.service.LoanScheduleAssembler;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProduct;
 import org.jetbrains.annotations.NotNull;
@@ -1291,9 +1292,9 @@ public class LoanDecisionStateUtilService {
                                 + " should be after last transaction date of loan to be closed " + lastUserTransactionOnLoanToClose);
             }
             BigDecimal loanOutstanding = this.loanReadPlatformService
-                    .retrieveLoanForeclosureTemplate(loanIdToClose, loan.getDisbursementDate()).getAmount();
-            final BigDecimal firstDisbursalAmount = loan.getFirstDisbursalAmount();
-            if (loanOutstanding.compareTo(firstDisbursalAmount) > 0) {
+                    .retrieveLoanPrePaymentTemplate(LoanTransactionType.REPAYMENT, loanIdToClose, loan.getDisbursementDate())
+                    .getAmount();
+            if (loanOutstanding.compareTo(loan.getPrincpal().getAmount()) > 0) {
                 throw new GeneralPlatformDomainRuleException("error.msg.loan.amount.less.than.outstanding.of.loan.to.be.closed",
                         "Topup loan amount should be greater than outstanding amount of loan to be closed.");
             }

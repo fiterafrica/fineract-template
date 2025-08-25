@@ -223,6 +223,9 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
     @Column(name = "sync_disbursement_with_meeting", nullable = true)
     private Boolean syncDisbursementWithMeeting;
 
+    @Column(name = "application_date")
+    private LocalDate applicationDate;
+
     // loan application states
     @Column(name = "submittedon_date")
     private LocalDate submittedOnDate;
@@ -1559,6 +1562,16 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
             actualChanges.put(strategyIdParamName, newValue);
         }
 
+        final String applicationDateParamName = "applicationDate";
+        if (command.isChangeInLocalDateParameterNamed(applicationDateParamName, getApplicationDate())) {
+            final String valueAsInput = command.stringValueOfParameterNamed(applicationDateParamName);
+            actualChanges.put(applicationDateParamName, valueAsInput);
+            actualChanges.put("dateFormat", dateFormatAsInput);
+            actualChanges.put("locale", localeAsInput);
+
+            this.applicationDate = command.localDateValueOfParameterNamed(applicationDateParamName);
+        }
+
         final String submittedOnDateParamName = "submittedOnDate";
         if (command.isChangeInLocalDateParameterNamed(submittedOnDateParamName, getSubmittedOnDate())) {
             final String valueAsInput = command.stringValueOfParameterNamed(submittedOnDateParamName);
@@ -1778,6 +1791,10 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
         }
 
         return actualChanges;
+    }
+
+    private LocalDate getApplicationDate() {
+        return this.applicationDate;
     }
 
     public void recalculateAllCharges() {
@@ -2161,7 +2178,7 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
     }
 
     public void loanApplicationSubmittal(final LoanScheduleModel loanSchedule, final LoanApplicationTerms loanApplicationTerms,
-            final LoanLifecycleStateMachine lifecycleStateMachine, final LocalDate submittedOn, final String externalId,
+            final LoanLifecycleStateMachine lifecycleStateMachine, final LocalDate submittedOn, final LocalDate applicationDate,final String externalId,
             final boolean allowTransactionsOnHoliday, final List<Holiday> holidays, final WorkingDays workingDays,
             final boolean allowTransactionsOnNonWorkingDay) {
 
@@ -2179,11 +2196,17 @@ public class Loan extends AbstractAuditableWithUTCDateTimeCustom {
         this.termFrequency = loanApplicationTerms.getLoanTermFrequency();
         this.termPeriodFrequencyType = loanApplicationTerms.getLoanTermPeriodFrequencyType().getValue();
         this.submittedOnDate = submittedOn;
+        this.applicationDate = applicationDate;
         this.expectedDisbursementDate = loanApplicationTerms.getExpectedDisbursementDate();
         this.expectedFirstRepaymentOnDate = loanApplicationTerms.getRepaymentStartFromDate();
         this.interestChargedFromDate = loanApplicationTerms.getInterestChargedFromDate();
 
         updateLoanScheduleDependentDerivedFields();
+
+        if (applicationDate.isAfter(DateUtils.getBusinessLocalDate())) {
+            final String errorMessage = "The date of loan application cannot be in the future.";
+            throw new InvalidLoanStateTransitionException("application", "cannot.be.a.future.date", errorMessage, applicationDate);
+        }
 
         if (submittedOn.isAfter(DateUtils.getBusinessLocalDate())) {
             final String errorMessage = "The date on which a loan is submitted cannot be in the future.";

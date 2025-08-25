@@ -28,6 +28,7 @@ import org.apache.fineract.organisation.monetary.data.CurrencyData;
 @SuppressWarnings("unused")
 public class LoanApplicationTimelineData {
 
+    private final LocalDate applicationDate;
     private final LocalDate submittedOnDate;
     private final String submittedByUsername;
     private final String submittedByFirstname;
@@ -61,6 +62,7 @@ public class LoanApplicationTimelineData {
 
     public static LoanApplicationTimelineData templateDefault(final LocalDate expectedDisbursementDate) {
 
+        final LocalDate applicationDate = null;
         final LocalDate submittedOnDate = null;
         final String submittedByUsername = null;
         final String submittedByFirstname = null;
@@ -91,24 +93,25 @@ public class LoanApplicationTimelineData {
         final String writeOffByFirstname = null;
         final String writeOffByLastname = null;
 
-        return new LoanApplicationTimelineData(submittedOnDate, submittedByUsername, submittedByFirstname, submittedByLastname,
-                rejectedOnDate, rejectedByUsername, rejectedByFirstname, rejectedByLastname, withdrawnOnDate, withdrawnByUsername,
-                withdrawnByFirstname, withdrawnByLastname, approvedOnDate, approvedByUsername, approvedByFirstname, approvedByLastname,
-                expectedDisbursementDate, actualDisbursementDate, disbursedByUsername, disbursedByFirstname, disbursedByLastname,
-                closedOnDate, closedByUsername, closedByFirstname, closedByLastname, expectedMaturityDate, writeOffOnDate,
-                writeOffByUsername, writeOffByFirstname, writeOffByLastname);
+        return new LoanApplicationTimelineData(applicationDate, submittedOnDate, submittedByUsername, submittedByFirstname,
+                submittedByLastname, rejectedOnDate, rejectedByUsername, rejectedByFirstname, rejectedByLastname, withdrawnOnDate,
+                withdrawnByUsername, withdrawnByFirstname, withdrawnByLastname, approvedOnDate, approvedByUsername, approvedByFirstname,
+                approvedByLastname, expectedDisbursementDate, actualDisbursementDate, disbursedByUsername, disbursedByFirstname,
+                disbursedByLastname, closedOnDate, closedByUsername, closedByFirstname, closedByLastname, expectedMaturityDate,
+                writeOffOnDate, writeOffByUsername, writeOffByFirstname, writeOffByLastname);
     }
 
-    public LoanApplicationTimelineData(final LocalDate submittedOnDate, final String submittedByUsername, final String submittedByFirstname,
-            final String submittedByLastname, final LocalDate rejectedOnDate, final String rejectedByUsername,
-            final String rejectedByFirstname, final String rejectedByLastname, final LocalDate withdrawnOnDate,
-            final String withdrawnByUsername, final String withdrawnByFirstname, final String withdrawnByLastname,
-            final LocalDate approvedOnDate, final String approvedByUsername, final String approvedByFirstname,
-            final String approvedByLastname, final LocalDate expectedDisbursementDate, final LocalDate actualDisbursementDate,
-            final String disbursedByUsername, final String disbursedByFirstname, final String disbursedByLastname,
-            final LocalDate closedOnDate, final String closedByUsername, final String closedByFirstname, final String closedByLastname,
-            final LocalDate expectedMaturityDate, final LocalDate writeOffOnDate, final String writeOffByUsername,
-            final String writeOffByFirstname, final String writeOffByLastname) {
+    public LoanApplicationTimelineData(LocalDate applicationDate, final LocalDate submittedOnDate, final String submittedByUsername, final String submittedByFirstname,
+                                       final String submittedByLastname, final LocalDate rejectedOnDate, final String rejectedByUsername,
+                                       final String rejectedByFirstname, final String rejectedByLastname, final LocalDate withdrawnOnDate,
+                                       final String withdrawnByUsername, final String withdrawnByFirstname, final String withdrawnByLastname,
+                                       final LocalDate approvedOnDate, final String approvedByUsername, final String approvedByFirstname,
+                                       final String approvedByLastname, final LocalDate expectedDisbursementDate, final LocalDate actualDisbursementDate,
+                                       final String disbursedByUsername, final String disbursedByFirstname, final String disbursedByLastname,
+                                       final LocalDate closedOnDate, final String closedByUsername, final String closedByFirstname, final String closedByLastname,
+                                       final LocalDate expectedMaturityDate, final LocalDate writeOffOnDate, final String writeOffByUsername,
+                                       final String writeOffByFirstname, final String writeOffByLastname) {
+        this.applicationDate = applicationDate;
         this.submittedOnDate = submittedOnDate;
         this.submittedByUsername = submittedByUsername;
         this.submittedByFirstname = submittedByFirstname;

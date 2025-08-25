@@ -197,10 +197,10 @@ public class LoanRescheduleRequestDataValidator {
                         .failWithCode("repayment.schedule.installment.does.not.exist", "Repayment schedule installment does not exist");
             }
 
-//            if (installment != null && installment.isObligationsMet()) {
-//                dataValidatorBuilder.reset().parameter(RescheduleLoansApiConstants.rescheduleFromDateParamName)
-//                        .failWithCode("repayment.schedule.installment.obligation.met", "Repayment schedule installment obligation met");
-//            }
+            if (installment != null && installment.isObligationsMet()) {
+                dataValidatorBuilder.reset().parameter(RescheduleLoansApiConstants.rescheduleFromDateParamName)
+                        .failWithCode("repayment.schedule.installment.obligation.met", "Repayment schedule installment obligation met");
+            }
 
         }
 

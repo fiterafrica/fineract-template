@@ -338,6 +338,7 @@ public class LoanAssembler {
         final String description = this.fromApiJsonHelper.extractStringNamed("description", element);
         final String kivaId = this.fromApiJsonHelper.extractStringNamed("kivaId", element);
         final LocalDate submittedOnDate = this.fromApiJsonHelper.extractLocalDateNamed("submittedOnDate", element);
+        final LocalDate applicationDate = this.fromApiJsonHelper.extractLocalDateNamed("applicationDate", element);
 
         if (loanApplication == null) {
             throw new IllegalStateException("No loan application exists for either a client or group (or both).");
@@ -361,7 +362,7 @@ public class LoanAssembler {
         final LoanScheduleModel loanScheduleModel = this.loanScheduleAssembler.assembleLoanScheduleFrom(loanApplicationTerms,
                 isHolidayEnabled, holidays, workingDays, element, disbursementDetails);
         loanApplication.loanApplicationSubmittal(loanScheduleModel, loanApplicationTerms, defaultLoanLifecycleStateMachine(),
-                submittedOnDate, externalId, allowTransactionsOnHoliday, holidays, workingDays, allowTransactionsOnNonWorkingDay);
+                submittedOnDate, applicationDate, externalId, allowTransactionsOnHoliday, holidays, workingDays, allowTransactionsOnNonWorkingDay);
 
         //
         final Boolean isBnplLoan = this.fromApiJsonHelper.extractBooleanNamed(LoanApiConstants.isBnplLoanParamName, element);
