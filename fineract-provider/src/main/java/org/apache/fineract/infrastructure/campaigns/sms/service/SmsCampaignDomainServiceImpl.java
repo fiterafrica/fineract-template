@@ -34,6 +34,7 @@ import java.util.Set;
 import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.fineract.commands.domain.CommandSourceRepository;
 import org.apache.fineract.infrastructure.campaigns.sms.constants.SmsCampaignTriggerType;
 import org.apache.fineract.infrastructure.campaigns.sms.domain.SmsCampaign;
 import org.apache.fineract.infrastructure.campaigns.sms.domain.SmsCampaignRepository;
@@ -77,6 +78,8 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
     private final BusinessEventNotifierService businessEventNotifierService;
     private final SmsCampaignWritePlatformService smsCampaignWritePlatformCommandHandler;
     private final GroupRepository groupRepository;
+    private final CommandSourceRepository commandSourceRepository;
+
 
     private final SmsMessageScheduledJobService smsMessageScheduledJobService;
     private final SmsCampaignValidator smsCampaignValidator;
@@ -86,7 +89,7 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
         businessEventNotifierService.addPostBusinessEventListener(LoanApprovedBusinessEvent.class,
                 new SendSmsOnLoanApproved());
         businessEventNotifierService.addPostBusinessEventListener(LoanDisbursalBusinessEvent.class,
-                new SendSmsOnLoanDisbused());
+                new SendSmsOnLoanDisbursed());
         businessEventNotifierService.addPostBusinessEventListener(LoanRejectedBusinessEvent.class,
                 new SendSmsOnLoanRejected());
         businessEventNotifierService.addPostBusinessEventListener(LoanTransactionMakeRepaymentPostBusinessEvent.class,
@@ -105,8 +108,8 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
                 new NonDepositSavingsAccountTransactionListener());
     }
 
-    private void notifyRejectedLoanOwner(Loan loan) {
-        List<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("Loan Rejected");
+    private void notifyLoanOwner(Loan loan, String campaignParam) {
+        List<SmsCampaign> smsCampaigns = retrieveSmsCampaigns(campaignParam);
         if (smsCampaigns.size() > 0) {
             for (SmsCampaign campaign : smsCampaigns) {
                 if (campaign.isActive()) {
@@ -117,23 +120,35 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
         }
     }
 
-    private void notifyAcceptedLoanOwner(Loan loan) {
-        List<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("Loan Approved");
-        if (smsCampaigns.size() > 0) {
-            for (SmsCampaign campaign : smsCampaigns) {
-                this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(loan, campaign);
-            }
-        }
-    }
+//    private void notifyRejectedLoanOwner(Loan loan) {
+//        List<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("Loan Rejected");
+//        if (smsCampaigns.size() > 0) {
+//            for (SmsCampaign campaign : smsCampaigns) {
+//                if (campaign.isActive()) {
+//                    SmsCampaignDomainServiceImpl.this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(loan,
+//                            campaign);
+//                }
+//            }
+//        }
+//    }
 
-    private void notifyDisbusedLoanOwner(Loan loan) {
-        List<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("Loan Disbursed");
-        if (smsCampaigns.size() > 0) {
-            for (SmsCampaign campaign : smsCampaigns) {
-                this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(loan, campaign);
-            }
-        }
-    }
+//    private void notifyAcceptedLoanOwner(Loan loan) {
+//        List<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("Loan Approved");
+//        if (smsCampaigns.size() > 0) {
+//            for (SmsCampaign campaign : smsCampaigns) {
+//                this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(loan, campaign);
+//            }
+//        }
+//    }
+//
+//    private void notifyDisbusedLoanOwner(Loan loan) {
+//        List<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("Loan Disbursed");
+//        if (smsCampaigns.size() > 0) {
+//            for (SmsCampaign campaign : smsCampaigns) {
+//                this.smsCampaignWritePlatformCommandHandler.insertDirectCampaignIntoSmsOutboundTable(loan, campaign);
+//            }
+//        }
+//    }
 
     private void notifyClientActivated(final Client client) {
         List<SmsCampaign> smsCampaigns = retrieveSmsCampaigns("Client Activated");
@@ -394,16 +409,16 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
         @Override
         public void onBusinessEvent(LoanApprovedBusinessEvent event) {
             Loan loan = event.get();
-            notifyAcceptedLoanOwner(loan);
+            notifyLoanOwner(loan, "Loan Approved");
         }
     }
 
-    private class SendSmsOnLoanDisbused implements BusinessEventListener<LoanDisbursalBusinessEvent> {
+    private class SendSmsOnLoanDisbursed implements BusinessEventListener<LoanDisbursalBusinessEvent> {
 
         @Override
         public void onBusinessEvent(LoanDisbursalBusinessEvent event) {
             Loan loan = event.get();
-            notifyDisbusedLoanOwner(loan);
+            notifyLoanOwner(loan,"Loan Disbursed");
         }
     }
 
@@ -412,7 +427,7 @@ public class SmsCampaignDomainServiceImpl implements SmsCampaignDomainService {
         @Override
         public void onBusinessEvent(LoanRejectedBusinessEvent event) {
             Loan loan = event.get();
-            notifyRejectedLoanOwner(loan);
+            notifyLoanOwner(loan, "Loan Rejected");
         }
     }
 
