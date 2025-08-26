@@ -186,11 +186,7 @@ public class CommandSource extends AbstractPersistableCustom {
     }
 
     public boolean isMarkedAsAwaitingApproval() {
-        if (this.processingResult.equals(CommandProcessingResultType.AWAITING_APPROVAL.getValue())) {
-            return true;
-        }
-
-        return false;
+        return this.processingResult.equals(CommandProcessingResultType.AWAITING_APPROVAL.getValue());
     }
 
     public void updateForAudit(final Long officeId, final Long groupId, final Long clientId, final Long loanId, final Long savingsId,

@@ -25,7 +25,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Component
 public class AfterCommitExecutor {
 
-    public void execute(Runnable runnable) {
+    public static void execute(Runnable runnable) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
