@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Objects;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
@@ -330,9 +329,6 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
         List<Throwable> errors = new ArrayList<>();
         LocalDate transactionDate = DateUtils.getBusinessLocalDate();
         for (StandingInstructionData data : instructionDatas) {
-            LOG.error("-:::-Loan ID :---:---:-> " + data.getToAccount().getAccountNo());
-            if (Objects.equals(data.getToAccount().getAccountNo(), "000004375")) {
-                LOG.error("-:::-Loan ID-Break :---:---:-> " + data.getToAccount().getAccountNo());
 
             boolean isDueForTransfer = false;
             AccountTransferRecurrenceType recurrenceType = data.recurrenceType();
@@ -388,7 +384,6 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
                 }
 
             }
-        }
         }
         if (!errors.isEmpty()) {
             throw new JobExecutionException(errors);
