@@ -329,6 +329,7 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
         List<Throwable> errors = new ArrayList<>();
         LocalDate transactionDate = DateUtils.getBusinessLocalDate();
         for (StandingInstructionData data : instructionDatas) {
+
             boolean isDueForTransfer = false;
             AccountTransferRecurrenceType recurrenceType = data.recurrenceType();
             StandingInstructionType instructionType = data.instructionType();
@@ -362,7 +363,7 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
                 if (recurrenceType.isDuesRecurrence()) {
                     isDueForTransfer = (DateUtils.getBusinessLocalDate().equals(standingInstructionDuesData.dueDate())
                             || (standingInstructionDuesData.dueDate() != null
-                                    && DateUtils.getBusinessLocalDate().isAfter(standingInstructionDuesData.dueDate())));
+                            && DateUtils.getBusinessLocalDate().isAfter(standingInstructionDuesData.dueDate())));
                 }
             }
 

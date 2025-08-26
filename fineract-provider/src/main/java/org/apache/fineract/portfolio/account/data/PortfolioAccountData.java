@@ -134,4 +134,8 @@ public class PortfolioAccountData implements Serializable {
     public void setClientId(Long clientId) {
         this.clientId = clientId;
     }
+
+    public String getAccountNo() {
+        return accountNo;
+    }
 }
