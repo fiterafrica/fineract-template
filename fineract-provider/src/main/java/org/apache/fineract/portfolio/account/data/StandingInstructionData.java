@@ -384,4 +384,15 @@ public final class StandingInstructionData {
         return this.id;
     }
 
+    public PortfolioAccountData getToAccount() {
+        return toAccount;
+    }
+
+    public EnumOptionData getToAccountType() {
+        return toAccountType;
+    }
+
+    public EnumOptionData getTransferType() {
+        return transferType;
+    }
 }
