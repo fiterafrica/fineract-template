@@ -133,10 +133,6 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
             this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
                     AccrualAccountsForLoan.LOAN_PORTFOLIO.getValue(), FinancialActivity.ASSET_TRANSFER.getValue(), loanProductId,
                     paymentTypeId, loanId, transactionId, transactionDate, disbursalAmount, isReversed);
-            //For loan topups, reverse the journals to close off this loan account
-            this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
-                    AccrualAccountsForLoan.LOAN_PORTFOLIO.getValue(), FinancialActivity.ASSET_TRANSFER.getValue(), loanProductId,
-                    paymentTypeId, loanId, transactionId, transactionDate, disbursalAmount, true);
         }else if (loanTransactionDTO.isLoanToLoanTransfer()) {
             this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
                     AccrualAccountsForLoan.LOAN_PORTFOLIO.getValue(), FinancialActivity.ASSET_TRANSFER.getValue(), loanProductId,
