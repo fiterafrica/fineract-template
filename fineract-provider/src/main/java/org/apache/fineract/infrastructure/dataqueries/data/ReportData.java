@@ -95,6 +95,9 @@ public final class ReportData {
         final List<String> reportSubTypes = new ArrayList<>();
         reportSubTypes.add("Bar");
         reportSubTypes.add("Pie");
+        reportSubTypes.add("Triggered");
+        reportSubTypes.add("NonTriggered");
+
         this.allowedReportSubTypes = reportSubTypes;
 
         this.allowedParameters = allowedParameters;
