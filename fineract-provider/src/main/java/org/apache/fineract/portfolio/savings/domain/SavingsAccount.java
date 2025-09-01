@@ -74,7 +74,6 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.persistence.Version;
-
 import lombok.Setter;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -2926,10 +2925,10 @@ public class SavingsAccount extends AbstractPersistableCustom {
             throw new SavingsAccountTransactionNotFoundException(this.getId(), transactionId);
         }
 
-        if(transactionToUndo.isAmountOnHoldNotReleased()){
+        if (transactionToUndo.isAmountOnHoldNotReleased()) {
             transactionToUndo.setReleaseIdOfHoldAmountTransaction(transactionToUndo.getId());
-            transactionToUndo.getSavingsAccount().setSavingsOnHoldAmount(transactionToUndo.getSavingsAccount()
-                    .getSavingsHoldAmount().subtract(transactionToUndo.getAmount())) ;
+            transactionToUndo.getSavingsAccount().setSavingsOnHoldAmount(
+                    transactionToUndo.getSavingsAccount().getSavingsHoldAmount().subtract(transactionToUndo.getAmount()));
         }
 
         validateAttemptToUndoTransferRelatedTransactions(transactionToUndo);

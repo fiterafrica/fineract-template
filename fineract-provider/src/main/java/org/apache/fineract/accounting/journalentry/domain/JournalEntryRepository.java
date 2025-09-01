@@ -19,7 +19,6 @@
 package org.apache.fineract.accounting.journalentry.domain;
 
 import java.util.List;
-
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -44,8 +43,7 @@ public interface JournalEntryRepository
     @Query("select journalEntry from JournalEntry journalEntry where journalEntry.transactionId= :transactionId and journalEntry.reversed=false and journalEntry.entityType = :entityType")
     List<JournalEntry> findJournalEntries(@Param("transactionId") String transactionId, @Param("entityType") Integer entityType);
 
-
-
     @Query("select journalEntry from JournalEntry journalEntry where journalEntry.loanTransaction= :loanTransaction and journalEntry.reversed=false and journalEntry.entityType = :entityType")
-    List<JournalEntry> findJournalEntriesForLoan(@Param("loanTransaction") LoanTransaction loanTransaction, @Param("entityType") Integer entityType);
+    List<JournalEntry> findJournalEntriesForLoan(@Param("loanTransaction") LoanTransaction loanTransaction,
+            @Param("entityType") Integer entityType);
 }

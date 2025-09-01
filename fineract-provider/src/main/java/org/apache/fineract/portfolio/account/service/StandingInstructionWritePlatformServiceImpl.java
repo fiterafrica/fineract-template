@@ -363,7 +363,7 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
                 if (recurrenceType.isDuesRecurrence()) {
                     isDueForTransfer = (DateUtils.getBusinessLocalDate().equals(standingInstructionDuesData.dueDate())
                             || (standingInstructionDuesData.dueDate() != null
-                            && DateUtils.getBusinessLocalDate().isAfter(standingInstructionDuesData.dueDate())));
+                                    && DateUtils.getBusinessLocalDate().isAfter(standingInstructionDuesData.dueDate())));
                 }
             }
 

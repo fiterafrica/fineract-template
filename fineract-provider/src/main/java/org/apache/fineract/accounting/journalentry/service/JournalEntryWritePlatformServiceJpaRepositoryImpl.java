@@ -22,13 +22,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.Comparator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -769,7 +769,6 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
 
             journalEntries.sort(Comparator.comparing(JournalEntry::getId).reversed());
 
-
             List<JournalEntry> lastTwoEntries = journalEntries.subList(0, 2);
             JournalEntry portfolioDebitEntry = null;
             JournalEntry transitCreditEntry = null;
@@ -779,8 +778,7 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
 
                     if (portfolioDebitEntry == null && journalEntry.isDebitEntry()) {
                         portfolioDebitEntry = journalEntry;
-                    }
-                    else if (transitCreditEntry == null && !journalEntry.isDebitEntry()) {
+                    } else if (transitCreditEntry == null && !journalEntry.isDebitEntry()) {
                         transitCreditEntry = journalEntry;
                     }
                 }
