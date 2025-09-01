@@ -128,7 +128,6 @@ public class AccountingProcessorHelper {
 
             final Long accountTransferId = (Long) map.get("accountTransferId");
 
-
             final List<ChargePaymentDTO> feePaymentDetails = new ArrayList<>();
             final List<ChargePaymentDTO> penaltyPaymentDetails = new ArrayList<>();
             // extract charge payment details (if exists)

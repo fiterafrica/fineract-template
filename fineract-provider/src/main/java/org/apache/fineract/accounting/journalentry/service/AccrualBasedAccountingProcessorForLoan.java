@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.fineract.accounting.closure.domain.GLClosure;
 import org.apache.fineract.accounting.common.AccountingConstants.AccrualAccountsForLoan;
 import org.apache.fineract.accounting.common.AccountingConstants.CashAccountsForLoan;
 import org.apache.fineract.accounting.common.AccountingConstants.FinancialActivity;
@@ -47,11 +46,8 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
 
     @Override
     public void createJournalEntriesForLoan(final LoanDTO loanDTO) {
-        final GLClosure latestGLClosure = this.helper.getLatestClosureByBranch(loanDTO.getOfficeId());
         final Office office = this.helper.getOfficeById(loanDTO.getOfficeId());
         for (final LoanTransactionDTO loanTransactionDTO : loanDTO.getNewLoanTransactions()) {
-            final LocalDate transactionDate = loanTransactionDTO.getTransactionDate();
-            this.helper.checkForBranchClosures(latestGLClosure, transactionDate);
 
             /** Handle Disbursements **/
             if (loanTransactionDTO.getTransactionType().isDisbursement()) {
@@ -68,8 +64,7 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
              * disbursement
              ***/
             else if (loanTransactionDTO.getTransactionType().isRepaymentType()
-                    || loanTransactionDTO.getTransactionType().isRepaymentAtDisbursement()
-                    || loanTransactionDTO.isDisburseToSavingsCharge()
+                    || loanTransactionDTO.getTransactionType().isRepaymentAtDisbursement() || loanTransactionDTO.isDisburseToSavingsCharge()
                     || loanTransactionDTO.getTransactionType().isChargePayment()) {
                 createJournalEntriesForRepaymentsAndWriteOffs(loanDTO, loanTransactionDTO, office, false,
                         loanTransactionDTO.getTransactionType().isRepaymentAtDisbursement());
@@ -133,7 +128,7 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
             this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
                     AccrualAccountsForLoan.LOAN_PORTFOLIO.getValue(), FinancialActivity.ASSET_TRANSFER.getValue(), loanProductId,
                     paymentTypeId, loanId, transactionId, transactionDate, disbursalAmount, isReversed);
-        }else if (loanTransactionDTO.isLoanToLoanTransfer()) {
+        } else if (loanTransactionDTO.isLoanToLoanTransfer()) {
             this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
                     AccrualAccountsForLoan.LOAN_PORTFOLIO.getValue(), FinancialActivity.ASSET_TRANSFER.getValue(), loanProductId,
                     paymentTypeId, loanId, transactionId, transactionDate, disbursalAmount, isReversed);

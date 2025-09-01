@@ -42,6 +42,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.fineract.accounting.closure.domain.GLClosure;
+import org.apache.fineract.accounting.journalentry.service.AccountingProcessorHelper;
 import org.apache.fineract.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.codes.domain.CodeValueRepositoryWrapper;
@@ -283,6 +285,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     private final LoanRepository loanRepository;
     private final RepaymentWithPostDatedChecksAssembler repaymentWithPostDatedChecksAssembler;
     private final PostDatedChecksRepository postDatedChecksRepository;
+    private final AccountingProcessorHelper helper;
     private static final Logger LOG = LoggerFactory.getLogger(LoanWritePlatformServiceJpaRepositoryImpl.class);
 
     @Autowired
@@ -473,14 +476,14 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 }
 
                 if (isAccountTransfer) {
-                    //Make sure you don't call this when it's top and Heading to Savings account
+                    // Make sure you don't call this when it's top and Heading to Savings account
                     disburseLoanToSavings(loan, command, amountToDisburse, paymentDetail);
                     if (loan.isTopup()) {
                         reverseLoanToLoanTransferJournalEntries(loan);
                     }
                     existingTransactionIds.addAll(loan.findExistingTransactionIds());
                     existingReversedTransactionIds.addAll(loan.findExistingReversedTransactionIds());
-                    //fix accounting
+                    // fix accounting
                 } else {
                     existingTransactionIds.addAll(loan.findExistingTransactionIds());
                     existingReversedTransactionIds.addAll(loan.findExistingReversedTransactionIds());
@@ -601,11 +604,12 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     }
 
     private void reverseLoanToLoanTransferJournalEntries(final Loan loan) {
-        //Remove the two Wrongful transit GL and loan portfolio Journal entry transaction
+        // Remove the two Wrongful transit GL and loan portfolio Journal entry transaction
         LoanTransaction assetTransferTxn = null;
         for (final LoanTransaction transaction : loan.getLoanTransactions()) {
             if (transaction.isAccountTransfer() && transaction.isDisbursement()
-                    && loan.getTopupLoanDetails().getTopupAmount().compareTo(transaction.getAmount(loan.getCurrency()).getAmount()) == 0 && !transaction.isReversed()) {
+                    && loan.getTopupLoanDetails().getTopupAmount().compareTo(transaction.getAmount(loan.getCurrency()).getAmount()) == 0
+                    && !transaction.isReversed()) {
                 assetTransferTxn = transaction;
                 break;
             }
@@ -1008,6 +1012,10 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         final Boolean isHolidayValidationDone = false;
         final HolidayDetailDTO holidayDetailDto = null;
         boolean isAccountTransfer = false;
+
+        final GLClosure latestGLClosure = this.helper.getLatestClosureByBranch(loan.getOfficeId());
+        this.helper.checkForBranchClosures(latestGLClosure, transactionDate);
+
         final CommandProcessingResultBuilder commandProcessingResultBuilder = new CommandProcessingResultBuilder();
         LoanTransaction loanTransaction = this.loanAccountDomainService.makeRepayment(repaymentTransactionType, loan,
                 commandProcessingResultBuilder, transactionDate, transactionAmount, paymentDetail, noteText, txnExternalId,
