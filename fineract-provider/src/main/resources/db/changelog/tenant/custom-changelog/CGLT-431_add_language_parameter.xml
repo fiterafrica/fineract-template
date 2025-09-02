@@ -99,13 +99,15 @@ ORDER BY ounder.id, ls.duedate, l.account_no
             </column>
             <where>id = 216</where>
         </update>
-
-        <!-- Map the report to the language parameter -->
-        <insert tableName="stretchy_report_parameter" schemaName="fineract_default">
-            <column name="report_id" valueNumeric="216"/>
-            <column name="parameter_id"
-                    valueComputed="(SELECT id FROM stretchy_parameter WHERE parameter_name = 'language')"/>
-            <column name="report_parameter_name" value="language"/>
-        </insert>
+    </changeSet>
+    <changeSet id="add-language-parameter-mapping-216" author="niceta@inkomoko.com">
+        <sql>
+            INSERT INTO fineract_default.stretchy_report_parameter (report_id, parameter_id, report_parameter_name)
+            VALUES (
+            216,
+            (SELECT id FROM fineract_default.stretchy_parameter WHERE parameter_name = 'language'),
+            'language'
+            );
+        </sql>
     </changeSet>
 </databaseChangeLog>
