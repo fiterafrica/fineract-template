@@ -22,10 +22,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.ResultSetExtractor;
 
@@ -33,39 +32,26 @@ public class EventResultSetExtractor implements ResultSetExtractor<List<Grouping
 
     @Override
     public List<Grouping> extractData(final ResultSet rs) throws SQLException, DataAccessException {
-        final List<Grouping> groupings = new ArrayList<>();
-
-        final Map<String, Map<String, List<String>>> groupToEntityMapping = new HashMap<>();
-        Map<String, List<String>> entityToActionMapping = new HashMap<>();
+        final Map<String, Map<String, List<String>>> groupToEntityMapping = new TreeMap<>();
 
         while (rs.next()) {
             final String groupingName = rs.getString("grouping");
             final String entityName = rs.getString("entity_name");
             final String actionName = rs.getString("action_name");
-            Map<String, List<String>> entities = groupToEntityMapping.get(groupingName);
-            List<String> actions = entityToActionMapping.get(entityName);
 
-            if (entities == null) {
-                entityToActionMapping = new HashMap<>();
+            if (groupingName == null || entityName == null || actionName == null) {
+                continue;
             }
 
-            if (actions == null) {
-                actions = new ArrayList<>();
-            }
-            actions.add(actionName);
-            entityToActionMapping.put(entityName, actions);
-
-            if (entities == null) {
-                entities = new HashMap<>();
-            }
-            entities.putAll(entityToActionMapping);
-            groupToEntityMapping.put(groupingName, entities);
+            groupToEntityMapping.computeIfAbsent(groupingName, k -> new TreeMap<>())
+                    .computeIfAbsent(entityName, k -> new ArrayList<>()).add(actionName);
         }
 
+        final List<Grouping> groupings = new ArrayList<>();
         for (final Map.Entry<String, Map<String, List<String>>> groupingEntry : groupToEntityMapping.entrySet()) {
-            final List<Entity> entities = new ArrayList<>();
             final Grouping group = new Grouping();
             group.setName(groupingEntry.getKey());
+            final List<Entity> entities = new ArrayList<>();
             for (final Map.Entry<String, List<String>> entityEntry : groupingEntry.getValue().entrySet()) {
                 final Entity entity = new Entity();
                 entity.setName(entityEntry.getKey());
@@ -74,13 +60,9 @@ public class EventResultSetExtractor implements ResultSetExtractor<List<Grouping
                 entity.setActions(actions);
                 entities.add(entity);
             }
-
-            entities.sort(Comparator.comparing(Entity::getName));
             group.setEntities(entities);
             groupings.add(group);
         }
-
-        groupings.sort(Comparator.comparing(Grouping::getName));
 
         return groupings;
     }
