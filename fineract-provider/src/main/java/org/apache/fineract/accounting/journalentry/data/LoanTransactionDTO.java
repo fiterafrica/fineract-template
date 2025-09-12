@@ -55,5 +55,9 @@ public class LoanTransactionDTO {
     private final boolean isAccountTransfer;
 
     @Setter
+    private boolean isCorrection = false;
+    @Setter
+    private LocalDate correctionDate;
+    @Setter
     private boolean isLoanToLoanTransfer;
 }

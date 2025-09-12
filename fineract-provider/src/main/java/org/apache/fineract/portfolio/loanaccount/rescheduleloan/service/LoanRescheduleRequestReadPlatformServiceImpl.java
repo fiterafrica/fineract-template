@@ -30,6 +30,8 @@ import org.apache.fineract.infrastructure.codes.data.CodeValueData;
 import org.apache.fineract.infrastructure.codes.service.CodeValueReadPlatformService;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
+import org.apache.fineract.portfolio.charge.data.ChargeData;
+import org.apache.fineract.portfolio.charge.service.ChargeReadPlatformService;
 import org.apache.fineract.portfolio.loanaccount.data.LoanTermVariationsData;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
 import org.apache.fineract.portfolio.loanaccount.rescheduleloan.RescheduleLoansApiConstants;
@@ -52,14 +54,16 @@ public class LoanRescheduleRequestReadPlatformServiceImpl implements LoanResched
     private final LoanRescheduleRequestRowMapper loanRescheduleRequestRowMapper = new LoanRescheduleRequestRowMapper();
     private final CodeValueReadPlatformService codeValueReadPlatformService;
     private final ConfigurationDomainService configurationDomainService;
+    private final ChargeReadPlatformService chargeReadPlatformService;
 
     @Autowired
     public LoanRescheduleRequestReadPlatformServiceImpl(final JdbcTemplate jdbcTemplate, LoanRepositoryWrapper loanRepositoryWrapper,
-            final CodeValueReadPlatformService codeValueReadPlatformService, final ConfigurationDomainService configurationDomainService) {
+                                                        final CodeValueReadPlatformService codeValueReadPlatformService, final ConfigurationDomainService configurationDomainService, ChargeReadPlatformService chargeReadPlatformService) {
         this.jdbcTemplate = jdbcTemplate;
         this.loanRepositoryWrapper = loanRepositoryWrapper;
         this.codeValueReadPlatformService = codeValueReadPlatformService;
         this.configurationDomainService = configurationDomainService;
+        this.chargeReadPlatformService = chargeReadPlatformService;
     }
 
     private static final class LoanRescheduleRequestRowMapper implements RowMapper<LoanRescheduleRequestData> {
@@ -174,7 +178,7 @@ public class LoanRescheduleRequestReadPlatformServiceImpl implements LoanResched
 
             return LoanRescheduleRequestData.instance(id, loanId, statusEnum, rescheduleFromInstallment, rescheduleFromDate,
                     rescheduleReasonCodeValue, rescheduleReasonComment, timeline, clientName, loanAccountNumber, clientId,
-                    recalculateInterest, rescheduleReasons, loanTermVariations, null, false);
+                    recalculateInterest, null, loanTermVariations, null, false,null, null,null,null);
         }
 
         private LoanTermVariationsData fetchLoanTermVariation(final ResultSet rs) throws SQLException {
@@ -255,27 +259,17 @@ public class LoanRescheduleRequestReadPlatformServiceImpl implements LoanResched
     }
 
     @Override
-    public LoanRescheduleRequestData retrieveAllRescheduleReasons(String loanRescheduleReason) {
+    public LoanRescheduleRequestData retrieveAllRescheduleReasons(String loanRescheduleReason, String chargeHandlingMethod) {
         final List<CodeValueData> rescheduleReasons = new ArrayList<>(
                 this.codeValueReadPlatformService.retrieveCodeValuesByCode(loanRescheduleReason));
         final boolean adjustFuturePayments = this.configurationDomainService.isRescheduleFutureRepaymentsEnabled();
-        final Long id = null;
-        final Long loanId = null;
-        final LoanRescheduleRequestStatusEnumData statusEnum = null;
-        final Integer rescheduleFromInstallment = null;
-        final LocalDate rescheduleFromDate = null;
-        final CodeValueData rescheduleReasonCodeValue = null;
-        final String rescheduleReasonComment = null;
-        final LoanRescheduleRequestTimelineData timeline = null;
-        final String clientName = null;
-        final String loanAccountNumber = null;
-        final Long clientId = null;
-        final Boolean recalculateInterest = null;
-        final Collection<LoanTermVariationsData> loanTermVariationsData = null;
+        final List<CodeValueData> chargeHandlingMethods = new ArrayList<>(
+                this.codeValueReadPlatformService.retrieveCodeValuesByCode(chargeHandlingMethod));
+        final Collection<ChargeData> carryForwardCharges =  this.chargeReadPlatformService.retrieveLoanApplicablePenalties();
 
-        return LoanRescheduleRequestData.instance(id, loanId, statusEnum, rescheduleFromInstallment, rescheduleFromDate,
-                rescheduleReasonCodeValue, rescheduleReasonComment, timeline, clientName, loanAccountNumber, clientId, recalculateInterest,
-                rescheduleReasons, loanTermVariationsData, null, adjustFuturePayments);
+        return LoanRescheduleRequestData.instance(null, null, null, null, null,
+                null, null, null, null, null, null, null,
+                rescheduleReasons, null, null, adjustFuturePayments, carryForwardCharges, chargeHandlingMethods,null,null);
     }
 
     @Override

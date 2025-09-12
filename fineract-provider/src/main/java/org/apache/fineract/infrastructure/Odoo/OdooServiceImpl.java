@@ -369,6 +369,11 @@ public class OdooServiceImpl implements OdooService {
                 client = entry.getClient();
                 office = entry.getOffice();
 
+                if (entry.isCorrection()){
+                    journalData.setIsCorrection(true);
+                    journalData.setCorrectionDate(entry.getCorrectionDate().toString());
+                }
+
                 journalEntry = new JournalItemData(entry, entry.getGlAccount().getGlCode());
                 journalItems.add(journalEntry);
                 if (accountId == null) {

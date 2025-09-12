@@ -30,6 +30,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.codes.domain.CodeValueRepositoryWrapper;
@@ -40,19 +44,23 @@ import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuild
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
+import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.organisation.monetary.domain.ApplicationCurrency;
 import org.apache.fineract.organisation.monetary.domain.ApplicationCurrencyRepositoryWrapper;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.MoneyHelper;
 import org.apache.fineract.portfolio.account.service.AccountTransfersWritePlatformService;
+import org.apache.fineract.portfolio.charge.domain.Charge;
+import org.apache.fineract.portfolio.charge.domain.ChargeRepositoryWrapper;
 import org.apache.fineract.portfolio.loanaccount.data.LoanTermVariationsData;
 import org.apache.fineract.portfolio.loanaccount.data.ScheduleGeneratorDTO;
 import org.apache.fineract.portfolio.loanaccount.domain.ChangedTransactionDetail;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanAccountDomainService;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanCharge;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanChargeRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanLifecycleStateMachine;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentReminderRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
@@ -76,18 +84,19 @@ import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanSchedul
 import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanScheduleGeneratorFactory;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.service.LoanScheduleHistoryWritePlatformService;
 import org.apache.fineract.portfolio.loanaccount.rescheduleloan.RescheduleLoansApiConstants;
+import org.apache.fineract.portfolio.loanaccount.rescheduleloan.data.ChargeHandlingOption;
 import org.apache.fineract.portfolio.loanaccount.rescheduleloan.data.LoanRescheduleRequestDataValidator;
 import org.apache.fineract.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleRequest;
 import org.apache.fineract.portfolio.loanaccount.rescheduleloan.domain.LoanRescheduleRequestRepository;
 import org.apache.fineract.portfolio.loanaccount.rescheduleloan.exception.LoanRescheduleRequestNotFoundException;
 import org.apache.fineract.portfolio.loanaccount.service.LoanAssembler;
 import org.apache.fineract.portfolio.loanaccount.service.LoanUtilService;
+import org.apache.fineract.portfolio.loanaccount.service.LoanWritePlatformService;
 import org.apache.fineract.portfolio.note.domain.Note;
 import org.apache.fineract.portfolio.note.domain.NoteRepository;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.NonTransientDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -97,6 +106,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanRescheduleRequestWritePlatformService {
 
     private static final Logger LOG = LoggerFactory.getLogger(LoanRescheduleRequestWritePlatformServiceImpl.class);
@@ -125,52 +135,11 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
     private final LoanRepaymentReminderRepository loanRepaymentReminderRepository;
     private final JdbcTemplate jdbcTemplate;
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+    private final LoanChargeRepository loanChargeRepository;
+    private final ChargeRepositoryWrapper chargeRepositoryWrapper;
+    private final LoanWritePlatformService loanWritePlatformService;
+    private final FromJsonHelper fromApiJsonHelper;
 
-    /**
-     * LoanRescheduleRequestWritePlatformServiceImpl constructor
-     *
-     *
-     **/
-    @Autowired
-    public LoanRescheduleRequestWritePlatformServiceImpl(final CodeValueRepositoryWrapper codeValueRepositoryWrapper,
-            final PlatformSecurityContext platformSecurityContext,
-            final LoanRescheduleRequestDataValidator loanRescheduleRequestDataValidator,
-            final LoanRescheduleRequestRepository loanRescheduleRequestRepository,
-            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepository,
-            final LoanRepaymentScheduleHistoryRepository loanRepaymentScheduleHistoryRepository,
-            final LoanScheduleHistoryWritePlatformService loanScheduleHistoryWritePlatformService,
-            final LoanTransactionRepository loanTransactionRepository,
-            final JournalEntryWritePlatformService journalEntryWritePlatformService, final LoanRepositoryWrapper loanRepositoryWrapper,
-            final LoanAssembler loanAssembler, final LoanUtilService loanUtilService,
-            final LoanRepaymentScheduleTransactionProcessorFactory loanRepaymentScheduleTransactionProcessorFactory,
-            final LoanScheduleGeneratorFactory loanScheduleFactory, final LoanSummaryWrapper loanSummaryWrapper,
-            final AccountTransfersWritePlatformService accountTransfersWritePlatformService,
-            final LoanAccountDomainService loanAccountDomainService,
-            final LoanRepaymentScheduleInstallmentRepository repaymentScheduleInstallmentRepository, NoteRepository noteRepository,
-            final LoanRepaymentReminderRepository loanRepaymentReminderRepository, final RoutingDataSource dataSource) {
-        this.codeValueRepositoryWrapper = codeValueRepositoryWrapper;
-        this.platformSecurityContext = platformSecurityContext;
-        this.loanRescheduleRequestDataValidator = loanRescheduleRequestDataValidator;
-        this.loanRescheduleRequestRepository = loanRescheduleRequestRepository;
-        this.applicationCurrencyRepository = applicationCurrencyRepository;
-        this.loanRepaymentScheduleHistoryRepository = loanRepaymentScheduleHistoryRepository;
-        this.loanScheduleHistoryWritePlatformService = loanScheduleHistoryWritePlatformService;
-        this.loanTransactionRepository = loanTransactionRepository;
-        this.journalEntryWritePlatformService = journalEntryWritePlatformService;
-        this.loanRepositoryWrapper = loanRepositoryWrapper;
-        this.loanAssembler = loanAssembler;
-        this.loanUtilService = loanUtilService;
-        this.loanRepaymentScheduleTransactionProcessorFactory = loanRepaymentScheduleTransactionProcessorFactory;
-        this.loanScheduleFactory = loanScheduleFactory;
-        this.loanSummaryWrapper = loanSummaryWrapper;
-        this.accountTransfersWritePlatformService = accountTransfersWritePlatformService;
-        this.loanAccountDomainService = loanAccountDomainService;
-        this.repaymentScheduleInstallmentRepository = repaymentScheduleInstallmentRepository;
-        this.noteRepository = noteRepository;
-        this.loanRepaymentReminderRepository = loanRepaymentReminderRepository;
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
-        this.namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
-    }
 
     /**
      * create a new instance of the LoanRescheduleRequest object from the JsonCommand object and persist
@@ -296,6 +265,32 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                     decimalValue, dueDate, endDate, emi, newPrincipalDueFixedAmount);
 
             // create a new entry in the m_loan_reschedule_request table
+            // read optional parameter from request
+            final JsonElement chargeHandlingObject = jsonCommand.jsonElement(RescheduleLoansApiConstants.overdueChargeHandlingParamName);
+
+            final JsonObject chargeHandlingjson = chargeHandlingObject.getAsJsonObject();
+
+            String chargeHandlingParam = chargeHandlingjson.get("name").getAsString();
+
+            String chargeHandlingEnum;
+
+            if (RescheduleLoansApiConstants.WAIVE_CHARGES.equalsIgnoreCase(chargeHandlingParam))
+                chargeHandlingEnum = "WAIVE";
+            else if  (RescheduleLoansApiConstants.CARRY_CHARGES_FORWARD.equalsIgnoreCase(chargeHandlingParam))
+                chargeHandlingEnum = "CARRY";
+            else chargeHandlingEnum = "";
+
+
+            ChargeHandlingOption chargeHandling = ChargeHandlingOption.fromString(chargeHandlingEnum);
+
+            Long carryForwardChargeId = jsonCommand.longValueOfParameterNamed(
+                    RescheduleLoansApiConstants.carryForwardChargeIdParamName);
+            LocalDate carryForwardChargeDueDate = jsonCommand.localDateValueOfParameterNamed(
+                    RescheduleLoansApiConstants.carryForwardChargeDueDateParamName);
+
+            loanRescheduleRequest.setChargeHandling(chargeHandling);
+            loanRescheduleRequest.setCarryForwardChargeId(carryForwardChargeId);
+            loanRescheduleRequest.setCarryForwardChargeDueDate(carryForwardChargeDueDate);
 
             this.loanRescheduleRequestRepository.saveAndFlush(loanRescheduleRequest);
 
@@ -452,6 +447,10 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
             final List<Long> existingTransactionIds = new ArrayList<>(loan.findExistingTransactionIds());
             final List<Long> existingReversedTransactionIds = new ArrayList<>(loan.findExistingReversedTransactionIds());
 
+            ChargeHandlingOption chargeHandling = loanRescheduleRequest.getChargeHandling();
+
+            BigDecimal totalChargesOutstanding =  waiveAllOutstandingCharges(loan);
+
             ScheduleGeneratorDTO scheduleGeneratorDTO = this.loanUtilService.buildScheduleGeneratorDTO(loan,
                     loanRescheduleRequest.getRescheduleFromDate());
 
@@ -488,9 +487,6 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                         }
                     }
                 }
-            }
-            if (rescheduleFromDate == null) {
-                rescheduleFromDate = loanRescheduleRequest.getRescheduleFromDate();
             }
             for (LoanRescheduleRequestToTermVariationMapping mapping : loanRescheduleRequest
                     .getLoanRescheduleRequestToTermVariationMappings()) {
@@ -539,6 +535,11 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
 
             deleteOverdueInstallmentChargesAssociatedToThisLoanAccount(loan);
             deleteLoanRepaymentRemindersAssociatedToThisLoanAccount(loan);
+
+            if (chargeHandling == ChargeHandlingOption.CARRY) {
+                Long carryForwardChargeDefId = loanRescheduleRequest.getCarryForwardChargeId();
+                createCarryForwardCharge(loan, carryForwardChargeDefId, loanRescheduleRequest.getCarryForwardChargeDueDate(), jsonCommand, totalChargesOutstanding);
+            }
 
             loan.updateLoanSummaryDerivedFields();
 
@@ -732,6 +733,62 @@ public class LoanRescheduleRequestWritePlatformServiceImpl implements LoanResche
                     params);
             // Delete chargeIds
             this.namedParameterJdbcTemplate.update("DELETE FROM m_loan_charge WHERE id IN (:chargeIds)", params);
+        }
+    }
+
+    private BigDecimal waiveAllOutstandingCharges(Loan loan) {
+        BigDecimal totalChargesOutstanding = BigDecimal.ZERO;
+
+        JsonObject waiveJson = new JsonObject();
+        waiveJson.addProperty("locale", "en");
+        waiveJson.addProperty("dateFormat", "dd MMMM yyyy");
+        final String jsonBody = waiveJson.toString();
+
+        final JsonElement parsedCommand = this.fromApiJsonHelper.parse(jsonBody);
+
+        for (LoanCharge charge : loan.getLoanCharges()) {
+            if (charge.isOverdueInstallmentCharge() && charge.isChargePending()) {
+                totalChargesOutstanding = totalChargesOutstanding.add(charge.amountOutstanding());
+                JsonCommand waiveCommand = JsonCommand.from(
+                        jsonBody,                  // raw JSON string
+                        parsedCommand,                        // parsed JSON
+                        fromApiJsonHelper,           // injected helper
+                        "LOANCHARGE",                // entityName (for audit)
+                        charge.getId(),                   // resourceId (loanChargeId)
+                        null,                             // subresourceId
+                        null,                             // groupId
+                        loan.getClientId(),               // clientId
+                        loan.getId(),                     // loanId
+                        null,                             // savingsId
+                        null,                             // transactionId
+                        null,                             // url
+                        loan.productId(),                 // productId
+                        null,                             // creditBureauId
+                        null                              // organisationCreditBureauId
+                );
+                loanWritePlatformService.waiveLoanCharge(loan.getId(), charge.getId(), waiveCommand);
+            }
+        }
+
+        return totalChargesOutstanding;
+    }
+
+    private void createCarryForwardCharge(Loan loan, Long carryForwardChargeDefinitionId, LocalDate dueDate, JsonCommand command, BigDecimal totalOutstanding) {
+
+        if (totalOutstanding.compareTo(BigDecimal.ZERO) > 0) {
+            Charge carryForwardDef = chargeRepositoryWrapper.findOneWithNotFoundDetection(carryForwardChargeDefinitionId);
+
+            JsonObject fakeJson = new JsonObject();
+            fakeJson.addProperty("amount", totalOutstanding);
+            fakeJson.addProperty("dueDate", dueDate.toString());
+            fakeJson.addProperty("locale", command.locale());
+            fakeJson.addProperty("dateFormat", "yyyy-MM-dd");
+
+            JsonCommand fakeCommand = JsonCommand.fromExistingCommand(command, fakeJson);
+
+            LoanCharge carryForwardCharge = LoanCharge.createNewFromJson(loan, carryForwardDef, fakeCommand, dueDate);
+            loan.addLoanCharge(carryForwardCharge);
+            loanChargeRepository.saveAndFlush(carryForwardCharge);
         }
     }
 

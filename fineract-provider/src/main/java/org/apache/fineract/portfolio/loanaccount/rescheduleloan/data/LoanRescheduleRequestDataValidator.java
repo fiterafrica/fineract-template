@@ -19,6 +19,7 @@
 package org.apache.fineract.portfolio.loanaccount.rescheduleloan.data;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -59,7 +60,8 @@ public class LoanRescheduleRequestDataValidator {
             RescheduleLoansApiConstants.submittedOnDateParamName, RescheduleLoansApiConstants.loanIdParamName,
             RescheduleLoansApiConstants.adjustedDueDateParamName, RescheduleLoansApiConstants.recalculateInterestParamName,
             RescheduleLoansApiConstants.endDateParamName, RescheduleLoansApiConstants.emiParamName,
-            RescheduleLoansApiConstants.newPrincipalDueFixedAmount, RescheduleLoansApiConstants.newFixedPrincipalPercentagePerInstallment));
+            RescheduleLoansApiConstants.newPrincipalDueFixedAmount, RescheduleLoansApiConstants.newFixedPrincipalPercentagePerInstallment,
+            RescheduleLoansApiConstants.overdueChargeHandlingParamName, RescheduleLoansApiConstants.carryForwardChargeIdParamName, RescheduleLoansApiConstants.carryForwardChargeDueDateParamName));
 
     private static final Set<String> REJECT_REQUEST_DATA_PARAMETERS = new HashSet<>(
             Arrays.asList(RescheduleLoansApiConstants.localeParamName, RescheduleLoansApiConstants.dateFormatParamName,
@@ -218,26 +220,75 @@ public class LoanRescheduleRequestDataValidator {
             }
         }
 
-        validateForOverdueCharges(dataValidatorBuilder, loan, installment);
+        validateForOverdueCharges(dataValidatorBuilder, loan, installment, jsonCommand);
         if (!dataValidationErrors.isEmpty()) {
             throw new PlatformApiDataValidationException(dataValidationErrors);
         }
     }
 
+//    private void validateForOverdueCharges(DataValidatorBuilder dataValidatorBuilder, final Loan loan,
+//            final LoanRepaymentScheduleInstallment installment) {
+//        if (installment != null) {
+//            LocalDate rescheduleFromDate = installment.getFromDate();
+//            Collection<LoanCharge> charges = loan.getLoanCharges();
+//            for (LoanCharge loanCharge : charges) {
+//                if (loanCharge.isOverdueInstallmentCharge() && loanCharge.getDueLocalDate().isAfter(rescheduleFromDate)
+//                        && !loanCharge.isWaived() && !loanCharge.isPaid()) {
+//                    dataValidatorBuilder.failWithCodeNoParameterAddedToErrorCode("not.allowed.due.to.overdue.charges");
+//                    break;
+//                }
+//            }
+//        }
+//    }
+
     private void validateForOverdueCharges(DataValidatorBuilder dataValidatorBuilder, final Loan loan,
-            final LoanRepaymentScheduleInstallment installment) {
+            final LoanRepaymentScheduleInstallment installment, final JsonCommand command) {
         if (installment != null) {
             LocalDate rescheduleFromDate = installment.getFromDate();
             Collection<LoanCharge> charges = loan.getLoanCharges();
+
+            // read optional parameter from request
+            final JsonElement chargeHandlingObject = command.jsonElement("overdueChargeHandling");
+
+            if (chargeHandlingObject == null){
+                dataValidatorBuilder.failWithCodeNoParameterAddedToErrorCode(
+                        "not.allowed.due.to.overdue.charges.must.choose.option");
+                return;
+            }
+
+            final JsonObject chargeHandlingjson = chargeHandlingObject.getAsJsonObject();
+
+            String chargeHandling = chargeHandlingjson.get("name").getAsString();
+            // expected values: "WAIVE" or "CARRY_FORWARD"
+
+            boolean hasOverdueCharges = false;
+
             for (LoanCharge loanCharge : charges) {
                 if (loanCharge.isOverdueInstallmentCharge() && loanCharge.getDueLocalDate().isAfter(rescheduleFromDate)
                         && !loanCharge.isWaived() && !loanCharge.isPaid()) {
-                    dataValidatorBuilder.failWithCodeNoParameterAddedToErrorCode("not.allowed.due.to.overdue.charges");
+                    hasOverdueCharges = true;
                     break;
+                }
+            }
+
+            if (hasOverdueCharges) {
+                if (!RescheduleLoansApiConstants.WAIVE_CHARGES.equalsIgnoreCase(chargeHandling) &&
+                        !RescheduleLoansApiConstants.CARRY_CHARGES_FORWARD.equalsIgnoreCase(chargeHandling)) {
+                    // force user to choose
+                    dataValidatorBuilder.failWithCodeNoParameterAddedToErrorCode(
+                            "not.allowed.due.to.overdue.charges.must.choose.option");
+                } else if (RescheduleLoansApiConstants.CARRY_CHARGES_FORWARD.equalsIgnoreCase(chargeHandling)) {
+                    Long carryForwardChargeDefId = command.longValueOfParameterNamed("carryForwardChargeId");
+                    if (carryForwardChargeDefId == null)
+                        dataValidatorBuilder.failWithCodeNoParameterAddedToErrorCode(
+                                "not.allowed.due.to.overdue.charges.must.choose.charge");
+                } {
+
                 }
             }
         }
     }
+
 
     /**
      * Validates a user request to approve a loan reschedule request
@@ -297,14 +348,12 @@ public class LoanRescheduleRequestDataValidator {
                             "loan.repayment.schedule.installment.does.not.exist", "Repayment schedule installment does not exist");
                 }
 
-//                if (installment != null && installment.isObligationsMet()) {
-//                    dataValidatorBuilder.reset().failWithCodeNoParameterAddedToErrorCode(
-//                            "loan.repayment.schedule.installment." + "obligation.met", "Repayment schedule installment obligation met");
-//                }
+                if (installment != null && installment.isObligationsMet()) {
+                    dataValidatorBuilder.reset().failWithCodeNoParameterAddedToErrorCode(
+                            "loan.repayment.schedule.installment." + "obligation.met", "Repayment schedule installment obligation met");
+                }
             }
         }
-
-        validateForOverdueCharges(dataValidatorBuilder, loan, installment);
 
         if (!dataValidationErrors.isEmpty()) {
             throw new PlatformApiDataValidationException(dataValidationErrors);

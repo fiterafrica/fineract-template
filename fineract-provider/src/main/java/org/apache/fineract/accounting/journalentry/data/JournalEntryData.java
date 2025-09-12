@@ -21,6 +21,7 @@ package org.apache.fineract.accounting.journalentry.data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+
 import org.apache.fineract.accounting.glaccount.data.GLAccountData;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.organisation.monetary.data.CurrencyData;
@@ -90,13 +91,15 @@ public class JournalEntryData {
     private String routingCode;
     private String receiptNumber;
     private String bankNumber;
-
     private Boolean isPostedToOdoo;
+
+    private Boolean isCorrection;
+    private LocalDate correctionDate;
     private transient Long savingTransactionId;
 
     // for opening bal bulk import
     public JournalEntryData(Long officeId, LocalDate transactionDate, String currencyCode, List<CreditDebit> credits,
-            List<CreditDebit> debits, String locale, String dateFormat) {
+                            List<CreditDebit> debits, String locale, String dateFormat) {
         this.officeId = officeId;
         this.dateFormat = dateFormat;
         this.locale = locale;
@@ -136,21 +139,58 @@ public class JournalEntryData {
         this.transactionDetails = null;
     }
 
+    public JournalEntryData(Long id, Long officeId, String officeName, String glAccountName, Long glAccountId,
+                            String glCode, EnumOptionData accountType, LocalDate transactionDate, EnumOptionData entryType,
+                            BigDecimal amount, String transactionId, Boolean manualEntry, EnumOptionData entityType,
+                            Long entityId, Long createdByUserId, LocalDate createdDate, String createdByUserName,
+                            String comments, Boolean reversed, String referenceNumber, BigDecimal officeRunningBalance,
+                            BigDecimal organizationRunningBalance, Boolean runningBalanceComputed, TransactionDetailData
+                                    transactionDetailData, CurrencyData currency, Boolean isPostedToOdoo, Boolean isCorrection, LocalDate correctionDate) {
+        this.id = id;
+        this.officeId = officeId;
+        this.officeName = officeName;
+        this.glAccountName = glAccountName;
+        this.glAccountId = glAccountId;
+        this.glAccountCode = glCode;
+        this.glAccountType = accountType;
+        this.transactionDate = transactionDate;
+        this.entryType = entryType;
+        this.amount = amount;
+        this.transactionId = transactionId;
+        this.manualEntry = manualEntry;
+        this.entityType = entityType;
+        this.entityId = entityId;
+        this.createdByUserId = createdByUserId;
+        this.createdDate = createdDate;
+        this.createdByUserName = createdByUserName;
+        this.comments = comments;
+        this.reversed = reversed;
+        this.referenceNumber = referenceNumber;
+        this.officeRunningBalance = officeRunningBalance;
+        this.organizationRunningBalance = organizationRunningBalance;
+        this.runningBalanceComputed = runningBalanceComputed;
+        this.transactionDetails = transactionDetailData;
+        this.currency = currency;
+        this.isPostedToOdoo = isPostedToOdoo;
+        this.isCorrection= isCorrection;
+        this.correctionDate = correctionDate;
+    }
+
     public static JournalEntryData importInstance(Long officeId, LocalDate transactionDate, String currencyCode, Long paymentTypeId,
-            Integer rowIndex, List<CreditDebit> credits, List<CreditDebit> debits, String accountNumber, String checkNumber,
-            String routingCode, String receiptNumber, String bankNumber, String comments, String locale, String dateFormat) {
+                                                  Integer rowIndex, List<CreditDebit> credits, List<CreditDebit> debits, String accountNumber, String checkNumber,
+                                                  String routingCode, String receiptNumber, String bankNumber, String comments, String locale, String dateFormat) {
         return new JournalEntryData(officeId, transactionDate, currencyCode, paymentTypeId, rowIndex, credits, debits, accountNumber,
                 checkNumber, routingCode, receiptNumber, bankNumber, comments, locale, dateFormat);
     }
 
     public static JournalEntryData importInstance1(Long officeId, LocalDate transactionDate, String currencyCode, List<CreditDebit> credits,
-            List<CreditDebit> debits, String locale, String dateFormat) {
+                                                   List<CreditDebit> debits, String locale, String dateFormat) {
         return new JournalEntryData(officeId, transactionDate, currencyCode, credits, debits, locale, dateFormat);
     }
 
     private JournalEntryData(Long officeId, LocalDate transactionDate, String currencyCode, Long paymentTypeId, Integer rowIndex,
-            List<CreditDebit> credits, List<CreditDebit> debits, String accountNumber, String checkNumber, String routingCode,
-            String receiptNumber, String bankNumber, String comments, String locale, String dateFormat) {
+                             List<CreditDebit> credits, List<CreditDebit> debits, String accountNumber, String checkNumber, String routingCode,
+                             String receiptNumber, String bankNumber, String comments, String locale, String dateFormat) {
 
         this.officeId = officeId;
         this.dateFormat = dateFormat;
@@ -209,12 +249,12 @@ public class JournalEntryData {
     }
 
     public JournalEntryData(final Long id, final Long officeId, final String officeName, final String glAccountName, final Long glAccountId,
-            final String glAccountCode, final EnumOptionData glAccountClassification, final LocalDate transactionDate,
-            final EnumOptionData entryType, final BigDecimal amount, final String transactionId, final Boolean manualEntry,
-            final EnumOptionData entityType, final Long entityId, final Long createdByUserId, final LocalDate createdDate,
-            final String createdByUserName, final String comments, final Boolean reversed, final String referenceNumber,
-            final BigDecimal officeRunningBalance, final BigDecimal organizationRunningBalance, final Boolean runningBalanceComputed,
-            final TransactionDetailData transactionDetailData, final CurrencyData currency, final Boolean isPostedToOdoo) {
+                            final String glAccountCode, final EnumOptionData glAccountClassification, final LocalDate transactionDate,
+                            final EnumOptionData entryType, final BigDecimal amount, final String transactionId, final Boolean manualEntry,
+                            final EnumOptionData entityType, final Long entityId, final Long createdByUserId, final LocalDate createdDate,
+                            final String createdByUserName, final String comments, final Boolean reversed, final String referenceNumber,
+                            final BigDecimal officeRunningBalance, final BigDecimal organizationRunningBalance, final Boolean runningBalanceComputed,
+                            final TransactionDetailData transactionDetailData, final CurrencyData currency, final Boolean isPostedToOdoo) {
         this.id = id;
         this.officeId = officeId;
         this.officeName = officeName;
@@ -244,10 +284,10 @@ public class JournalEntryData {
     }
 
     public JournalEntryData(final Long id, final Long officeId, final String glAccountName, final Long glAccountId,
-            final String glAccountCode, final EnumOptionData glAccountClassification, final LocalDate transactionDate,
-            final EnumOptionData entryType, final BigDecimal amount, final String transactionId, final Boolean manualEntry,
-            final EnumOptionData entityType, final Long entityId, final LocalDate createdDate, final String currencyCode,
-            final Long savingTransactionId) {
+                            final String glAccountCode, final EnumOptionData glAccountClassification, final LocalDate transactionDate,
+                            final EnumOptionData entryType, final BigDecimal amount, final String transactionId, final Boolean manualEntry,
+                            final EnumOptionData entityType, final Long entityId, final LocalDate createdDate, final String currencyCode,
+                            final Long savingTransactionId) {
         this.id = id;
         this.officeId = officeId;
         this.officeName = null;
@@ -308,7 +348,7 @@ public class JournalEntryData {
         return new JournalEntryData(id, officeId, officeName, glAccountName, glAccountId, glAccountCode, glAccountClassification,
                 transactionDate, entryType, amount, transactionId, manualEntry, entityType, entityId, createdByUserId, createdDate,
                 createdByUserName, comments, reversed, referenceNumber, officeRunningBalance, organizationRunningBalance,
-                runningBalanceComputed, transactionDetailData, currency, isPostedToOdoo );
+                runningBalanceComputed, transactionDetailData, currency, isPostedToOdoo);
     }
 
     public Long getId() {

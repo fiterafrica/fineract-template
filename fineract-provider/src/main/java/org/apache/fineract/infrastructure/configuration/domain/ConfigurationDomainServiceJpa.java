@@ -496,4 +496,11 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
         final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
         return property.isEnabled();
     }
+
+    @Override
+    public boolean isCorrectionsInClosedPeriodsAllowed() {
+        final String propertyName = "corrections-in-closed-period";
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
+        return property.isEnabled();
+    }
 }

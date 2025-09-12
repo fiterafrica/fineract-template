@@ -25,21 +25,29 @@ import java.util.Set;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRescheduleRequestToTermVariationMapping;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanStatus;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTermVariations;
+import org.apache.fineract.portfolio.loanaccount.rescheduleloan.data.ChargeHandlingOption;
 import org.apache.fineract.useradministration.domain.AppUser;
 
 @Entity
 @Table(name = "m_loan_reschedule_request")
+@Getter
+@Setter
 public class LoanRescheduleRequest extends AbstractPersistableCustom {
 
     @ManyToOne
@@ -86,6 +94,17 @@ public class LoanRescheduleRequest extends AbstractPersistableCustom {
     @JoinColumn(name = "rejected_by_user_id")
     private AppUser rejectedByUser;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "charge_handling", length = 20)
+    private ChargeHandlingOption chargeHandling;
+
+    @Column(name = "carry_forward_charge_id")
+    private Long carryForwardChargeId;
+
+    @Column(name = "carry_forward_charge_due_date")
+    private LocalDate carryForwardChargeDueDate;
+
+
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER, mappedBy = "loanRescheduleRequest")
     private Set<LoanRescheduleRequestToTermVariationMapping> loanRescheduleRequestToTermVariationMappings = new HashSet<>();
 
@@ -129,82 +148,6 @@ public class LoanRescheduleRequest extends AbstractPersistableCustom {
                 rejectedOnDate, rejectedByUser);
     }
 
-    /**
-     * @return the reschedule request loan object
-     **/
-    public Loan getLoan() {
-        return this.loan;
-    }
-
-    /**
-     * @return the status enum
-     **/
-    public Integer getStatusEnum() {
-        return this.statusEnum;
-    }
-
-    /**
-     * @return installment number of the rescheduling start point
-     **/
-    public Integer getRescheduleFromInstallment() {
-        return this.rescheduleFromInstallment;
-    }
-
-    /**
-     * @return due date of the rescheduling start point
-     **/
-    public LocalDate getRescheduleFromDate() {
-        return this.rescheduleFromDate;
-    }
-
-    /**
-     * @return the reschedule reason code value object
-     **/
-    public CodeValue getRescheduleReasonCodeValue() {
-        return this.rescheduleReasonCodeValue;
-    }
-
-    /**
-     * @return the reschedule reason comment added by the "submittedByUser"
-     **/
-    public String getRescheduleReasonComment() {
-        return this.rescheduleReasonComment;
-    }
-
-    /**
-     * @return the date the request was submitted
-     **/
-    public LocalDate getSubmittedOnDate() {
-        return this.submittedOnDate;
-    }
-
-    /**
-     * @return the user that submitted the request
-     **/
-    public AppUser getSubmittedByUser() {
-        return this.submittedByUser;
-    }
-
-    /**
-     * @return the date the request was approved
-     **/
-    public LocalDate getApprovedOnDate() {
-        return this.approvedOnDate;
-    }
-
-    /**
-     * @return the user that approved the request
-     **/
-    public AppUser getApprovedByUser() {
-        return this.approvedByUser;
-    }
-
-    /**
-     * @return the date the request was rejected
-     **/
-    public LocalDate getRejectedOnDate() {
-        return this.rejectedOnDate;
-    }
 
     /**
      * @return the recalculate interest option (true/false)
@@ -217,13 +160,6 @@ public class LoanRescheduleRequest extends AbstractPersistableCustom {
         }
 
         return recalculateInterest;
-    }
-
-    /**
-     * @return the user that rejected the request
-     **/
-    public AppUser getRejectedByUser() {
-        return this.rejectedByUser;
     }
 
     /**
@@ -267,9 +203,6 @@ public class LoanRescheduleRequest extends AbstractPersistableCustom {
         this.loanRescheduleRequestToTermVariationMappings.addAll(mapping);
     }
 
-    public Set<LoanRescheduleRequestToTermVariationMapping> getLoanRescheduleRequestToTermVariationMappings() {
-        return this.loanRescheduleRequestToTermVariationMappings;
-    }
 
     public LoanTermVariations getDueDateTermVariationIfExists() {
         if (this.loanRescheduleRequestToTermVariationMappings != null && this.loanRescheduleRequestToTermVariationMappings.size() > 0) {

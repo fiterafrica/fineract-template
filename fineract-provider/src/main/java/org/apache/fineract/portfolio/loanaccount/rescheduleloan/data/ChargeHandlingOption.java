@@ -16,25 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.accounting.journalentry.data;
+package org.apache.fineract.portfolio.loanaccount.rescheduleloan.data;
 
-import lombok.Data;
+public enum ChargeHandlingOption {
+    WAIVE("WAIVE"),
+    CARRY("CARRY");
 
-import java.util.List;
+    private final String value;
 
-@Data
-public class JournalData {
+    ChargeHandlingOption(String value) {
+        this.value = value;
+    }
 
-    private String transactionId;
-    private String ref;
-    private Boolean reversed;
-    private String entryDate;
-    private Long officeId;
-    private Long clientId;
-    private String clientDisplayName;
-    private String transactionTypeName;
-    private String transactionTypeUniqueId;
-    private Boolean isCorrection;
-    private String correctionDate;
-    private List<JournalItemData> journalItems;
+    public String getValue() {
+        return this.value;
+    }
+
+    public static ChargeHandlingOption fromString(String value) {
+        if (value == null) {
+            return null;
+        }
+        for (ChargeHandlingOption option : ChargeHandlingOption.values()) {
+            if (option.value.equalsIgnoreCase(value)) {
+                return option;
+            }
+        }
+        throw new IllegalArgumentException("Invalid charge handling option: " + value);
+    }
 }

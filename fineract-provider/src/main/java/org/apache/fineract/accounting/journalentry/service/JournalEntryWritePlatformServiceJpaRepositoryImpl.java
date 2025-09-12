@@ -335,18 +335,10 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
 
         // Before reversal validate accounting closure is done for that branch
         // or not.
-        final LocalDate journalEntriesTransactionDate = journalEntries.get(0).getTransactionDate();
-        final GLClosure latestGLClosureByBranch = this.glClosureRepository.getLatestGLClosureByBranch(officeId);
-        if (latestGLClosureByBranch != null) {
-            if (latestGLClosureByBranch.getClosingDate().isAfter(journalEntriesTransactionDate)
-                    || latestGLClosureByBranch.getClosingDate().compareTo(journalEntriesTransactionDate) == 0 ? Boolean.TRUE
-                            : Boolean.FALSE) {
-                final String accountName = null;
-                final String accountGLCode = null;
-                throw new JournalEntryInvalidException(GlJournalEntryInvalidReason.ACCOUNTING_CLOSED,
-                        latestGLClosureByBranch.getClosingDate(), accountName, accountGLCode);
-            }
-        }
+        final LocalDate transactionDate = journalEntries.get(0).getTransactionDate();
+        final GLClosure latestGLClosure = this.glClosureRepository.getLatestGLClosureByBranch(officeId);
+        final boolean correctionRequired = this.helper.checkForBranchClosures(latestGLClosure, transactionDate);
+
 
         for (final JournalEntry journalEntry : journalEntries) {
             JournalEntry reversalJournalEntry;
@@ -366,6 +358,12 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
                         journalEntry.getTransactionDate(), JournalEntryType.DEBIT, journalEntry.getAmount(), reversalComment, null, null,
                         journalEntry.getReferenceNumber(), journalEntry.getLoanTransaction(), journalEntry.getSavingsTransaction(),
                         journalEntry.getClientTransaction(), journalEntry.getShareTransactionId());
+            }
+            if (correctionRequired) {
+                journalEntry.setCorrection(true);
+                journalEntry.setCorrectionDate(DateUtils.getStartOfCurrentMonth());
+                reversalJournalEntry.setCorrection(true);
+                reversalJournalEntry.setCorrectionDate(DateUtils.getStartOfCurrentMonth());// first day of current month
             }
             // save the reversal entry
             this.glJournalEntryRepository.saveAndFlush(reversalJournalEntry);
@@ -542,6 +540,11 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
 
                 journalItemData = new  JournalItemData(entry, accountId);
                 journalItems.add(journalItemData);
+
+                if (entry.isCorrection()){
+                    journalData.setIsCorrection(true);
+                    journalData.setCorrectionDate(entry.getCorrectionDate().toString());
+                }
             }
 
             journalData.setRef("Journal Entry made by CBS for Loan ID : " + loanId +"; Transaction ID : L" + transactionId);
@@ -565,6 +568,7 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
     }
 
     public static JsonObject convertJournalDataToJson(JournalData requestData, AppUser currentUser){
+        log.info("Posting transaction "+ requestData.getTransactionId() +" to odoo");
 
         JsonObject payload = new JsonObject();
         JsonObject request = new JsonObject();
@@ -594,6 +598,8 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
         HookEvent hookEvent = new HookEvent(new HookEventSource("JOURNALENTRY", "CREATE"), payload.toString(), currentUser, context);
         // Publish the event
         eventPublisher.publishEvent(hookEvent);
+
+        log.info("Posted transaction to odoo");
     }
 
     @Transactional
@@ -680,13 +686,7 @@ public class JournalEntryWritePlatformServiceJpaRepositoryImpl implements Journa
         }
         // shouldn't be before an accounting closure
         final GLClosure latestGLClosure = this.glClosureRepository.getLatestGLClosureByBranch(command.getOfficeId());
-        if (latestGLClosure != null) {
-            if (latestGLClosure.getClosingDate().isAfter(transactionDate)
-                    || latestGLClosure.getClosingDate().compareTo(transactionDate) == 0 ? Boolean.TRUE : Boolean.FALSE) {
-                throw new JournalEntryInvalidException(GlJournalEntryInvalidReason.ACCOUNTING_CLOSED, latestGLClosure.getClosingDate(),
-                        null, null);
-            }
-        }
+        this.helper.checkForBranchClosures(latestGLClosure, transactionDate);
 
         /*** check if credits and debits are valid **/
         final SingleDebitOrCreditEntryCommand[] credits = command.getCredits();

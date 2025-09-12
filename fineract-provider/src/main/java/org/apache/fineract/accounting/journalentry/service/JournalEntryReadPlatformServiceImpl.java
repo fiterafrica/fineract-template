@@ -103,7 +103,8 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
                     .append(" creatingUser.username as createdByUserName, journalEntry.description as comments, ")
                     .append(" journalEntry.created_date as createdDate, journalEntry.reversed as reversed, ")
                     .append(" journalEntry.currency_code as currencyCode, journalEntry.is_oddo_posted AS isPostedToOdoo, curr.name as currencyName, curr.internationalized_name_code as currencyNameCode, ")
-                    .append(" curr.display_symbol as currencyDisplaySymbol, curr.decimal_places as currencyDigits, curr.currency_multiplesof as inMultiplesOf ");
+                    .append(" curr.display_symbol as currencyDisplaySymbol, curr.decimal_places as currencyDigits, curr.currency_multiplesof as inMultiplesOf, ")
+                    .append(" journalEntry.is_correction as isCorrection, journalEntry.correction_date as correctionDate");
             if (associationParametersData.isRunningBalanceRequired()) {
                 sb.append(" ,journalEntry.is_running_balance_calculated as runningBalanceComputed, ")
                         .append(" journalEntry.office_running_balance as officeRunningBalance, ")
@@ -177,6 +178,8 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
             final Integer inMultiplesOf = JdbcSupport.getInteger(rs, "inMultiplesOf");
             final CurrencyData currency = new CurrencyData(currencyCode, currencyName, currencyDigits, inMultiplesOf, currencyDisplaySymbol,
                     currencyNameCode);
+            final Boolean isCorrection = rs.getBoolean("isCorrection");
+            final LocalDate correctionDate = JdbcSupport.getLocalDate(rs, "correctionDate");
 
             if (associationParametersData.isRunningBalanceRequired()) {
                 officeRunningBalance = rs.getBigDecimal("officeRunningBalance");
@@ -229,7 +232,7 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
             return new JournalEntryData(id, officeId, officeName, glAccountName, glAccountId, glCode, accountType, transactionDate,
                     entryType, amount, transactionId, manualEntry, entityType, entityId, createdByUserId, createdDate, createdByUserName,
                     comments, reversed, referenceNumber, officeRunningBalance, organizationRunningBalance, runningBalanceComputed,
-                    transactionDetailData, currency, isPostedToOdoo);
+                    transactionDetailData, currency, isPostedToOdoo, isCorrection, correctionDate);
         }
     }
 

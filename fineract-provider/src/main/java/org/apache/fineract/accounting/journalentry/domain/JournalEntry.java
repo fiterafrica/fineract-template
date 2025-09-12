@@ -127,6 +127,13 @@ public class JournalEntry extends AbstractAuditableCustom {
     @Column(name = "odoo_account_gl")
     private String odooAccountGl;
 
+    @Column(name = "is_correction", nullable = false)
+    private boolean isCorrection = false;
+
+    @Column(name = "correction_date")
+    private LocalDate correctionDate;
+
+
     public static JournalEntry createNew(final Office office, final PaymentDetail paymentDetail, final GLAccount glAccount,
             final String currencyCode, final String transactionId, final boolean manualEntry, final LocalDate transactionDate,
             final JournalEntryType journalEntryType, final BigDecimal amount, final String description, final Integer entityType,

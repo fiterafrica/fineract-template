@@ -81,10 +81,11 @@ public class DatatableReportingProcessService implements ReportingProcessService
                 offset = Integer.valueOf(queryParams.getFirst("offset"));
             }
         }
+        final Map<String, String> reportParams = getReportParams(queryParams);
 
         // PDF format
         if (exportPdf) {
-            final Map<String, String> reportParams = getReportParams(queryParams);
+
             final String pdfFileName = this.readExtraDataAndReportingService.retrieveReportPDF(reportName, parameterTypeValue, reportParams,
                     isSelfServiceUserReport, limit, offset);
 
@@ -98,8 +99,6 @@ public class DatatableReportingProcessService implements ReportingProcessService
         }
 
         if (exportXLSX) {
-
-            final Map<String, String> reportParams = getReportParams(queryParams);
             final byte[] excelBytes = this.readExtraDataAndReportingService.retrieveReportXLSX(reportName, parameterTypeValue, reportParams,
                     isSelfServiceUserReport, limit, offset);
 
@@ -108,8 +107,6 @@ public class DatatableReportingProcessService implements ReportingProcessService
         }
 
         if (exportAPI) {
-            final Map<String, String> reportParams = getReportParams(queryParams);
-
             final GenericResultsetData result = this.readExtraDataAndReportingService.retrieveGenericResultset(reportName,
                     parameterTypeValue, reportParams, isSelfServiceUserReport, limit, offset);
 
@@ -127,8 +124,6 @@ public class DatatableReportingProcessService implements ReportingProcessService
 
         // JSON format
         if (!exportCsv) {
-            final Map<String, String> reportParams = getReportParams(queryParams);
-
             final GenericResultsetData result = this.readExtraDataAndReportingService.retrieveGenericResultset(reportName,
                     parameterTypeValue, reportParams, isSelfServiceUserReport, limit, offset);
 
@@ -154,7 +149,6 @@ public class DatatableReportingProcessService implements ReportingProcessService
         }
 
         // CSV format
-        final Map<String, String> reportParams = getReportParams(queryParams);
         final StreamingOutput result = this.readExtraDataAndReportingService.retrieveReportCSV(reportName, parameterTypeValue, reportParams,
                 isSelfServiceUserReport, limit, offset);
 

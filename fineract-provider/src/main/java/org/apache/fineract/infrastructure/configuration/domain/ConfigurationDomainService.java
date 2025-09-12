@@ -132,4 +132,6 @@ public interface ConfigurationDomainService {
     public boolean isOdooIntegrationEnabled();
 
     boolean isMakerCheckerNotificationEnabled();
+
+    boolean isCorrectionsInClosedPeriodsAllowed();
 }

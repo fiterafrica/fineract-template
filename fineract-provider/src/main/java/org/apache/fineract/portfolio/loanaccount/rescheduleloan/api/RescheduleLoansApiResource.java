@@ -106,7 +106,7 @@ public class RescheduleLoansApiResource {
         LoanRescheduleRequestData loanRescheduleReasons = null;
         LoanTransactionData loanTransactionData = this.loanReadPlatformService.retrieveLoanTransactionTemplate(Long.valueOf(loanId));
         loanRescheduleReasons = this.loanRescheduleRequestReadPlatformService
-                .retrieveAllRescheduleReasons(RescheduleLoansApiConstants.LOAN_RESCHEDULE_REASON);
+                .retrieveAllRescheduleReasons(RescheduleLoansApiConstants.LOAN_RESCHEDULE_REASON,RescheduleLoansApiConstants.CHARGE_HANDLING_METHOD);
 
         loanRescheduleReasons.updateLoanTransactionData(loanTransactionData);
 

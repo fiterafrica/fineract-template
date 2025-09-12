@@ -20,13 +20,17 @@ package org.apache.fineract.portfolio.loanaccount.rescheduleloan.data;
 
 import java.time.LocalDate;
 import java.util.Collection;
+
+import lombok.Getter;
 import org.apache.fineract.infrastructure.codes.data.CodeValueData;
+import org.apache.fineract.portfolio.charge.data.ChargeData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanTermVariationsData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanTransactionData;
 
 /**
  * Immutable data object representing loan reschedule request data.
  **/
+@Getter
 public final class LoanRescheduleRequestData {
 
     private final Long id;
@@ -48,21 +52,28 @@ public final class LoanRescheduleRequestData {
     private final Collection<CodeValueData> rescheduleReasons;
     @SuppressWarnings("unused")
     private final Collection<LoanTermVariationsData> loanTermVariationsData;
+    private final Collection<ChargeData> availableCarryForwardCharges;
+
+    private final Collection<CodeValueData> overdueChargeHandlingOptions;
+
+    private final CodeValueData overdueChargeHandling;
+
+    private final Long carryForwardChargeId;
 
     /**
      * LoanRescheduleRequestData constructor
      *
-     * @param loanTermVariationsData
-     *            TODO
+     * @param loanTermVariationsData       TODO
      * @param loanTransactionData
      * @param adjustFuturePayments
+     * @param availableCarryForwardCharges
      **/
     private LoanRescheduleRequestData(Long id, Long loanId, LoanRescheduleRequestStatusEnumData statusEnum,
-            Integer rescheduleFromInstallment, LocalDate rescheduleFromDate, CodeValueData rescheduleReasonCodeValue,
-            String rescheduleReasonComment, LoanRescheduleRequestTimelineData timeline, final String clientName,
-            final String loanAccountNumber, final Long clientId, final Boolean recalculateInterest,
-            Collection<CodeValueData> rescheduleReasons, final Collection<LoanTermVariationsData> loanTermVariationsData,
-            LoanTransactionData loanTransactionData, boolean adjustFuturePayments) {
+                                      Integer rescheduleFromInstallment, LocalDate rescheduleFromDate, CodeValueData rescheduleReasonCodeValue,
+                                      String rescheduleReasonComment, LoanRescheduleRequestTimelineData timeline, final String clientName,
+                                      final String loanAccountNumber, final Long clientId, final Boolean recalculateInterest,
+                                      Collection<CodeValueData> rescheduleReasons, final Collection<LoanTermVariationsData> loanTermVariationsData,
+                                      LoanTransactionData loanTransactionData, boolean adjustFuturePayments, Collection<ChargeData> availableCarryForwardCharges, Collection<CodeValueData> overdueChargeHandlingOptions, CodeValueData overdueChargeHandling, Long carryForwardChargeId) {
 
         this.id = id;
         this.loanId = loanId;
@@ -80,6 +91,10 @@ public final class LoanRescheduleRequestData {
         this.loanTermVariationsData = loanTermVariationsData;
         this.loanTransactionData = loanTransactionData;
         this.adjustFuturePayments = adjustFuturePayments;
+        this.availableCarryForwardCharges = availableCarryForwardCharges;
+        this.overdueChargeHandlingOptions = overdueChargeHandlingOptions;
+        this.overdueChargeHandling = overdueChargeHandling;
+        this.carryForwardChargeId = carryForwardChargeId;
     }
 
     /**
@@ -88,15 +103,20 @@ public final class LoanRescheduleRequestData {
      * @return an instance of the LoanRescheduleRequestData class
      **/
     public static LoanRescheduleRequestData instance(Long id, Long loanId, LoanRescheduleRequestStatusEnumData statusEnum,
-            Integer rescheduleFromInstallment, LocalDate rescheduleFromDate, CodeValueData rescheduleReasonCodeValue,
-            String rescheduleReasonComment, LoanRescheduleRequestTimelineData timeline, final String clientName,
-            final String loanAccountNumber, final Long clientId, final Boolean recalculateInterest,
-            Collection<CodeValueData> rescheduleReasons, final Collection<LoanTermVariationsData> loanTermVariationsData,
-            final LoanTransactionData loanTransactionData, final boolean adjustFuturePayments) {
+                                                     Integer rescheduleFromInstallment, LocalDate rescheduleFromDate, CodeValueData rescheduleReasonCodeValue,
+                                                     String rescheduleReasonComment, LoanRescheduleRequestTimelineData timeline, final String clientName,
+                                                     final String loanAccountNumber, final Long clientId, final Boolean recalculateInterest,
+                                                     Collection<CodeValueData> rescheduleReasons, final Collection<LoanTermVariationsData> loanTermVariationsData,
+                                                     final LoanTransactionData loanTransactionData, final boolean adjustFuturePayments,
+                                                     Collection<ChargeData> availableCarryForwardCharges,
+                                                     Collection<CodeValueData> overdueChargeHandlingOptions,
+                                                     CodeValueData overdueChargeHandling,
+                                                     Long carryForwardChargeId) {
 
         return new LoanRescheduleRequestData(id, loanId, statusEnum, rescheduleFromInstallment, rescheduleFromDate,
                 rescheduleReasonCodeValue, rescheduleReasonComment, timeline, clientName, loanAccountNumber, clientId, recalculateInterest,
-                rescheduleReasons, loanTermVariationsData, loanTransactionData, adjustFuturePayments);
+                rescheduleReasons, loanTermVariationsData, loanTransactionData, adjustFuturePayments,
+                availableCarryForwardCharges, overdueChargeHandlingOptions, overdueChargeHandling, carryForwardChargeId);
     }
 
     /**
@@ -104,8 +124,8 @@ public final class LoanRescheduleRequestData {
      *
      **/
     private LoanRescheduleRequestData(Long id, Long loanId, LoanRescheduleRequestStatusEnumData statusEnum, final String clientName,
-            final String loanAccountNumber, final Long clientId, final LocalDate rescheduleFromDate,
-            final CodeValueData rescheduleReasonCodeValue) {
+                                      final String loanAccountNumber, final Long clientId, final LocalDate rescheduleFromDate,
+                                      final CodeValueData rescheduleReasonCodeValue) {
 
         this.id = id;
         this.loanId = loanId;
@@ -115,6 +135,10 @@ public final class LoanRescheduleRequestData {
         this.clientId = clientId;
         this.rescheduleFromDate = rescheduleFromDate;
         this.rescheduleReasonCodeValue = rescheduleReasonCodeValue;
+        this.availableCarryForwardCharges = null;
+        this.overdueChargeHandlingOptions = null;
+        this.overdueChargeHandling = null;
+        this.carryForwardChargeId = null;
         this.rescheduleFromInstallment = null;
         this.rescheduleReasonComment = null;
         this.timeline = null;
@@ -136,82 +160,6 @@ public final class LoanRescheduleRequestData {
                 rescheduleReasonCodeValue);
     }
 
-    /**
-     * @return the id
-     */
-    public Long getId() {
-        return id;
-    }
-
-    /**
-     * @return the loanId
-     */
-    public Long getLoanId() {
-        return loanId;
-    }
-
-    /**
-     * @return the statusEnum
-     */
-    public LoanRescheduleRequestStatusEnumData getStatusEnum() {
-        return statusEnum;
-    }
-
-    /**
-     * @return the reschedule from installment number
-     */
-    public Integer getRescheduleFromInstallment() {
-        return rescheduleFromInstallment;
-    }
-
-    /**
-     * @return the reschedule from date
-     */
-    public LocalDate getRescheduleFromDate() {
-        return rescheduleFromDate;
-    }
-
-    /**
-     * @return the rescheduleReasonCodeValueId
-     */
-    public CodeValueData getRescheduleReasonCodeValueId() {
-        return rescheduleReasonCodeValue;
-    }
-
-    /**
-     * @return the rescheduleReasonText
-     */
-    public String getRescheduleReasonComment() {
-        return rescheduleReasonComment;
-    }
-
-    /**
-     * @return the timeline
-     **/
-    public LoanRescheduleRequestTimelineData getTimeline() {
-        return this.timeline;
-    }
-
-    /**
-     * @return the clientName
-     */
-    public String getClientName() {
-        return clientName;
-    }
-
-    /**
-     * @return the loanAccountNumber
-     */
-    public String getLoanAccountNumber() {
-        return loanAccountNumber;
-    }
-
-    /**
-     * @return the clientId
-     */
-    public Long getClientId() {
-        return clientId;
-    }
 
     /**
      * @return the recalculateInterest
@@ -230,7 +178,5 @@ public final class LoanRescheduleRequestData {
         this.loanTransactionData = loanTransactionData;
     }
 
-    public LoanTransactionData getLoanTransactionData() {
-        return loanTransactionData;
-    }
+
 }

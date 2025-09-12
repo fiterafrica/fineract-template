@@ -33,6 +33,7 @@ import org.apache.fineract.accounting.glaccount.domain.GLAccount;
 import org.apache.fineract.accounting.journalentry.data.ChargePaymentDTO;
 import org.apache.fineract.accounting.journalentry.data.LoanDTO;
 import org.apache.fineract.accounting.journalentry.data.LoanTransactionDTO;
+import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.organisation.office.domain.Office;
 import org.springframework.stereotype.Component;
 
@@ -48,8 +49,12 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
         final Office office = this.helper.getOfficeById(loanDTO.getOfficeId());
         for (final LoanTransactionDTO loanTransactionDTO : loanDTO.getNewLoanTransactions()) {
             final LocalDate transactionDate = loanTransactionDTO.getTransactionDate();
-            this.helper.checkForBranchClosures(latestGLClosure, transactionDate);
+            final boolean correctionRequired = this.helper.checkForBranchClosures(latestGLClosure, transactionDate);
 
+            if (correctionRequired) {
+                loanTransactionDTO.setCorrection(true);
+                loanTransactionDTO.setCorrectionDate(DateUtils.getStartOfCurrentMonth()); // first day of current month
+            }
             /** Handle Disbursements **/
             if (loanTransactionDTO.getTransactionType().isDisbursement()) {
                 createJournalEntriesForDisbursements(loanDTO, loanTransactionDTO, office);
@@ -126,15 +131,15 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
         if (loanTransactionDTO.isLoanToLoanTransfer()) {
             this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
                     AccrualAccountsForLoan.LOAN_PORTFOLIO.getValue(), FinancialActivity.ASSET_TRANSFER.getValue(), loanProductId,
-                    paymentTypeId, loanId, transactionId, transactionDate, disbursalAmount, isReversed);
+                    paymentTypeId, loanId, transactionId, transactionDate, disbursalAmount, isReversed, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
         } else if (loanTransactionDTO.isAccountTransfer()) {
             this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
                     AccrualAccountsForLoan.LOAN_PORTFOLIO.getValue(), FinancialActivity.LIABILITY_TRANSFER.getValue(), loanProductId,
-                    paymentTypeId, loanId, transactionId, transactionDate, disbursalAmount, isReversed);
+                    paymentTypeId, loanId, transactionId, transactionDate, disbursalAmount, isReversed, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
         } else {
             this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
                     AccrualAccountsForLoan.LOAN_PORTFOLIO.getValue(), AccrualAccountsForLoan.FUND_SOURCE.getValue(), loanProductId,
-                    paymentTypeId, loanId, transactionId, transactionDate, disbursalAmount, isReversed);
+                    paymentTypeId, loanId, transactionId, transactionDate, disbursalAmount, isReversed, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
         }
 
     }
@@ -223,7 +228,7 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
             if (isIncomeFromFee) {
                 this.helper.createCreditJournalEntryOrReversalForLoanCharges(office, currencyCode,
                         AccrualAccountsForLoan.INCOME_FROM_FEES.getValue(), loanProductId, loanId, transactionId, transactionDate,
-                        feesAmount, isReversal, loanTransactionDTO.getFeePayments());
+                        feesAmount, isReversal, loanTransactionDTO.getFeePayments(), loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
             } else {
                 GLAccount account = this.helper.getLinkedGLAccountForLoanProduct(loanProductId,
                         AccrualAccountsForLoan.FEES_RECEIVABLE.getValue(), paymentTypeId);
@@ -274,7 +279,7 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
 
         for (Map.Entry<GLAccount, BigDecimal> entry : accountMap.entrySet()) {
             this.helper.createCreditJournalEntryOrReversalForLoan(office, currencyCode, loanId, transactionId, transactionDate,
-                    entry.getValue(), isReversal, entry.getKey());
+                    entry.getValue(), isReversal, entry.getKey(), loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
         }
 
         /**
@@ -284,25 +289,25 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
             if (writeOff) {
                 this.helper.createDebitJournalEntryOrReversalForLoan(office, currencyCode,
                         AccrualAccountsForLoan.LOSSES_WRITTEN_OFF.getValue(), loanProductId, paymentTypeId, loanId, transactionId,
-                        transactionDate, totalDebitAmount, isReversal);
+                        transactionDate, totalDebitAmount, isReversal, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
             } else {
                 if (loanTransactionDTO.isLoanToLoanTransfer()) {
                     this.helper.createDebitJournalEntryOrReversalForLoan(office, currencyCode, FinancialActivity.ASSET_TRANSFER.getValue(),
-                            loanProductId, paymentTypeId, loanId, transactionId, transactionDate, totalDebitAmount, isReversal);
+                            loanProductId, paymentTypeId, loanId, transactionId, transactionDate, totalDebitAmount, isReversal, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
                 } else if (loanTransactionDTO.isAccountTransfer()) {
                     this.helper.createDebitJournalEntryOrReversalForLoan(office, currencyCode,
                             FinancialActivity.LIABILITY_TRANSFER.getValue(), loanProductId, paymentTypeId, loanId, transactionId,
-                            transactionDate, totalDebitAmount, isReversal);
+                            transactionDate, totalDebitAmount, isReversal, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
                 } else {
                     if (loanTransactionDTO.getTransactionType().isGoodwillCredit()) {
                         this.helper.createDebitJournalEntryOrReversalForLoan(office, currencyCode,
                                 AccrualAccountsForLoan.GOODWILL_CREDIT.getValue(), loanProductId, paymentTypeId, loanId, transactionId,
-                                transactionDate, totalDebitAmount, isReversal);
+                                transactionDate, totalDebitAmount, isReversal, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
 
                     } else {
                         this.helper.createDebitJournalEntryOrReversalForLoan(office, currencyCode,
                                 AccrualAccountsForLoan.FUND_SOURCE.getValue(), loanProductId, paymentTypeId, loanId, transactionId,
-                                transactionDate, totalDebitAmount, isReversal);
+                                transactionDate, totalDebitAmount, isReversal, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
                     }
                 }
             }
@@ -330,7 +335,7 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
 
         this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode, AccrualAccountsForLoan.FUND_SOURCE.getValue(),
                 AccrualAccountsForLoan.INCOME_FROM_RECOVERY.getValue(), loanProductId, paymentTypeId, loanId, transactionId,
-                transactionDate, amount, isReversal);
+                transactionDate, amount, isReversal, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
 
     }
 
@@ -368,13 +373,13 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
         if (interestAmount != null && !(interestAmount.compareTo(BigDecimal.ZERO) == 0)) {
             this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
                     AccrualAccountsForLoan.INTEREST_RECEIVABLE.getValue(), AccrualAccountsForLoan.INTEREST_ON_LOANS.getValue(),
-                    loanProductId, paymentTypeId, loanId, transactionId, transactionDate, interestAmount, isReversed);
+                    loanProductId, paymentTypeId, loanId, transactionId, transactionDate, interestAmount, isReversed, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
         }
         // create journal entries for the fees application (or reversal)
         if (feesAmount != null && !(feesAmount.compareTo(BigDecimal.ZERO) == 0)) {
             this.helper.createAccrualBasedJournalEntriesAndReversalsForLoanCharges(office, currencyCode,
                     AccrualAccountsForLoan.FEES_RECEIVABLE.getValue(), AccrualAccountsForLoan.INCOME_FROM_FEES.getValue(), loanProductId,
-                    loanId, transactionId, transactionDate, feesAmount, isReversed, loanTransactionDTO.getFeePayments());
+                    loanId, transactionId, transactionDate, feesAmount, isReversed, loanTransactionDTO.getFeePayments() , loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
         }
         // create journal entries for the penalties application (or reversal)
         if (penaltiesAmount != null && !(penaltiesAmount.compareTo(BigDecimal.ZERO) == 0)) {
@@ -382,7 +387,7 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
             this.helper.createAccrualBasedJournalEntriesAndReversalsForLoanCharges(office, currencyCode,
                     AccrualAccountsForLoan.PENALTIES_RECEIVABLE.getValue(), AccrualAccountsForLoan.INCOME_FROM_PENALTIES.getValue(),
                     loanProductId, loanId, transactionId, transactionDate, penaltiesAmount, isReversed,
-                    loanTransactionDTO.getPenaltyPayments());
+                    loanTransactionDTO.getPenaltyPayments(), loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
         }
     }
 
@@ -402,11 +407,11 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
         if (loanTransactionDTO.isAccountTransfer()) {
             this.helper.createCashBasedJournalEntriesAndReversalsForLoan(office, currencyCode, CashAccountsForLoan.OVERPAYMENT.getValue(),
                     FinancialActivity.LIABILITY_TRANSFER.getValue(), loanProductId, paymentTypeId, loanId, transactionId, transactionDate,
-                    refundAmount, isReversal);
+                    refundAmount, isReversal, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
         } else {
             this.helper.createCashBasedJournalEntriesAndReversalsForLoan(office, currencyCode, CashAccountsForLoan.OVERPAYMENT.getValue(),
                     CashAccountsForLoan.FUND_SOURCE.getValue(), loanProductId, paymentTypeId, loanId, transactionId, transactionDate,
-                    refundAmount, isReversal);
+                    refundAmount, isReversal, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
         }
     }
 
@@ -426,7 +431,7 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
 
         this.helper.createAccrualBasedJournalEntriesAndReversalsForLoan(office, currencyCode,
                 AccrualAccountsForLoan.LOAN_PORTFOLIO.getValue(), AccrualAccountsForLoan.OVERPAYMENT.getValue(), loanProductId,
-                paymentTypeId, loanId, transactionId, transactionDate, refundAmount, isReversal);
+                paymentTypeId, loanId, transactionId, transactionDate, refundAmount, isReversal, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
     }
 
     private void createJournalEntriesForRefundForActiveLoan(LoanDTO loanDTO, LoanTransactionDTO loanTransactionDTO, Office office) {
@@ -452,13 +457,13 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
         if (principalAmount != null && !(principalAmount.compareTo(BigDecimal.ZERO) == 0)) {
             totalDebitAmount = totalDebitAmount.add(principalAmount);
             this.helper.createCreditJournalEntryOrReversalForLoan(office, currencyCode, CashAccountsForLoan.LOAN_PORTFOLIO, loanProductId,
-                    paymentTypeId, loanId, transactionId, transactionDate, principalAmount, !isReversal);
+                    paymentTypeId, loanId, transactionId, transactionDate, principalAmount, !isReversal,loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
         }
 
         if (interestAmount != null && !(interestAmount.compareTo(BigDecimal.ZERO) == 0)) {
             totalDebitAmount = totalDebitAmount.add(interestAmount);
             this.helper.createCreditJournalEntryOrReversalForLoan(office, currencyCode, CashAccountsForLoan.INTEREST_ON_LOANS,
-                    loanProductId, paymentTypeId, loanId, transactionId, transactionDate, interestAmount, !isReversal);
+                    loanProductId, paymentTypeId, loanId, transactionId, transactionDate, interestAmount, !isReversal, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
         }
 
         if (feesAmount != null && !(feesAmount.compareTo(BigDecimal.ZERO) == 0)) {
@@ -474,7 +479,7 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
             }
             this.helper.createCreditJournalEntryOrReversalForLoanCharges(office, currencyCode,
                     CashAccountsForLoan.INCOME_FROM_FEES.getValue(), loanProductId, loanId, transactionId, transactionDate, feesAmount,
-                    !isReversal, chargePaymentDTOs);
+                    !isReversal, chargePaymentDTOs, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
         }
 
         if (penaltiesAmount != null && !(penaltiesAmount.compareTo(BigDecimal.ZERO) == 0)) {
@@ -490,18 +495,18 @@ public class AccrualBasedAccountingProcessorForLoan implements AccountingProcess
 
             this.helper.createCreditJournalEntryOrReversalForLoanCharges(office, currencyCode,
                     CashAccountsForLoan.INCOME_FROM_PENALTIES.getValue(), loanProductId, loanId, transactionId, transactionDate,
-                    penaltiesAmount, !isReversal, chargePaymentDTOs);
+                    penaltiesAmount, !isReversal, chargePaymentDTOs, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
         }
 
         if (overPaymentAmount != null && !(overPaymentAmount.compareTo(BigDecimal.ZERO) == 0)) {
             totalDebitAmount = totalDebitAmount.add(overPaymentAmount);
             this.helper.createCreditJournalEntryOrReversalForLoan(office, currencyCode, CashAccountsForLoan.OVERPAYMENT, loanProductId,
-                    paymentTypeId, loanId, transactionId, transactionDate, overPaymentAmount, !isReversal);
+                    paymentTypeId, loanId, transactionId, transactionDate, overPaymentAmount, !isReversal, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
         }
 
         /*** create a single debit entry (or reversal) for the entire amount **/
         this.helper.createDebitJournalEntryOrReversalForLoan(office, currencyCode, CashAccountsForLoan.FUND_SOURCE.getValue(),
-                loanProductId, paymentTypeId, loanId, transactionId, transactionDate, totalDebitAmount, !isReversal);
+                loanProductId, paymentTypeId, loanId, transactionId, transactionDate, totalDebitAmount, !isReversal, loanTransactionDTO.isCorrection(), loanTransactionDTO.getCorrectionDate());
 
     }
 }
