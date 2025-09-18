@@ -244,6 +244,11 @@ bootRun {
         //Fiter custom dependencies
         implementation 'org.json:json:20171018'
         implementation 'org.apache.pdfbox:pdfbox:2.0.20'
+
+        // jasper report
+        implementation("net.sf.jasperreports:jasperreports:6.20.6")
+        implementation("com.ibm.icu:icu4j:77.1")
+
     }
 }
 
