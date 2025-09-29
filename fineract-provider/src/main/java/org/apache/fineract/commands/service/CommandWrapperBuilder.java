@@ -3988,4 +3988,20 @@ public class CommandWrapperBuilder {
         this.href = "/loans/" + loanId;
         return this;
     }
+
+    public CommandWrapperBuilder createJasperReport() {
+        this.actionName = "CREATE";
+        this.entityName = "JASPER_REPORT";
+        this.entityId = null;
+        this.href = "/reports/jasper";
+        return this;
+    }
+
+    public CommandWrapperBuilder approveJasperReport(Long reportId) {
+        this.actionName = "APPROVE";
+        this.entityName = "JASPER_REPORT";
+        this.entityId = reportId;
+        this.href = "/reports/jasper";
+        return this;
+    }
 }

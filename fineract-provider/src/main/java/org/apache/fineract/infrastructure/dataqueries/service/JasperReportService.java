@@ -50,11 +50,11 @@ import java.util.Map;
 
 @Service
 @Slf4j
-public class JasperReadReportService {
+public class JasperReportService {
 
     private final RoutingDataSource routingDataSource;
 
-    public JasperReadReportService(RoutingDataSource routingDataSource) {
+    public JasperReportService(RoutingDataSource routingDataSource) {
         this.routingDataSource = routingDataSource;
     }
 

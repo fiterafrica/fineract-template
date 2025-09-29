@@ -248,6 +248,7 @@ bootRun {
         // jasper report
         implementation("net.sf.jasperreports:jasperreports:6.20.6")
         implementation("com.ibm.icu:icu4j:77.1")
+        implementation 'io.minio:minio:8.5.7'
 
     }
 }
