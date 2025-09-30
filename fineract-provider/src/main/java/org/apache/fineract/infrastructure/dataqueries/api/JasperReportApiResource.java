@@ -110,6 +110,8 @@ public class JasperReportApiResource {
             }
         });
 
+        queryParams.put("REQUESTED_BY",  this.context.authenticatedUser().getDisplayName());
+
         String mediaType = headers.getAcceptableMediaTypes().isEmpty()
                 ? "application/pdf"
                 : headers.getAcceptableMediaTypes().get(0).toString();

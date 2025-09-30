@@ -36,6 +36,8 @@ import net.sf.jasperreports.export.SimpleHtmlExporterOutput;
 import net.sf.jasperreports.export.SimpleOutputStreamExporterOutput;
 import net.sf.jasperreports.export.SimpleWriterExporterOutput;
 import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
+import org.apache.fineract.portfolio.loanproduct.domain.LoanProduct;
+import org.apache.fineract.portfolio.loanproduct.domain.LoanProductRepository;
 import org.springframework.stereotype.Service;
 
 import javax.ws.rs.core.MediaType;
@@ -45,17 +47,22 @@ import java.io.InputStream;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class JasperReportService {
 
     private final RoutingDataSource routingDataSource;
+    private final LoanProductRepository loanProductRepository;
 
-    public JasperReportService(RoutingDataSource routingDataSource) {
+    public JasperReportService(RoutingDataSource routingDataSource, LoanProductRepository loanProductRepository) {
         this.routingDataSource = routingDataSource;
+        this.loanProductRepository = loanProductRepository;
     }
 
     public byte[] generateReport(String reportName, Map<String, Object> rawParams, String mediaType) {
@@ -65,6 +72,12 @@ public class JasperReportService {
         try (InputStream reportStream = getClass().getResourceAsStream(resourcePath)) {
             if (reportStream == null) {
                 throw new IOException("Report file not found: " + resourcePath);
+            }
+
+
+            if (rawParams.containsKey("product_ids")){
+                String PRODUCT_FILTERS = productFilters(rawParams.get("product_ids")).toString();
+                rawParams.put("PRODUCT_FILTER", PRODUCT_FILTERS);
             }
 
             JasperReport jasperReport = JasperCompileManager.compileReport(reportStream);
@@ -148,5 +161,23 @@ public class JasperReportService {
             default: // PDF
                 return JasperExportManager.exportReportToPdf(jasperPrint);
         }
+    }
+
+
+    private List<String> productFilters(Object productIdsObj){
+        if (productIdsObj != null) {
+            String productIdsStr = productIdsObj.toString(); // e.g. "10,12,15"
+            List<Long> productIds = Arrays.stream(productIdsStr.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(Long::valueOf)
+                    .collect(Collectors.toList());
+
+            return loanProductRepository.findAllById(productIds)
+                    .stream()
+                    .map(LoanProduct::getShortName)
+                    .collect(Collectors.toList());
+        }
+        return List.of();
     }
 }
