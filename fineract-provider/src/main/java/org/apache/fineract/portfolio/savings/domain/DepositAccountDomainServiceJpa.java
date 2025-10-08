@@ -378,7 +378,6 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         // account.close(user, command, tenantsTodayDate, changes);
 
         this.savingsAccountRepository.save(account);
-
         return savingsTransactionId;
     }
 
@@ -458,7 +457,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         account.close(user, command, tenantsTodayDate, changes);
 
         this.savingsAccountRepository.save(account);
-
+        postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
         return savingsTransactionId;
     }
 

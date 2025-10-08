@@ -231,7 +231,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 
         for (final DepositAccountData depositAccount : depositAccounts) {
             try {
-                this.depositAccountWritePlatformService.updateMaturityDetails(depositAccount);
+                    this.depositAccountWritePlatformService.updateMaturityDetails(depositAccount);
             } catch (final PlatformApiDataValidationException e) {
                 final List<ApiParameterError> errors = e.getErrors();
                 for (final ApiParameterError error : errors) {
