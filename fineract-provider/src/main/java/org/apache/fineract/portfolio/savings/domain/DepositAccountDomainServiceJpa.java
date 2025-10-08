@@ -321,7 +321,6 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
 
         final MathContext mc = MathContext.DECIMAL64;
         Long savingsTransactionId = null;
-        account.postMaturityInterest(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
         final DepositAccountOnClosureType onClosureType = DepositAccountOnClosureType.fromInt(onAccountClosureId);
         if (onClosureType.isReinvest()) {
             BigDecimal reInvestAmount;
@@ -379,9 +378,6 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         // account.close(user, command, tenantsTodayDate, changes);
 
         this.savingsAccountRepository.save(account);
-
-        postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
-
         return savingsTransactionId;
     }
 
@@ -461,9 +457,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         account.close(user, command, tenantsTodayDate, changes);
 
         this.savingsAccountRepository.save(account);
-
         postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
-
         return savingsTransactionId;
     }
 
