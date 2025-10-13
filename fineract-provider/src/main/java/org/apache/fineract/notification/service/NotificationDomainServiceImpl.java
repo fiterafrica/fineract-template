@@ -21,6 +21,7 @@ package org.apache.fineract.notification.service;
 import static java.util.stream.Collectors.toSet;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -62,6 +63,7 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransaction;
 import org.apache.fineract.portfolio.shareaccounts.domain.ShareAccount;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.apache.fineract.useradministration.domain.AppUserRepository;
+import org.apache.fineract.useradministration.service.UserPermissionService;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -73,6 +75,8 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
     private final PlatformSecurityContext context;
     private final NotificationEventPublisher notificationEventPublisher;
     private final AppUserRepository appUserRepository;
+    private final UserPermissionService userPermissionService;
+    private final NotificationService notificationService;
 
     @PostConstruct
     public void addListeners() {
@@ -111,6 +115,8 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
             Client client = event.get();
             buildNotification("ACTIVATE_CLIENT", "client", client.getId(), "New client created", "created",
                     context.authenticatedUser().getId(), client.getOffice().getId());
+            List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("ACTIVATE_CLIENT");
+            notificationService.sendNotification(users, "New Client Created", "A new client has been created and is pending approval.");
         }
     }
 
@@ -207,6 +213,7 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
         }
     }
 
+
     private class LoanCreatedListener implements BusinessEventListener<LoanCreatedBusinessEvent> {
 
         @Override
@@ -214,6 +221,8 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
             Loan loan = event.get();
             buildNotification("APPROVE_LOAN", "loan", loan.getId(), "New loan created", "created", context.authenticatedUser().getId(),
                     loan.getOfficeId());
+            List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("APPROVE_LOAN");
+            notificationService.sendNotification(users, "New Loan Created", "A new loan has been created and is pending approval.");
         }
     }
 
@@ -274,8 +283,11 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
             SavingsAccount savingsAccount = event.get();
             buildNotification("APPROVE_SAVINGSACCOUNT", "savingsAccount", savingsAccount.getId(), "New savings account created", "created",
                     context.authenticatedUser().getId(), savingsAccount.officeId());
+            List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("APPROVE_SAVINGSACCOUNT");
+            notificationService.sendNotification(users, "New Savings Account Created", "A new savings account has been created and is pending approval.");
         }
     }
+
 
     private class SavingsAccountClosedListener implements BusinessEventListener<SavingsCloseBusinessEvent> {
 
