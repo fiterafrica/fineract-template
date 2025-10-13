@@ -65,4 +65,28 @@
 
         </insert>
     </changeSet>
+
+    <changeSet id="create-m_smtp_notification_table" author="bosco@fiter.io">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <tableExists tableName="m_smtp_notification"/>
+            </not>
+        </preConditions>
+        <createTable tableName="m_smtp_notification">
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true"  />
+            </column>
+            <column name="subject" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="message" type="TEXT">
+                <constraints nullable="true" />
+            </column>
+            <column defaultValueBoolean="false" name="is_sent" type="boolean">
+                <constraints nullable="true"/>
+            </column>
+
+
+        </createTable>
+    </changeSet>
 </databaseChangeLog>
