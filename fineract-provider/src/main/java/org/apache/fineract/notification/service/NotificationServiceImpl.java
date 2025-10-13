@@ -18,9 +18,12 @@
  */
 package org.apache.fineract.notification.service;
 
+import org.apache.fineract.notification.domain.NotificationViaSmtp;
+import org.apache.fineract.notification.domain.NotificationViaSmtpRepository;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +34,13 @@ public class NotificationServiceImpl implements NotificationService {
 
     private static final Logger logger = LoggerFactory.getLogger(NotificationServiceImpl.class);
 
+    private final NotificationViaSmtpRepository notificationViaSmtpRepository;
+
+    @Autowired
+    public NotificationServiceImpl(NotificationViaSmtpRepository notificationViaSmtpRepository) {
+        this.notificationViaSmtpRepository = notificationViaSmtpRepository;
+    }
+
     @Async
     @Override
     public void sendNotification(List<AppUser> users, String subject, String message) {
@@ -38,5 +48,11 @@ public class NotificationServiceImpl implements NotificationService {
         logger.info("Sending email to: {}", users);
         logger.info("Subject: {}", subject);
         logger.info("Message: {}", message);
+
+        NotificationViaSmtp notificationViaSmtp = new NotificationViaSmtp();
+        notificationViaSmtp.setSubject(subject);
+        notificationViaSmtp.setMessage(message);
+        notificationViaSmtp.setSent(Boolean.FALSE);
+        notificationViaSmtpRepository.saveAndFlush(notificationViaSmtp);
     }
 }

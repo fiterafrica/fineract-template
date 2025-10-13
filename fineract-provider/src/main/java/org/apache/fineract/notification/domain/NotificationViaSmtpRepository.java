@@ -18,25 +18,6 @@
  */
 package org.apache.fineract.notification.domain;
 
-import lombok.Data;
-import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Table;
-
-@Data
-@Entity
-@Table(name = "m_smtp_notification")
-public class NotificationViaSmtp extends AbstractPersistableCustom {
-
-    @Column(name = "subject")
-    private String subject;
-
-    @Column(name = "message")
-    private String message;
-
-    @Column(name = "is_sent")
-    private boolean sent;
-
-}
+public interface NotificationViaSmtpRepository extends JpaRepository<NotificationViaSmtp, Long> {}
