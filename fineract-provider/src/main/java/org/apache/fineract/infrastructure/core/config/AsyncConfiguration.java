@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.useradministration.service;
+package org.apache.fineract.infrastructure.core.config;
 
-import org.apache.fineract.useradministration.domain.AppUser;
-import java.util.List;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
 
-public interface UserPermissionService {
-
-    boolean isChecker(AppUser user);
-
-    List<AppUser> findUsersWithCheckerPermission(String action);
+@Configuration
+@EnableAsync
+public class AsyncConfiguration {
 }

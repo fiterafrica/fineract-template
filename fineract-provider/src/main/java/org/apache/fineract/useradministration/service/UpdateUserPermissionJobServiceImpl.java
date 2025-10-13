@@ -18,26 +18,20 @@
  */
 package org.apache.fineract.useradministration.service;
 
+import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.infrastructure.jobs.annotation.CronTarget;
 import org.apache.fineract.infrastructure.jobs.service.JobName;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.apache.fineract.useradministration.domain.AppUserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 @Service
+@RequiredArgsConstructor
 public class UpdateUserPermissionJobServiceImpl {
 
     private final AppUserRepository appUserRepository;
     private final UserPermissionService userPermissionService;
-
-    @Autowired
-    public UpdateUserPermissionJobServiceImpl(AppUserRepository appUserRepository, UserPermissionService userPermissionService) {
-        this.appUserRepository = appUserRepository;
-        this.userPermissionService = userPermissionService;
-    }
 
     @CronTarget(jobName = JobName.PROCESS_MAKER_CHECKER_USERS)
     public void updateUserPermissions() {

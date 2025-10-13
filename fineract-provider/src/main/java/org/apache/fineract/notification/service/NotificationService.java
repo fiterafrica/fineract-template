@@ -16,14 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.useradministration.service;
+package org.apache.fineract.notification.service;
 
 import org.apache.fineract.useradministration.domain.AppUser;
+
 import java.util.List;
 
-public interface UserPermissionService {
+public interface NotificationService {
 
-    boolean isChecker(AppUser user);
-
-    List<AppUser> findUsersWithCheckerPermission(String action);
+    void sendNotification(List<AppUser> users, String subject, String message);
 }

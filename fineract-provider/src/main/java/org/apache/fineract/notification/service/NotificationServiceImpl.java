@@ -16,14 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.useradministration.service;
+package org.apache.fineract.notification.service;
 
 import org.apache.fineract.useradministration.domain.AppUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+
 import java.util.List;
 
-public interface UserPermissionService {
+@Service
+public class NotificationServiceImpl implements NotificationService {
 
-    boolean isChecker(AppUser user);
+    private static final Logger logger = LoggerFactory.getLogger(NotificationServiceImpl.class);
 
-    List<AppUser> findUsersWithCheckerPermission(String action);
+    @Async
+    @Override
+    public void sendNotification(List<AppUser> users, String subject, String message) {
+        // Simulate sending email
+        logger.info("Sending email to: {}", users);
+        logger.info("Subject: {}", subject);
+        logger.info("Message: {}", message);
+    }
 }
