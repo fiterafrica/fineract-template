@@ -20,26 +20,41 @@ package org.apache.fineract.useradministration.service;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.fineract.infrastructure.core.domain.EmailDetail;
 import org.apache.fineract.infrastructure.jobs.annotation.CronTarget;
 import org.apache.fineract.infrastructure.jobs.service.JobName;
 import org.apache.fineract.notification.domain.NotificationViaSmtp;
 import org.apache.fineract.notification.domain.NotificationViaSmtpRepository;
 import org.springframework.stereotype.Service;
+import org.apache.fineract.infrastructure.core.service.GmailBackedPlatformEmailService;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UpdateUserPermissionJobServiceImpl {
 
     private final NotificationViaSmtpRepository notificationViaSmtpRepository;
+    private final GmailBackedPlatformEmailService emailService;
 
-    @CronTarget(jobName = JobName.SEND_NOTIFICATION_ALERT_TO_CHECKER_USER)
+    @CronTarget(jobName = JobName.SEND_NOTIFICATION_ALERT_TO_CHECKER_USERS)
     public void updateUserPermissions() {
 
-        List<NotificationViaSmtp> notificationViaSmtps = notificationViaSmtpRepository.findAll();
+        List<NotificationViaSmtp> notificationViaSmtps = notificationViaSmtpRepository.findNotificationViaSmtpNotSent();
+        log.info("Found {} unsent notification emails via SMTP to be processed.", notificationViaSmtps.size());
         for (NotificationViaSmtp notification : notificationViaSmtps) {
-            //Send email logic to be implemented here
-            notification.setSent(Boolean.TRUE);
-            notificationViaSmtpRepository.saveAndFlush(notification);
+            try {
+
+                final EmailDetail emailData = new EmailDetail(notification.getSubject(), notification.getMessage(), notification.getEmailAddress(),
+                        notification.getEmailAddress());
+                emailService.sendDefinedEmail(emailData);
+
+                notification.setSent(Boolean.TRUE);
+                notificationViaSmtpRepository.saveAndFlush(notification);
+                log.info("Successfully sent notification email via SMTP to address {} with subject '{}'.",notification.getEmailAddress(),notification.getSubject());
+            } catch (Exception e) {
+                log.info("Exception occurred while sending notification email via SMTP to address {}: {}", notification.getEmailAddress(), e.getMessage());
+            }
         }
     }
 }

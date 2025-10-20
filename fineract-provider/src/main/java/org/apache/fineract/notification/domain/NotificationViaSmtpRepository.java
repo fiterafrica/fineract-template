@@ -19,5 +19,11 @@
 package org.apache.fineract.notification.domain;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
-public interface NotificationViaSmtpRepository extends JpaRepository<NotificationViaSmtp, Long> {}
+import java.util.List;
+
+public interface NotificationViaSmtpRepository extends JpaRepository<NotificationViaSmtp, Long> {
+    @Query("select smtp from NotificationViaSmtp smtp where smtp.sent = false")
+    List<NotificationViaSmtp> findNotificationViaSmtpNotSent();
+}

@@ -34,7 +34,7 @@
         </addColumn>
     </changeSet>
 
-    <changeSet author="bosco@fiter.io" id="add-Send-Notification-Alert-to-Checkers-job">
+    <changeSet author="bosco@fiter.io" id="add-Send-Notification-Alert-to-Checker-users-job">
 
         <preConditions onFail="MARK_RAN">
             <not>
@@ -45,15 +45,15 @@
         </preConditions>
 
         <insert tableName="job">
-            <column name="name" value="Send Notification Alert to Checkers" />
-            <column name="display_name" value="Send Notification Alert to Checkers" />
+            <column name="name" value="Send Notification Alert to Checker users" />
+            <column name="display_name" value="Send Notification Alert to Checker users" />
             <column name="cron_expression" value="0 0 22 1/1 * ? *" />
             <column name="create_time" value="now()" />
             <column name="task_priority" value="5" />
             <column name="group_name" value="null" />
             <column name="previous_run_start_time" value="null" />
             <column name="next_run_time" value="null" />
-            <column name="job_key" value="Send Notification Alert to Checkers _ DEFAULT" />
+            <column name="job_key" value="Send Notification Alert to Checker users _ DEFAULT" />
             <column name="initializing_errorlog" value="null" />
             <column name="is_active" valueBoolean="true" />
             <column name="currently_running" valueBoolean="false" />
