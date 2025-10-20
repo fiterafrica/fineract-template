@@ -113,10 +113,14 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
         @Override
         public void onBusinessEvent(ClientCreateBusinessEvent event) {
             Client client = event.get();
+            String clientName = client.getDisplayName();
+            Long clientId = client.getId();
+            String message = String.format("New client created: %s (Client ID: %d) is pending Activation.", clientName, clientId);
+
             buildNotification("ACTIVATE_CLIENT", "client", client.getId(), "New client created", "created",
                     context.authenticatedUser().getId(), client.getOffice().getId());
             List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("ACTIVATE_CLIENT");
-            notificationService.sendNotification(users, "New Client Created", "A new client has been created and is pending approval.");
+            notificationService.sendNotification(users, "New Client Created !!", message);
         }
     }
 
@@ -219,11 +223,14 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
         @Override
         public void onBusinessEvent(LoanCreatedBusinessEvent event) {
             Loan loan = event.get();
-            buildNotification("APPROVE_LOAN", "loan", loan.getId(), "New loan created", "created", context.authenticatedUser().getId(),
-                    loan.getOfficeId());
+            String clientName = loan.getClient().getDisplayName();
+            Long loanId = loan.getId();
+            Long clientId = loan.getClient().getId();
+            String message = String.format("New loan created for client %s (Loan ID: %d, Client ID: %d) Approval required", clientName, loanId, clientId);
+
+            buildNotification("APPROVE_LOAN", "loan", loanId, message, "created", context.authenticatedUser().getId(), loan.getOfficeId());
             List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("APPROVE_LOAN");
-            notificationService.sendNotification(users, "New Loan Created", "A new loan has been created and is pending approval.");
-        }
+            notificationService.sendNotification(users, "New Loan Created !!", message);  }
     }
 
     private class LoanApprovedListener implements BusinessEventListener<LoanApprovedBusinessEvent> {
@@ -281,10 +288,15 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
         @Override
         public void onBusinessEvent(SavingsCreateBusinessEvent event) {
             SavingsAccount savingsAccount = event.get();
+            String clientName = savingsAccount.getClient().getDisplayName();
+            Long savingsAccountId = savingsAccount.getId();
+            Long clientId = savingsAccount.getClient().getId();
+            String message = String.format("New savings account created for client %s (Account ID: %d, Client ID: %d) Approval required", clientName, savingsAccountId, clientId);
+
             buildNotification("APPROVE_SAVINGSACCOUNT", "savingsAccount", savingsAccount.getId(), "New savings account created", "created",
                     context.authenticatedUser().getId(), savingsAccount.officeId());
             List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("APPROVE_SAVINGSACCOUNT");
-            notificationService.sendNotification(users, "New Savings Account Created", "A new savings account has been created and is pending approval.");
+            notificationService.sendNotification(users, "New Savings Account Created !!", message);
         }
     }
 
