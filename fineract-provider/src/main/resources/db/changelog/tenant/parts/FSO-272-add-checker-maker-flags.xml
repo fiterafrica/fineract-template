@@ -34,26 +34,26 @@
         </addColumn>
     </changeSet>
 
-    <changeSet author="bosco@fiter.io" id="add-Process-checker-maker-job">
+    <changeSet author="bosco@fiter.io" id="add-Send-Notification-Alert-to-Checkers-job">
 
         <preConditions onFail="MARK_RAN">
             <not>
                 <sqlCheck expectedResult="1">
-                    SELECT COUNT(1) FROM job WHERE name = 'Process maker checker users'
+                    SELECT COUNT(1) FROM job WHERE name = 'Send Notification Alert to Checker users'
                 </sqlCheck>
             </not>
         </preConditions>
 
         <insert tableName="job">
-            <column name="name" value="Process maker checker users" />
-            <column name="display_name" value="Process maker checker users" />
+            <column name="name" value="Send Notification Alert to Checkers" />
+            <column name="display_name" value="Send Notification Alert to Checkers" />
             <column name="cron_expression" value="0 0 22 1/1 * ? *" />
             <column name="create_time" value="now()" />
             <column name="task_priority" value="5" />
             <column name="group_name" value="null" />
             <column name="previous_run_start_time" value="null" />
             <column name="next_run_time" value="null" />
-            <column name="job_key" value="Process maker checker users _ DEFAULT" />
+            <column name="job_key" value="Send Notification Alert to Checkers _ DEFAULT" />
             <column name="initializing_errorlog" value="null" />
             <column name="is_active" valueBoolean="true" />
             <column name="currently_running" valueBoolean="false" />

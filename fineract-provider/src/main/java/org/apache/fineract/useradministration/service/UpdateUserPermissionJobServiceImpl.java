@@ -22,24 +22,24 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.fineract.infrastructure.jobs.annotation.CronTarget;
 import org.apache.fineract.infrastructure.jobs.service.JobName;
-import org.apache.fineract.useradministration.domain.AppUser;
-import org.apache.fineract.useradministration.domain.AppUserRepository;
+import org.apache.fineract.notification.domain.NotificationViaSmtp;
+import org.apache.fineract.notification.domain.NotificationViaSmtpRepository;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class UpdateUserPermissionJobServiceImpl {
 
-    private final AppUserRepository appUserRepository;
-    private final UserPermissionService userPermissionService;
+    private final NotificationViaSmtpRepository notificationViaSmtpRepository;
 
-    @CronTarget(jobName = JobName.PROCESS_MAKER_CHECKER_USERS)
+    @CronTarget(jobName = JobName.SEND_NOTIFICATION_ALERT_TO_CHECKER_USER)
     public void updateUserPermissions() {
-        List<AppUser> users = appUserRepository.findAll();
-        for (AppUser user : users) {
-            boolean isChecker = userPermissionService.isChecker(user);
-            user.setChecker(isChecker);
-            appUserRepository.save(user);
+
+        List<NotificationViaSmtp> notificationViaSmtps = notificationViaSmtpRepository.findAll();
+        for (NotificationViaSmtp notification : notificationViaSmtps) {
+            //Send email logic to be implemented here
+            notification.setSent(Boolean.TRUE);
+            notificationViaSmtpRepository.saveAndFlush(notification);
         }
     }
 }
