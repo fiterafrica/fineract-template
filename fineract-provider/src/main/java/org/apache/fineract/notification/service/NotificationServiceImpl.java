@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.notification.service;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.fineract.notification.domain.NotificationViaSmtp;
 import org.apache.fineract.notification.domain.NotificationViaSmtpRepository;
 import org.apache.fineract.useradministration.domain.AppUser;
@@ -44,15 +45,17 @@ public class NotificationServiceImpl implements NotificationService {
     @Async
     @Override
     public void sendNotification(List<AppUser> users, String subject, String message) {
-        // Simulate sending email
-        logger.info("Sending email to: {}", users);
-        logger.info("Subject: {}", subject);
-        logger.info("Message: {}", message);
 
-        NotificationViaSmtp notificationViaSmtp = new NotificationViaSmtp();
-        notificationViaSmtp.setSubject(subject);
-        notificationViaSmtp.setMessage(message);
-        notificationViaSmtp.setSent(Boolean.FALSE);
-        notificationViaSmtpRepository.saveAndFlush(notificationViaSmtp);
+        if(!CollectionUtils.isEmpty(users)){
+            for(AppUser user : users){
+                NotificationViaSmtp notificationViaSmtp = new NotificationViaSmtp();
+                notificationViaSmtp.setSubject(subject);
+                notificationViaSmtp.setMessage(message);
+                notificationViaSmtp.setEmailAddress(user.getEmail());
+                notificationViaSmtp.setSent(Boolean.FALSE);
+                notificationViaSmtpRepository.saveAndFlush(notificationViaSmtp);
+            }
+
+        }
     }
 }

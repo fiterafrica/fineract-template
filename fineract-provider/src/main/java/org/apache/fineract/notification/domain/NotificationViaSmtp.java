@@ -39,4 +39,7 @@ public class NotificationViaSmtp extends AbstractPersistableCustom {
     @Column(name = "is_sent")
     private boolean sent;
 
+    @Column(name = "email_address")
+    private String emailAddress;
+
 }

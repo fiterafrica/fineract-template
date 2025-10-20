@@ -89,4 +89,17 @@
 
         </createTable>
     </changeSet>
+
+    <changeSet author="bosco@fiter.io" id="add_email_addresses_column_to_m_smtp_notification">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <columnExists tableName="m_smtp_notification" columnName="email_address"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="m_smtp_notification">
+            <column name="email_address" type="varchar(255)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>
