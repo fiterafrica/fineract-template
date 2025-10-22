@@ -116,6 +116,14 @@ dependencies {
     implementation ('org.apache.tomcat.embed:tomcat-embed-core:9.0.100') {
         force = true
     }
+    // ADD THESE TWO LINES HERE ↓
+    implementation ('ch.qos.logback:logback-classic:1.4.14') {
+        force = true
+    }
+    implementation ('ch.qos.logback:logback-core:1.4.14') {
+        force = true
+    }
+// END OF NEW LINES ↑
 
 
     implementation('org.springframework.boot:spring-boot-starter-jersey') {
