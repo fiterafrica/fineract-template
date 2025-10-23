@@ -21,6 +21,7 @@ package org.apache.fineract.notification.service;
 import static java.util.stream.Collectors.toSet;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -62,6 +63,7 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransaction;
 import org.apache.fineract.portfolio.shareaccounts.domain.ShareAccount;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.apache.fineract.useradministration.domain.AppUserRepository;
+import org.apache.fineract.useradministration.service.UserPermissionService;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -73,6 +75,8 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
     private final PlatformSecurityContext context;
     private final NotificationEventPublisher notificationEventPublisher;
     private final AppUserRepository appUserRepository;
+    private final UserPermissionService userPermissionService;
+    private final NotificationService notificationService;
 
     @PostConstruct
     public void addListeners() {
@@ -109,8 +113,14 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
         @Override
         public void onBusinessEvent(ClientCreateBusinessEvent event) {
             Client client = event.get();
+            String clientName = client.getDisplayName();
+            Long clientId = client.getId();
+            String message = String.format("New client created: %s (Client ID: %d) is pending Activation.", clientName, clientId);
+
             buildNotification("ACTIVATE_CLIENT", "client", client.getId(), "New client created", "created",
                     context.authenticatedUser().getId(), client.getOffice().getId());
+            List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("ACTIVATE_CLIENT");
+            notificationService.sendNotification(users, "New Client Created !!", message);
         }
     }
 
@@ -181,19 +191,40 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
         @Override
         public void onBusinessEvent(SavingsApproveBusinessEvent event) {
             SavingsAccount savingsAccount = event.get();
+
+            String clientName = savingsAccount.getClient().getDisplayName();
+            Long savingsAccountId = savingsAccount.getId();
+
             if (savingsAccount.depositAccountType().equals(DepositAccountType.FIXED_DEPOSIT)) {
+                String message = String.format("New Fixed Deposit Account is created: %s (Account ID: %d) is pending Activation.", clientName, savingsAccountId);
 
                 buildNotification("ACTIVATE_FIXEDDEPOSITACCOUNT", "fixedDeposit", savingsAccount.getId(), "Fixed deposit account approved",
                         "approved", context.authenticatedUser().getId(), savingsAccount.officeId());
+
+                List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("ACTIVATE_FIXEDDEPOSITACCOUNT");
+                notificationService.sendNotification(users, "Fixed deposit account approved !!", message);
+
             } else if (savingsAccount.depositAccountType().equals(DepositAccountType.RECURRING_DEPOSIT)) {
+                String message = String.format("New Recurring Deposit Account is created: %s (Account ID: %d) is pending Activation.", clientName, savingsAccountId);
+
 
                 buildNotification("ACTIVATE_RECURRINGDEPOSITACCOUNT", "recurringDepositAccount", savingsAccount.getId(),
                         "Recurring deposit account approved", "approved", context.authenticatedUser().getId(), savingsAccount.officeId());
+
+                List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("ACTIVATE_RECURRINGDEPOSITACCOUNT");
+                notificationService.sendNotification(users, "Recurring deposit account approved !!", message);
+
             } else if (savingsAccount.depositAccountType().equals(DepositAccountType.SAVINGS_DEPOSIT)) {
+                String message = String.format("New Savings Account is created: %s (Account ID: %d) is pending Activation.", clientName, savingsAccountId);
 
                 buildNotification("ACTIVATE_SAVINGSACCOUNT", "savingsAccount", savingsAccount.getId(), "Savings account approved",
                         "approved", context.authenticatedUser().getId(), savingsAccount.officeId());
+
+                List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("ACTIVATE_SAVINGSACCOUNT");
+                notificationService.sendNotification(users, "Savings account approved !!", message);
             }
+
+
         }
     }
 
@@ -207,14 +238,20 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
         }
     }
 
+
     private class LoanCreatedListener implements BusinessEventListener<LoanCreatedBusinessEvent> {
 
         @Override
         public void onBusinessEvent(LoanCreatedBusinessEvent event) {
             Loan loan = event.get();
-            buildNotification("APPROVE_LOAN", "loan", loan.getId(), "New loan created", "created", context.authenticatedUser().getId(),
-                    loan.getOfficeId());
-        }
+            String clientName = loan.getClient().getDisplayName();
+            Long loanId = loan.getId();
+            Long clientId = loan.getClient().getId();
+            String message = String.format("New loan created for client %s (Loan ID: %d, Client ID: %d) Approval required", clientName, loanId, clientId);
+
+            buildNotification("APPROVE_LOAN", "loan", loanId, message, "created", context.authenticatedUser().getId(), loan.getOfficeId());
+            List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("APPROVE_LOAN");
+            notificationService.sendNotification(users, "New Loan Created !!", message);  }
     }
 
     private class LoanApprovedListener implements BusinessEventListener<LoanApprovedBusinessEvent> {
@@ -222,8 +259,18 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
         @Override
         public void onBusinessEvent(LoanApprovedBusinessEvent event) {
             Loan loan = event.get();
+
+            String clientName = loan.getClient().getDisplayName();
+            Long loanId = loan.getId();
+            Long clientId = loan.getClient().getId();
+            String message = String.format("Loan approved for client %s (Loan ID: %d, Client ID: %d) Loan Disbursement Required", clientName, loanId, clientId);
+
+
             buildNotification("DISBURSE_LOAN", "loan", loan.getId(), "New loan approved", "approved", context.authenticatedUser().getId(),
                     loan.getOfficeId());
+
+            List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("DISBURSE_LOAN");
+            notificationService.sendNotification(users, "Loan Approved !!", message);
         }
     }
 
@@ -272,10 +319,18 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
         @Override
         public void onBusinessEvent(SavingsCreateBusinessEvent event) {
             SavingsAccount savingsAccount = event.get();
+            String clientName = savingsAccount.getClient().getDisplayName();
+            Long savingsAccountId = savingsAccount.getId();
+            Long clientId = savingsAccount.getClient().getId();
+            String message = String.format("New savings account created for client %s (Account ID: %d, Client ID: %d) Approval required", clientName, savingsAccountId, clientId);
+
             buildNotification("APPROVE_SAVINGSACCOUNT", "savingsAccount", savingsAccount.getId(), "New savings account created", "created",
                     context.authenticatedUser().getId(), savingsAccount.officeId());
+            List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("APPROVE_SAVINGSACCOUNT");
+            notificationService.sendNotification(users, "New Savings Account Created !!", message);
         }
     }
+
 
     private class SavingsAccountClosedListener implements BusinessEventListener<SavingsCloseBusinessEvent> {
 
