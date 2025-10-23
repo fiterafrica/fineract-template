@@ -110,20 +110,22 @@ dependencies {
     implementation ('org.yaml:snakeyaml:1.31') {
         force = true
     }
-    implementation ('org.apache.tomcat.embed:tomcat-embed-el:11.0.6') {
+    implementation ('org.apache.tomcat.embed:tomcat-embed-el:9.0.96') {
         force = true
     }
-    implementation ('org.apache.tomcat.embed:tomcat-embed-core:9.0.100') {
+    implementation ('org.apache.tomcat.embed:tomcat-embed-core:9.0.96') {
         force = true
     }
-    // ADD THESE TWO LINES HERE ↓
+    implementation ('org.apache.tomcat.embed:tomcat-embed-websocket:9.0.96') {
+        force = true
+    }
     implementation ('ch.qos.logback:logback-classic:1.4.14') {
         force = true
     }
     implementation ('ch.qos.logback:logback-core:1.4.14') {
         force = true
     }
-// END OF NEW LINES ↑
+
 
 
     implementation('org.springframework.boot:spring-boot-starter-jersey') {
