@@ -191,19 +191,40 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
         @Override
         public void onBusinessEvent(SavingsApproveBusinessEvent event) {
             SavingsAccount savingsAccount = event.get();
+
+            String clientName = savingsAccount.getClient().getDisplayName();
+            Long savingsAccountId = savingsAccount.getId();
+
             if (savingsAccount.depositAccountType().equals(DepositAccountType.FIXED_DEPOSIT)) {
+                String message = String.format("New Fixed Deposit Account is created: %s (Account ID: %d) is pending Activation.", clientName, savingsAccountId);
 
                 buildNotification("ACTIVATE_FIXEDDEPOSITACCOUNT", "fixedDeposit", savingsAccount.getId(), "Fixed deposit account approved",
                         "approved", context.authenticatedUser().getId(), savingsAccount.officeId());
+
+                List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("ACTIVATE_FIXEDDEPOSITACCOUNT");
+                notificationService.sendNotification(users, "Fixed deposit account approved !!", message);
+
             } else if (savingsAccount.depositAccountType().equals(DepositAccountType.RECURRING_DEPOSIT)) {
+                String message = String.format("New Recurring Deposit Account is created: %s (Account ID: %d) is pending Activation.", clientName, savingsAccountId);
+
 
                 buildNotification("ACTIVATE_RECURRINGDEPOSITACCOUNT", "recurringDepositAccount", savingsAccount.getId(),
                         "Recurring deposit account approved", "approved", context.authenticatedUser().getId(), savingsAccount.officeId());
+
+                List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("ACTIVATE_RECURRINGDEPOSITACCOUNT");
+                notificationService.sendNotification(users, "Recurring deposit account approved !!", message);
+
             } else if (savingsAccount.depositAccountType().equals(DepositAccountType.SAVINGS_DEPOSIT)) {
+                String message = String.format("New Savings Account is created: %s (Account ID: %d) is pending Activation.", clientName, savingsAccountId);
 
                 buildNotification("ACTIVATE_SAVINGSACCOUNT", "savingsAccount", savingsAccount.getId(), "Savings account approved",
                         "approved", context.authenticatedUser().getId(), savingsAccount.officeId());
+
+                List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("ACTIVATE_SAVINGSACCOUNT");
+                notificationService.sendNotification(users, "Savings account approved !!", message);
             }
+
+
         }
     }
 
@@ -238,8 +259,18 @@ public class NotificationDomainServiceImpl implements NotificationDomainService 
         @Override
         public void onBusinessEvent(LoanApprovedBusinessEvent event) {
             Loan loan = event.get();
+
+            String clientName = loan.getClient().getDisplayName();
+            Long loanId = loan.getId();
+            Long clientId = loan.getClient().getId();
+            String message = String.format("Loan approved for client %s (Loan ID: %d, Client ID: %d) Loan Disbursement Required", clientName, loanId, clientId);
+
+
             buildNotification("DISBURSE_LOAN", "loan", loan.getId(), "New loan approved", "approved", context.authenticatedUser().getId(),
                     loan.getOfficeId());
+
+            List<AppUser> users = userPermissionService.findUsersWithCheckerPermission("DISBURSE_LOAN");
+            notificationService.sendNotification(users, "Loan Approved !!", message);
         }
     }
 
