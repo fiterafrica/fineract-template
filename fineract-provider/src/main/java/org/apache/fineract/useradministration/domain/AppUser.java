@@ -132,11 +132,6 @@ public class AppUser extends AbstractPersistableCustom implements PlatformUser {
     @Column(name = "can_login_after", nullable = false, columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime canLoginAfter;
 
-    @Column(name = "is_maker", nullable = false)
-    private boolean isMaker;
-
-    @Column(name = "is_checker", nullable = false)
-    private boolean isChecker;
 
     public static AppUser fromJson(final Office userOffice, final Staff linkedStaff, final Set<Role> allRoles,
             final Collection<Client> clients, final JsonCommand command) {
@@ -775,19 +770,4 @@ public class AppUser extends AbstractPersistableCustom implements PlatformUser {
         this.firstTimeLoginRemaining = firstTimeLoginRemaining;
     }
 
-    public boolean isMaker() {
-        return this.isMaker;
-    }
-
-    public void setMaker(boolean isMaker) {
-        this.isMaker = isMaker;
-    }
-
-    public boolean isChecker() {
-        return this.isChecker;
-    }
-
-    public void setChecker(boolean isChecker) {
-        this.isChecker = isChecker;
-    }
 }
