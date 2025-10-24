@@ -105,4 +105,13 @@
         </sql>
     </changeSet>
 
+    <changeSet id="alter-field_value-to-text-in-m_hook_configuration" author="bosco@fiter.io">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="m_hook_configuration"/>
+            <columnExists tableName="m_hook_configuration" columnName="field_value"/>
+        </preConditions>
+        <modifyDataType tableName="m_hook_configuration" columnName="field_value" newDataType="TEXT"/>
+    </changeSet>
+
+
 </databaseChangeLog>
