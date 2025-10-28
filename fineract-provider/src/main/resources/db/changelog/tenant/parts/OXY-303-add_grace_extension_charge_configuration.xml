@@ -113,5 +113,25 @@
         <modifyDataType tableName="m_hook_configuration" columnName="field_value" newDataType="TEXT"/>
     </changeSet>
 
+    <changeSet author="bosco@fiter.io" id="FSO-282_add_configuration_to_enable_notification_to_user_for_checker_actions">
+
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                select count(1) from c_configuration where name = 'Notify_user_on_checker_actions_enabled';
+            </sqlCheck>
+        </preConditions>
+
+        <insert tableName="c_configuration">
+            <column name="name" value="Notify_user_on_checker_actions_enabled"/>
+            <column name="value" value="null"/>
+            <column name="date_value" value="null"/>
+            <column name="string_value" value="null"/>
+            <column name="enabled" valueBoolean="false"/>
+            <column name="is_trap_door" valueBoolean="false"/>
+            <column name="description" value="Enable notification for checker user"/>
+        </insert>
+
+    </changeSet>
+
 
 </databaseChangeLog>

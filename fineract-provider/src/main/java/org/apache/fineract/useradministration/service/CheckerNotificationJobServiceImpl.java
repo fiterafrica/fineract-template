@@ -21,31 +21,47 @@ package org.apache.fineract.useradministration.service;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.fineract.infrastructure.configuration.data.GlobalConfigurationPropertyData;
+import org.apache.fineract.infrastructure.configuration.service.ConfigurationReadPlatformService;
 import org.apache.fineract.infrastructure.core.domain.EmailDetail;
 import org.apache.fineract.infrastructure.jobs.annotation.CronTarget;
 import org.apache.fineract.infrastructure.jobs.service.JobName;
 import org.apache.fineract.notification.domain.NotificationViaSmtp;
 import org.apache.fineract.notification.domain.NotificationViaSmtpRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.apache.fineract.infrastructure.core.service.GmailBackedPlatformEmailService;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class UpdateUserPermissionJobServiceImpl {
+public class CheckerNotificationJobServiceImpl {
 
     private final NotificationViaSmtpRepository notificationViaSmtpRepository;
     private final GmailBackedPlatformEmailService emailService;
+    private final ConfigurationReadPlatformService configurationReadPlatformService;
+
+    @Value("${FINERACT_SERVER_ENVIRONMENT:Development}")
+    private String serverEnvironment;
+
 
     @CronTarget(jobName = JobName.SEND_NOTIFICATION_ALERT_TO_CHECKER_USERS)
     public void updateUserPermissions() {
+
+        final GlobalConfigurationPropertyData configuration = this.configurationReadPlatformService
+                .retrieveGlobalConfiguration("Notify_user_on_checker_actions_enabled");
+
+        if(configuration == null || !configuration.isEnabled()) {
+            log.info("Notification to checker users is disabled. Exiting job.");
+            return;
+        }
 
         List<NotificationViaSmtp> notificationViaSmtps = notificationViaSmtpRepository.findNotificationViaSmtpNotSent();
         log.info("Found {} unsent notification emails via SMTP to be processed.", notificationViaSmtps.size());
         for (NotificationViaSmtp notification : notificationViaSmtps) {
             try {
 
-                final EmailDetail emailData = new EmailDetail(notification.getSubject(), notification.getMessage(), notification.getEmailAddress(),
+                final EmailDetail emailData = new EmailDetail(serverEnvironment+ "-" +notification.getSubject(), notification.getMessage(), notification.getEmailAddress(),
                         notification.getEmailAddress());
                 emailService.sendDefinedEmail(emailData);
 
