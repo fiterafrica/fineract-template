@@ -28,8 +28,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
 import javax.annotation.PostConstruct;
+import org.apache.fineract.infrastructure.core.config.CronJobConfig;
 import org.apache.fineract.infrastructure.core.config.FineractProperties;
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
+import org.apache.fineract.infrastructure.core.exception.GeneralPlatformDomainRuleException;
 import org.apache.fineract.infrastructure.core.exception.PlatformInternalServerException;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.jobs.annotation.CronMethodParser;
@@ -94,6 +96,9 @@ public class JobRegisterServiceImpl implements JobRegisterService, ApplicationLi
 
     @Autowired
     private FineractProperties fineractProperties;
+    @Autowired
+    private  CronJobConfig cronJobConfig;
+
 
     @PostConstruct
     public void loadAllJobs() {
@@ -120,6 +125,10 @@ public class JobRegisterServiceImpl implements JobRegisterService, ApplicationLi
     }
 
     public void executeJob(final ScheduledJobDetail scheduledJobDetail, String triggerType) {
+        if (!cronJobConfig.isCronJobEnabled()) {
+            throw new GeneralPlatformDomainRuleException("error.msg.job.not.supported.on.server",
+                    "Job not supported on this server");
+        }
         try {
             final JobDataMap jobDataMap = new JobDataMap();
             if (triggerType == null) {
@@ -232,6 +241,10 @@ public class JobRegisterServiceImpl implements JobRegisterService, ApplicationLi
 
     @Override
     public void executeJob(final Long jobId) {
+        if (!cronJobConfig.isCronJobEnabled()) {
+            throw new GeneralPlatformDomainRuleException("error.msg.job.not.supported.on.server",
+                    "Job not supported on this server");
+        }
         final ScheduledJobDetail scheduledJobDetail = this.schedularWritePlatformService.findByJobId(jobId);
         if (scheduledJobDetail == null) {
             throw new JobNotFoundException(String.valueOf(jobId));
