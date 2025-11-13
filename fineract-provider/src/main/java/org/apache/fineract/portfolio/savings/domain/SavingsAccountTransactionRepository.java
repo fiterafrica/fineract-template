@@ -79,4 +79,7 @@ public interface SavingsAccountTransactionRepository
     SavingsAccountTransaction findSavingsAccountTransaction(@Param("transactionId") Long transactionId,
             @Param("savingsAccountId") Long savingsAccountId);
 
+    @Query("SELECT CASE WHEN COUNT(st) > 0 THEN true ELSE false END FROM SavingsAccountTransaction st WHERE st.office.id = :officeId AND st.dateOf = :date AND st.typeOf = 4")
+    boolean existsInterestPostingTransactionForOfficeAndDate(@Param("officeId") Long officeId, @Param("date") java.time.LocalDate date);
+
 }

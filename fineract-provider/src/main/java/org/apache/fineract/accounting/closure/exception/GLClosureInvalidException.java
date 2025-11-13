@@ -29,24 +29,32 @@ public class GLClosureInvalidException extends AbstractPlatformDomainRuleExcepti
     /*** enum of reasons for invalid Accounting Closure **/
     public enum GlClosureInvalidReason {
 
-        FUTURE_DATE, ACCOUNTING_CLOSED;
+        FUTURE_DATE, ACCOUNTING_CLOSED, ACCRUAL_JOB_NOT_RUN, INTEREST_POSTING_JOB_NOT_RUN;
 
         public String errorMessage() {
-            if (name().toString().equalsIgnoreCase("FUTURE_DATE")) {
+            if (name().equalsIgnoreCase("FUTURE_DATE")) {
                 return "Accounting closures cannot be made for a future date";
-            } else if (name().toString().equalsIgnoreCase("ACCOUNTING_CLOSED")) {
+            } else if (name().equalsIgnoreCase("ACCOUNTING_CLOSED")) {
                 return "Accounting Closure for this branch has already been defined for a greater date";
+            } else if (name().equalsIgnoreCase("ACCRUAL_JOB_NOT_RUN")) {
+                return "Accrual job has not run for the selected period. Please run the accrual job before closing.";
+            } else if (name().equalsIgnoreCase("INTEREST_POSTING_JOB_NOT_RUN")) {
+                return "Interest posting job has not run for the selected period. Please run the interest posting job before closing.";
             }
-            return name().toString();
+            return name();
         }
 
         public String errorCode() {
-            if (name().toString().equalsIgnoreCase("FUTURE_DATE")) {
+            if (name().equalsIgnoreCase("FUTURE_DATE")) {
                 return "error.msg.glclosure.invalid.future.date";
-            } else if (name().toString().equalsIgnoreCase("ACCOUNTING_CLOSED")) {
+            } else if (name().equalsIgnoreCase("ACCOUNTING_CLOSED")) {
                 return "error.msg.glclosure.invalid.accounting.closed";
+            } else if (name().equalsIgnoreCase("ACCRUAL_JOB_NOT_RUN")) {
+                return "error.msg.glclosure.invalid.accrual.job.not.run";
+            } else if (name().equalsIgnoreCase("INTEREST_POSTING_JOB_NOT_RUN")) {
+                return "error.msg.glclosure.invalid.interest.posting.job.not.run";
             }
-            return name().toString();
+            return name();
         }
     }
 
