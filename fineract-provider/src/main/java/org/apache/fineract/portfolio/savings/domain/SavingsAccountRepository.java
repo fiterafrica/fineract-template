@@ -83,4 +83,7 @@ public interface SavingsAccountRepository extends JpaRepository<SavingsAccount, 
 
     @Query("SELECT sa FROM SavingsAccount sa WHERE sa.withdrawalFrequency IS NOT NULL AND sa.withdrawalFrequencyEnum IS NOT NULL AND sa.status = 300 AND sa.nextFlexWithdrawalDate IS NOT NULL AND sa.nextFlexWithdrawalDate < :today")
     List<SavingsAccount> findSavingAccountToUpdateNextFlexWithdrawalDate(@Param("today") LocalDate today);
+
+    @Query("SELECT sa FROM SavingsAccount sa WHERE (sa.client.office.id = :officeId OR sa.group.office.id = :officeId) AND sa.status IN (300, 200)")
+    java.util.List<SavingsAccount> findActiveOrMaturedAccountsByOffice(@Param("officeId") Long officeId);
 }
