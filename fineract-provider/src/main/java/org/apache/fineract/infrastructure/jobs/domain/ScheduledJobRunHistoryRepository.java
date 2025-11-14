@@ -29,7 +29,7 @@ public interface ScheduledJobRunHistoryRepository
     @Query("select max(sjrh.version) from ScheduledJobRunHistory sjrh where sjrh.scheduledJobDetail.jobKey = :jobKey")
     Long findMaxVersionByJobKey(@Param("jobKey") String jobKey);
 
-    @Query("SELECT CASE WHEN COUNT(sjrh) > 0 THEN true ELSE false END FROM ScheduledJobRunHistory sjrh WHERE sjrh.scheduledJobDetail.jobKey = :jobKey AND FUNCTION('DATE', sjrh.startTime) = :runDate AND sjrh.status = 'SUCCESSFUL'")
-    boolean didJobRunSuccessfullyOnDate(@Param("jobKey") String jobKey, @Param("runDate") java.time.LocalDate runDate);
+    @Query("SELECT CASE WHEN COUNT(sjrh) > 0 THEN true ELSE false END FROM ScheduledJobRunHistory sjrh WHERE sjrh.scheduledJobDetail.jobName = :name AND FUNCTION('DATE', sjrh.startTime) = :runDate AND sjrh.status = 'success'")
+    boolean didJobRunSuccessfullyOnDate(@Param("name") String name, @Param("runDate") java.time.LocalDate runDate);
 
 }

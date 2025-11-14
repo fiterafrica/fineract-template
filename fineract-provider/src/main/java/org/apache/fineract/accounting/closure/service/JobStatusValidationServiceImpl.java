@@ -53,12 +53,12 @@ public class JobStatusValidationServiceImpl implements JobStatusValidationServic
     @Override
     public void validateJobsForClosure(Long officeId, LocalDate closureDate) {
         // Job keys for accrual and interest posting jobs (update these as per your job configuration)
-        String accrualJobKey = "ACCRUAL_JOB";
-        String interestPostingJobKey = "INTEREST_POSTING_JOB";
+        String POST_ACCRUAL_INTEREST_FOR_SAVINGSJobKey = "Post Accrual Interest for Savings";
+        String POST_INTEREST_FOR_SAVINGSJobKey = "Post Interest For Savings";
 
         // 1. Check if jobs ran successfully on the closure date
-        boolean accrualJobRan = jobRunHistoryRepository.didJobRunSuccessfullyOnDate(accrualJobKey, closureDate);
-        boolean interestPostingJobRan = jobRunHistoryRepository.didJobRunSuccessfullyOnDate(interestPostingJobKey, closureDate);
+        boolean accrualJobRan = jobRunHistoryRepository.didJobRunSuccessfullyOnDate(POST_ACCRUAL_INTEREST_FOR_SAVINGSJobKey, closureDate);
+        boolean interestPostingJobRan = jobRunHistoryRepository.didJobRunSuccessfullyOnDate(POST_INTEREST_FOR_SAVINGSJobKey, closureDate);
         if (!accrualJobRan) {
             throw new GLClosureInvalidException(GlClosureInvalidReason.ACCRUAL_JOB_NOT_RUN, closureDate);
         }
