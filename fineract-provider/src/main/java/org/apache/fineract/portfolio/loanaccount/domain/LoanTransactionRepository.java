@@ -28,10 +28,4 @@ public interface LoanTransactionRepository extends JpaRepository<LoanTransaction
 
     @Query("select tx from LoanTransaction tx where tx.loan.id = :loanId AND tx.typeOf = 2 ORDER BY tx.id DESC")
     List<LoanTransaction> findLastLoanTransaction(@Param("loanId") Long loanId);
-
-    @Query("SELECT CASE WHEN COUNT(tx) > 0 THEN true ELSE false END FROM LoanTransaction tx WHERE tx.office.id = :officeId AND tx.dateOf = :date AND tx.typeOf = 6")
-    boolean existsAccrualTransactionForOfficeAndDate(@Param("officeId") Long officeId, @Param("date") java.time.LocalDate date);
-
-    @Query("SELECT CASE WHEN COUNT(tx) > 0 THEN true ELSE false END FROM LoanTransaction tx WHERE tx.office.id = :officeId AND tx.dateOf = :date AND tx.typeOf = 3")
-    boolean existsInterestPostingTransactionForOfficeAndDate(@Param("officeId") Long officeId, @Param("date") java.time.LocalDate date);
 }

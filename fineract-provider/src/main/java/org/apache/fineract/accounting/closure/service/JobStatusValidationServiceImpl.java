@@ -59,6 +59,8 @@ public class JobStatusValidationServiceImpl implements JobStatusValidationServic
         // 1. Check if jobs ran successfully on the closure date
         boolean accrualJobRan = jobRunHistoryRepository.didJobRunSuccessfullyOnDate(POST_ACCRUAL_INTEREST_FOR_SAVINGSJobKey, closureDate);
         boolean interestPostingJobRan = jobRunHistoryRepository.didJobRunSuccessfullyOnDate(POST_INTEREST_FOR_SAVINGSJobKey, closureDate);
+
+
         if (!accrualJobRan) {
             throw new GLClosureInvalidException(GlClosureInvalidReason.ACCRUAL_JOB_NOT_RUN, closureDate);
         }
@@ -66,19 +68,14 @@ public class JobStatusValidationServiceImpl implements JobStatusValidationServic
             throw new GLClosureInvalidException(GlClosureInvalidReason.INTEREST_POSTING_JOB_NOT_RUN, closureDate);
         }
 
-        // 2. Check for transactions on all active/matured loans
-        for (var loan : loanRepository.findActiveOrMaturedLoansByOffice(officeId)) {
-            boolean hasTransaction = loanTransactionRepository.existsAccrualTransactionForOfficeAndDate(officeId, closureDate)
-                || loanTransactionRepository.existsInterestPostingTransactionForOfficeAndDate(officeId, closureDate);
-            if (!hasTransaction) {
-                throw new GLClosureInvalidException(GlClosureInvalidReason.ACCRUAL_JOB_NOT_RUN, closureDate);
-            }
-        }
-        // 3. Check for transactions on all active/matured savings accounts
         for (var savings : savingsAccountRepository.findActiveOrMaturedAccountsByOffice(officeId)) {
             boolean hasTransaction = savingsAccountTransactionRepository.existsInterestPostingTransactionForOfficeAndDate(officeId, closureDate);
+            boolean accrual = savingsAccountTransactionRepository.existsAccrualInterestPostingTransactionForOfficeAndDate(officeId, closureDate);
             if (!hasTransaction) {
                 throw new GLClosureInvalidException(GlClosureInvalidReason.INTEREST_POSTING_JOB_NOT_RUN, closureDate);
+            }
+            if (!accrual) {
+                throw new GLClosureInvalidException(GlClosureInvalidReason.ACCRUAL_JOB_NOT_RUN, closureDate);
             }
         }
     }
