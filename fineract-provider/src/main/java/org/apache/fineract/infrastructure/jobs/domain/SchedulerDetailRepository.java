@@ -20,11 +20,6 @@ package org.apache.fineract.infrastructure.jobs.domain;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import java.time.LocalDate;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 public interface SchedulerDetailRepository extends JpaRepository<SchedulerDetail, Long>, JpaSpecificationExecutor<SchedulerDetail> {
-    @Query("SELECT * FROM SchedulerDetail sjrh WHERE sjrh.jobName = :name AND FUNCTION('DATE', sjrh.previousRunStartTime) > :runDate  AND sjrh.currentlyRunning = false")
-    SchedulerDetail didJobRunSuccessfullyOnDate(@Param("name") String name, @Param("runDate") LocalDate runDate);
 }

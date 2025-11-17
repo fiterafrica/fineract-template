@@ -21,8 +21,8 @@ package org.apache.fineract.accounting.closure.service;
 import java.time.LocalDate;
 import java.util.List;
 import org.apache.fineract.accounting.closure.exception.GLClosureInvalidException;
-import org.apache.fineract.infrastructure.jobs.domain.SchedulerDetail;
-import org.apache.fineract.infrastructure.jobs.domain.SchedulerDetailRepository;
+import org.apache.fineract.infrastructure.jobs.domain.ScheduledJobDetail;
+import org.apache.fineract.infrastructure.jobs.domain.ScheduledJobDetailRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionRepository;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountRepository;
@@ -34,14 +34,14 @@ import org.springframework.stereotype.Service;
 public class JobStatusValidationServiceImpl implements JobStatusValidationService {
     private final LoanTransactionRepository loanTransactionRepository;
     private final SavingsAccountTransactionRepository savingsAccountTransactionRepository;
-    private final SchedulerDetailRepository schedulerDetailRepository;
+    private final ScheduledJobDetailRepository schedulerDetailRepository;
     private final LoanRepository loanRepository;
     private final SavingsAccountRepository savingsAccountRepository;
 
     @Autowired
     public JobStatusValidationServiceImpl(LoanTransactionRepository loanTransactionRepository,
                                           SavingsAccountTransactionRepository savingsAccountTransactionRepository,
-                                          SchedulerDetailRepository schedulerDetailRepository,
+                                          ScheduledJobDetailRepository schedulerDetailRepository,
                                           LoanRepository loanRepository,
                                           SavingsAccountRepository savingsAccountRepository) {
         this.loanTransactionRepository = loanTransactionRepository;
@@ -68,7 +68,7 @@ public class JobStatusValidationServiceImpl implements JobStatusValidationServic
         );
 
         for (String jobName : jobNames) {
-            SchedulerDetail jobRan = schedulerDetailRepository.didJobRunSuccessfullyOnDate(jobName, closureDate);
+            ScheduledJobDetail jobRan = schedulerDetailRepository.didJobRunSuccessfullyOnDate(jobName, closureDate);
             if (jobRan != null) {
                 switch (jobName) {
                     case "Post Accrual Interest for Savings":
