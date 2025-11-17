@@ -29,7 +29,10 @@ public class GLClosureInvalidException extends AbstractPlatformDomainRuleExcepti
     /*** enum of reasons for invalid Accounting Closure **/
     public enum GlClosureInvalidReason {
 
-        FUTURE_DATE, ACCOUNTING_CLOSED, ACCRUAL_JOB_NOT_RUN, INTEREST_POSTING_JOB_NOT_RUN;
+        FUTURE_DATE, ACCOUNTING_CLOSED, ACCRUAL_JOB_NOT_RUN, INTEREST_POSTING_JOB_NOT_RUN
+        ,ADD_ACCRUAL_TRANSACTIONS_JOB,ADD_ACCRUAL_TX_FOR_LOANS_WITH_INCOME_POSTED_AS_TX,ADD_PERIODIC_ACCRUALS_JOB,
+        APPLY_ANNUAL_FEES_FOR_SAVINGS_JOB,APPLY_PENALTIES_FOR_LOANS_JOB,
+        EXECUTE_STANDING_INSTRUCTIONS_JOB,TRANSFER_FEE_FOR_LOANS_FROM_SAVINGS_JOB;
 
         public String errorMessage() {
             if (name().equalsIgnoreCase("FUTURE_DATE")) {
@@ -37,9 +40,23 @@ public class GLClosureInvalidException extends AbstractPlatformDomainRuleExcepti
             } else if (name().equalsIgnoreCase("ACCOUNTING_CLOSED")) {
                 return "Accounting Closure for this branch has already been defined for a greater date";
             } else if (name().equalsIgnoreCase("ACCRUAL_JOB_NOT_RUN")) {
-                return "Accrual job has not run for the selected period. Please run the accrual job before closing.";
+                return "[Post Accrual Interest for Savings] has not run for the selected period. Please run the accrual job before closing.";
             } else if (name().equalsIgnoreCase("INTEREST_POSTING_JOB_NOT_RUN")) {
-                return "Interest posting job has not run for the selected period. Please run the interest posting job before closing.";
+                return "[Post Interest For Savings] job has not run for the selected period. Please run the interest posting job before closing.";
+            } else if(name().equalsIgnoreCase("ADD_ACCRUAL_TRANSACTIONS_JOB")) {
+                return "[Add Accrual Transactions] job has not run for the selected period. Please run the job before closing.";
+            } else if(name().equalsIgnoreCase("ADD_ACCRUAL_TX_FOR_LOANS_WITH_INCOME_POSTED_AS_TX")) {
+                return "[Add Accrual Transactions For Loans With Income Posted As Transactions] job has not run for the selected period. Please run the job before closing.";
+            } else if(name().equalsIgnoreCase("ADD_PERIODIC_ACCRUALS_JOB")) {
+                return "[Add Periodic Accruals Transactions] job has not run for the selected period. Please run the job before closing.";
+            } else if(name().equalsIgnoreCase("APPLY_ANNUAL_FEES_FOR_SAVINGS_JOB")) {
+                return "[Apply Annual Fees For Savings] job has not run for the selected period. Please run the job before closing.";
+            } else if(name().equalsIgnoreCase("APPLY_PENALTIES_FOR_LOANS_JOB")) {
+                return "[Apply penalty to overdue loans] job has not run for the selected period. Please run the job before closing.";
+            } else if(name().equalsIgnoreCase("EXECUTE_STANDING_INSTRUCTIONS_JOB")) {
+                return "[Execute Standing Instructions] job has not run for the selected period. Please run the job before closing.";
+            } else if(name().equalsIgnoreCase("TRANSFER_FEE_FOR_LOANS_FROM_SAVINGS_JOB")) {
+                return "[Transfer Fee For Loans From Savings] job has not run for the selected period. Please run the job before closing.";
             }
             return name();
         }
@@ -53,6 +70,20 @@ public class GLClosureInvalidException extends AbstractPlatformDomainRuleExcepti
                 return "error.msg.glclosure.invalid.accrual.job.not.run";
             } else if (name().equalsIgnoreCase("INTEREST_POSTING_JOB_NOT_RUN")) {
                 return "error.msg.glclosure.invalid.interest.posting.job.not.run";
+            }else if(name().equalsIgnoreCase("ADD_ACCRUAL_TRANSACTIONS_JOB")) {
+                return "error.msg.glclosure.invalid.add.accrual.transactions.job.not.run";
+            } else if(name().equalsIgnoreCase("ADD_ACCRUAL_TX_FOR_LOANS_WITH_INCOME_POSTED_AS_TX")) {
+                return "error.msg.glclosure.invalid.add.accrual.transactions.for.loans.with.income.posted.as.transactions.job.not.run";
+            } else if(name().equalsIgnoreCase("ADD_PERIODIC_ACCRUALS_JOB")) {
+                return "error.msg.glclosure.invalid.add.periodic.accruals.job.not.run";
+            } else if(name().equalsIgnoreCase("APPLY_ANNUAL_FEES_FOR_SAVINGS_JOB")) {
+                return "error.msg.glclosure.invalid.apply.annual.fees.for.savings.job.not.run";
+            } else if(name().equalsIgnoreCase("APPLY_PENALTIES_FOR_LOANS_JOB")) {
+                return "error.msg.glclosure.invalid.apply.penalties.for.loans.job.not.run";
+            } else if(name().equalsIgnoreCase("EXECUTE_STANDING_INSTRUCTIONS_JOB")) {
+                return "error.msg.glclosure.invalid.execute.standing.instructions.job.not.run";
+            } else if(name().equalsIgnoreCase("TRANSFER_FEE_FOR_LOANS_FROM_SAVINGS_JOB")) {
+                return "error.msg.glclosure.invalid.transfer.fee.for.loans.from.savings.job.not.run";
             }
             return name();
         }
