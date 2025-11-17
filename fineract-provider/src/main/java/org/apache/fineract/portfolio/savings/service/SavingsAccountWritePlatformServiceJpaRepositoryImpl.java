@@ -47,6 +47,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.fineract.accounting.closure.domain.GLClosure;
+import org.apache.fineract.accounting.closure.domain.GLClosureRepository;
+import org.apache.fineract.accounting.journalentry.exception.JournalEntryInvalidException;
 import org.apache.fineract.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.codes.domain.CodeValueRepositoryWrapper;
@@ -178,6 +181,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     private final PaymentTypeRepositoryWrapper repositoryWrapper;
 
     private final SavingsAccountTransactionLimitPlatformService savingsAccountTransactionLimitPlatformService;
+    private final GLClosureRepository glClosureRepository;
 
     @Autowired
     public SavingsAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -202,7 +206,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             final BusinessEventNotifierService businessEventNotifierService, final GSIMRepositoy gsimRepository,
             final JdbcTemplate jdbcTemplate, final SavingsAccountInterestPostingService savingsAccountInterestPostingService,
             final CodeValueRepositoryWrapper codeValueRepositoryWrapper, final PaymentTypeRepositoryWrapper repositoryWrapper,
-            final SavingsAccountTransactionLimitPlatformService savingsAccountTransactionLimitPlatformService) {
+            final SavingsAccountTransactionLimitPlatformService savingsAccountTransactionLimitPlatformService,
+                                                               final GLClosureRepository glClosureRepository) {
         this.context = context;
         this.savingAccountRepositoryWrapper = savingAccountRepositoryWrapper;
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
@@ -234,6 +239,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         this.codeValueRepositoryWrapper = codeValueRepositoryWrapper;
         this.repositoryWrapper = repositoryWrapper;
         this.savingsAccountTransactionLimitPlatformService = savingsAccountTransactionLimitPlatformService;
+        this.glClosureRepository = glClosureRepository;
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(SavingsAccountWritePlatformServiceJpaRepositoryImpl.class);
@@ -675,6 +681,9 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             }
 
         }
+        validateTransactionAgainstAccountingClosurePeriod(transactionDate, account);
+
+
         postInterest(account, postInterestAs, transactionDate);
 
         this.businessEventNotifierService.notifyBusinessEventWasExecuted(
@@ -2349,6 +2358,9 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         if (transactionDate.isBefore(account.accountSubmittedOrActivationDate())) {
             throw new PostInterestAsOnDateException(PostInterestAsOnExceptionType.ACTIVATION_DATE);
         }
+
+        validateTransactionAgainstAccountingClosurePeriod(transactionDate, account);
+
         List<SavingsAccountTransaction> savingTransactions = account.getTransactions();
         for (SavingsAccountTransaction savingTransaction : savingTransactions) {
             if (!savingTransaction.isReversed() && !savingTransaction.isAccrualInterestPostingAndNotReversed()
@@ -2380,6 +2392,20 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
                 .withSavingsId(savingsId) //
                 .build();
 
+    }
+
+    private void validateTransactionAgainstAccountingClosurePeriod(LocalDate transactionDate, SavingsAccount account) {
+        final GLClosure latestGLClosureByBranch = this.glClosureRepository.getLatestGLClosureByBranch(account.officeId());
+        if (latestGLClosureByBranch != null) {
+            if (latestGLClosureByBranch.getClosingDate().isAfter(transactionDate)
+                    || latestGLClosureByBranch.getClosingDate().compareTo(transactionDate) == 0 ? Boolean.TRUE
+                    : Boolean.FALSE) {
+                final String accountName = null;
+                final String accountGLCode = null;
+                throw new JournalEntryInvalidException(JournalEntryInvalidException.GlJournalEntryInvalidReason.ACCOUNTING_CLOSED,
+                        latestGLClosureByBranch.getClosingDate(), accountName, accountGLCode);
+            }
+        }
     }
 
     @Override
@@ -2454,6 +2480,8 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             }
 
         }
+        //Validate against accounting closures
+        validateTransactionAgainstAccountingClosurePeriod(transactionDate, account);
 
         postAccrualInterest(account, postInterestAs, transactionDate, true);
 
