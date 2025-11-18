@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.infrastructure.jobs.domain;
+package org.apache.fineract.accounting.closure.service;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import java.time.LocalDate;
 
-public interface ScheduledJobRunHistoryRepository
-        extends JpaRepository<ScheduledJobRunHistory, Long>, JpaSpecificationExecutor<ScheduledJobRunHistory> {
-
-    @Query("select max(sjrh.version) from ScheduledJobRunHistory sjrh where sjrh.scheduledJobDetail.jobKey = :jobKey")
-    Long findMaxVersionByJobKey(@Param("jobKey") String jobKey);
+public interface JobStatusValidationService {
+    /**
+     * Validates that all required jobs (e.g., accrual, interest posting) have run for the given office and closure date.
+     * Throws GLClosureInvalidException if validation fails.
+     *
+     * @param officeId the office to validate
+     * @param closureDate the date of closure
+     */
+    void validateJobsForClosure(Long officeId, LocalDate closureDate);
 }
+

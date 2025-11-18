@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.infrastructure.jobs.domain;
 
+import java.time.LocalDate;
 import java.util.List;
 import javax.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -44,5 +45,8 @@ public interface ScheduledJobDetailRepository
 
     @Query("select jobDetail from ScheduledJobDetail jobDetail where jobDetail.nodeId = :nodeId or jobDetail.nodeId = 0")
     List<ScheduledJobDetail> findAllJobs(@Param("nodeId") Integer nodeId);
+
+    @Query("SELECT sjrh FROM ScheduledJobDetail sjrh WHERE sjrh.jobName = :name AND FUNCTION('DATE', sjrh.previousRunStartTime) > :runDate  AND sjrh.currentlyRunning = false")
+    ScheduledJobDetail didJobRunSuccessfullyOnDate(@Param("name") String name, @Param("runDate") LocalDate runDate);
 
 }
