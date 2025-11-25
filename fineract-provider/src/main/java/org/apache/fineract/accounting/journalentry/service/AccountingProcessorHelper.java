@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.accounting.closure.domain.GLClosure;
 import org.apache.fineract.accounting.closure.domain.GLClosureRepository;
@@ -78,6 +79,7 @@ import org.apache.fineract.portfolio.shareaccounts.data.ShareAccountTransactionE
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccountingProcessorHelper {
@@ -421,6 +423,7 @@ public class AccountingProcessorHelper {
         }
 
         if (totalAmount.compareTo(totalCreditedAmount) != 0) {
+            log.debug("**** Total Amount:- {} does not match with total credited amount:- {}  -- ****", totalAmount, totalCreditedAmount);
             throw new PlatformDataIntegrityException(
                     "Meltdown in advanced accounting...sum of all charges is not equal to the fee charge for a transaction",
                     "Meltdown in advanced accounting...sum of all charges is not equal to the fee charge for a transaction",

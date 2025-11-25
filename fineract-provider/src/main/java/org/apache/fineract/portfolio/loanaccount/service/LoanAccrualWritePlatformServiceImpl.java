@@ -28,6 +28,8 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.accounting.journalentry.service.JournalEntryWritePlatformService;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.core.service.database.DatabaseSpecificSQLGenerator;
@@ -53,6 +55,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlatformService {
 
@@ -358,10 +361,15 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
     private void updateCharges(final Collection<LoanChargeData> chargesData, final LoanScheduleAccrualData accrualData,
             final LocalDate startDate, final LocalDate endDate) {
 
+        log.info("*********************************START***********************************************");
+        log.info("Updating charges for loan id: {} Size {} ", accrualData.getLoanId(), chargesData.size());
         final Map<LoanChargeData, BigDecimal> applicableCharges = new HashMap<>();
         BigDecimal dueDateFeeIncome = BigDecimal.ZERO;
         BigDecimal dueDatePenaltyIncome = BigDecimal.ZERO;
         for (LoanChargeData loanCharge : chargesData) {
+            log.info("********************************************************************************");
+            log.info("Loan ID {} Processing charge id: {} due date: {} -- Amount -- ",loanCharge.getLoanId(), loanCharge.getId(), loanCharge.getDueDate(),loanCharge.getAmountAccrued());
+            log.info("********************************************************************************");
             BigDecimal chargeAmount = BigDecimal.ZERO;
             if (loanCharge.getDueDate() == null) {
                 if (loanCharge.isInstallmentFee() && accrualData.getDueDateAsLocaldate().isEqual(endDate)) {
@@ -398,11 +406,9 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
                     chargeAmount = chargeAmount.subtract(loanCharge.getAmountUnrecognized());
                 }
                 boolean canAddCharge = chargeAmount.compareTo(BigDecimal.ZERO) > 0;
-                if (canAddCharge && (loanCharge.getAmountAccrued() == null || chargeAmount.compareTo(loanCharge.getAmountAccrued()) != 0)) {
+                if (canAddCharge) {
                     BigDecimal amountForAccrual = chargeAmount;
-                    if (loanCharge.getAmountAccrued() != null) {
-                        amountForAccrual = chargeAmount.subtract(loanCharge.getAmountAccrued());
-                    }
+
                     applicableCharges.put(loanCharge, amountForAccrual);
                 }
             }
@@ -423,6 +429,7 @@ public class LoanAccrualWritePlatformServiceImpl implements LoanAccrualWritePlat
         }
 
         accrualData.updateChargeDetails(applicableCharges, dueDateFeeIncome, dueDatePenaltyIncome);
+        log.info("********************************END************************************************");
     }
 
     private void updateInterestIncome(final LoanScheduleAccrualData accrualData,
