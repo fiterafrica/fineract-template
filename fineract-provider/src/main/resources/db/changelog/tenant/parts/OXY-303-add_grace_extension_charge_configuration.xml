@@ -132,6 +132,22 @@
         </insert>
 
     </changeSet>
+    <changeSet author="bosco@fiter.io" id="add_login_authentication_permission">
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="LOGIN_AUTHENTICATION"/>
+            <column name="entity_name" value="AUTHENTICATION"/>
+            <column name="action_name" value="LOGIN"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="LOGOUT_AUTHENTICATION"/>
+            <column name="entity_name" value="AUTHENTICATION"/>
+            <column name="action_name" value="LOGOUT"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+    </changeSet>
 
 
 </databaseChangeLog>
