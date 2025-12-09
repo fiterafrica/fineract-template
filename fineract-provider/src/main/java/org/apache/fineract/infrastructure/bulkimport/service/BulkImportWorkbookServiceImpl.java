@@ -251,7 +251,7 @@ public class BulkImportWorkbookServiceImpl implements BulkImportWorkbookService 
     }
 
     @Override
-    public Response getOutputTemplate(String importDocumentId) {
+    public Response getOutputTemplate(Long importDocumentId) {
         this.securityContext.authenticatedUser();
         final ImportTemplateLocationMapper importTemplateLocationMapper = new ImportTemplateLocationMapper();
         final String sql = "select " + importTemplateLocationMapper.schema();

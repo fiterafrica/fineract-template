@@ -103,7 +103,7 @@ public class BulkImportApiResource {
     @GET
     @Path("downloadOutputTemplate")
     @Produces("application/vnd.ms-excel")
-    public Response getOutputTemplate(@QueryParam("importDocumentId") final String importDocumentId) {
+    public Response getOutputTemplate(@QueryParam("importDocumentId") final Long importDocumentId) {
         return bulkImportWorkbookService.getOutputTemplate(importDocumentId);
     }
 
