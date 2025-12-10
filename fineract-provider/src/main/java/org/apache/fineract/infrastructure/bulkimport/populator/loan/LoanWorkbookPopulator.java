@@ -19,6 +19,8 @@
 package org.apache.fineract.infrastructure.bulkimport.populator.loan;
 
 import java.util.List;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.infrastructure.bulkimport.constants.LoanConstants;
 import org.apache.fineract.infrastructure.bulkimport.constants.TemplatePopulateImportConstants;
 import org.apache.fineract.infrastructure.bulkimport.populator.AbstractWorkbookPopulator;
@@ -46,6 +48,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddressList;
 
+@Slf4j
 public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
 
     private OfficeSheetPopulator officeSheetPopulator;
@@ -522,7 +525,7 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
             Name chargeAmountType = loanWorkbook.createName();
 
             String chargeName = charges.get(i).getName().trim().replaceAll("[ )(]", "_");
-
+            log.info("Setting charge names for charge:- " + chargeName);
             chargeColName.setNameName("CHARGE_NAME_" + chargeName);
             chargeColName.setRefersToFormula(TemplatePopulateImportConstants.CHARGE_SHEET_NAME + "!$B$" + (i + 2));
 
@@ -571,7 +574,7 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
             Name graceOnInterestPaymentName = loanWorkbook.createName();
             Name graceOnInterestChargedName = loanWorkbook.createName();
             Name startDateName = loanWorkbook.createName();
-            String productName = products.get(i).getName().replaceAll("[ ]", "_");
+            String productName = products.get(i).getName().replaceAll("[ )(]", "_");
             setSanitized(fundName, "FUND_" + productName);
             setSanitized(principalName, "PRINCIPAL_" + productName);
             setSanitized(minPrincipalName, "MIN_PRINCIPAL_" + productName);
