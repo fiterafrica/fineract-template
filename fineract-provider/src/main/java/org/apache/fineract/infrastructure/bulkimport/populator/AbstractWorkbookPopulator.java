@@ -40,6 +40,7 @@ public abstract class AbstractWorkbookPopulator implements WorkbookPopulator {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractWorkbookPopulator.class);
     private static final Pattern NAME_REGEX = Pattern.compile("[^a-zA-Z0-9_.]");
+//    private static final Pattern NAME_REGEX = Pattern.compile("[ @#&()<>,;.:$£€§°\\\\/=!\\?\\-\\+\\*\"\\[\\]]");
 
     protected void writeInt(int colIndex, Row row, int value) {
         row.createCell(colIndex).setCellValue(value);
@@ -159,7 +160,11 @@ public abstract class AbstractWorkbookPopulator implements WorkbookPopulator {
      * See {@link Name#setNameName(String)} and https://issues.apache.org/jira/browse/FINERACT-1256.
      */
     protected void setSanitized(Name poiName, String roughName) {
-        String sanitized = NAME_REGEX.matcher(roughName.trim()).replaceAll("_");
+        LOG.info("Rough name: '{}'", roughName);
+        String trimmedName = roughName.trim();
+        LOG.info("Trimmed name: '{}'", trimmedName);
+        String sanitized = NAME_REGEX.matcher(trimmedName).replaceAll("_");
+        LOG.info("Sanitized name: '{}'", sanitized);
         poiName.setNameName(sanitized);
     }
 }
