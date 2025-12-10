@@ -29,8 +29,8 @@ import org.apache.fineract.infrastructure.bulkimport.populator.ClientSheetPopula
 import org.apache.fineract.infrastructure.bulkimport.populator.ExtrasSheetPopulator;
 import org.apache.fineract.infrastructure.bulkimport.populator.OfficeSheetPopulator;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountData;
-import org.apache.poi.hssf.usermodel.HSSFDataValidationHelper;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.ss.SpreadsheetVersion;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.DataValidation;
@@ -99,7 +99,7 @@ public class FixedDepositTransactionWorkbookPopulator extends AbstractWorkbookPo
         CellRangeAddressList transactionDateRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
                 TransactionConstants.TRANSACTION_DATE_COL, TransactionConstants.TRANSACTION_DATE_COL);
 
-        DataValidationHelper validationHelper = new HSSFDataValidationHelper((HSSFSheet) worksheet);
+        DataValidationHelper validationHelper = new XSSFDataValidationHelper((XSSFSheet) worksheet);
 
         setNames(worksheet);
 

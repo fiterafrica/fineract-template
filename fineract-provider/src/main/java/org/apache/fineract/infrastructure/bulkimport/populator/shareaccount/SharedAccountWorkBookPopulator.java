@@ -27,8 +27,8 @@ import org.apache.fineract.infrastructure.bulkimport.populator.SavingsAccountShe
 import org.apache.fineract.infrastructure.bulkimport.populator.SharedProductsSheetPopulator;
 import org.apache.fineract.portfolio.client.data.ClientData;
 import org.apache.fineract.portfolio.shareproducts.data.ShareProductData;
-import org.apache.poi.hssf.usermodel.HSSFDataValidationHelper;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.ss.SpreadsheetVersion;
 import org.apache.poi.ss.usermodel.DataValidation;
 import org.apache.poi.ss.usermodel.DataValidationConstraint;
@@ -99,7 +99,7 @@ public class SharedAccountWorkBookPopulator extends AbstractWorkbookPopulator {
                 SharedAccountsConstants.ALLOW_DIVIDEND_CALCULATION_FOR_INACTIVE_CLIENTS_COL,
                 SharedAccountsConstants.ALLOW_DIVIDEND_CALCULATION_FOR_INACTIVE_CLIENTS_COL);
 
-        DataValidationHelper validationHelper = new HSSFDataValidationHelper((HSSFSheet) sharedAccountSheet);
+        DataValidationHelper validationHelper = new XSSFDataValidationHelper((XSSFSheet) sharedAccountSheet);
         setNames(sharedAccountSheet);
 
         DataValidationConstraint clientNameConstraint = validationHelper.createFormulaListConstraint("Clients");

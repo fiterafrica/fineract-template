@@ -23,8 +23,8 @@ import org.apache.fineract.infrastructure.bulkimport.constants.OfficeConstants;
 import org.apache.fineract.infrastructure.bulkimport.constants.TemplatePopulateImportConstants;
 import org.apache.fineract.infrastructure.bulkimport.populator.AbstractWorkbookPopulator;
 import org.apache.fineract.organisation.office.data.OfficeData;
-import org.apache.poi.hssf.usermodel.HSSFDataValidationHelper;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.ss.SpreadsheetVersion;
 import org.apache.poi.ss.usermodel.DataValidation;
 import org.apache.poi.ss.usermodel.DataValidationConstraint;
@@ -87,7 +87,7 @@ public class OfficeWorkbookPopulator extends AbstractWorkbookPopulator {
         CellRangeAddressList OpenedOndateRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
                 OfficeConstants.OPENED_ON_COL, OfficeConstants.OPENED_ON_COL);
 
-        DataValidationHelper validationHelper = new HSSFDataValidationHelper((HSSFSheet) workSheet);
+        DataValidationHelper validationHelper = new XSSFDataValidationHelper((XSSFSheet) workSheet);
         setNames(workSheet);
 
         DataValidationConstraint parentOfficeNameConstraint = validationHelper.createFormulaListConstraint("Office");
