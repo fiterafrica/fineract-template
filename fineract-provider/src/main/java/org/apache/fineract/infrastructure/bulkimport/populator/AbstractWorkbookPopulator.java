@@ -39,7 +39,8 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractWorkbookPopulator implements WorkbookPopulator {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractWorkbookPopulator.class);
-    private static final Pattern NAME_REGEX = Pattern.compile("[^a-zA-Z0-9_.@#&()<>,;.:$£€§°\\\\\\\\/=!\\\\?\\\\-\\\\+\\\\*\\\"\\\\[\\\\]]");
+    private static final Pattern NAME_REGEX = Pattern.compile("[^a-zA-Z0-9_.]");
+//    private static final Pattern NAME_REGEX = Pattern.compile("[^a-zA-Z0-9_.@#&()<>,;.:$£€§°\\\\\\\\/=!\\\\?\\\\-\\\\+\\\\*\\\"\\\\[\\\\]]");
 //    private static final Pattern NAME_REGEX = Pattern.compile("[ @#&()<>,;.:$£€§°\\\\/=!\\?\\-\\+\\*\"\\[\\]]");
 
     protected void writeInt(int colIndex, Row row, int value) {
