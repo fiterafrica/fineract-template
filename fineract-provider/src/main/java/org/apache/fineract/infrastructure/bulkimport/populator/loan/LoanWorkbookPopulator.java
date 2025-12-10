@@ -19,6 +19,8 @@
 package org.apache.fineract.infrastructure.bulkimport.populator.loan;
 
 import java.util.List;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.infrastructure.bulkimport.constants.LoanConstants;
 import org.apache.fineract.infrastructure.bulkimport.constants.TemplatePopulateImportConstants;
 import org.apache.fineract.infrastructure.bulkimport.populator.AbstractWorkbookPopulator;
@@ -31,8 +33,8 @@ import org.apache.fineract.infrastructure.bulkimport.populator.OfficeSheetPopula
 import org.apache.fineract.infrastructure.bulkimport.populator.PersonnelSheetPopulator;
 import org.apache.fineract.portfolio.charge.data.ChargeData;
 import org.apache.fineract.portfolio.loanproduct.data.LoanProductData;
-import org.apache.poi.hssf.usermodel.HSSFDataValidationHelper;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.ss.SpreadsheetVersion;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
@@ -46,6 +48,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddressList;
 
+@Slf4j
 public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
 
     private OfficeSheetPopulator officeSheetPopulator;
@@ -142,7 +145,7 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
                 LoanConstants.REPAYMENT_TYPE_COL, LoanConstants.REPAYMENT_TYPE_COL);
         CellRangeAddressList lastrepaymentDateRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
                 LoanConstants.LAST_REPAYMENT_DATE_COL, LoanConstants.LAST_REPAYMENT_DATE_COL);
-        DataValidationHelper validationHelper = new HSSFDataValidationHelper((HSSFSheet) worksheet);
+        DataValidationHelper validationHelper = new XSSFDataValidationHelper((XSSFSheet) worksheet);
 
         CellRangeAddressList chargeOneNameRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
                 LoanConstants.CHARGE_NAME_1, LoanConstants.CHARGE_NAME_1);
@@ -522,7 +525,7 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
             Name chargeAmountType = loanWorkbook.createName();
 
             String chargeName = charges.get(i).getName().trim().replaceAll("[ )(]", "_");
-
+            log.info("Setting charge names for charge:- " + chargeName);
             chargeColName.setNameName("CHARGE_NAME_" + chargeName);
             chargeColName.setRefersToFormula(TemplatePopulateImportConstants.CHARGE_SHEET_NAME + "!$B$" + (i + 2));
 
@@ -571,7 +574,7 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
             Name graceOnInterestPaymentName = loanWorkbook.createName();
             Name graceOnInterestChargedName = loanWorkbook.createName();
             Name startDateName = loanWorkbook.createName();
-            String productName = products.get(i).getName().replaceAll("[ ]", "_");
+            String productName = products.get(i).getName().replaceAll("[ )(]", "_");
             setSanitized(fundName, "FUND_" + productName);
             setSanitized(principalName, "PRINCIPAL_" + productName);
             setSanitized(minPrincipalName, "MIN_PRINCIPAL_" + productName);

@@ -46,7 +46,7 @@ import org.apache.fineract.integrationtests.common.Utils;
 import org.apache.fineract.integrationtests.common.organisation.StaffHelper;
 import org.apache.fineract.integrationtests.common.savings.SavingsAccountHelper;
 import org.apache.fineract.integrationtests.common.savings.SavingsProductHelper;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -170,7 +170,7 @@ public class SavingsImportHandlerTest {
         if (!directory.exists()) {
             directory.mkdirs();
         }
-        File file = new File(directory + File.separator + "Savings.xls");
+        File file = new File(directory + File.separator + "Savings.xlsx");
         OutputStream outputStream = new FileOutputStream(file);
         workbook.write(outputStream);
         outputStream.close();
@@ -185,7 +185,7 @@ public class SavingsImportHandlerTest {
         // check status column of output excel
         String location = savingsAccountHelper.getOutputTemplateLocation(importDocumentId);
         FileInputStream fileInputStream = new FileInputStream(location);
-        Workbook Outputworkbook = new HSSFWorkbook(fileInputStream);
+        Workbook Outputworkbook = new XSSFWorkbook(fileInputStream);
         Sheet OutputSavingsSheet = Outputworkbook.getSheet(TemplatePopulateImportConstants.SAVINGS_ACCOUNTS_SHEET_NAME);
         Row row = OutputSavingsSheet.getRow(1);
 

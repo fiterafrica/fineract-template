@@ -106,7 +106,7 @@ import org.apache.fineract.portfolio.savings.service.SavingsProductReadPlatformS
 import org.apache.fineract.portfolio.shareproducts.data.ShareProductData;
 import org.apache.fineract.useradministration.data.RoleData;
 import org.apache.fineract.useradministration.service.RoleReadPlatformService;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -176,7 +176,7 @@ public class BulkImportWorkbookPopulatorServiceImpl implements BulkImportWorkboo
     @Override
     public Response getTemplate(String entityType, Long officeId, Long staffId, final String dateFormat) {
         WorkbookPopulator populator = null;
-        final Workbook workbook = new HSSFWorkbook();
+        final Workbook workbook = new XSSFWorkbook();
         if (entityType != null) {
             if (entityType.trim().equalsIgnoreCase(GlobalEntityType.CLIENTS_PERSON.toString())
                     || entityType.trim().equalsIgnoreCase(GlobalEntityType.CLIENTS_ENTITY.toString())) {
@@ -251,7 +251,7 @@ public class BulkImportWorkbookPopulatorServiceImpl implements BulkImportWorkboo
     }
 
     private Response buildResponse(final Workbook workbook, final String entity) {
-        String filename = entity + DateUtils.getBusinessLocalDate().toString() + ".xls";
+        String filename = entity + DateUtils.getBusinessLocalDate().toString() + ".xlsx";
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
             workbook.write(baos);
@@ -261,7 +261,7 @@ public class BulkImportWorkbookPopulatorServiceImpl implements BulkImportWorkboo
 
         final ResponseBuilder response = Response.ok(baos.toByteArray());
         response.header("Content-Disposition", "attachment; filename=\"" + filename + "\"");
-        response.header("Content-Type", "application/vnd.ms-excel");
+        response.header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         return response.build();
     }
 

@@ -35,6 +35,6 @@ public interface BulkImportWorkbookService {
 
     DocumentData getOutputTemplateLocation(String importDocumentId);
 
-    Response getOutputTemplate(String importDocumentId);
+    Response getOutputTemplate(Long importDocumentId);
 
 }
