@@ -42,7 +42,7 @@ import org.apache.fineract.integrationtests.common.OfficeHelper;
 import org.apache.fineract.integrationtests.common.Utils;
 import org.apache.fineract.integrationtests.common.organisation.StaffHelper;
 import org.apache.fineract.integrationtests.common.system.CodeHelper;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -131,7 +131,7 @@ public class ClientEntityImportHandlerTest {
         if (!directory.exists()) {
             directory.mkdirs();
         }
-        File file = new File(directory + File.separator + "ClientEntity.xls");
+        File file = new File(directory + File.separator + "ClientEntity.xlsx");
         OutputStream outputStream = new FileOutputStream(file);
         workbook.write(outputStream);
         outputStream.close();
@@ -146,7 +146,7 @@ public class ClientEntityImportHandlerTest {
         // check status column of output excel
         String location = clientHelper.getOutputTemplateLocation(importDocumentId);
         FileInputStream fileInputStream = new FileInputStream(location);
-        Workbook outputWorkbook = new HSSFWorkbook(fileInputStream);
+        Workbook outputWorkbook = new XSSFWorkbook(fileInputStream);
         Sheet outputClientEntitySheet = outputWorkbook.getSheet(TemplatePopulateImportConstants.CLIENT_ENTITY_SHEET_NAME);
         Row row = outputClientEntitySheet.getRow(1);
 

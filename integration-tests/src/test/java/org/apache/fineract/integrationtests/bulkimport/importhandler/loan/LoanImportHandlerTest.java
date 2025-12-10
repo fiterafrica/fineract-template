@@ -54,7 +54,7 @@ import org.apache.fineract.integrationtests.common.funds.FundsResourceHandler;
 import org.apache.fineract.integrationtests.common.loans.LoanProductTestBuilder;
 import org.apache.fineract.integrationtests.common.loans.LoanTransactionHelper;
 import org.apache.fineract.integrationtests.common.organisation.StaffHelper;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -226,7 +226,7 @@ public class LoanImportHandlerTest {
         if (!directory.exists()) {
             directory.mkdirs();
         }
-        File file = new File(directory + File.separator + "Loan.xls");
+        File file = new File(directory + File.separator + "Loan.xlsx");
         OutputStream outputStream = new FileOutputStream(file);
         workbook.write(outputStream);
         outputStream.close();
@@ -241,7 +241,7 @@ public class LoanImportHandlerTest {
         // check status column of output excel
         String location = loanTransactionHelper.getOutputTemplateLocation(importDocumentId);
         FileInputStream fileInputStream = new FileInputStream(location);
-        Workbook outputworkbook = new HSSFWorkbook(fileInputStream);
+        Workbook outputworkbook = new XSSFWorkbook(fileInputStream);
         Sheet outputLoanSheet = outputworkbook.getSheet(TemplatePopulateImportConstants.LOANS_SHEET_NAME);
         Row row = outputLoanSheet.getRow(1);
 
