@@ -467,4 +467,9 @@ public class SavingsAccountDomainServiceJpa implements SavingsAccountDomainServi
         }
         return newTransactions;
     }
+
+    @Override
+    public List<SavingsAccountTransaction> findByExternalIdSavingsTransaction(String externalId) {
+        return savingsAccountTransactionRepository.findByExternalIdSavingsTransaction(externalId);
+    }
 }

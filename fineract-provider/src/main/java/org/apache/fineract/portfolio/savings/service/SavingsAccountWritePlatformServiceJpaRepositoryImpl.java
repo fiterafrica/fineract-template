@@ -394,6 +394,13 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final BigDecimal transactionAmount = command.bigDecimalValueOfParameterNamed("transactionAmount");
         final String externalReference = command.stringValueOfParameterNamed("externalReference");
 
+
+        final List<SavingsAccountTransaction> transactions = this.savingsAccountDomainService.findByExternalIdSavingsTransaction(externalReference);
+        if(!CollectionUtils.isEmpty(transactions)){
+            throw new GeneralPlatformDomainRuleException("error.msg.savings.transaction.externalId.exists",
+                    "Savings account transaction with externalId " + externalReference + " already exists");
+        }
+
         this.savingsAccountTransactionDataValidator.validateTransactionWithPivotDate(transactionDate, account);
 
         final Map<String, Object> changes = new LinkedHashMap<>();
@@ -469,6 +476,13 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
         final LocalDate transactionDate = command.localDateValueOfParameterNamed("transactionDate");
         final BigDecimal transactionAmount = command.bigDecimalValueOfParameterNamed("transactionAmount");
+        final String txnExternalId = command.stringValueOfParameterNamedAllowingNull("externalReference");
+
+        final List<SavingsAccountTransaction> transactions = this.savingsAccountDomainService.findByExternalIdSavingsTransaction(txnExternalId);
+        if(!CollectionUtils.isEmpty(transactions)){
+            throw new GeneralPlatformDomainRuleException("error.msg.savings.transaction.externalId.exists",
+                    "Savings account transaction with externalId " + txnExternalId + " already exists");
+        }
 
         final Locale locale = command.extractLocale();
         final DateTimeFormatter fmt = DateTimeFormatter.ofPattern(command.dateFormat()).withLocale(locale);

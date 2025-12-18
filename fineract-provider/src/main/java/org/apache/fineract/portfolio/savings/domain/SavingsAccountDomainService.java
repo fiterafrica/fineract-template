@@ -51,4 +51,5 @@ public interface SavingsAccountDomainService {
             Boolean lienAllowed);
 
     List<SavingsAccountTransaction> extractNewTransactions(SavingsAccount account);
+    List<SavingsAccountTransaction> findByExternalIdSavingsTransaction(String externalId);
 }

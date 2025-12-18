@@ -28,4 +28,7 @@ public interface LoanTransactionRepository extends JpaRepository<LoanTransaction
 
     @Query("select tx from LoanTransaction tx where tx.loan.id = :loanId AND tx.typeOf = 2 ORDER BY tx.id DESC")
     List<LoanTransaction> findLastLoanTransaction(@Param("loanId") Long loanId);
+
+    @Query("select tx from LoanTransaction tx where tx.externalId = :externalId")
+    List<LoanTransaction> findByExternalIdLoanTransaction(@Param("externalId") String externalId);
 }

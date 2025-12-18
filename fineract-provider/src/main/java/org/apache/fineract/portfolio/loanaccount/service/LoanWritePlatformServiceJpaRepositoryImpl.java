@@ -335,6 +335,14 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 this.loanEventApiJsonValidator.validateDisbursementWithPostDatedChecks(command.json(), loanId);
             }
 
+            final String txnExternalId = command.stringValueOfParameterNamedAllowingNull("externalId");
+
+            final List<LoanTransaction> transactions = this.loanTransactionRepository.findByExternalIdLoanTransaction(txnExternalId);
+            if(!CollectionUtils.isEmpty(transactions)){
+                throw new GeneralPlatformDomainRuleException("error.msg.loan.transaction.externalId.exists",
+                        "Loan transaction with externalId " + txnExternalId + " already exists");
+            }
+
             final Loan loan = this.loanAssembler.assembleFrom(loanId);
             if (loan.loanProduct().isDisallowExpectedDisbursements()) {
                 // create artificial 'tranche/expected disbursal' as current disburse code expects it for
@@ -437,7 +445,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
                 Money disburseAmount = loan.adjustDisburseAmount(command, actualDisbursementDate);
                 Money amountToDisburse = disburseAmount.copy();
                 boolean recalculateSchedule = amountBeforeAdjust.isNotEqualTo(loan.getPrincpal());
-                final String txnExternalId = command.stringValueOfParameterNamedAllowingNull("externalId");
+
 
                 if (loan.isTopup() && loan.getClientId() != null) {
                     final Long loanIdToClose = loan.getTopupLoanDetails().getLoanIdToClose();
@@ -1006,6 +1014,11 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         final String noteText = command.stringValueOfParameterNamed("note");
         if (StringUtils.isNotBlank(noteText)) {
             changes.put("note", noteText);
+        }
+        final List<LoanTransaction> transactions = this.loanTransactionRepository.findByExternalIdLoanTransaction(txnExternalId);
+        if(!CollectionUtils.isEmpty(transactions)){
+            throw new GeneralPlatformDomainRuleException("error.msg.loan.transaction.externalId.exists",
+                    "Loan transaction with externalId " + txnExternalId + " already exists");
         }
         final Loan loan = this.loanAssembler.assembleFrom(loanId);
         final PaymentDetail paymentDetail = this.paymentDetailWritePlatformService.createAndPersistPaymentDetail(command, changes);
