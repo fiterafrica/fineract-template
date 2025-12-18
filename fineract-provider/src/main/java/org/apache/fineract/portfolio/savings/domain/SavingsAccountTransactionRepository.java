@@ -79,4 +79,7 @@ public interface SavingsAccountTransactionRepository
     SavingsAccountTransaction findSavingsAccountTransaction(@Param("transactionId") Long transactionId,
             @Param("savingsAccountId") Long savingsAccountId);
 
+    @Query("select st from SavingsAccountTransaction st  where st.externalReference = :externalId")
+    List<SavingsAccountTransaction> findByExternalIdSavingsTransaction(@Param("externalId") String externalId);
+
 }
