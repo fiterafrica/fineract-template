@@ -622,8 +622,9 @@ public class FixedDepositAccount extends SavingsAccount {
         Money interestPostedToDate = totalInterestPosted();
         // calculate interest before one day of closure date
         final LocalDate interestCalculatedToDate = accountCloseDate.minusDays(1);
+
         final Money interestOnMaturity = calculatePreMatureInterest(interestCalculatedToDate,
-                retreiveOrderedNonInterestPostingTransactions(), isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
+                retreiveOrderedNonInterestPostingTransactionsExcludeAccruals(), isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
                 financialYearBeginningMonth);
         boolean recalculateDailyBalance = false;
 
@@ -704,6 +705,8 @@ public class FixedDepositAccount extends SavingsAccount {
     private Money calculatePreMatureInterest(final LocalDate preMatureDate, final List<SavingsAccountTransaction> transactions,
             final boolean isPreMatureClosure, final boolean isSavingsInterestPostingAtCurrentPeriodEnd,
             final Integer financialYearBeginningMonth) {
+
+
         final MathContext mc = MathContext.DECIMAL64;
         final List<PostingPeriod> postingPeriods = calculateInterestPayable(mc, preMatureDate, transactions, isPreMatureClosure,
                 isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
