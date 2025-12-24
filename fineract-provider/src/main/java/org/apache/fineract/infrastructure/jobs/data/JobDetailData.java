@@ -57,4 +57,16 @@ public class JobDetailData {
         this.lastRunHistory = lastRunHistory;
         this.currentlyRunning = currentlyRunning;
     }
+
+    public Long getJobId() {
+        return jobId;
+    }
+
+    public String getDisplayName() {
+        return this.displayName;
+    }
+
+    public JobDetailHistoryData getLastRunHistory() {
+        return lastRunHistory;
+    }
 }

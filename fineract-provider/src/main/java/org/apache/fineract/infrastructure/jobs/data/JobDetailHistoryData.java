@@ -53,4 +53,12 @@ public class JobDetailHistoryData {
         this.triggerType = triggerType;
         this.jobRunErrorLog = jobRunErrorLog;
     }
+
+    public Date getJobRunStartTime() {
+        return jobRunStartTime;
+    }
+
+    public String getStatus() {
+        return status;
+    }
 }
