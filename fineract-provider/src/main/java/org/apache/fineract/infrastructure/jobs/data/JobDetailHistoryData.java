@@ -58,6 +58,10 @@ public class JobDetailHistoryData {
         return jobRunStartTime;
     }
 
+    public Date getJobRunEndTime() {
+        return jobRunEndTime;
+    }
+
     public String getStatus() {
         return status;
     }

@@ -40,6 +40,7 @@ import org.apache.fineract.infrastructure.jobs.service.JobRunner;
 import org.apache.fineract.infrastructure.jobs.service.SchedulerJobRunnerReadService;
 import org.apache.fineract.infrastructure.core.service.SearchParameters;
 import org.apache.fineract.infrastructure.jobs.data.JobDetailData;
+import org.apache.fineract.infrastructure.jobs.data.JobDetailHistoryData;
 import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.client.exception.ClientNotActiveException;
 import org.apache.fineract.portfolio.group.domain.Group;
@@ -133,11 +134,22 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
         // Check job history for today
         LocalDate today = DateUtils.getLocalDateOfTenant();
         SearchParameters searchParameters = SearchParameters.from(null, null, null, null, null); // Use default, filter in Java
-        boolean accrualRunToday = schedulerJobRunnerReadService.retrieveJobHistory(accrualJob.getJobId(), searchParameters)
-            .getPageItems().stream()
-            .anyMatch(h -> h.getJobRunStartTime() != null &&
-                h.getJobRunStartTime().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate().equals(today)
-                && "completed".equalsIgnoreCase(h.getStatus()));
+        // Fetch history by descending order, get the latest entry
+        List<JobDetailHistoryData> history = schedulerJobRunnerReadService.retrieveJobHistory(accrualJob.getJobId(), searchParameters)
+            .getPageItems();
+        JobDetailHistoryData latestHistory = history.stream()
+            .sorted((h1, h2) -> {
+                if (h1.getJobRunEndTime() == null && h2.getJobRunEndTime() == null) return 0;
+                if (h1.getJobRunEndTime() == null) return 1;
+                if (h2.getJobRunEndTime() == null) return -1;
+                return h2.getJobRunEndTime().compareTo(h1.getJobRunEndTime());
+            })
+            .findFirst().orElse(null);
+        boolean accrualRunToday = false;
+        if (latestHistory != null && latestHistory.getJobRunEndTime() != null) {
+            LocalDate endDate = latestHistory.getJobRunEndTime().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+            accrualRunToday = endDate.equals(today) && "success".equalsIgnoreCase(latestHistory.getStatus());
+        }
         if (!accrualRunToday) {
             String errorMsg = "POST_ACCRUAL_INTEREST_FOR_SAVINGS has not run for today. Skipping interest posting.";
             log.error(errorMsg);
