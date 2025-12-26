@@ -33,13 +33,13 @@ import org.apache.fineract.infrastructure.core.exception.ExceptionHelper;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.jobs.annotation.CronTarget;
+import org.apache.fineract.infrastructure.jobs.domain.ScheduledJobDetail;
 import org.apache.fineract.infrastructure.jobs.exception.JobExecutionException;
 import org.apache.fineract.infrastructure.jobs.service.JobExecuter;
 import org.apache.fineract.infrastructure.jobs.service.JobName;
 import org.apache.fineract.infrastructure.jobs.service.JobRunner;
 import org.apache.fineract.infrastructure.jobs.service.SchedulerJobRunnerReadService;
 import org.apache.fineract.infrastructure.core.service.SearchParameters;
-import org.apache.fineract.infrastructure.jobs.data.JobDetailData;
 import org.apache.fineract.infrastructure.jobs.data.JobDetailHistoryData;
 import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.client.exception.ClientNotActiveException;
@@ -122,11 +122,9 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
     @CronTarget(jobName = JobName.POST_INTEREST_FOR_SAVINGS)
     public void postInterestForAccountsThreaded(Map<String, String> jobParameters) throws JobExecutionException {
         // Check if accrual job has run for today
-        List<JobDetailData> jobDetails = schedulerJobRunnerReadService.findAllJobDeatils();
-        JobDetailData accrualJob = jobDetails.stream()
-            .filter(j -> JobName.POST_ACCRUAL_INTEREST_FOR_SAVINGS.toString().equals(j.getDisplayName()))
-            .findFirst().orElse(null);
-        if (accrualJob == null) {
+        ScheduledJobDetail jobDetails = schedulerJobRunnerReadService.findJobDetail(JobName.POST_ACCRUAL_INTEREST_FOR_SAVINGS.toString());
+
+        if (jobDetails == null) {
             String errorMsg = "Accrual job not found. Skipping interest posting.";
             log.error(errorMsg);
             throw new JobExecutionException(Collections.singletonList(new Exception(errorMsg)));
@@ -135,7 +133,7 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
         LocalDate today = DateUtils.getLocalDateOfTenant();
         SearchParameters searchParameters = SearchParameters.from(null, null, null, null, null);
 
-        List<JobDetailHistoryData> history = schedulerJobRunnerReadService.retrieveJobHistory(accrualJob.getJobId(), searchParameters)
+        List<JobDetailHistoryData> history = schedulerJobRunnerReadService.retrieveJobHistory(jobDetails.getId(), searchParameters)
             .getPageItems();
         JobDetailHistoryData latestHistory = history.stream()
             .sorted((h1, h2) -> {

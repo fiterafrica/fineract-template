@@ -23,10 +23,12 @@ import org.apache.fineract.infrastructure.core.service.Page;
 import org.apache.fineract.infrastructure.core.service.SearchParameters;
 import org.apache.fineract.infrastructure.jobs.data.JobDetailData;
 import org.apache.fineract.infrastructure.jobs.data.JobDetailHistoryData;
+import org.apache.fineract.infrastructure.jobs.domain.ScheduledJobDetail;
 
 public interface SchedulerJobRunnerReadService {
 
     List<JobDetailData> findAllJobDeatils();
+    ScheduledJobDetail findJobDetail(String jobName);
 
     JobDetailData retrieveOne(Long jobId);
 

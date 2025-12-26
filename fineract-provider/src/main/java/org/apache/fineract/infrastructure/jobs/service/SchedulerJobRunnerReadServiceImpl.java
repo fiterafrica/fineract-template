@@ -28,6 +28,8 @@ import org.apache.fineract.infrastructure.core.service.SearchParameters;
 import org.apache.fineract.infrastructure.core.service.database.DatabaseSpecificSQLGenerator;
 import org.apache.fineract.infrastructure.jobs.data.JobDetailData;
 import org.apache.fineract.infrastructure.jobs.data.JobDetailHistoryData;
+import org.apache.fineract.infrastructure.jobs.domain.ScheduledJobDetail;
+import org.apache.fineract.infrastructure.jobs.domain.ScheduledJobDetailRepository;
 import org.apache.fineract.infrastructure.jobs.exception.JobNotFoundException;
 import org.apache.fineract.infrastructure.jobs.exception.OperationNotAllowedException;
 import org.apache.fineract.infrastructure.security.utils.ColumnValidator;
@@ -47,14 +49,16 @@ public class SchedulerJobRunnerReadServiceImpl implements SchedulerJobRunnerRead
     private final DatabaseSpecificSQLGenerator sqlGenerator;
 
     private final PaginationHelper paginationHelper;
+    private final ScheduledJobDetailRepository scheduledJobDetailRepository;
 
     @Autowired
     public SchedulerJobRunnerReadServiceImpl(final JdbcTemplate jdbcTemplate, final ColumnValidator columnValidator,
-            DatabaseSpecificSQLGenerator sqlGenerator, PaginationHelper paginationHelper) {
+            DatabaseSpecificSQLGenerator sqlGenerator, PaginationHelper paginationHelper,ScheduledJobDetailRepository scheduledJobDetailRepository) {
         this.jdbcTemplate = jdbcTemplate;
         this.columnValidator = columnValidator;
         this.sqlGenerator = sqlGenerator;
         this.paginationHelper = paginationHelper;
+        this.scheduledJobDetailRepository = scheduledJobDetailRepository;
     }
 
     @Override
@@ -64,6 +68,11 @@ public class SchedulerJobRunnerReadServiceImpl implements SchedulerJobRunnerRead
         final List<JobDetailData> JobDeatils = this.jdbcTemplate.query(sql, detailMapper, new Object[] {});
         return JobDeatils;
 
+    }
+
+    @Override
+    public ScheduledJobDetail findJobDetail(String jobName) {
+        return scheduledJobDetailRepository.findByJobDisplayName(jobName);
     }
 
     @Override
