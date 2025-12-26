@@ -133,8 +133,8 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
         }
         // Check job history for today
         LocalDate today = DateUtils.getLocalDateOfTenant();
-        SearchParameters searchParameters = SearchParameters.from(null, null, null, null, null); // Use default, filter in Java
-        // Fetch history by descending order, get the latest entry
+        SearchParameters searchParameters = SearchParameters.from(null, null, null, null, null);
+
         List<JobDetailHistoryData> history = schedulerJobRunnerReadService.retrieveJobHistory(accrualJob.getJobId(), searchParameters)
             .getPageItems();
         JobDetailHistoryData latestHistory = history.stream()
