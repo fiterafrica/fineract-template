@@ -25,6 +25,8 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.businessdate.domain.BusinessDateType;
 import org.apache.fineract.infrastructure.businessdate.service.BusinessDateReadPlatformService;
+import org.apache.fineract.infrastructure.core.config.CronJobConfig;
+import org.apache.fineract.infrastructure.core.exception.GeneralPlatformDomainRuleException;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.jobs.domain.ScheduledJobDetail;
 import org.apache.fineract.infrastructure.jobs.domain.ScheduledJobRunHistory;
@@ -36,6 +38,7 @@ import org.quartz.JobExecutionException;
 import org.quartz.JobKey;
 import org.quartz.JobListener;
 import org.quartz.Trigger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
 import org.springframework.security.core.authority.mapping.NullAuthoritiesMapper;
@@ -57,6 +60,9 @@ public class SchedulerJobListener implements JobListener {
     private final BusinessDateReadPlatformService businessDateReadPlatformService;
     private int stackTraceLevel = 0;
 
+    @Autowired
+    private CronJobConfig cronJobConfig;
+
     @Override
     public String getName() {
         return this.name;
@@ -64,6 +70,10 @@ public class SchedulerJobListener implements JobListener {
 
     @Override
     public void jobToBeExecuted(@SuppressWarnings("unused") final JobExecutionContext context) {
+        if (!cronJobConfig.isCronJobEnabled()) {
+            throw new GeneralPlatformDomainRuleException("error.msg.job.not.supported.on.server",
+                    "Job not supported on this server");
+        }
         AppUser user = this.userRepository.fetchSystemUser();
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(user, user.getPassword(),
                 authoritiesMapper.mapAuthorities(user.getAuthorities()));
