@@ -58,18 +58,22 @@ public class SpringSecurityPlatformSecurityContext implements PlatformSecurityCo
     @Override
     public AppUser authenticatedUser() {
 
-        AppUser currentUser = null;
         final SecurityContext context = SecurityContextHolder.getContext();
-        if (context != null) {
-            final Authentication auth = context.getAuthentication();
-            if (auth != null) {
-                currentUser = (AppUser) auth.getPrincipal();
-            }
-        }
-
-        if (currentUser == null) {
+        if (context == null) {
             throw new UnAuthenticatedUserException();
         }
+
+        final Authentication auth = context.getAuthentication();
+        if (auth == null) {
+            throw new UnAuthenticatedUserException();
+        }
+
+        final Object principal = auth.getPrincipal();
+        if (!(principal instanceof AppUser)) {
+            throw new UnAuthenticatedUserException();
+        }
+
+        final AppUser currentUser = (AppUser) principal;
 
         if (this.doesPasswordHasToBeRenewed(currentUser)) {
             throw new ResetPasswordException(currentUser.getId());
@@ -81,18 +85,22 @@ public class SpringSecurityPlatformSecurityContext implements PlatformSecurityCo
     @Override
     public AppUser getAuthenticatedUserIfPresent() {
 
-        AppUser currentUser = null;
         final SecurityContext context = SecurityContextHolder.getContext();
-        if (context != null) {
-            final Authentication auth = context.getAuthentication();
-            if (auth != null) {
-                currentUser = (AppUser) auth.getPrincipal();
-            }
-        }
-
-        if (currentUser == null) {
+        if (context == null) {
             return null;
         }
+
+        final Authentication auth = context.getAuthentication();
+        if (auth == null) {
+            return null;
+        }
+
+        final Object principal = auth.getPrincipal();
+        if (!(principal instanceof AppUser)) {
+            return null;
+        }
+
+        final AppUser currentUser = (AppUser) principal;
 
         if (this.doesPasswordHasToBeRenewed(currentUser)) {
             throw new ResetPasswordException(currentUser.getId());
@@ -109,7 +117,13 @@ public class SpringSecurityPlatformSecurityContext implements PlatformSecurityCo
         if (context != null) {
             final Authentication auth = context.getAuthentication();
             if (auth != null) {
-                currentUser = (AppUser) auth.getPrincipal();
+                Object principal = auth.getPrincipal();
+
+                if (!(principal instanceof AppUser)) {
+                    throw new UnAuthenticatedUserException();
+                }
+
+                currentUser = (AppUser) principal;
             }
         }
 

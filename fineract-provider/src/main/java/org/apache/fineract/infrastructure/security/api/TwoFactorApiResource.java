@@ -47,6 +47,8 @@ import org.apache.fineract.useradministration.domain.AppUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 @Path("/twofactor")
@@ -104,7 +106,11 @@ public class TwoFactorApiResource {
     public String validate(@QueryParam("token") final String token) {
         final AppUser user = context.authenticatedUser();
 
+        // Check if OTP is valid for this user
         TFAccessToken accessToken = twoFactorService.createAccessTokenFromOTP(user, token);
+
+        // Set principal as fully authenticated AppUser in SecurityContext
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities()));
 
         return accessTokenSerializer.serialize(accessToken.toTokenData());
     }
