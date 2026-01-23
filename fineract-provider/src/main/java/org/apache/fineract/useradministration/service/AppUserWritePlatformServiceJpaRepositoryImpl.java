@@ -24,9 +24,11 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.time.Instant;
 import javax.persistence.PersistenceException;
 import javax.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +41,11 @@ import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
+import org.apache.fineract.infrastructure.core.serialization.ToApiJsonSerializer;
 import org.apache.fineract.infrastructure.core.service.PlatformEmailSendException;
+import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
+import org.apache.fineract.infrastructure.hooks.event.HookEvent;
+import org.apache.fineract.infrastructure.hooks.event.HookEventSource;
 import org.apache.fineract.infrastructure.security.service.PlatformPasswordEncoder;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.organisation.office.domain.Office;
@@ -61,6 +67,7 @@ import org.apache.fineract.useradministration.exception.RoleNotFoundException;
 import org.apache.fineract.useradministration.exception.UserNotFoundException;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.context.ApplicationContext;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -87,6 +94,8 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
     private final StaffRepositoryWrapper staffRepositoryWrapper;
     private final ClientRepositoryWrapper clientRepositoryWrapper;
     private final JdbcTemplate jdbcTemplate;
+    private final ToApiJsonSerializer<Map<String, Object>> toApiJsonSerializer;
+    private final ApplicationContext applicationContext;
 
     @Override
     @Transactional
@@ -326,6 +335,32 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
                 "/authenticate/login", "{ipAddress:\"" + clientIp + "\"}", userId, userId);
     }
 
+    private void publishAuthenticationHookEvent(AppUser user, String action, String status, String errorMessage) {
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("entityName", "AUTHENTICATION");
+            payload.put("actionName", action);
+            payload.put("status", status);
+            payload.put("timestamp", Instant.now().toString());
+            if (user != null) {
+                payload.put("createdBy", user.getId());
+                payload.put("createdByName", user.getUsername());
+                payload.put("createdByFullName", user.getDisplayName());
+            }
+            if (errorMessage != null) {
+                Map<String, Object> err = new HashMap<>();
+                err.put("message", errorMessage);
+                payload.put("response", err);
+            }
+            HookEventSource source = new HookEventSource("AUTHENTICATION", action);
+            String body = toApiJsonSerializer.serialize(payload);
+            HookEvent event = new HookEvent(source, body, user, ThreadLocalContextUtil.getContext());
+            applicationContext.publishEvent(event);
+        } catch (Exception e) {
+            // swallow to avoid breaking login/logout
+        }
+    }
+
     @Override
     public void logUserLogoutRequestDetails(HttpServletRequest servletRequest) {
         String clientIp = "Unknown IP Address";
@@ -347,6 +382,7 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
                 + "(action_name,entity_name,office_id,api_get_url,command_as_json,resource_id,maker_id,made_on_date,processing_result_enum) "
                 + "values(?, ?,?,?,?,?,?,current_timestamp ,1) ", "LOGOUT", "AUTHENTICATION", appUser.getOffice().getId(),
                 "/authenticate/logout", "{ipAddress:\"" + clientIp + "\"}", userId, userId);
+        publishAuthenticationHookEvent(appUser, "LOGOUT", "SUCCESS", null);
     }
 
     @Override

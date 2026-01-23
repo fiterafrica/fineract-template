@@ -20,7 +20,9 @@ package org.apache.fineract.infrastructure.security.service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.domain.EmailDetail;
@@ -43,7 +45,14 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
+
+import org.apache.fineract.infrastructure.hooks.event.HookEvent;
+import org.apache.fineract.infrastructure.hooks.event.HookEventSource;
+import org.apache.fineract.infrastructure.core.serialization.ToApiJsonSerializer;
+import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
+import java.time.Instant;
 
 @Service
 @ConditionalOnProperty("fineract.security.2fa.enabled")
@@ -59,11 +68,16 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
     private final TwoFactorConfigurationService configurationService;
 
+    private final ApplicationContext applicationContext;
+    private final ToApiJsonSerializer<Map<String, Object>> toApiJsonSerializer;
+
     @Autowired
     public TwoFactorServiceImpl(AccessTokenGenerationService accessTokenGenerationService, PlatformEmailService emailService,
             SmsMessageScheduledJobService smsMessageScheduledJobService, OTPRequestRepository otpRequestRepository,
             TFAccessTokenRepository tfAccessTokenRepository, SmsMessageRepository smsMessageRepository,
-            TwoFactorConfigurationService configurationService) {
+            TwoFactorConfigurationService configurationService,
+            ApplicationContext applicationContext,
+            ToApiJsonSerializer<Map<String, Object>> toApiJsonSerializer) {
         this.accessTokenGenerationService = accessTokenGenerationService;
         this.emailService = emailService;
         this.smsMessageScheduledJobService = smsMessageScheduledJobService;
@@ -71,6 +85,8 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         this.tfAccessTokenRepository = tfAccessTokenRepository;
         this.smsMessageRepository = smsMessageRepository;
         this.configurationService = configurationService;
+        this.applicationContext = applicationContext;
+        this.toApiJsonSerializer = toApiJsonSerializer;
     }
 
     @Override
@@ -122,6 +138,32 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         throw new OTPDeliveryMethodInvalidException();
     }
 
+    private void publishAuthenticationHookEvent(AppUser user, String action, String status, String errorMessage) {
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("entityName", "AUTHENTICATION");
+            payload.put("actionName", action);
+            payload.put("status", status);
+            payload.put("timestamp", Instant.now().toString());
+            if (user != null) {
+                payload.put("createdBy", user.getId());
+                payload.put("createdByName", user.getUsername());
+                payload.put("createdByFullName", user.getDisplayName());
+            }
+            if (errorMessage != null) {
+                Map<String, Object> err = new HashMap<>();
+                err.put("message", errorMessage);
+                payload.put("response", err);
+            }
+            HookEventSource source = new HookEventSource("AUTHENTICATION", action);
+            String body = toApiJsonSerializer.serialize(payload);
+            HookEvent event = new HookEvent(source, body, user, ThreadLocalContextUtil.getContext());
+            applicationContext.publishEvent(event);
+        } catch (Exception e) {
+            // swallow to avoid breaking login/logout
+        }
+    }
+
     @Override
     @CachePut(value = "userTFAccessToken", key = "T(org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil)"
             + ".getTenant().getTenantIdentifier().concat(#user.username).concat(#result.token + 'tok')")
@@ -129,6 +171,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
 
         OTPRequest otpRequest = otpRequestRepository.getOTPRequestForUser(user);
         if (otpRequest == null || !otpRequest.isValid() || !otpRequest.getToken().equalsIgnoreCase(otpToken)) {
+            publishAuthenticationHookEvent(user, "LOGIN", "FAILURE", "Invalid OTP");
             throw new OTPTokenInvalidException();
         }
 
@@ -143,6 +186,7 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         }
         TFAccessToken accessToken = TFAccessToken.create(token, user, liveTime);
         tfAccessTokenRepository.save(accessToken);
+        publishAuthenticationHookEvent(user, "LOGIN", "SUCCESS", null);
         return accessToken;
     }
 
@@ -164,12 +208,13 @@ public class TwoFactorServiceImpl implements TwoFactorService {
         final TFAccessToken accessToken = fetchAccessTokenForUser(user, token);
 
         if (accessToken == null || !accessToken.isValid()) {
+            publishAuthenticationHookEvent(user, "LOGOUT", "FAILURE", "Invalid access token");
             throw new AccessTokenInvalidIException();
         }
 
         accessToken.setEnabled(false);
         tfAccessTokenRepository.save(accessToken);
-
+        publishAuthenticationHookEvent(user, "LOGOUT", "SUCCESS", null);
         return accessToken;
     }
 
