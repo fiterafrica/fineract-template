@@ -28,7 +28,7 @@ public interface ScheduledJobRunnerService {
 
     void updateNPA();
 
-    void updateMaturityDetailsOfDepositAccounts();
+    void updateMaturityDetailsOfDepositAccounts() throws JobExecutionException;
 
     void generateRDSchedule();
 

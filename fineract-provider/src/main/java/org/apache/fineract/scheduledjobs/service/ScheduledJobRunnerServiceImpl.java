@@ -225,10 +225,10 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
 
     @Override
     @CronTarget(jobName = JobName.UPDATE_DEPOSITS_ACCOUNT_MATURITY_DETAILS)
-    public void updateMaturityDetailsOfDepositAccounts() {
+    public void updateMaturityDetailsOfDepositAccounts() throws JobExecutionException {
 
         final Collection<DepositAccountData> depositAccounts = this.depositAccountReadPlatformService.retrieveForMaturityUpdate();
-
+        List<Throwable> exceptions = new ArrayList<>();
         for (final DepositAccountData depositAccount : depositAccounts) {
             try {
                     this.depositAccountWritePlatformService.updateMaturityDetails(depositAccount);
@@ -237,14 +237,20 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
                 for (final ApiParameterError error : errors) {
                     LOG.error("Update maturity details failed for account: {} with message {}", depositAccount.accountNo(),
                             error.getDeveloperMessage());
+                    exceptions.add(e);
                 }
             } catch (final Exception ex) {
                 LOG.error("Update maturity details failed for account: {}", depositAccount.accountNo(), ex);
+                exceptions.add(ex);
             }
+
         }
 
         LOG.info("{}: Records affected by updateMaturityDetailsOfDepositAccounts: {}", ThreadLocalContextUtil.getTenant().getName(),
                 depositAccounts.size());
+        if (!exceptions.isEmpty()) {
+            throw new JobExecutionException(exceptions);
+        }
     }
 
     @Override
