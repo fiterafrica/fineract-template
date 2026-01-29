@@ -171,10 +171,10 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
             if (this.auth != null) {
                 SecurityContextHolder.getContext().setAuthentication(this.auth);
             }
-            final List<Long> activeSavingsAccounts = savingAccountReadPlatformService.retrieveActiveSavingAccountsWithZeroInterest();
-            activeSavingsAccounts.addAll(savingAccountReadPlatformService.retrieveActiveOverdraftSavingAccounts());
+            List<Long> accountsToPostInterest = savingAccountReadPlatformService.retrieveActiveSavingsAccountsForInterest(jobRunDate);
+            accountsToPostInterest.addAll(savingAccountReadPlatformService.retrieveActiveOverdraftSavingAccounts());
             JobRunner<List<Long>> runner = new SavingsInterestJobRunner(jobRunDate);
-            jobExecuter.executeJob(activeSavingsAccounts, runner);
+            jobExecuter.executeJob(accountsToPostInterest, runner);
         }
     }
 
@@ -205,8 +205,7 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
             if (savingAccountId == 0) {
                 continue;
             }
-            logger.info("Interest Saving ID " + savingAccountId + " which is " + savingIds.indexOf(savingAccountId) + " of "
-                    + savingIds.size());
+
             Integer numberOfRetries = 0;
             String savingsAccountNumber = "";
             while (numberOfRetries <= maxNumberOfRetries) {
@@ -215,6 +214,8 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
                     savingsAccountNumber = savingAccount.getAccountNumber();
                     checkClientOrGroupActive(savingAccount);
                     if (!savingAccount.isPostOverdraftInterestOnDeposit()) {
+                        logger.info("Interest Saving ID " + savingAccountId + " which is " + savingIds.indexOf(savingAccountId) + " of "
+                                + savingIds.size());
                         this.savingsAccountWritePlatformService.postInterest(savingAccount, false, jobRunDate);
                     }
                     numberOfRetries = maxNumberOfRetries + 1;

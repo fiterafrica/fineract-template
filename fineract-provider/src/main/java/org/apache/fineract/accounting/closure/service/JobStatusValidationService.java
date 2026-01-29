@@ -21,13 +21,17 @@ package org.apache.fineract.accounting.closure.service;
 import java.time.LocalDate;
 
 public interface JobStatusValidationService {
+
     /**
-     * Validates that all required jobs (e.g., accrual, interest posting) have run for the given office and closure date.
-     * Throws GLClosureInvalidException if validation fails.
+     * Validates that all required jobs (e.g., accrual, interest posting) have run for the given office and closure
+     * date. Throws GLClosureInvalidException if validation fails.
      *
-     * @param officeId the office to validate
-     * @param closureDate the date of closure
+     * @param officeId
+     *            the office to validate
+     * @param closureDate
+     *            the date of closure
      */
     void validateJobsForClosure(Long officeId, LocalDate closureDate);
-}
 
+    void validateClosureReadnes(Long officeId, LocalDate closureDate);
+}

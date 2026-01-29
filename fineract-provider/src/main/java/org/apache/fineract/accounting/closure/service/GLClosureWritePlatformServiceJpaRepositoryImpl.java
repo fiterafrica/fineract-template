@@ -79,8 +79,9 @@ public class GLClosureWritePlatformServiceJpaRepositoryImpl implements GLClosure
                     throw new GLClosureInvalidException(GlClosureInvalidReason.ACCOUNTING_CLOSED, latestGLClosure.getClosingDate());
                 }
             }
+
             // Validate required jobs have run before closure
-            jobStatusValidationService.validateJobsForClosure(officeId, closureDate);
+            jobStatusValidationService.validateClosureReadnes(officeId, closureDate);
 
             final GLClosure glClosure = GLClosure.fromJson(office, command);
             this.glClosureRepository.saveAndFlush(glClosure);

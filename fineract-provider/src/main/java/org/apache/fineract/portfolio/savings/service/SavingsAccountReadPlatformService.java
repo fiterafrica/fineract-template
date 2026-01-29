@@ -84,4 +84,9 @@ public interface SavingsAccountReadPlatformService {
 
     Collection<SavingsAccountTransactionData> retrieveSavingsTransactions(final String filterConstraintJson, final Integer limit,
             final Integer offset);
+
+    List<Long> retrieveActiveSavingsAccrualAccountsInterest(LocalDate jobRunDate, List<Long> depositTypes);
+
+    List<Long> retrieveActiveSavingsAccountsForInterest(LocalDate interestPostDate);
+
 }

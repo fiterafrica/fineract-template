@@ -23,6 +23,7 @@ import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -231,7 +232,7 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
         List<Throwable> exceptions = new ArrayList<>();
         for (final DepositAccountData depositAccount : depositAccounts) {
             try {
-                    this.depositAccountWritePlatformService.updateMaturityDetails(depositAccount);
+                this.depositAccountWritePlatformService.updateMaturityDetails(depositAccount);
             } catch (final PlatformApiDataValidationException e) {
                 final List<ApiParameterError> errors = e.getErrors();
                 for (final ApiParameterError error : errors) {
@@ -462,11 +463,10 @@ public class ScheduledJobRunnerServiceImpl implements ScheduledJobRunnerService 
     }
 
     public void applyAccrualInterestForSavings(LocalDate jobRunDate) {
-        final List<Long> activeSavingsAccounts = new ArrayList<>();
-
-        activeSavingsAccounts.addAll(this.savingsAccountReadPlatformService.retrieveActiveSavingsAccrualAccounts(100l));
-        activeSavingsAccounts.addAll(this.savingsAccountReadPlatformService.retrieveActiveSavingsAccrualAccounts(200l));
-        activeSavingsAccounts.addAll(this.savingsAccountReadPlatformService.retrieveActiveSavingsAccrualAccounts(300l));
+        LOG.info("Starting Post Accrual Interest for Savings Job for date: {}", jobRunDate);
+        List<Long> depositTypes = Arrays.asList(100L, 200L, 300L);
+        List<Long> activeSavingsAccounts = this.savingsAccountReadPlatformService.retrieveActiveSavingsAccrualAccountsInterest(jobRunDate,
+                depositTypes);
 
         JobRunner<List<Long>> runner = new SavingsAccrualInterestJobRunner(jobRunDate);
         this.jobExecuter.executeJob(activeSavingsAccounts, runner);
