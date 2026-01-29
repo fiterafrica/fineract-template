@@ -71,8 +71,7 @@ public class SchedulerJobListener implements JobListener {
     @Override
     public void jobToBeExecuted(@SuppressWarnings("unused") final JobExecutionContext context) {
         if (!cronJobConfig.isCronJobEnabled()) {
-            throw new GeneralPlatformDomainRuleException("error.msg.job.not.supported.on.server",
-                    "Job not supported on this server");
+            throw new GeneralPlatformDomainRuleException("error.msg.job.not.supported.on.server", "Job not supported on this server");
         }
         AppUser user = this.userRepository.fetchSystemUser();
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(user, user.getPassword(),

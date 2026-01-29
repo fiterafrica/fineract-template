@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.accounting.common.AccountingRuleType;
 import org.apache.fineract.accounting.glaccount.data.GLAccountData;
@@ -104,6 +105,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -693,9 +695,48 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
     }
 
     @Override
+    public List<Long> retrieveActiveSavingsAccrualAccountsInterest(LocalDate jobRunDate, List<Long> depositTypes) {
+
+        final String sql = """
+                SELECT msa.id
+                FROM m_savings_account msa
+                JOIN m_savings_product msp ON msp.id = msa.product_id
+                WHERE msa.status_enum = 300
+                  AND msp.accounting_type = 3
+                  AND (msa.nominal_annual_interest_rate != 0 OR msa.allow_overdraft = true)
+                  AND msa.deposit_type_enum IN (:depositTypes)
+                  AND (msa.last_interest_calculation_date IS NULL
+                       OR msa.last_interest_calculation_date < :jobRunDate)
+                  AND (msa.start_interest_accrual_calculation_date IS NOT NULL
+                       OR msa.start_interest_accrual_calculation_date <= :jobRunDate)
+                """;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("jobRunDate", jobRunDate);
+        params.put("depositTypes", depositTypes);
+
+        return new NamedParameterJdbcTemplate(this.jdbcTemplate.getDataSource()).queryForList(sql, params, Long.class);
+    }
+
+    @Override
     public List<Long> retrieveActiveSavingAccountsWithZeroInterest() {
         String sql = "select id from m_savings_account where status_enum = 300 and nominal_annual_interest_rate != 0 and deposit_type_enum != 200";
         return this.jdbcTemplate.queryForList(sql, Long.class);
+    }
+
+    @Override
+    public List<Long> retrieveActiveSavingsAccountsForInterest(LocalDate interestPostDate) {
+        final String sql = """
+                    SELECT msa.id
+                    FROM m_savings_account msa
+                    INNER JOIN m_savings_product msp ON msp.id = msa.product_id
+                    WHERE msa.status_enum = 300
+                      AND (msa.nominal_annual_interest_rate > 0 OR msa.allow_overdraft = true)
+                      AND msp.accounting_type = 3
+                      AND (msa.interest_posted_till_date IS NULL OR msa.interest_posted_till_date < ?)
+                """;
+
+        return jdbcTemplate.queryForList(sql, Long.class, interestPostDate);
     }
 
     @Override
