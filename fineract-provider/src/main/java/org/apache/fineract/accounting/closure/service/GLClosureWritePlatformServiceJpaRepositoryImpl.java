@@ -80,9 +80,6 @@ public class GLClosureWritePlatformServiceJpaRepositoryImpl implements GLClosure
                 }
             }
 
-            // Validate required jobs have run before closure
-            jobStatusValidationService.validateClosureReadnes(officeId, closureDate);
-
             final GLClosure glClosure = GLClosure.fromJson(office, command);
             this.glClosureRepository.saveAndFlush(glClosure);
             return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withOfficeId(officeId)
