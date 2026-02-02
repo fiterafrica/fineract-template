@@ -93,6 +93,10 @@ public class OAuth2SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers(HttpMethod.POST, "/api/*/self/registration/user").permitAll() //
                 .antMatchers(HttpMethod.POST, "/api/*/twofactor/validate").fullyAuthenticated() //
                 .antMatchers("/api/*/twofactor").fullyAuthenticated() //
+                // Bulk import: download/upload template and bulkimport API allowed with login only (no 2FA)
+                .antMatchers("/api/**/downloadtemplate").fullyAuthenticated() //
+                .antMatchers("/api/**/uploadtemplate").fullyAuthenticated() //
+                .antMatchers("/api/**/bulkimport/**").fullyAuthenticated() //
                 .antMatchers("/api/**").access("isFullyAuthenticated() and hasAuthority('TWOFACTOR_AUTHENTICATED')") //
                 .accessDecisionManager(accessDecisionManager()).and() //
                 .exceptionHandling().authenticationEntryPoint(new OAuth2ExceptionEntryPoint()).and()
