@@ -20,6 +20,7 @@
 package org.apache.fineract.infrastructure.core.config;
 
 import org.apache.fineract.infrastructure.instancemode.filter.FineractInstanceModeApiFilter;
+import org.apache.fineract.infrastructure.security.filter.FineractAccessDeniedHandler;
 import org.apache.fineract.infrastructure.security.filter.TenantAwareBasicAuthenticationFilter;
 import org.apache.fineract.infrastructure.security.filter.TwoFactorAuthenticationFilter;
 import org.apache.fineract.infrastructure.security.service.TenantAwareJpaPlatformUserDetailsService;
@@ -78,7 +79,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers(HttpMethod.PUT, "/api/*/instance-mode").permitAll() //
                 .antMatchers(HttpMethod.POST, "/api/*/twofactor/validate").fullyAuthenticated() //
                 .antMatchers("/api/*/twofactor").fullyAuthenticated() //
+                // Bulk import: download/upload template and bulkimport API allowed with login only (no 2FA)
+                .antMatchers("/api/**/downloadtemplate").fullyAuthenticated() //
+                .antMatchers("/api/**/uploadtemplate").fullyAuthenticated() //
+                .antMatchers("/api/**/bulkimport/**").fullyAuthenticated() //
                 .antMatchers("/api/**").access("isFullyAuthenticated() and hasAuthority('TWOFACTOR_AUTHENTICATED')").and() //
+                .exceptionHandling().accessDeniedHandler(new FineractAccessDeniedHandler()).and() //
                 .httpBasic() //
                 .authenticationEntryPoint(basicAuthenticationEntryPoint()) //
                 .and() //
