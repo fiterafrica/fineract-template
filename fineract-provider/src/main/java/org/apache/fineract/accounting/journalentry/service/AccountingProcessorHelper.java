@@ -422,12 +422,27 @@ public class AccountingProcessorHelper {
             }
         }
 
+        // Handle remaining amount not covered by chargePaymentDTOs (e.g., during foreclosure)
         if (totalAmount.compareTo(totalCreditedAmount) != 0) {
-            log.debug("**** Total Amount:- {} does not match with total credited amount:- {}  -- ****", totalAmount, totalCreditedAmount);
-            throw new PlatformDataIntegrityException(
-                    "Meltdown in advanced accounting...sum of all charges is not equal to the fee charge for a transaction",
-                    "Meltdown in advanced accounting...sum of all charges is not equal to the fee charge for a transaction",
-                    totalCreditedAmount, totalAmount);
+            BigDecimal remainingAmount = totalAmount.subtract(totalCreditedAmount);
+            if (remainingAmount.compareTo(BigDecimal.ZERO) > 0) {
+                log.debug("Processing remaining charge amount {} not covered by individual charge payments", remainingAmount);
+                GLAccount defaultCreditAccount = getLinkedGLAccountForLoanCharges(loanProductId, accountTypeToBeCredited, null);
+                if (isReversal) {
+                    createDebitJournalEntryForLoan(office, currencyCode, defaultCreditAccount, loanId, transactionId, transactionDate,
+                            remainingAmount);
+                    createCreditJournalEntryForLoan(office, currencyCode, receivableAccount, loanId, transactionId, transactionDate,
+                            remainingAmount);
+                } else {
+                    createDebitJournalEntryForLoan(office, currencyCode, receivableAccount, loanId, transactionId, transactionDate,
+                            remainingAmount);
+                    createCreditJournalEntryForLoan(office, currencyCode, defaultCreditAccount, loanId, transactionId, transactionDate,
+                            remainingAmount);
+                }
+            } else {
+                log.warn("Total Amount {} does not match with total credited amount {} - credited amount exceeds total", totalAmount,
+                        totalCreditedAmount);
+            }
         }
     }
 
@@ -706,13 +721,23 @@ public class AccountingProcessorHelper {
             }
         }
 
-        // TODO: Vishwas Temporary validation to be removed before moving to
-        // release branch
+        // Handle remaining amount not covered by chargePaymentDTOs (e.g., during foreclosure)
         if (totalAmount.compareTo(totalCreditedAmount) != 0) {
-            throw new PlatformDataIntegrityException(
-                    "Meltdown in advanced accounting...sum of all charges is not equal to the fee charge for a transaction",
-                    "Meltdown in advanced accounting...sum of all charges is not equal to the fee charge for a transaction",
-                    totalCreditedAmount, totalAmount);
+            BigDecimal remainingAmount = totalAmount.subtract(totalCreditedAmount);
+            if (remainingAmount.compareTo(BigDecimal.ZERO) > 0) {
+                log.debug("Processing remaining charge amount {} not covered by individual charge payments", remainingAmount);
+                GLAccount defaultAccount = getLinkedGLAccountForLoanCharges(loanProductId, accountMappingTypeId, null);
+                if (isReversal) {
+                    createDebitJournalEntryForLoan(office, currencyCode, defaultAccount, loanId, transactionId, transactionDate,
+                            remainingAmount);
+                } else {
+                    createCreditJournalEntryForLoan(office, currencyCode, defaultAccount, loanId, transactionId, transactionDate,
+                            remainingAmount);
+                }
+            } else {
+                log.warn("Total Amount {} does not match with total credited amount {} - credited amount exceeds total", totalAmount,
+                        totalCreditedAmount);
+            }
         }
     }
 
