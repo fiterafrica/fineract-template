@@ -24,12 +24,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.organisation.monetary.domain.MoneyHelper;
 import org.apache.fineract.portfolio.tax.data.TaxComponentData;
 import org.apache.fineract.portfolio.tax.data.TaxGroupMappingsData;
 import org.apache.fineract.portfolio.tax.domain.TaxComponent;
 import org.apache.fineract.portfolio.tax.domain.TaxGroupMappings;
 
+@Slf4j
 public final class TaxUtils {
 
     private TaxUtils() {
@@ -39,21 +41,30 @@ public final class TaxUtils {
     public static Map<TaxComponent, BigDecimal> splitTax(final BigDecimal amount, final LocalDate date,
             final Set<TaxGroupMappings> taxGroupMappings, final int scale) {
         Map<TaxComponent, BigDecimal> map = new HashMap<>(3);
+        log.info("TaxUtils.splitTax - Amount: {}, Date: {}, TaxGroupMappings count: {}, Scale: {}", amount, date,
+                taxGroupMappings != null ? taxGroupMappings.size() : 0, scale);
         if (amount != null) {
             final double amountVal = amount.doubleValue();
             double cent_percentage = Double.parseDouble("100.0");
             for (TaxGroupMappings groupMappings : taxGroupMappings) {
-                if (groupMappings.occursOnDayFromAndUpToAndIncluding(date)) {
+                boolean isApplicable = groupMappings.occursOnDayFromAndUpToAndIncluding(date);
+                log.info("TaxUtils.splitTax - TaxComponent ID: {}, StartDate: {}, EndDate: {}, IsApplicable for date {}: {}",
+                        groupMappings.getTaxComponent().getId(), groupMappings.startDate(), groupMappings.getEndDate(), date, isApplicable);
+                if (isApplicable) {
                     TaxComponent component = groupMappings.getTaxComponent();
                     BigDecimal percentage = component.getApplicablePercentage(date);
+                    log.info("TaxUtils.splitTax - TaxComponent ID: {}, Percentage: {}", component.getId(), percentage);
                     if (percentage != null) {
                         double percentageVal = percentage.doubleValue();
                         double tax = amountVal * percentageVal / cent_percentage;
-                        map.put(component, BigDecimal.valueOf(tax).setScale(scale, MoneyHelper.getRoundingMode()));
+                        BigDecimal taxAmount = BigDecimal.valueOf(tax).setScale(scale, MoneyHelper.getRoundingMode());
+                        map.put(component, taxAmount);
+                        log.info("TaxUtils.splitTax - Tax Calculation: {} * {} / 100 = {}", amountVal, percentageVal, taxAmount);
                     }
                 }
             }
         }
+        log.info("TaxUtils.splitTax - Final Tax Split Map: {}", map);
         return map;
     }
 

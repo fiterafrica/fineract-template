@@ -48,6 +48,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.commands.domain.CommandWrapper;
 import org.apache.fineract.commands.service.CommandWrapperBuilder;
@@ -81,6 +82,8 @@ import org.apache.fineract.portfolio.savings.service.DepositAccountPreMatureCalc
 import org.apache.fineract.portfolio.savings.service.DepositAccountReadPlatformService;
 import org.apache.fineract.portfolio.savings.service.DepositAccountWritePlatformService;
 import org.apache.fineract.portfolio.savings.service.SavingsAccountChargeReadPlatformService;
+import org.apache.fineract.portfolio.tax.data.TaxComponentData;
+import org.apache.fineract.portfolio.tax.service.TaxReadPlatformService;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,6 +91,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+@Slf4j
 @Path("/fixeddepositaccounts")
 @Component
 @Scope("singleton")
@@ -107,6 +111,7 @@ public class FixedDepositAccountsApiResource {
     private final BulkImportWorkbookPopulatorService bulkImportWorkbookPopulatorService;
     private final DepositAccountWritePlatformService depositAccountWritePlatformService;
     private final DefaultToApiJsonSerializer<DepositAccountPreClosureChargeData> toApiJsonSerializerCharges;
+    private final TaxReadPlatformService taxReadPlatformService;
 
     @Autowired
     public FixedDepositAccountsApiResource(final DepositAccountReadPlatformService depositAccountReadPlatformService,
@@ -119,7 +124,8 @@ public class FixedDepositAccountsApiResource {
             final BulkImportWorkbookService bulkImportWorkbookService,
             final BulkImportWorkbookPopulatorService bulkImportWorkbookPopulatorService,
             DepositAccountWritePlatformService depositAccountWritePlatformService,
-            DefaultToApiJsonSerializer<DepositAccountPreClosureChargeData> toApiJsonSerializerCharges) {
+            DefaultToApiJsonSerializer<DepositAccountPreClosureChargeData> toApiJsonSerializerCharges,
+            TaxReadPlatformService taxReadPlatformService) {
         this.depositAccountReadPlatformService = depositAccountReadPlatformService;
         this.context = context;
         this.toApiJsonSerializer = toApiJsonSerializer;
@@ -133,6 +139,7 @@ public class FixedDepositAccountsApiResource {
         this.bulkImportWorkbookPopulatorService = bulkImportWorkbookPopulatorService;
         this.depositAccountWritePlatformService = depositAccountWritePlatformService;
         this.toApiJsonSerializerCharges = toApiJsonSerializerCharges;
+        this.taxReadPlatformService = taxReadPlatformService;
     }
 
     @GET
@@ -319,10 +326,20 @@ public class FixedDepositAccountsApiResource {
             templateData = (FixedDepositAccountData) this.depositAccountReadPlatformService.retrieveTemplate(
                     DepositAccountType.FIXED_DEPOSIT, savingsAccount.clientId(), savingsAccount.groupId(), savingsAccount.productId(),
                     staffInSelectedOfficeOnly);
+
+        }
+
+        Collection<TaxComponentData> componentData = taxReadPlatformService.retrieveAllTaxComponents();
+        TaxComponentData withholdingTaxGroup = null;
+        for (TaxComponentData taxGroupData : componentData) {
+
+            if (taxGroupData.getName().equalsIgnoreCase("Witholding Tax (10%)")) {
+                withholdingTaxGroup = taxGroupData;
+            }
         }
 
         FixedDepositAccountData result = FixedDepositAccountData.associationsAndTemplate(savingsAccount, templateData, transactions,
-                charges, linkedAccount, transferToSavingsAccount);
+                charges, linkedAccount, transferToSavingsAccount, withholdingTaxGroup);
         result.setTransactionSize(transactionSize);
         return result;
     }

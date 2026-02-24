@@ -19,8 +19,12 @@
 package org.apache.fineract.portfolio.savings.data;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Collection;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
@@ -31,11 +35,13 @@ import org.apache.fineract.portfolio.charge.data.ChargeData;
 import org.apache.fineract.portfolio.paymenttype.data.PaymentTypeData;
 import org.apache.fineract.portfolio.savings.DepositAccountType;
 import org.apache.fineract.portfolio.savings.service.SavingsEnumerations;
+import org.apache.fineract.portfolio.tax.data.TaxComponentData;
 import org.apache.fineract.portfolio.tax.data.TaxGroupData;
 
 /**
  * Immutable data object representing a Fixed Deposit account.
  */
+@Slf4j
 public final class FixedDepositAccountData extends DepositAccountData {
 
     private boolean preClosurePenalApplicable;
@@ -82,6 +88,10 @@ public final class FixedDepositAccountData extends DepositAccountData {
     // Partial Liquidation
     private Boolean allowPartialLiquidation;
     private Integer totalLiquidationAllowed;
+
+    @Setter
+    @Getter
+    private BigDecimal withholdTaxAmount;
 
     public static FixedDepositAccountData importInstance(Long clientId, Long productId, Long fieldOfficerId, LocalDate submittedOnDate,
             EnumOptionData interestCompoundingPeriodTypeEnum, EnumOptionData interestPostingPeriodTypeEnum,
@@ -211,10 +221,24 @@ public final class FixedDepositAccountData extends DepositAccountData {
 
     public static FixedDepositAccountData associationsAndTemplate(final FixedDepositAccountData account, FixedDepositAccountData template,
             final Collection<SavingsAccountTransactionData> transactions, final Collection<SavingsAccountChargeData> charges,
-            final PortfolioAccountData linkedAccount, PortfolioAccountData transferToSavingsAccount) {
+            final PortfolioAccountData linkedAccount, PortfolioAccountData transferToSavingsAccount,
+            final TaxComponentData withholdingTaxGroup) {
 
         if (template == null) {
             template = account;
+        }
+
+        BigDecimal withTaxAmount = BigDecimal.ZERO;
+        if (account.withHoldTax && withholdingTaxGroup != null) {
+            BigDecimal depositAmount = account.depositAmount;
+            BigDecimal maturityAmount = account.maturityAmount;
+            BigDecimal totalInterest = maturityAmount.subtract(depositAmount);
+            BigDecimal taxRate = withholdingTaxGroup.getPercentage().divide(BigDecimal.valueOf(100));
+
+            withTaxAmount = totalInterest.multiply(taxRate).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal netInterest = maturityAmount.subtract(withTaxAmount);
+            log.info("payable interest {} and withhold tax amount {} rate {} ", netInterest, withTaxAmount, taxRate);
+
         }
 
         FixedDepositAccountData fixedDepositAccountData = new FixedDepositAccountData(account.id, account.accountNo, account.externalId,
@@ -237,6 +261,7 @@ public final class FixedDepositAccountData extends DepositAccountData {
                 account.taxGroup, account.maturityInstructionOptions, account.transferToSavingsId, transferToSavingsAccount,
                 account.allowPartialLiquidation, account.totalLiquidationAllowed);
         fixedDepositAccountData.setAccruedInterestCarriedForward(account.accruedInterestCarriedForward);
+        fixedDepositAccountData.setWithholdTaxAmount(withTaxAmount);
         return fixedDepositAccountData;
     }
 

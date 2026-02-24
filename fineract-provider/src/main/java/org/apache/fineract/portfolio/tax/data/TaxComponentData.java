@@ -173,4 +173,8 @@ public final class TaxComponentData implements Serializable {
         return id;
     }
 
+    public String getName() {
+        return name;
+    }
+
 }
