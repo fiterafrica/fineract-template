@@ -392,4 +392,29 @@ public class DepositAccountData {
     public Boolean getAddPenaltyOnMissedTargetSavings() {
         return addPenaltyOnMissedTargetSavings;
     }
+
+    public boolean isWithHoldTax() {
+        return withHoldTax;
+    }
+
+    public TaxGroupData getTaxGroup() {
+        return taxGroup;
+    }
+
+    /**
+     * Creates a new instance with updated tax group data. This is used to populate full tax group data with tax
+     * associations.
+     */
+    public DepositAccountData withTaxGroup(final TaxGroupData taxGroupData) {
+        return new DepositAccountData(this.id, this.accountNo, this.externalId, this.groupId, this.groupName, this.clientId,
+                this.clientName, this.depositProductId, this.depositProductName, this.fieldOfficerId, this.fieldOfficerName, this.status,
+                this.timeline, this.currency, this.nominalAnnualInterestRate, this.interestCompoundingPeriodType,
+                this.interestPostingPeriodType, this.interestCalculationType, this.interestCalculationDaysInYearType,
+                this.minRequiredOpeningBalance, this.lockinPeriodFrequency, this.lockinPeriodFrequencyType, this.withdrawalFeeForTransfers,
+                this.summary, this.transactions, this.productOptions, this.fieldOfficerOptions, this.interestCompoundingPeriodTypeOptions,
+                this.interestPostingPeriodTypeOptions, this.interestCalculationTypeOptions, this.interestCalculationDaysInYearTypeOptions,
+                this.lockinPeriodFrequencyTypeOptions, this.withdrawalFeeTypeOptions, this.charges, this.chargeOptions, this.accountChart,
+                this.chartTemplate, this.depositType, this.minBalanceForInterestCalculation, this.withHoldTax, taxGroupData,
+                this.principalAmount, this.depositTillDate, this.addPenaltyOnMissedTargetSavings);
+    }
 }

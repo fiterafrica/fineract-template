@@ -77,6 +77,19 @@ public final class TaxComponentData implements Serializable {
                 taxComponentHistories, glAccountOptions, glAccountTypeOptions);
     }
 
+    public static TaxComponentData lookupWithPercentage(final Long id, final String name, final BigDecimal percentage) {
+        final EnumOptionData debitAccountType = null;
+        final GLAccountData debitAcount = null;
+        final EnumOptionData creditAccountType = null;
+        final GLAccountData creditAcount = null;
+        final LocalDate startDate = null;
+        final Collection<TaxComponentHistoryData> taxComponentHistories = null;
+        final Map<String, List<GLAccountData>> glAccountOptions = null;
+        final Collection<EnumOptionData> glAccountTypeOptions = null;
+        return new TaxComponentData(id, name, percentage, debitAccountType, debitAcount, creditAccountType, creditAcount, startDate,
+                taxComponentHistories, glAccountOptions, glAccountTypeOptions);
+    }
+
     public static TaxComponentData template(final Map<String, List<GLAccountData>> glAccountOptions,
             final Collection<EnumOptionData> glAccountTypeOptions) {
         final Long id = null;

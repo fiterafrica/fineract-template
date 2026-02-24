@@ -82,7 +82,6 @@ import org.apache.fineract.portfolio.savings.service.DepositAccountPreMatureCalc
 import org.apache.fineract.portfolio.savings.service.DepositAccountReadPlatformService;
 import org.apache.fineract.portfolio.savings.service.DepositAccountWritePlatformService;
 import org.apache.fineract.portfolio.savings.service.SavingsAccountChargeReadPlatformService;
-import org.apache.fineract.portfolio.tax.data.TaxComponentData;
 import org.apache.fineract.portfolio.tax.service.TaxReadPlatformService;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
@@ -329,17 +328,9 @@ public class FixedDepositAccountsApiResource {
 
         }
 
-        Collection<TaxComponentData> componentData = taxReadPlatformService.retrieveAllTaxComponents();
-        TaxComponentData withholdingTaxGroup = null;
-        for (TaxComponentData taxGroupData : componentData) {
-
-            if (taxGroupData.getName().equalsIgnoreCase("Witholding Tax (10%)")) {
-                withholdingTaxGroup = taxGroupData;
-            }
-        }
-
+        // Use the account's tax group (which is now fully populated with tax associations) for withhold tax calculation
         FixedDepositAccountData result = FixedDepositAccountData.associationsAndTemplate(savingsAccount, templateData, transactions,
-                charges, linkedAccount, transferToSavingsAccount, withholdingTaxGroup);
+                charges, linkedAccount, transferToSavingsAccount);
         result.setTransactionSize(transactionSize);
         return result;
     }
