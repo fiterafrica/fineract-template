@@ -89,6 +89,7 @@ import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionEnumD
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountStatusType;
 import org.apache.fineract.portfolio.savings.exception.DepositAccountNotFoundException;
 import org.apache.fineract.portfolio.tax.data.TaxGroupData;
+import org.apache.fineract.portfolio.tax.service.TaxReadPlatformService;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -126,6 +127,7 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final PaymentTypeReadPlatformService paymentTypeReadPlatformService;
     private final ColumnValidator columnValidator;
+    private final TaxReadPlatformService taxReadPlatformService;
     // allowed column names for sorting the query result
     private static final Set<String> supportedOrderByValues = new HashSet<>(Arrays.asList("id", "accountNumbr", "officeId", "officeName"));
 
@@ -142,7 +144,7 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
             final SavingsAccountReadPlatformService savingsAccountReadPlatformService,
             final DropdownReadPlatformService dropdownReadPlatformService, final CalendarReadPlatformService calendarReadPlatformService,
             PaymentTypeReadPlatformService paymentTypeReadPlatformService, DatabaseSpecificSQLGenerator sqlGenerator,
-            PaginationHelper paginationHelper, ColumnValidator columnValidator) {
+            PaginationHelper paginationHelper, ColumnValidator columnValidator, TaxReadPlatformService taxReadPlatformService) {
         this.context = context;
         this.jdbcTemplate = jdbcTemplate;
         this.accountChartReadPlatformService = chartReadPlatformService;
@@ -164,6 +166,7 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
         this.calendarReadPlatformService = calendarReadPlatformService;
         this.paymentTypeReadPlatformService = paymentTypeReadPlatformService;
         this.paginationHelper = paginationHelper;
+        this.taxReadPlatformService = taxReadPlatformService;
     }
 
     @Override
@@ -258,8 +261,16 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
             sqlBuilder.append(depositAccountMapper.schema());
             sqlBuilder.append(" where sa.id = ? and sa.deposit_type_enum = ? ");
 
-            return this.jdbcTemplate.queryForObject(sqlBuilder.toString(), depositAccountMapper,
+            DepositAccountData depositAccountData = this.jdbcTemplate.queryForObject(sqlBuilder.toString(), depositAccountMapper,
                     new Object[] { accountId, depositAccountType.getValue() });
+
+            // Populate full tax group data with tax associations if withHoldTax is enabled
+            if (depositAccountData != null && depositAccountData.isWithHoldTax() && depositAccountData.getTaxGroup() != null) {
+                TaxGroupData fullTaxGroupData = this.taxReadPlatformService.retrieveTaxGroupData(depositAccountData.getTaxGroup().getId());
+                depositAccountData = depositAccountData.withTaxGroup(fullTaxGroupData);
+            }
+
+            return depositAccountData;
 
         } catch (final EmptyResultDataAccessException e) {
             throw new DepositAccountNotFoundException(depositAccountType, accountId, e);

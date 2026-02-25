@@ -19,11 +19,17 @@
 package org.apache.fineract.portfolio.savings.data;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Collection;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
+import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.organisation.staff.data.StaffData;
 import org.apache.fineract.portfolio.account.data.PortfolioAccountData;
@@ -31,11 +37,14 @@ import org.apache.fineract.portfolio.charge.data.ChargeData;
 import org.apache.fineract.portfolio.paymenttype.data.PaymentTypeData;
 import org.apache.fineract.portfolio.savings.DepositAccountType;
 import org.apache.fineract.portfolio.savings.service.SavingsEnumerations;
+import org.apache.fineract.portfolio.tax.data.TaxComponentData;
 import org.apache.fineract.portfolio.tax.data.TaxGroupData;
+import org.apache.fineract.portfolio.tax.data.TaxGroupMappingsData;
 
 /**
  * Immutable data object representing a Fixed Deposit account.
  */
+@Slf4j
 public final class FixedDepositAccountData extends DepositAccountData {
 
     private boolean preClosurePenalApplicable;
@@ -82,6 +91,10 @@ public final class FixedDepositAccountData extends DepositAccountData {
     // Partial Liquidation
     private Boolean allowPartialLiquidation;
     private Integer totalLiquidationAllowed;
+
+    @Setter
+    @Getter
+    private BigDecimal withholdTaxAmount;
 
     public static FixedDepositAccountData importInstance(Long clientId, Long productId, Long fieldOfficerId, LocalDate submittedOnDate,
             EnumOptionData interestCompoundingPeriodTypeEnum, EnumOptionData interestPostingPeriodTypeEnum,
@@ -217,6 +230,71 @@ public final class FixedDepositAccountData extends DepositAccountData {
             template = account;
         }
 
+        BigDecimal withTaxAmount = BigDecimal.ZERO;
+        // Use the account's taxGroup which is now fully populated with tax associations
+        log.info("WithholdTax Display - Account ID: {}, withHoldTax: {}, taxGroup: {}", account.id, account.withHoldTax,
+                account.taxGroup != null ? account.taxGroup.getId() : "null");
+
+        if (account.withHoldTax && account.taxGroup != null && account.taxGroup.getTaxAssociations() != null) {
+            log.info("WithholdTax Display - TaxGroup ID: {}, TaxAssociations count: {}", account.taxGroup.getId(),
+                    account.taxGroup.getTaxAssociations().size());
+
+            BigDecimal depositAmount = account.depositAmount;
+            BigDecimal maturityAmount = account.maturityAmount;
+            BigDecimal totalInterest = maturityAmount != null && depositAmount != null ? maturityAmount.subtract(depositAmount)
+                    : BigDecimal.ZERO;
+
+            // Get the applicable tax rate from the tax group's tax associations
+            ZoneId zone = DateUtils.getDateTimeZoneOfTenant();
+            LocalDate today = LocalDate.now(zone);
+            log.info("WithholdTax Display - Today's date for tax applicability check: {}", today);
+
+            BigDecimal taxRate = BigDecimal.ZERO;
+            for (TaxGroupMappingsData mapping : account.taxGroup.getTaxAssociations()) {
+                if (mapping == null) {
+                    log.warn("WithholdTax Display - Skipping null mapping");
+                    continue;
+                }
+
+                boolean isApplicable = false;
+                try {
+                    isApplicable = mapping.occursOnDayFromAndUpToAndIncluding(today);
+                } catch (Exception e) {
+                    log.warn("WithholdTax Display - Error checking date applicability: {}", e.getMessage());
+                }
+
+                TaxComponentData taxComponent = mapping.getTaxComponent();
+                BigDecimal componentPercentage = taxComponent != null ? taxComponent.getPercentage() : null;
+
+                log.info("WithholdTax Display - TaxMapping: TaxComponent={}, StartDate={}, EndDate={}, IsApplicable={}, Percentage={}",
+                        taxComponent != null ? taxComponent.getId() : "null", mapping.startDate(), mapping.endDate(), isApplicable,
+                        componentPercentage != null ? componentPercentage : "null");
+
+                if (isApplicable && taxComponent != null && componentPercentage != null) {
+                    taxRate = taxRate.add(componentPercentage);
+                    log.info("WithholdTax Display - Added percentage: {}, Running taxRate: {}", componentPercentage, taxRate);
+                }
+            }
+
+            log.info("WithholdTax Display - Final taxRate: {}, DepositAmount: {}, MaturityAmount: {}, TotalInterest: {}", taxRate,
+                    depositAmount, maturityAmount, totalInterest);
+
+            if (taxRate.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal taxRateFraction = taxRate.divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
+                withTaxAmount = totalInterest.multiply(taxRateFraction).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal netInterest = totalInterest.subtract(withTaxAmount);
+                log.info("WithholdTax Display - Tax Rate: {}%, Tax Rate Fraction: {}, Withhold Tax Amount: {}, Net Interest: {}", taxRate,
+                        taxRateFraction, withTaxAmount, netInterest);
+            } else {
+                log.info("WithholdTax Display - Tax rate is ZERO, no withhold tax calculated");
+            }
+        } else {
+            log.info("WithholdTax Display - Skipped: withHoldTax={}, taxGroup={}, taxAssociations={}", account.withHoldTax,
+                    account.taxGroup != null ? account.taxGroup.getId() : "null",
+                    account.taxGroup != null && account.taxGroup.getTaxAssociations() != null ? account.taxGroup.getTaxAssociations().size()
+                            : "null");
+        }
+
         FixedDepositAccountData fixedDepositAccountData = new FixedDepositAccountData(account.id, account.accountNo, account.externalId,
                 account.groupId, account.groupName, account.clientId, account.clientName, account.depositProductId,
                 account.depositProductName, account.fieldOfficerId, account.fieldOfficerName, account.status, account.timeline,
@@ -237,6 +315,7 @@ public final class FixedDepositAccountData extends DepositAccountData {
                 account.taxGroup, account.maturityInstructionOptions, account.transferToSavingsId, transferToSavingsAccount,
                 account.allowPartialLiquidation, account.totalLiquidationAllowed);
         fixedDepositAccountData.setAccruedInterestCarriedForward(account.accruedInterestCarriedForward);
+        fixedDepositAccountData.setWithholdTaxAmount(withTaxAmount);
         return fixedDepositAccountData;
     }
 
@@ -575,5 +654,29 @@ public final class FixedDepositAccountData extends DepositAccountData {
 
     public void setTransactionSize(Long transactionSize) {
         this.transactionSize = transactionSize;
+    }
+
+    /**
+     * Creates a new instance with updated tax group data. This is used to populate full tax group data with tax
+     * associations.
+     */
+    @Override
+    public FixedDepositAccountData withTaxGroup(final TaxGroupData taxGroupData) {
+        return new FixedDepositAccountData(this.id, this.accountNo, this.externalId, this.groupId, this.groupName, this.clientId,
+                this.clientName, this.depositProductId, this.depositProductName, this.fieldOfficerId, this.fieldOfficerName, this.status,
+                this.timeline, this.currency, this.nominalAnnualInterestRate, this.interestCompoundingPeriodType,
+                this.interestPostingPeriodType, this.interestCalculationType, this.interestCalculationDaysInYearType,
+                this.minRequiredOpeningBalance, this.lockinPeriodFrequency, this.lockinPeriodFrequencyType, this.withdrawalFeeForTransfers,
+                this.minBalanceForInterestCalculation, this.summary, this.transactions, this.productOptions, this.fieldOfficerOptions,
+                this.interestCompoundingPeriodTypeOptions, this.interestPostingPeriodTypeOptions, this.interestCalculationTypeOptions,
+                this.interestCalculationDaysInYearTypeOptions, this.lockinPeriodFrequencyTypeOptions, this.withdrawalFeeTypeOptions,
+                this.charges, this.chargeOptions, this.accountChart, this.chartTemplate, this.preClosurePenalApplicable,
+                this.preClosurePenalInterest, this.preClosurePenalInterestOnType, this.preClosurePenalInterestOnTypeOptions,
+                this.minDepositTerm, this.maxDepositTerm, this.minDepositTermType, this.maxDepositTermType, this.inMultiplesOfDepositTerm,
+                this.inMultiplesOfDepositTermType, this.depositAmount, this.maturityAmount, this.maturityDate, this.depositPeriod,
+                this.depositPeriodFrequency, this.periodFrequencyTypeOptions, this.depositType, this.onAccountClosure,
+                this.onAccountClosureOptions, this.paymentTypeOptions, this.savingsAccounts, this.linkedAccount,
+                this.transferInterestToSavings, this.withHoldTax, taxGroupData, this.maturityInstructionOptions, this.transferToSavingsId,
+                this.transferToSavingsAccount, this.allowPartialLiquidation, this.totalLiquidationAllowed);
     }
 }

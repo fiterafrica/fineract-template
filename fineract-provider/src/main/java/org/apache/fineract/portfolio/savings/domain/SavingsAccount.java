@@ -128,6 +128,7 @@ import org.apache.fineract.portfolio.savings.request.FixedDepositApprovalReq;
 import org.apache.fineract.portfolio.savings.service.SavingsEnumerations;
 import org.apache.fineract.portfolio.tax.domain.TaxComponent;
 import org.apache.fineract.portfolio.tax.domain.TaxGroup;
+import org.apache.fineract.portfolio.tax.domain.TaxGroupMappings;
 import org.apache.fineract.portfolio.tax.service.TaxUtils;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.slf4j.Logger;
@@ -946,9 +947,18 @@ public class SavingsAccount extends AbstractPersistableCustom {
 
     protected boolean createWithHoldTransaction(final BigDecimal amount, final LocalDate date) {
         boolean isTaxAdded = false;
+        LOG.info("WithHoldTax - Account ID: {}, TaxGroup: {}, Amount: {}, Date: {}", this.getId(),
+                this.taxGroup != null ? this.taxGroup.getId() : "null", amount, date);
         if (this.taxGroup != null && amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+            LOG.info("WithHoldTax - TaxGroup ID: {}, TaxGroupMappings count: {}", this.taxGroup.getId(),
+                    this.taxGroup.getTaxGroupMappings() != null ? this.taxGroup.getTaxGroupMappings().size() : 0);
+            for (TaxGroupMappings mapping : this.taxGroup.getTaxGroupMappings()) {
+                LOG.info("WithHoldTax - TaxComponent ID: {}, Percentage: {}, StartDate: {}, EndDate: {}", mapping.getTaxComponent().getId(),
+                        mapping.getTaxComponent().getPercentage(), mapping.startDate(), mapping.getEndDate());
+            }
             Map<TaxComponent, BigDecimal> taxSplit = TaxUtils.splitTax(amount, date, this.taxGroup.getTaxGroupMappings(), amount.scale());
             BigDecimal totalTax = TaxUtils.totalTaxAmount(taxSplit);
+            LOG.info("WithHoldTax - Interest Amount: {}, Total Tax Calculated: {}, Tax Split: {}", amount, totalTax, taxSplit);
             if (totalTax.compareTo(BigDecimal.ZERO) > 0) {
                 SavingsAccountTransaction withholdTransaction = SavingsAccountTransaction.withHoldTax(this, office(), date,
                         Money.of(currency, totalTax), taxSplit, false);
@@ -963,7 +973,11 @@ public class SavingsAccount extends AbstractPersistableCustom {
                 }
                 this.addNewTransaction(withholdTransaction);
                 isTaxAdded = true;
+                LOG.info("WithHoldTax - Transaction created successfully. Account ID: {}, Tax Amount: {}", this.getId(), totalTax);
             }
+        } else {
+            LOG.info("WithHoldTax - Skipped. TaxGroup is null: {}, Amount is null or zero: {}", this.taxGroup == null,
+                    amount == null || amount.compareTo(BigDecimal.ZERO) <= 0);
         }
         return isTaxAdded;
     }
@@ -983,6 +997,9 @@ public class SavingsAccount extends AbstractPersistableCustom {
                 }
                 isTaxAdded = true;
             }
+        } else {
+            LOG.info("WithHoldTax (backdated) - Skipped. TaxGroup is null: {}, Amount is null or zero: {}", this.taxGroup == null,
+                    amount == null || amount.compareTo(BigDecimal.ZERO) <= 0);
         }
         return isTaxAdded;
     }
@@ -4153,10 +4170,10 @@ public class SavingsAccount extends AbstractPersistableCustom {
         final List<SavingsAccountTransaction> withholdTransactions = findWithHoldTransactions();
         SavingsAccountTransaction withholdTransaction = findTransactionFor(interestPostingUpToDate, withholdTransactions);
 
-        final BigDecimal totalInterestPosted = this.savingsAccountTransactionSummaryWrapper
-                .calculateTotalInterestPosted(this.currency, this.transactions).subtract(penalCharge);
+        // Withhold tax should be calculated on gross interest (total interest posted), NOT reduced by penalty charge
+        final BigDecimal totalInterestPosted = this.savingsAccountTransactionSummaryWrapper.calculateTotalInterestPosted(this.currency,
+                this.transactions);
 
-        LOG.info("Interest value --- >" + totalInterestPosted);
         if (withholdTransaction == null && this.withHoldTax()) {
             boolean isWithholdTaxAdded = createWithHoldTransaction(totalInterestPosted, interestPostingUpToDate, backdatedTxnsAllowedTill);
             recalucateDailyBalance = recalucateDailyBalance || isWithholdTaxAdded;

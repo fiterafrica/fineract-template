@@ -69,4 +69,8 @@ public final class TaxGroupData implements Serializable {
         return id;
     }
 
+    public String getName() {
+        return name;
+    }
+
 }
