@@ -377,6 +377,13 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         // if(!processMaturityInstructionOnly)
         // account.close(user, command, tenantsTodayDate, changes);
 
+        // Force interest earned to equal interest posted when FD is closed at maturity
+        BigDecimal earned = account.getSummary().getTotalInterestEarned();
+        BigDecimal posted = account.getSummary().getTotalInterestPosted();
+        if (earned == null || posted == null || earned.compareTo(posted) != 0) {
+            account.getSummary().setTotalInterestEarned(posted);
+        }
+
         this.savingsAccountRepository.save(account);
         return savingsTransactionId;
     }
@@ -558,7 +565,11 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
 
         account.prematureClosure(user, command, tenantsTodayDate, changes);
         // Force interest earned to equal interest posted when FD is prematurely closed
-        account.getSummary().setTotalInterestEarned(account.getSummary().getTotalInterestPosted());
+        BigDecimal earned = account.getSummary().getTotalInterestEarned();
+        BigDecimal posted = account.getSummary().getTotalInterestPosted();
+        if (earned == null || posted == null || earned.compareTo(posted) != 0) {
+            account.getSummary().setTotalInterestEarned(posted);
+        }
         this.savingsAccountRepository.save(account);
 
         postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
@@ -782,7 +793,11 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
 
         this.prematurelyCloseFD(account, fixedDepositPreclosureReq, changes);
         // Force interest earned to equal interest posted when FD is prematurely closed
-        account.getSummary().setTotalInterestEarned(account.getSummary().getTotalInterestPosted());
+        BigDecimal earned = account.getSummary().getTotalInterestEarned();
+        BigDecimal posted = account.getSummary().getTotalInterestPosted();
+        if (earned == null || posted == null || earned.compareTo(posted) != 0) {
+            account.getSummary().setTotalInterestEarned(posted);
+        }
 
         this.savingsAccountRepository.save(account);
 
