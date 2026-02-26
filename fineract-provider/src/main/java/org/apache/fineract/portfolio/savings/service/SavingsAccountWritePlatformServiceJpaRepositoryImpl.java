@@ -207,7 +207,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             final JdbcTemplate jdbcTemplate, final SavingsAccountInterestPostingService savingsAccountInterestPostingService,
             final CodeValueRepositoryWrapper codeValueRepositoryWrapper, final PaymentTypeRepositoryWrapper repositoryWrapper,
             final SavingsAccountTransactionLimitPlatformService savingsAccountTransactionLimitPlatformService,
-                                                               final GLClosureRepository glClosureRepository) {
+            final GLClosureRepository glClosureRepository) {
         this.context = context;
         this.savingAccountRepositoryWrapper = savingAccountRepositoryWrapper;
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
@@ -394,9 +394,9 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final BigDecimal transactionAmount = command.bigDecimalValueOfParameterNamed("transactionAmount");
         final String externalReference = command.stringValueOfParameterNamed("externalReference");
 
-
-        final List<SavingsAccountTransaction> transactions = this.savingsAccountDomainService.findByExternalIdSavingsTransaction(externalReference);
-        if(!CollectionUtils.isEmpty(transactions)){
+        final List<SavingsAccountTransaction> transactions = this.savingsAccountDomainService
+                .findByExternalIdSavingsTransaction(externalReference);
+        if (!CollectionUtils.isEmpty(transactions)) {
             throw new GeneralPlatformDomainRuleException("error.msg.savings.transaction.externalId.exists",
                     "Savings account transaction with externalId " + externalReference + " already exists");
         }
@@ -478,8 +478,9 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final BigDecimal transactionAmount = command.bigDecimalValueOfParameterNamed("transactionAmount");
         final String txnExternalId = command.stringValueOfParameterNamedAllowingNull("externalReference");
 
-        final List<SavingsAccountTransaction> transactions = this.savingsAccountDomainService.findByExternalIdSavingsTransaction(txnExternalId);
-        if(!CollectionUtils.isEmpty(transactions)){
+        final List<SavingsAccountTransaction> transactions = this.savingsAccountDomainService
+                .findByExternalIdSavingsTransaction(txnExternalId);
+        if (!CollectionUtils.isEmpty(transactions)) {
             throw new GeneralPlatformDomainRuleException("error.msg.savings.transaction.externalId.exists",
                     "Savings account transaction with externalId " + txnExternalId + " already exists");
         }
@@ -696,7 +697,6 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
         }
         validateTransactionAgainstAccountingClosurePeriod(transactionDate, account);
-
 
         postInterest(account, postInterestAs, transactionDate);
 
@@ -2391,8 +2391,9 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
         postAccrualInterest(account, true, transactionDate, isUserPosting);
 
-        BigDecimal totalAmount = Money
-                .of(account.getCurrency(), account.getTransactions().stream().filter(SavingsAccountTransaction::isAccrualInterestPosting)
+        // BUG FIX: Use isAccrualInterestPostingAndNotReversed to exclude reversed transactions
+        BigDecimal totalAmount = Money.of(account.getCurrency(),
+                account.getTransactions().stream().filter(SavingsAccountTransaction::isAccrualInterestPostingAndNotReversed)
                         .map(SavingsAccountTransaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add))
                 .getAmount();
 
@@ -2412,8 +2413,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final GLClosure latestGLClosureByBranch = this.glClosureRepository.getLatestGLClosureByBranch(account.officeId());
         if (latestGLClosureByBranch != null) {
             if (latestGLClosureByBranch.getClosingDate().isAfter(transactionDate)
-                    || latestGLClosureByBranch.getClosingDate().compareTo(transactionDate) == 0 ? Boolean.TRUE
-                    : Boolean.FALSE) {
+                    || latestGLClosureByBranch.getClosingDate().compareTo(transactionDate) == 0 ? Boolean.TRUE : Boolean.FALSE) {
                 final String accountName = null;
                 final String accountGLCode = null;
                 throw new JournalEntryInvalidException(JournalEntryInvalidException.GlJournalEntryInvalidReason.ACCOUNTING_CLOSED,
@@ -2494,7 +2494,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             }
 
         }
-        //Validate against accounting closures
+        // Validate against accounting closures
         validateTransactionAgainstAccountingClosurePeriod(transactionDate, account);
 
         postAccrualInterest(account, postInterestAs, transactionDate, true);

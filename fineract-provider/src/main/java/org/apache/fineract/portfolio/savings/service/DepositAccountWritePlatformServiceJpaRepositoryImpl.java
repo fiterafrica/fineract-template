@@ -224,31 +224,31 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
     @Autowired
     public DepositAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
-                                                               final SavingsAccountRepositoryWrapper savingAccountRepositoryWrapper,
-                                                               final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
-                                                               final DepositAccountAssembler depositAccountAssembler,
-                                                               final DepositAccountTransactionDataValidator depositAccountTransactionDataValidator,
-                                                               final SavingsAccountChargeDataValidator savingsAccountChargeDataValidator,
-                                                               final PaymentDetailWritePlatformService paymentDetailWritePlatformService,
-                                                               final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
-                                                               final JournalEntryWritePlatformService journalEntryWritePlatformService,
-                                                               final DepositAccountDomainService depositAccountDomainService, final NoteRepository noteRepository,
-                                                               final AccountTransfersReadPlatformService accountTransfersReadPlatformService, final ChargeRepositoryWrapper chargeRepository,
-                                                               final SavingsAccountChargeRepositoryWrapper savingsAccountChargeRepository, final HolidayRepositoryWrapper holidayRepository,
-                                                               final WorkingDaysRepositoryWrapper workingDaysRepository,
-                                                               final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
-                                                               final AccountTransfersWritePlatformService accountTransfersWritePlatformService,
-                                                               final DepositAccountReadPlatformService depositAccountReadPlatformService,
-                                                               final CalendarInstanceRepository calendarInstanceRepository, final ConfigurationDomainService configurationDomainService,
-                                                               final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
-                                                               final DepositApplicationProcessWritePlatformService depositApplicationProcessWritePlatformService,
-                                                               final SavingsAccountActionService savingsAccountActionService,
-                                                               final AccountAssociationsRepository accountAssociationsRepository, ReadWriteNonCoreDataService readWriteNonCoreDataService,
-                                                               final SavingsAccountChargeRepositoryWrapper savingsAccountChargeRepositoryWrapper, final FromJsonHelper fromJsonHelper,
-                                                               AccountingProcessorHelper helper, RecurringDepositProductRepository recurringDepositProductRepository,
-                                                               SavingsAccountWritePlatformService savingsAccountWritePlatformService, SavingsAccountRepository savingsAccountRepository,
-                                                               ChargeSlabRepository chargeSlabRepository, SavingsAccountReadPlatformService savingsAccountReadPlatformService,
-                                                               ChargeReadPlatformService chargeReadPlatformService, GLClosureRepository glClosureRepository) {
+            final SavingsAccountRepositoryWrapper savingAccountRepositoryWrapper,
+            final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
+            final DepositAccountAssembler depositAccountAssembler,
+            final DepositAccountTransactionDataValidator depositAccountTransactionDataValidator,
+            final SavingsAccountChargeDataValidator savingsAccountChargeDataValidator,
+            final PaymentDetailWritePlatformService paymentDetailWritePlatformService,
+            final ApplicationCurrencyRepositoryWrapper applicationCurrencyRepositoryWrapper,
+            final JournalEntryWritePlatformService journalEntryWritePlatformService,
+            final DepositAccountDomainService depositAccountDomainService, final NoteRepository noteRepository,
+            final AccountTransfersReadPlatformService accountTransfersReadPlatformService, final ChargeRepositoryWrapper chargeRepository,
+            final SavingsAccountChargeRepositoryWrapper savingsAccountChargeRepository, final HolidayRepositoryWrapper holidayRepository,
+            final WorkingDaysRepositoryWrapper workingDaysRepository,
+            final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService,
+            final AccountTransfersWritePlatformService accountTransfersWritePlatformService,
+            final DepositAccountReadPlatformService depositAccountReadPlatformService,
+            final CalendarInstanceRepository calendarInstanceRepository, final ConfigurationDomainService configurationDomainService,
+            final DepositAccountOnHoldTransactionRepository depositAccountOnHoldTransactionRepository,
+            final DepositApplicationProcessWritePlatformService depositApplicationProcessWritePlatformService,
+            final SavingsAccountActionService savingsAccountActionService,
+            final AccountAssociationsRepository accountAssociationsRepository, ReadWriteNonCoreDataService readWriteNonCoreDataService,
+            final SavingsAccountChargeRepositoryWrapper savingsAccountChargeRepositoryWrapper, final FromJsonHelper fromJsonHelper,
+            AccountingProcessorHelper helper, RecurringDepositProductRepository recurringDepositProductRepository,
+            SavingsAccountWritePlatformService savingsAccountWritePlatformService, SavingsAccountRepository savingsAccountRepository,
+            ChargeSlabRepository chargeSlabRepository, SavingsAccountReadPlatformService savingsAccountReadPlatformService,
+            ChargeReadPlatformService chargeReadPlatformService, GLClosureRepository glClosureRepository) {
 
         this.context = context;
         this.savingAccountRepositoryWrapper = savingAccountRepositoryWrapper;
@@ -1576,12 +1576,35 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                 }
             }
 
-            BigDecimal totalAmount = Money.of(account.getCurrency(),
-                    account.getTransactions().stream().filter(SavingsAccountTransaction::isAccrualInterestPosting)
-                            .map(SavingsAccountTransaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add))
-                    .getAmount();
-            LOG.info(account.getId() + " Job Accruals ---- Total Interest ::->" + totalAmount);
-            account.getSummary().setTotalInterestEarned(totalAmount);
+            // Determine totalInterestEarned based on account status
+            BigDecimal totalInterestEarnedToSet;
+
+            // For closed/matured accounts, totalInterestEarned should equal totalInterestPosted
+            if (account.isClosed() || fdAccount.isMatured()) {
+                totalInterestEarnedToSet = account.getSummary().getTotalInterestPosted();
+                LOG.info("Account ID: {} is closed/matured. Setting totalInterestEarned = totalInterestPosted = {}", account.getId(),
+                        totalInterestEarnedToSet);
+            } else {
+                // For active accounts, calculate from non-reversed accrual transactions
+                totalInterestEarnedToSet = Money.of(account.getCurrency(),
+                        account.getTransactions().stream().filter(SavingsAccountTransaction::isAccrualInterestPostingAndNotReversed)
+                                .map(SavingsAccountTransaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add))
+                        .getAmount();
+                LOG.info("Account ID: {} is active. Calculated totalInterestEarned from accruals = {}", account.getId(),
+                        totalInterestEarnedToSet);
+            }
+
+            // Check if correction is needed (for existing incorrect data)
+            BigDecimal currentTotalInterestEarned = account.getSummary().getTotalInterestEarned();
+            BigDecimal totalInterestPosted = account.getSummary().getTotalInterestPosted();
+            if (currentTotalInterestEarned != null && totalInterestPosted != null
+                    && currentTotalInterestEarned.compareTo(totalInterestPosted) > 0 && account.isClosed()) {
+                LOG.info("Account ID: {} - Correcting incorrect totalInterestEarned. Old: {}, New: {}", account.getId(),
+                        currentTotalInterestEarned, totalInterestPosted);
+                totalInterestEarnedToSet = totalInterestPosted;
+            }
+
+            account.getSummary().setTotalInterestEarned(totalInterestEarnedToSet);
 
         } else if (depositAccountType.isRecurringDeposit()) {
 
@@ -2044,8 +2067,9 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         checkClientOrGroupActive(account);
         postAccrualInterest(account, transactionDate);
 
-        BigDecimal totalAmount = Money
-                .of(account.getCurrency(), account.getTransactions().stream().filter(SavingsAccountTransaction::isAccrualInterestPosting)
+        // BUG FIX: Use isAccrualInterestPostingAndNotReversed to exclude reversed transactions
+        BigDecimal totalAmount = Money.of(account.getCurrency(),
+                account.getTransactions().stream().filter(SavingsAccountTransaction::isAccrualInterestPostingAndNotReversed)
                         .map(SavingsAccountTransaction::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add))
                 .getAmount();
 
@@ -2063,8 +2087,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         final GLClosure latestGLClosureByBranch = this.glClosureRepository.getLatestGLClosureByBranch(account.officeId());
         if (latestGLClosureByBranch != null) {
             if (latestGLClosureByBranch.getClosingDate().isAfter(transactionDate)
-                    || latestGLClosureByBranch.getClosingDate().compareTo(transactionDate) == 0 ? Boolean.TRUE
-                    : Boolean.FALSE) {
+                    || latestGLClosureByBranch.getClosingDate().compareTo(transactionDate) == 0 ? Boolean.TRUE : Boolean.FALSE) {
                 final String accountName = null;
                 final String accountGLCode = null;
                 throw new JournalEntryInvalidException(JournalEntryInvalidException.GlJournalEntryInvalidReason.ACCOUNTING_CLOSED,
