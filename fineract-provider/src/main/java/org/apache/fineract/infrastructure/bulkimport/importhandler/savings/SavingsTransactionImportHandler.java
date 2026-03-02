@@ -130,6 +130,9 @@ public class SavingsTransactionImportHandler implements ImportHandler {
                 savingsTransactionJsonob.remove("transactionType");
                 savingsTransactionJsonob.remove("reversed");
                 savingsTransactionJsonob.remove("interestedPostedAsOn");
+                savingsTransactionJsonob.remove("isManualTransaction");
+                savingsTransactionJsonob.remove("lienTransaction");
+                savingsTransactionJsonob.remove("chargesPaidByData");
                 String payload = savingsTransactionJsonob.toString();
                 CommandWrapper commandRequest = null;
                 if (transaction.getTransactionType().getValue().equals("Withdrawal")) {

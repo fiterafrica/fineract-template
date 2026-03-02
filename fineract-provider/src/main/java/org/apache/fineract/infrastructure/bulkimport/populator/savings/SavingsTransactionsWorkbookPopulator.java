@@ -66,7 +66,7 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
         clientSheetPopulator.populate(workbook, dateFormat);
         extrasSheetPopulator.populate(workbook, dateFormat);
         populateSavingsTable(savingsTransactionSheet, dateFormat);
-        setRules(savingsTransactionSheet, dateFormat);
+        setRules(savingsTransactionSheet);
         setDefaults(savingsTransactionSheet);
     }
 
@@ -77,57 +77,38 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
                 row = worksheet.createRow(rowNo);
             }
             writeFormula(TransactionConstants.PRODUCT_COL, row,
-                    "IF(ISERROR(VLOOKUP($C" + (rowNo + 1) + ",$Q$2:$S$" + (savingsAccounts.size() + 1) + ",2,FALSE)),\"\",VLOOKUP($C"
-                            + (rowNo + 1) + ",$Q$2:$S$" + (savingsAccounts.size() + 1) + ",2,FALSE))");
+                    "IF(ISERROR(VLOOKUP($B" + (rowNo + 1) + ",$R$2:$T$" + (savingsAccounts.size() + 1) + ",2,FALSE)),\"\",VLOOKUP($B"
+                            + (rowNo + 1) + ",$R$2:$T$" + (savingsAccounts.size() + 1) + ",2,FALSE))");
             writeFormula(TransactionConstants.OPENING_BALANCE_COL, row,
-                    "IF(ISERROR(VLOOKUP($C" + (rowNo + 1) + ",$Q$2:$S$" + (savingsAccounts.size() + 1) + ",3,FALSE)),\"\",VLOOKUP($C"
-                            + (rowNo + 1) + ",$Q$2:$S$" + (savingsAccounts.size() + 1) + ",3,FALSE))");
+                    "IF(ISERROR(VLOOKUP($B" + (rowNo + 1) + ",$R$2:$T$" + (savingsAccounts.size() + 1) + ",3,FALSE)),\"\",VLOOKUP($B"
+                            + (rowNo + 1) + ",$R$2:$T$" + (savingsAccounts.size() + 1) + ",3,FALSE))");
         }
     }
 
-    private void setRules(Sheet worksheet, String dateFormat) {
+    private void setRules(Sheet worksheet) {
         CellRangeAddressList officeNameRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
                 TransactionConstants.OFFICE_NAME_COL, TransactionConstants.OFFICE_NAME_COL);
-        CellRangeAddressList clientNameRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
-                TransactionConstants.CLIENT_NAME_COL, TransactionConstants.CLIENT_NAME_COL);
-        CellRangeAddressList accountNumberRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
-                TransactionConstants.SAVINGS_ACCOUNT_NO_COL, TransactionConstants.SAVINGS_ACCOUNT_NO_COL);
         CellRangeAddressList transactionTypeRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
                 TransactionConstants.TRANSACTION_TYPE_COL, TransactionConstants.TRANSACTION_TYPE_COL);
         CellRangeAddressList paymentTypeRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
                 TransactionConstants.PAYMENT_TYPE_COL, TransactionConstants.PAYMENT_TYPE_COL);
-        CellRangeAddressList transactionDateRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
-                TransactionConstants.TRANSACTION_DATE_COL, TransactionConstants.TRANSACTION_DATE_COL);
 
         DataValidationHelper validationHelper = new XSSFDataValidationHelper((XSSFSheet) worksheet);
 
         setNames(worksheet);
 
         DataValidationConstraint officeNameConstraint = validationHelper.createFormulaListConstraint("Office");
-        DataValidationConstraint clientNameConstraint = validationHelper
-                .createFormulaListConstraint("INDIRECT(CONCATENATE(\"Client_\",$A1))");
-        DataValidationConstraint accountNumberConstraint = validationHelper.createFormulaListConstraint(
-                "INDIRECT(CONCATENATE(\"Account_\",SUBSTITUTE(SUBSTITUTE(SUBSTITUTE($B1,\" \",\"_\"),\"(\",\"_\"),\")\",\"_\")))");
         DataValidationConstraint transactionTypeConstraint = validationHelper
                 .createExplicitListConstraint(new String[] { "Withdrawal", "Deposit" });
         DataValidationConstraint paymentTypeConstraint = validationHelper.createFormulaListConstraint("PaymentTypes");
-        DataValidationConstraint transactionDateConstraint = validationHelper.createDateConstraint(
-                DataValidationConstraint.OperatorType.BETWEEN, "=VLOOKUP($C1,$Q$2:$T$" + (savingsAccounts.size() + 1) + ",4,FALSE)",
-                "=TODAY()", dateFormat);
 
         DataValidation officeValidation = validationHelper.createValidation(officeNameConstraint, officeNameRange);
-        DataValidation clientValidation = validationHelper.createValidation(clientNameConstraint, clientNameRange);
-        DataValidation accountNumberValidation = validationHelper.createValidation(accountNumberConstraint, accountNumberRange);
         DataValidation transactionTypeValidation = validationHelper.createValidation(transactionTypeConstraint, transactionTypeRange);
         DataValidation paymentTypeValidation = validationHelper.createValidation(paymentTypeConstraint, paymentTypeRange);
-        DataValidation transactionDateValidation = validationHelper.createValidation(transactionDateConstraint, transactionDateRange);
 
         worksheet.addValidationData(officeValidation);
-        worksheet.addValidationData(clientValidation);
-        worksheet.addValidationData(accountNumberValidation);
         worksheet.addValidationData(transactionTypeValidation);
         worksheet.addValidationData(paymentTypeValidation);
-        worksheet.addValidationData(transactionDateValidation);
     }
 
     private void setNames(Sheet worksheet) {
@@ -139,49 +120,52 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
         officeGroup.setNameName("Office");
         officeGroup.setRefersToFormula(TemplatePopulateImportConstants.OFFICE_SHEET_NAME + "!$B$2:$B$" + (officeNames.size() + 1));
 
-        // Clients Named after Offices
-        for (Integer i = 0; i < officeNames.size(); i++) {
-            Integer[] officeNameToBeginEndIndexesOfClients = clientSheetPopulator.getOfficeNameToBeginEndIndexesOfClients().get(i);
-            Name name = savingsTransactionWorkbook.createName();
-            if (officeNameToBeginEndIndexesOfClients != null) {
-                setSanitized(name, "Client_" + officeNames.get(i));
-                name.setRefersToFormula(TemplatePopulateImportConstants.CLIENT_SHEET_NAME + "!$B$" + officeNameToBeginEndIndexesOfClients[0]
-                        + ":$B$" + officeNameToBeginEndIndexesOfClients[1]);
+        // Only create client-based named ranges if there are savings accounts
+        if (savingsAccounts != null && !savingsAccounts.isEmpty()) {
+            // Clients Named after Offices
+            for (Integer i = 0; i < officeNames.size(); i++) {
+                Integer[] officeNameToBeginEndIndexesOfClients = clientSheetPopulator.getOfficeNameToBeginEndIndexesOfClients().get(i);
+                Name name = savingsTransactionWorkbook.createName();
+                if (officeNameToBeginEndIndexesOfClients != null) {
+                    setSanitized(name, "Client_" + officeNames.get(i));
+                    name.setRefersToFormula(TemplatePopulateImportConstants.CLIENT_SHEET_NAME + "!$B$" + officeNameToBeginEndIndexesOfClients[0]
+                            + ":$B$" + officeNameToBeginEndIndexesOfClients[1]);
+                }
             }
-        }
 
-        // Counting clients with active savings and starting and end addresses
-        // of cells for naming
-        HashMap<String, Integer[]> clientNameToBeginEndIndexes = new HashMap<>();
-        ArrayList<String> clientsWithActiveSavings = new ArrayList<>();
-        ArrayList<Long> clientIdsWithActiveSavings = new ArrayList<>();
-        int startIndex = 1;
-        int endIndex = 1;
-        String clientName = "";
-        Long clientId = null;
-        for (int i = 0; i < savingsAccounts.size(); i++) {
-            if (!clientName.equals(savingsAccounts.get(i).getClientName())) {
-                endIndex = i + 1;
-                clientNameToBeginEndIndexes.put(clientName, new Integer[] { startIndex, endIndex });
-                startIndex = i + 2;
-                clientName = savingsAccounts.get(i).getClientName();
-                clientId = savingsAccounts.get(i).getClientId();
-                clientsWithActiveSavings.add(clientName);
-                clientIdsWithActiveSavings.add(clientId);
+            // Counting clients with active savings and starting and end addresses
+            // of cells for naming
+            HashMap<String, Integer[]> clientNameToBeginEndIndexes = new HashMap<>();
+            ArrayList<String> clientsWithActiveSavings = new ArrayList<>();
+            ArrayList<Long> clientIdsWithActiveSavings = new ArrayList<>();
+            int startIndex = 1;
+            int endIndex = 1;
+            String clientName = "";
+            Long clientId = null;
+            for (int i = 0; i < savingsAccounts.size(); i++) {
+                if (!clientName.equals(savingsAccounts.get(i).getClientName())) {
+                    endIndex = i + 1;
+                    clientNameToBeginEndIndexes.put(clientName, new Integer[] { startIndex, endIndex });
+                    startIndex = i + 2;
+                    clientName = savingsAccounts.get(i).getClientName();
+                    clientId = savingsAccounts.get(i).getClientId();
+                    clientsWithActiveSavings.add(clientName);
+                    clientIdsWithActiveSavings.add(clientId);
+                }
+                if (i == savingsAccounts.size() - 1) {
+                    endIndex = i + 2;
+                    clientNameToBeginEndIndexes.put(clientName, new Integer[] { startIndex, endIndex });
+                }
             }
-            if (i == savingsAccounts.size() - 1) {
-                endIndex = i + 2;
-                clientNameToBeginEndIndexes.put(clientName, new Integer[] { startIndex, endIndex });
-            }
-        }
 
-        // Account Number Named after Clients
-        for (int j = 0; j < clientsWithActiveSavings.size(); j++) {
-            Name name = savingsTransactionWorkbook.createName();
-            setSanitized(name, "Account_" + clientsWithActiveSavings.get(j) + "_" + clientIdsWithActiveSavings.get(j) + "_");
-            name.setRefersToFormula(TemplatePopulateImportConstants.SAVINGS_TRANSACTION_SHEET_NAME + "!$Q$"
-                    + clientNameToBeginEndIndexes.get(clientsWithActiveSavings.get(j))[0] + ":$Q$"
-                    + clientNameToBeginEndIndexes.get(clientsWithActiveSavings.get(j))[1]);
+            // Account Number Named after Clients
+            for (int j = 0; j < clientsWithActiveSavings.size(); j++) {
+                Name name = savingsTransactionWorkbook.createName();
+                setSanitized(name, "Account_" + clientsWithActiveSavings.get(j) + "_" + clientIdsWithActiveSavings.get(j) + "_");
+                name.setRefersToFormula(TemplatePopulateImportConstants.SAVINGS_TRANSACTION_SHEET_NAME + "!$Q$"
+                        + clientNameToBeginEndIndexes.get(clientsWithActiveSavings.get(j))[0] + ":$Q$"
+                        + clientNameToBeginEndIndexes.get(clientsWithActiveSavings.get(j))[1]);
+            }
         }
 
         // Payment Type Name
@@ -220,7 +204,6 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
         Row rowHeader = worksheet.createRow(TemplatePopulateImportConstants.ROWHEADER_INDEX);
         rowHeader.setHeight(TemplatePopulateImportConstants.ROW_HEADER_HEIGHT);
         worksheet.setColumnWidth(TransactionConstants.OFFICE_NAME_COL, 4000);
-        worksheet.setColumnWidth(TransactionConstants.CLIENT_NAME_COL, 5000);
         worksheet.setColumnWidth(TransactionConstants.SAVINGS_ACCOUNT_NO_COL, 3000);
         worksheet.setColumnWidth(TransactionConstants.PRODUCT_COL, 4000);
         worksheet.setColumnWidth(TransactionConstants.OPENING_BALANCE_COL, 4000);
@@ -239,7 +222,6 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
         worksheet.setColumnWidth(TransactionConstants.LOOKUP_OPENING_BALANCE_COL, 3700);
         worksheet.setColumnWidth(TransactionConstants.LOOKUP_SAVINGS_ACTIVATION_DATE_COL, 3500);
         writeString(TransactionConstants.OFFICE_NAME_COL, rowHeader, "Office Name*");
-        writeString(TransactionConstants.CLIENT_NAME_COL, rowHeader, "Client Name*");
         writeString(TransactionConstants.SAVINGS_ACCOUNT_NO_COL, rowHeader, "Account No.*");
         writeString(TransactionConstants.PRODUCT_COL, rowHeader, "Product Name");
         writeString(TransactionConstants.OPENING_BALANCE_COL, rowHeader, "Opening Balance");

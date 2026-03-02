@@ -570,11 +570,11 @@ public class BulkImportWorkbookPopulatorServiceImpl implements BulkImportWorkboo
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.PAYMENT_TYPE_ENTITY_TYPE);
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.CURRENCY_ENTITY_TYPE);
         List<OfficeData> offices = fetchOffices(officeId);
-        List<ClientData> clients = fetchClients(officeId);
+        List<ClientData> clients = new ArrayList<>(); // To avoid freezing issue while downloading savings transaction template with large number of clients.
         List<FundData> funds = fetchFunds();
         List<PaymentTypeData> paymentTypes = fetchPaymentTypes();
         List<CurrencyData> currencies = fetchCurrencies();
-        List<SavingsAccountData> savingsAccounts = fetchSavingsAccounts(officeId);
+        List<SavingsAccountData> savingsAccounts = new ArrayList<>(); // To avoid freezing issue while downloading savings transaction template with large number of clients.
         return new SavingsTransactionsWorkbookPopulator(new OfficeSheetPopulator(offices), new ClientSheetPopulator(clients, offices),
                 new ExtrasSheetPopulator(funds, paymentTypes, currencies), savingsAccounts);
     }
@@ -610,11 +610,11 @@ public class BulkImportWorkbookPopulatorServiceImpl implements BulkImportWorkboo
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.PAYMENT_TYPE_ENTITY_TYPE);
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.CURRENCY_ENTITY_TYPE);
         List<OfficeData> offices = fetchOffices(officeId);
-        List<ClientData> clients = fetchClients(officeId);
+        List<ClientData> clients = new ArrayList<>(); // To avoid freezing issue while downloading template with large number of clients.
         List<FundData> funds = fetchFunds();
         List<PaymentTypeData> paymentTypes = fetchPaymentTypes();
         List<CurrencyData> currencies = fetchCurrencies();
-        List<SavingsAccountData> savingsAccounts = fetchSavingsAccounts(officeId);
+        List<SavingsAccountData> savingsAccounts = new ArrayList<>(); // To avoid freezing issue while downloading template with large number of accounts.
         return new RecurringDepositTransactionWorkbookPopulator(new OfficeSheetPopulator(offices),
                 new ClientSheetPopulator(clients, offices), new ExtrasSheetPopulator(funds, paymentTypes, currencies), savingsAccounts);
     }
@@ -666,11 +666,11 @@ public class BulkImportWorkbookPopulatorServiceImpl implements BulkImportWorkboo
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.PAYMENT_TYPE_ENTITY_TYPE);
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.CURRENCY_ENTITY_TYPE);
         List<OfficeData> offices = fetchOffices(officeId);
-        List<ClientData> clients = fetchClients(officeId);
+        List<ClientData> clients = new ArrayList<>(); // To avoid freezing issue while downloading template with large number of clients.
         List<FundData> funds = fetchFunds();
         List<PaymentTypeData> paymentTypes = fetchPaymentTypes();
         List<CurrencyData> currencies = fetchCurrencies();
-        List<SavingsAccountData> savingsAccounts = fetchSavingsAccounts(officeId);
+        List<SavingsAccountData> savingsAccounts = new ArrayList<>(); // To avoid freezing issue while downloading template with large number of accounts.
         return new FixedDepositTransactionWorkbookPopulator(new OfficeSheetPopulator(offices), new ClientSheetPopulator(clients, offices),
                 new ExtrasSheetPopulator(funds, paymentTypes, currencies), savingsAccounts);
     }
