@@ -49,7 +49,7 @@ public interface DepositAccountDomainService {
     @Transactional
     Long handleFDAccountMaturityClosure(FixedDepositAccount account, PaymentDetail paymentDetail, AppUser user, LocalDate tenantsTodayDate,
             DateTimeFormatter fmt, LocalDate closedDate, Integer onAccountClosureId, Long toSavingsId, String transferDescription,
-            Map<String, Object> changes);
+            Map<String, Object> changes, boolean isInterestAlreadyPosted);
 
     Long handleRDAccountClosure(RecurringDepositAccount account, PaymentDetail paymentDetail, AppUser user, JsonCommand command,
             LocalDate tenantsTodayDate, Map<String, Object> changes);

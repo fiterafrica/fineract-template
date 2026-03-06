@@ -725,11 +725,26 @@ public class RecurringDepositAccount extends SavingsAccount {
         // post remaining interest
         final Money remainigInterestToBePosted = interestOnMaturity.minus(interestPostedToDate);
         if (!remainigInterestToBePosted.isZero()) {
-            final boolean postInterestAsOn = false;
-            final SavingsAccountTransaction newPostingTransaction = SavingsAccountTransaction.interestPosting(this, office(),
-                    accountCloseDate, remainigInterestToBePosted, postInterestAsOn);
-            addTransaction(newPostingTransaction);
-            recalucateDailyBalance = true;
+            // Check for existing interest posting transaction on close date to prevent duplicates
+            final SavingsAccountTransaction existingPostingTransaction = findInterestPostingTransactionFor(accountCloseDate);
+            if (existingPostingTransaction == null) {
+                final boolean postInterestAsOn = false;
+                final SavingsAccountTransaction newPostingTransaction = SavingsAccountTransaction.interestPosting(this, office(),
+                        accountCloseDate, remainigInterestToBePosted, postInterestAsOn);
+                addTransaction(newPostingTransaction);
+                recalucateDailyBalance = true;
+            } else {
+                // If existing transaction has different amount, reverse and create new one
+                final boolean correctionRequired = existingPostingTransaction.hasNotAmount(remainigInterestToBePosted);
+                if (correctionRequired) {
+                    existingPostingTransaction.reverse();
+                    final boolean postInterestAsOn = false;
+                    final SavingsAccountTransaction newPostingTransaction = SavingsAccountTransaction.interestPosting(this, office(),
+                            accountCloseDate, remainigInterestToBePosted, postInterestAsOn);
+                    addTransaction(newPostingTransaction);
+                    recalucateDailyBalance = true;
+                }
+            }
         }
 
         applyWithholdTaxForDepositAccounts(accountCloseDate, recalucateDailyBalance, backdatedTxnsAllowedTill);
