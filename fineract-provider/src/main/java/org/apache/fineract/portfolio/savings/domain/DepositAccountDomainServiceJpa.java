@@ -298,7 +298,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
     @Override
     public Long handleFDAccountMaturityClosure(final FixedDepositAccount account, final PaymentDetail paymentDetail, final AppUser user,
             final LocalDate tenantsTodayDate, final DateTimeFormatter fmt, final LocalDate closedDate, final Integer onAccountClosureId,
-            final Long toSavingsId, final String transferDescription, Map<String, Object> changes) {
+            final Long toSavingsId, final String transferDescription, Map<String, Object> changes, final boolean isInterestAlreadyPosted) {
 
         final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
                 .isSavingsInterestPostingAtCurrentPeriodEnd();
@@ -316,7 +316,10 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
 
         final MathContext mc = MathContext.DECIMAL64;
         Long savingsTransactionId = null;
-        account.postMaturityInterest(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
+        // Only post maturity interest if it hasn't been posted already (e.g., by updateMaturityStatus)
+        if (!isInterestAlreadyPosted) {
+            account.postMaturityInterest(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
+        }
         final DepositAccountOnClosureType onClosureType = DepositAccountOnClosureType.fromInt(onAccountClosureId);
         if (onClosureType.isReinvest()) {
             BigDecimal reInvestAmount;

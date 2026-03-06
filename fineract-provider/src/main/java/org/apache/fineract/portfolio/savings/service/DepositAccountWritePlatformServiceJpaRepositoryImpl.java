@@ -1616,8 +1616,10 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                 Map<String, Object> changes = new HashMap<>();
                 AppUser user = context.authenticatedUser();
                 Long toSavingsId = fdAccount.getTransferToSavingsAccountId();
+                // Pass true for isInterestAlreadyPosted since updateMaturityStatus already posted the interest
                 this.depositAccountDomainService.handleFDAccountMaturityClosure(fdAccount, null, user, fdAccount.maturityDate(), fmt,
-                        fdAccount.maturityDate(), fdAccount.getOnAccountClosureId(), toSavingsId, "Apply maturity instructions", changes);
+                        fdAccount.maturityDate(), fdAccount.getOnAccountClosureId(), toSavingsId, "Apply maturity instructions", changes,
+                        true);
 
                 if (changes.get("reinvestedDepositId") != null) {
                     Long reinvestedDepositId = (Long) changes.get("reinvestedDepositId");

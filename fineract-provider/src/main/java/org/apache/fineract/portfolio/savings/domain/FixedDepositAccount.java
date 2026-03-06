@@ -681,11 +681,26 @@ public class FixedDepositAccount extends SavingsAccount {
         final Money remainigInterestToBePosted = interestOnMaturity.minus(interestPostedToDate);
         final boolean backdatedTxnsAllowedTill = false;
         if (!remainigInterestToBePosted.isZero() && postInterest) {
-            final boolean postInterestAsOn = false;
-            final SavingsAccountTransaction newPostingTransaction = SavingsAccountTransaction.interestPosting(this, office(),
-                    accountCloseDate, remainigInterestToBePosted, postInterestAsOn);
-            this.transactions.add(newPostingTransaction);
-            recalculateDailyBalance = true;
+            // Check for existing interest posting transaction on close date to prevent duplicates
+            final SavingsAccountTransaction existingPostingTransaction = findInterestPostingTransactionFor(accountCloseDate);
+            if (existingPostingTransaction == null) {
+                final boolean postInterestAsOn = false;
+                final SavingsAccountTransaction newPostingTransaction = SavingsAccountTransaction.interestPosting(this, office(),
+                        accountCloseDate, remainigInterestToBePosted, postInterestAsOn);
+                this.transactions.add(newPostingTransaction);
+                recalculateDailyBalance = true;
+            } else {
+                // If existing transaction has different amount, reverse and create new one
+                final boolean correctionRequired = existingPostingTransaction.hasNotAmount(remainigInterestToBePosted);
+                if (correctionRequired) {
+                    existingPostingTransaction.reverse();
+                    final boolean postInterestAsOn = false;
+                    final SavingsAccountTransaction newPostingTransaction = SavingsAccountTransaction.interestPosting(this, office(),
+                            accountCloseDate, remainigInterestToBePosted, postInterestAsOn);
+                    this.transactions.add(newPostingTransaction);
+                    recalculateDailyBalance = true;
+                }
+            }
         }
 
         if (postInterest) {
@@ -707,11 +722,23 @@ public class FixedDepositAccount extends SavingsAccount {
     private boolean postInterestCarriedForward(LocalDate accountCloseDate, boolean recalculateDailyBalance) {
         if (this.getAccountTermAndPreClosure().getInterestCarriedForwardOnTopUp() != null
                 && this.getAccountTermAndPreClosure().getInterestCarriedForwardOnTopUp().compareTo(BigDecimal.ZERO) > 0) {
-            final SavingsAccountTransaction newPostingTransaction = SavingsAccountTransaction.interestPosting(this, office(),
-                    accountCloseDate, Money.of(this.currency, this.getAccountTermAndPreClosure().getInterestCarriedForwardOnTopUp()), false,
-                    false);
-            this.addNewTransaction(newPostingTransaction);
-            recalculateDailyBalance = true;
+            // Check if interest carried forward has already been posted to prevent duplicates
+            final Money interestCarriedForwardAmount = Money.of(this.currency,
+                    this.getAccountTermAndPreClosure().getInterestCarriedForwardOnTopUp());
+            boolean alreadyPosted = false;
+            for (final SavingsAccountTransaction transaction : this.transactions) {
+                if (transaction.isInterestPostingAndNotReversed() && transaction.occursOn(accountCloseDate)
+                        && transaction.getAmount(this.currency).isEqualTo(interestCarriedForwardAmount)) {
+                    alreadyPosted = true;
+                    break;
+                }
+            }
+            if (!alreadyPosted) {
+                final SavingsAccountTransaction newPostingTransaction = SavingsAccountTransaction.interestPosting(this, office(),
+                        accountCloseDate, interestCarriedForwardAmount, false, false);
+                this.addNewTransaction(newPostingTransaction);
+                recalculateDailyBalance = true;
+            }
         }
         return recalculateDailyBalance;
     }

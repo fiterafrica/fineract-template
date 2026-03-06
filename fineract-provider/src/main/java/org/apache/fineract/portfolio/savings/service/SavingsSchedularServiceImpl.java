@@ -31,16 +31,16 @@ import org.apache.fineract.accounting.journalentry.exception.JournalEntryInvalid
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
 import org.apache.fineract.infrastructure.core.exception.ExceptionHelper;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
+import org.apache.fineract.infrastructure.core.service.SearchParameters;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.jobs.annotation.CronTarget;
+import org.apache.fineract.infrastructure.jobs.data.JobDetailHistoryData;
 import org.apache.fineract.infrastructure.jobs.domain.ScheduledJobDetail;
 import org.apache.fineract.infrastructure.jobs.exception.JobExecutionException;
 import org.apache.fineract.infrastructure.jobs.service.JobExecuter;
 import org.apache.fineract.infrastructure.jobs.service.JobName;
 import org.apache.fineract.infrastructure.jobs.service.JobRunner;
 import org.apache.fineract.infrastructure.jobs.service.SchedulerJobRunnerReadService;
-import org.apache.fineract.infrastructure.core.service.SearchParameters;
-import org.apache.fineract.infrastructure.jobs.data.JobDetailHistoryData;
 import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.client.exception.ClientNotActiveException;
 import org.apache.fineract.portfolio.group.domain.Group;
@@ -62,6 +62,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @RequiredArgsConstructor
 public class SavingsSchedularServiceImpl implements SavingsSchedularService {
+
     private final SavingsAccountAssembler savingAccountAssembler;
     private final SavingsAccountWritePlatformService savingsAccountWritePlatformService;
     private final SavingsAccountReadPlatformService savingAccountReadPlatformService;
@@ -121,6 +122,32 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
     @Override
     @CronTarget(jobName = JobName.POST_INTEREST_FOR_SAVINGS)
     public void postInterestForAccountsThreaded(Map<String, String> jobParameters) throws JobExecutionException {
+        LocalDate today = DateUtils.getLocalDateOfTenant();
+        SearchParameters searchParameters = SearchParameters.from(null, null, null, null, null);
+
+        // Check if interest posting job has already run successfully today to prevent duplicates
+        ScheduledJobDetail interestPostingJobDetails = schedulerJobRunnerReadService
+                .findJobDetail(JobName.POST_INTEREST_FOR_SAVINGS.toString());
+        if (interestPostingJobDetails != null) {
+            List<JobDetailHistoryData> interestPostingHistory = schedulerJobRunnerReadService
+                    .retrieveJobHistory(interestPostingJobDetails.getId(), searchParameters).getPageItems();
+            JobDetailHistoryData latestInterestPostingHistory = interestPostingHistory.stream().sorted((h1, h2) -> {
+                if (h1.getJobRunEndTime() == null && h2.getJobRunEndTime() == null) return 0;
+                if (h1.getJobRunEndTime() == null) return 1;
+                if (h2.getJobRunEndTime() == null) return -1;
+                return h2.getJobRunEndTime().compareTo(h1.getJobRunEndTime());
+            }).findFirst().orElse(null);
+            if (latestInterestPostingHistory != null && latestInterestPostingHistory.getJobRunEndTime() != null) {
+                LocalDate lastRunDate = latestInterestPostingHistory.getJobRunEndTime().toInstant().atZone(java.time.ZoneId.systemDefault())
+                        .toLocalDate();
+                if (lastRunDate.equals(today) && "success".equalsIgnoreCase(latestInterestPostingHistory.getStatus())) {
+                    String errorMsg = "POST_INTEREST_FOR_SAVINGS has already run successfully today. Skipping to prevent duplicate interest posting.";
+                    log.warn(errorMsg);
+                    throw new JobExecutionException(Collections.singletonList(new Exception(errorMsg)));
+                }
+            }
+        }
+
         // Check if accrual job has run for today
         ScheduledJobDetail jobDetails = schedulerJobRunnerReadService.findJobDetail(JobName.POST_ACCRUAL_INTEREST_FOR_SAVINGS.toString());
 
@@ -130,19 +157,15 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
             throw new JobExecutionException(Collections.singletonList(new Exception(errorMsg)));
         }
         // Check job history for today
-        LocalDate today = DateUtils.getLocalDateOfTenant();
-        SearchParameters searchParameters = SearchParameters.from(null, null, null, null, null);
 
         List<JobDetailHistoryData> history = schedulerJobRunnerReadService.retrieveJobHistory(jobDetails.getId(), searchParameters)
-            .getPageItems();
-        JobDetailHistoryData latestHistory = history.stream()
-            .sorted((h1, h2) -> {
-                if (h1.getJobRunEndTime() == null && h2.getJobRunEndTime() == null) return 0;
-                if (h1.getJobRunEndTime() == null) return 1;
-                if (h2.getJobRunEndTime() == null) return -1;
-                return h2.getJobRunEndTime().compareTo(h1.getJobRunEndTime());
-            })
-            .findFirst().orElse(null);
+                .getPageItems();
+        JobDetailHistoryData latestHistory = history.stream().sorted((h1, h2) -> {
+            if (h1.getJobRunEndTime() == null && h2.getJobRunEndTime() == null) return 0;
+            if (h1.getJobRunEndTime() == null) return 1;
+            if (h2.getJobRunEndTime() == null) return -1;
+            return h2.getJobRunEndTime().compareTo(h1.getJobRunEndTime());
+        }).findFirst().orElse(null);
         boolean accrualRunToday = false;
         if (latestHistory != null && latestHistory.getJobRunEndTime() != null) {
             LocalDate endDate = latestHistory.getJobRunEndTime().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
@@ -164,10 +187,12 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
     }
 
     private class SavingsInterestRunnable implements Runnable {
+
         final FineractPlatformTenant tenant;
         final Authentication auth;
         final Map<String, Object> jobParams;
         final LocalDate jobRunDate;
+
         public SavingsInterestRunnable() {
             this.tenant = ThreadLocalContextUtil.getTenant();
             if (SecurityContextHolder.getContext() == null) {
@@ -178,6 +203,7 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
             this.jobParams = ThreadLocalContextUtil.getJobParams();
             this.jobRunDate = DateUtils.getLocalDateOfTenant();
         }
+
         @Override
         public void run() {
             ThreadLocalContextUtil.setTenant(tenant);
@@ -193,14 +219,17 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
     }
 
     private class SavingsInterestJobRunner implements JobRunner<List<Long>> {
+
         final int maxNumberOfRetries;
         final int maxIntervalBetweenRetries;
         final LocalDate jobRunDate;
+
         public SavingsInterestJobRunner(final LocalDate jobRunDate) {
             this.jobRunDate = jobRunDate;
             maxNumberOfRetries = ThreadLocalContextUtil.getTenant().getConnection().getMaxRetriesOnDeadlock();
             maxIntervalBetweenRetries = ThreadLocalContextUtil.getTenant().getConnection().getMaxIntervalBetweenRetries();
         }
+
         @Override
         public void runJob(final List<Long> savingIds, StringBuilder sb) {
             postInterest(sb, this.maxNumberOfRetries, this.maxIntervalBetweenRetries, savingIds, this.jobRunDate);
@@ -230,8 +259,10 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
                     logger.info("Recalulate interest job has been retried  {} time(s)", numberOfRetries);
                     // Fail if the transaction has been retried for maxNumberOfRetries
                     if (numberOfRetries >= maxNumberOfRetries) {
-                        logger.warn("Post interest job has been retried for the max allowed attempts of {} and will be rolled back.", numberOfRetries);
-                        sb.append("Post interest job has been retried for the max allowed attempts of " + numberOfRetries + " and will be rolled back. ");
+                        logger.warn("Post interest job has been retried for the max allowed attempts of {} and will be rolled back.",
+                                numberOfRetries);
+                        sb.append("Post interest job has been retried for the max allowed attempts of " + numberOfRetries
+                                + " and will be rolled back. ");
                         break;
                     }
                     // Else sleep for a random time (between 1 to 10 seconds) and continue
