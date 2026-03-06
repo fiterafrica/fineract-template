@@ -110,7 +110,7 @@ public abstract class AbstractWorkbookPopulator implements WorkbookPopulator {
         }
     }
 
-    protected void setClientAndGroupDateLookupTable(Sheet sheet, List<ClientData> clients, List<GroupGeneralData> groups, int nameCol,
+    protected void setClientAndGroupDateLookupTable(Sheet sheet, List<ClientData> clients, List<GroupGeneralData> groups, int idCol,
             int activationDateCol, boolean containsClientExtId, String dateFormat) {
         Workbook workbook = sheet.getWorkbook();
         CellStyle dateCellStyle = workbook.createCellStyle();
@@ -125,14 +125,14 @@ public abstract class AbstractWorkbookPopulator implements WorkbookPopulator {
                     if (row == null) {
                         row = sheet.createRow(rowIndex);
                     }
-                    writeString(nameCol, row, client.displayName().replaceAll("[ )(] ", "_") + "(" + client.id() + ")");
+                    writeLong(idCol, row, client.id());
 
                     if (client.getActivationDate() != null) {
                         writeDate(activationDateCol, row, outputFormat.format(client.getActivationDate()), dateCellStyle, dateFormat);
                     }
                     if (containsClientExtId) {
                         if (client.getExternalId() != null) {
-                            writeString(nameCol + 1, row, client.getExternalId());
+                            writeString(idCol + 1, row, client.getExternalId());
                         }
                     }
 
@@ -144,7 +144,7 @@ public abstract class AbstractWorkbookPopulator implements WorkbookPopulator {
                     if (row == null) {
                         row = sheet.createRow(rowIndex);
                     }
-                    writeString(nameCol, row, group.getName().replaceAll("[ )(] ", "_"));
+                    writeLong(idCol, row, group.getId());
 
                     if (group.getActivationDate() != null) {
                         writeDate(activationDateCol, row, outputFormat.format(group.getActivationDate()), dateCellStyle, dateFormat);

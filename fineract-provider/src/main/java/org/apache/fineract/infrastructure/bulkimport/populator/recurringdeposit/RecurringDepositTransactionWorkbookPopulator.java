@@ -78,11 +78,11 @@ public class RecurringDepositTransactionWorkbookPopulator extends AbstractWorkbo
                 row = worksheet.createRow(rowNo);
             }
             writeFormula(TransactionConstants.PRODUCT_COL, row,
-                    "IF(ISERROR(VLOOKUP($C" + (rowNo + 1) + ",$Q$2:$S$" + (savingsAccounts.size() + 1) + ",2,FALSE)),\"\",VLOOKUP($C"
-                            + (rowNo + 1) + ",$Q$2:$S$" + (savingsAccounts.size() + 1) + ",2,FALSE))");
+                    "IF(ISERROR(VLOOKUP($B" + (rowNo + 1) + ",$R$2:$T$" + (savingsAccounts.size() + 1) + ",2,FALSE)),\"\",VLOOKUP($B"
+                            + (rowNo + 1) + ",$R$2:$T$" + (savingsAccounts.size() + 1) + ",2,FALSE))");
             writeFormula(TransactionConstants.OPENING_BALANCE_COL, row,
-                    "IF(ISERROR(VLOOKUP($C" + (rowNo + 1) + ",$Q$2:$S$" + (savingsAccounts.size() + 1) + ",3,FALSE)),\"\",VLOOKUP($C"
-                            + (rowNo + 1) + ",$Q$2:$S$" + (savingsAccounts.size() + 1) + ",3,FALSE))");
+                    "IF(ISERROR(VLOOKUP($B" + (rowNo + 1) + ",$R$2:$T$" + (savingsAccounts.size() + 1) + ",3,FALSE)),\"\",VLOOKUP($B"
+                            + (rowNo + 1) + ",$R$2:$T$" + (savingsAccounts.size() + 1) + ",3,FALSE))");
         }
     }
 

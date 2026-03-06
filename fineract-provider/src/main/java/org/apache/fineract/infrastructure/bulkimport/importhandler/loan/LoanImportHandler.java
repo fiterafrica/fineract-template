@@ -269,7 +269,7 @@ public class LoanImportHandler implements ImportHandler {
             loanTypeEnumOption = new EnumOptionData(null, null, loanType);
         }
 
-        String clientOrGroupName = ImportHandlerUtils.readAsString(LoanConstants.CLIENT_NAME_COL, row);
+        Long clientOrGroupID = ImportHandlerUtils.readAsLong(LoanConstants.CLIENT_ID_COL, row);
 
         List<LoanChargeData> charges = new ArrayList<>();
 
@@ -353,27 +353,21 @@ public class LoanImportHandler implements ImportHandler {
 
         if (loanType != null) {
             if (loanType.equals("individual")) {
-                Long clientId = ImportHandlerUtils.getIdByName(workbook.getSheet(TemplatePopulateImportConstants.CLIENT_SHEET_NAME),
-                        clientOrGroupName);
-                return LoanAccountData.importInstanceIndividual(loanTypeEnumOption, clientId, productId, loanOfficerId, submittedOnDate,
+                return LoanAccountData.importInstanceIndividual(loanTypeEnumOption, clientOrGroupID, productId, loanOfficerId, submittedOnDate,
                         fundId, principal, numberOfRepayments, repaidEvery, repaidEveryFrequencyEnums, loanTerm, loanTermFrequencyEnum,
                         nominalInterestRate, submittedOnDate, amortizationEnumOption, interestMethodEnum, interestCalculationPeriodEnum,
                         arrearsTolerance, repaymentStrategyId, graceOnPrincipalPayment, graceOnInterestPayment, graceOnInterestCharged,
                         interestChargedFromDate, firstRepaymentOnDate, row.getRowNum(), externalId, null, charges, linkAccountId, locale,
                         dateFormat, loanCollateralManagementData);
             } else if (loanType.equals("jlg")) {
-                Long clientId = ImportHandlerUtils.getIdByName(workbook.getSheet(TemplatePopulateImportConstants.CLIENT_SHEET_NAME),
-                        clientOrGroupName);
-                return LoanAccountData.importInstanceIndividual(loanTypeEnumOption, clientId, productId, loanOfficerId, submittedOnDate,
+                return LoanAccountData.importInstanceIndividual(loanTypeEnumOption, clientOrGroupID, productId, loanOfficerId, submittedOnDate,
                         fundId, principal, numberOfRepayments, repaidEvery, repaidEveryFrequencyEnums, loanTerm, loanTermFrequencyEnum,
                         nominalInterestRate, submittedOnDate, amortizationEnumOption, interestMethodEnum, interestCalculationPeriodEnum,
                         arrearsTolerance, repaymentStrategyId, graceOnPrincipalPayment, graceOnInterestPayment, graceOnInterestCharged,
                         interestChargedFromDate, firstRepaymentOnDate, row.getRowNum(), externalId, groupId, charges, linkAccountId, locale,
                         dateFormat, null);
             } else {
-                Long groupIdforGroupLoan = ImportHandlerUtils
-                        .getIdByName(workbook.getSheet(TemplatePopulateImportConstants.GROUP_SHEET_NAME), clientOrGroupName);
-                return LoanAccountData.importInstanceGroup(loanTypeEnumOption, groupIdforGroupLoan, productId, loanOfficerId,
+                return LoanAccountData.importInstanceGroup(loanTypeEnumOption, clientOrGroupID, productId, loanOfficerId,
                         submittedOnDate, fundId, principal, numberOfRepayments, repaidEvery, repaidEveryFrequencyEnums, loanTerm,
                         loanTermFrequencyEnum, nominalInterestRate, amortizationEnumOption, interestMethodEnum,
                         interestCalculationPeriodEnum, arrearsTolerance, repaymentStrategyId, graceOnPrincipalPayment,

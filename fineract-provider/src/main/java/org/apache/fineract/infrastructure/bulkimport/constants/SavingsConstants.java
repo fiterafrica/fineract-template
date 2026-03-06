@@ -26,7 +26,7 @@ public final class SavingsConstants {
 
     public static final int OFFICE_NAME_COL = 0;
     public static final int SAVINGS_TYPE_COL = 1;
-    public static final int CLIENT_NAME_COL = 2;
+    public static final int CLIENT_ID_COL = 2;
     public static final int PRODUCT_COL = 3;
     public static final int FIELD_OFFICER_NAME_COL = 4;
     public static final int SUBMITTED_ON_DATE_COL = 5;
@@ -50,7 +50,7 @@ public final class SavingsConstants {
     public static final int STATUS_COL = 23;
     public static final int SAVINGS_ID_COL = 24;
     public static final int FAILURE_REPORT_COL = 25;
-    public static final int LOOKUP_CLIENT_NAME_COL = 31;
+    public static final int LOOKUP_CLIENT_ID_COL = 31;
     public static final int LOOKUP_ACTIVATION_DATE_COL = 32;
     public static final int CHARGE_ID_1 = 34;
     public static final int CHARGE_AMOUNT_1 = 35;
