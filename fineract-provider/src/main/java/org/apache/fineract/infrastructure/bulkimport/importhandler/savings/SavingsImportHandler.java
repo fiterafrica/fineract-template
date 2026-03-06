@@ -185,6 +185,9 @@ public class SavingsImportHandler implements ImportHandler {
             minRequiredOpeningBalance = BigDecimal.valueOf(ImportHandlerUtils.readAsDouble(SavingsConstants.MIN_OPENING_BALANCE_COL, row));
         }
         Integer lockinPeriodFrequency = ImportHandlerUtils.readAsInt(SavingsConstants.LOCKIN_PERIOD_COL, row);
+        if (lockinPeriodFrequency != null && lockinPeriodFrequency == 0) {
+            lockinPeriodFrequency = null;
+        }
         String lockinPeriodFrequencyType = ImportHandlerUtils.readAsString(SavingsConstants.LOCKIN_PERIOD_FREQUENCY_COL, row);
         Long lockinPeriodFrequencyTypeId = null;
         EnumOptionData lockinPeriodFrequencyTypeEnum = null;
@@ -207,7 +210,7 @@ public class SavingsImportHandler implements ImportHandler {
             savingsType = ImportHandlerUtils.readAsString(SavingsConstants.SAVINGS_TYPE_COL, row).toLowerCase(Locale.ENGLISH);
         }
 
-        String clientOrGroupName = ImportHandlerUtils.readAsString(SavingsConstants.CLIENT_NAME_COL, row);
+        Long clientOrGroupId = ImportHandlerUtils.readAsLong(SavingsConstants.CLIENT_ID_COL, row);
 
         String externalId = ImportHandlerUtils.readAsString(SavingsConstants.EXTERNAL_ID_COL, row);
         List<SavingsAccountChargeData> charges = new ArrayList<>();
@@ -243,17 +246,13 @@ public class SavingsImportHandler implements ImportHandler {
         statuses.add(status);
         if (savingsType != null) {
             if (savingsType.equals("individual")) {
-                Long clientId = ImportHandlerUtils.getIdByName(workbook.getSheet(TemplatePopulateImportConstants.CLIENT_SHEET_NAME),
-                        clientOrGroupName);
-                return SavingsAccountData.importInstanceIndividual(clientId, productId, fieldOfficerId, submittedOnDate,
+                return SavingsAccountData.importInstanceIndividual(clientOrGroupId, productId, fieldOfficerId, submittedOnDate,
                         nominalAnnualInterestRate, interestCompoundingPeriodTypeEnum, interestPostingPeriodTypeEnum,
                         interestCalculationTypeEnum, interestCalculationDaysInYearTypeEnum, minRequiredOpeningBalance,
                         lockinPeriodFrequency, lockinPeriodFrequencyTypeEnum, applyWithdrawalFeeForTransfers, row.getRowNum(), externalId,
                         charges, allowOverdraft, overdraftLimit, locale, dateFormat);
             }
-            Long groupId = ImportHandlerUtils.getIdByName(workbook.getSheet(TemplatePopulateImportConstants.GROUP_SHEET_NAME),
-                    clientOrGroupName);
-            return SavingsAccountData.importInstanceGroup(groupId, productId, fieldOfficerId, submittedOnDate, nominalAnnualInterestRate,
+            return SavingsAccountData.importInstanceGroup(clientOrGroupId, productId, fieldOfficerId, submittedOnDate, nominalAnnualInterestRate,
                     interestCompoundingPeriodTypeEnum, interestPostingPeriodTypeEnum, interestCalculationTypeEnum,
                     interestCalculationDaysInYearTypeEnum, minRequiredOpeningBalance, lockinPeriodFrequency, lockinPeriodFrequencyTypeEnum,
                     applyWithdrawalFeeForTransfers, row.getRowNum(), externalId, charges, allowOverdraft, overdraftLimit, locale,

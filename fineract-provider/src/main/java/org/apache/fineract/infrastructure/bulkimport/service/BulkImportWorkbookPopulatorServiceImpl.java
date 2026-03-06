@@ -381,7 +381,7 @@ public class BulkImportWorkbookPopulatorServiceImpl implements BulkImportWorkboo
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.CURRENCY_ENTITY_TYPE);
         List<OfficeData> offices = fetchOffices(officeId);
         List<StaffData> staff = fetchStaff(staffId);
-        List<ClientData> clients = fetchClients(officeId);
+        List<ClientData> clients = new ArrayList<>();//fetchClients(officeId);
         List<GroupGeneralData> groups = fetchGroups(officeId);
         List<ChargeData> charges = fetchCharges();
         List<LoanProductData> loanproducts = fetchLoanProducts();
@@ -428,17 +428,15 @@ public class BulkImportWorkbookPopulatorServiceImpl implements BulkImportWorkboo
 
     private WorkbookPopulator populateLoanRepaymentWorkbook(Long officeId) {
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.OFFICE_ENTITY_TYPE);
-        this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.CLIENT_ENTITY_TYPE);
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.FUNDS_ENTITY_TYPE);
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.PAYMENT_TYPE_ENTITY_TYPE);
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.CURRENCY_ENTITY_TYPE);
         List<OfficeData> offices = fetchOffices(officeId);
-        List<ClientData> clients = fetchClients(officeId);
         List<FundData> funds = fetchFunds();
         List<PaymentTypeData> paymentTypes = fetchPaymentTypes();
         List<CurrencyData> currencies = fetchCurrencies();
-        List<LoanAccountData> loans = fetchLoanAccounts(officeId);
-        return new LoanRepaymentWorkbookPopulator(loans, new OfficeSheetPopulator(offices), new ClientSheetPopulator(clients, offices),
+        List<LoanAccountData> loans = new ArrayList<>();//fetchLoanAccounts(officeId);
+        return new LoanRepaymentWorkbookPopulator(loans, new OfficeSheetPopulator(offices),
                 new ExtrasSheetPopulator(funds, paymentTypes, currencies));
     }
 
@@ -555,7 +553,7 @@ public class BulkImportWorkbookPopulatorServiceImpl implements BulkImportWorkboo
         this.context.authenticatedUser().validateHasReadPermission(TemplatePopulateImportConstants.SAVINGS_PRODUCT_ENTITY_TYPE);
         List<OfficeData> offices = fetchOffices(officeId);
         List<StaffData> staff = fetchStaff(staffId);
-        List<ClientData> clients = fetchClients(officeId);
+        List<ClientData> clients = new ArrayList<>();//fetchClients(officeId);
         List<GroupGeneralData> groups = fetchGroups(officeId);
         List<SavingsProductData> savingsProducts = fetchSavingsProducts();
         return new SavingsWorkbookPopulator(new OfficeSheetPopulator(offices), new ClientSheetPopulator(clients, offices),

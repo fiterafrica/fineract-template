@@ -86,7 +86,7 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
         setRules(loanSheet, dateFormat);
         setDefaults(loanSheet);
         setClientAndGroupDateLookupTable(loanSheet, clientSheetPopulator.getClients(), groupSheetPopulator.getGroups(),
-                LoanConstants.LOOKUP_CLIENT_NAME_COL, LoanConstants.LOOKUP_ACTIVATION_DATE_COL,
+                LoanConstants.LOOKUP_CLIENT_ID_COL, LoanConstants.LOOKUP_ACTIVATION_DATE_COL,
                 TemplatePopulateImportConstants.CONTAINS_CLIENT_EXTERNAL_ID, dateFormat);
     }
 
@@ -95,8 +95,8 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
                 LoanConstants.OFFICE_NAME_COL, LoanConstants.OFFICE_NAME_COL);
         CellRangeAddressList loanTypeRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
                 LoanConstants.LOAN_TYPE_COL, LoanConstants.LOAN_TYPE_COL);
-        CellRangeAddressList clientNameRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
-                LoanConstants.CLIENT_NAME_COL, LoanConstants.CLIENT_NAME_COL);
+        CellRangeAddressList clientIdRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
+                LoanConstants.CLIENT_ID_COL, LoanConstants.CLIENT_ID_COL);
         CellRangeAddressList productNameRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
                 LoanConstants.PRODUCT_COL, LoanConstants.PRODUCT_COL);
         CellRangeAddressList loanOfficerRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
@@ -162,8 +162,8 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
         DataValidationConstraint officeNameConstraint = validationHelper.createFormulaListConstraint("Office");
         DataValidationConstraint loanTypeConstraint = validationHelper.createExplicitListConstraint(
                 new String[] { LoanConstants.LOAN_TYPE_INDIVIDUAL, LoanConstants.LOAN_TYPE_GROUP, LoanConstants.LOAN_TYPE_JLG });
-        DataValidationConstraint clientNameConstraint = validationHelper.createFormulaListConstraint(
-                "IF($B1=\"Group\",INDIRECT(CONCATENATE(\"Group_\",$A1)),INDIRECT(CONCATENATE(\"Client_\",$A1)))");
+        DataValidationConstraint clientIdConstraint = validationHelper
+                .createIntegerConstraint(DataValidationConstraint.OperatorType.GREATER_THAN, "0", null);
         DataValidationConstraint productNameConstraint = validationHelper.createFormulaListConstraint("Products");
         DataValidationConstraint loanOfficerNameConstraint = validationHelper
                 .createFormulaListConstraint("INDIRECT(CONCATENATE(\"Staff_\",$A1))");
@@ -227,7 +227,7 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
 
         DataValidation officeValidation = validationHelper.createValidation(officeNameConstraint, officeNameRange);
         DataValidation loanTypeValidation = validationHelper.createValidation(loanTypeConstraint, loanTypeRange);
-        DataValidation clientValidation = validationHelper.createValidation(clientNameConstraint, clientNameRange);
+        DataValidation clientValidation = validationHelper.createValidation(clientIdConstraint, clientIdRange);
         DataValidation productNameValidation = validationHelper.createValidation(productNameConstraint, productNameRange);
         DataValidation loanOfficerValidation = validationHelper.createValidation(loanOfficerNameConstraint, loanOfficerRange);
         DataValidation fundNameValidation = validationHelper.createValidation(fundNameConstraint, fundNameRange);
@@ -310,7 +310,7 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
         rowHeader.setHeight(TemplatePopulateImportConstants.ROW_HEADER_HEIGHT);
         worksheet.setColumnWidth(LoanConstants.OFFICE_NAME_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
         worksheet.setColumnWidth(LoanConstants.LOAN_TYPE_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
-        worksheet.setColumnWidth(LoanConstants.CLIENT_NAME_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
+        worksheet.setColumnWidth(LoanConstants.CLIENT_ID_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
         worksheet.setColumnWidth(LoanConstants.CLIENT_EXTERNAL_ID, TemplatePopulateImportConstants.MEDIUM_COL_SIZE);
         worksheet.setColumnWidth(LoanConstants.PRODUCT_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
         worksheet.setColumnWidth(LoanConstants.LOAN_OFFICER_NAME_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
@@ -340,7 +340,7 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
         worksheet.setColumnWidth(LoanConstants.TOTAL_AMOUNT_REPAID_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
         worksheet.setColumnWidth(LoanConstants.LAST_REPAYMENT_DATE_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
         worksheet.setColumnWidth(LoanConstants.REPAYMENT_TYPE_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
-        worksheet.setColumnWidth(LoanConstants.LOOKUP_CLIENT_NAME_COL, TemplatePopulateImportConstants.MEDIUM_COL_SIZE);
+        worksheet.setColumnWidth(LoanConstants.LOOKUP_CLIENT_ID_COL, TemplatePopulateImportConstants.MEDIUM_COL_SIZE);
         worksheet.setColumnWidth(LoanConstants.LOOKUP_CLIENT_EXTERNAL_ID, TemplatePopulateImportConstants.MEDIUM_COL_SIZE);
         worksheet.setColumnWidth(LoanConstants.LOOKUP_ACTIVATION_DATE_COL, TemplatePopulateImportConstants.MEDIUM_COL_SIZE);
         worksheet.setColumnWidth(LoanConstants.EXTERNAL_ID_COL, TemplatePopulateImportConstants.MEDIUM_COL_SIZE);
@@ -357,7 +357,7 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
 
         writeString(LoanConstants.OFFICE_NAME_COL, rowHeader, "Office Name*");
         writeString(LoanConstants.LOAN_TYPE_COL, rowHeader, "Loan Type*");
-        writeString(LoanConstants.CLIENT_NAME_COL, rowHeader, "Client/Group Name*");
+        writeString(LoanConstants.CLIENT_ID_COL, rowHeader, "Client/Group ID*");
         writeString(LoanConstants.CLIENT_EXTERNAL_ID, rowHeader, "Client ExternalID");
         writeString(LoanConstants.PRODUCT_COL, rowHeader, "Product*");
         writeString(LoanConstants.LOAN_OFFICER_NAME_COL, rowHeader, "Loan Officer*");
@@ -384,7 +384,7 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
         writeString(LoanConstants.TOTAL_AMOUNT_REPAID_COL, rowHeader, "Amount Repaid");
         writeString(LoanConstants.LAST_REPAYMENT_DATE_COL, rowHeader, "Date-Last Repayment");
         writeString(LoanConstants.REPAYMENT_TYPE_COL, rowHeader, "Repayment Type");
-        writeString(LoanConstants.LOOKUP_CLIENT_NAME_COL, rowHeader, "Client Name");
+        writeString(LoanConstants.LOOKUP_CLIENT_ID_COL, rowHeader, "Client ID");
         writeString(LoanConstants.LOOKUP_CLIENT_EXTERNAL_ID, rowHeader, "Lookup Client ExternalID");
         writeString(LoanConstants.LOOKUP_ACTIVATION_DATE_COL, rowHeader, "Client Activation Date");
         writeString(LoanConstants.EXTERNAL_ID_COL, rowHeader, "External Id");
@@ -479,21 +479,21 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
             Integer[] officeNameToBeginEndIndexesOfClients = clientSheetPopulator.getOfficeNameToBeginEndIndexesOfClients().get(i);
             Integer[] officeNameToBeginEndIndexesOfStaff = personnelSheetPopulator.getOfficeNameToBeginEndIndexesOfStaff().get(i);
             Integer[] officeNameToBeginEndIndexesOfGroups = groupSheetPopulator.getOfficeNameToBeginEndIndexesOfGroups().get(i);
-            Name clientName = loanWorkbook.createName();
-            Name loanOfficerName = loanWorkbook.createName();
-            Name groupName = loanWorkbook.createName();
 
             if (officeNameToBeginEndIndexesOfStaff != null) {
+                Name loanOfficerName = loanWorkbook.createName();
                 setSanitized(loanOfficerName, "Staff_" + officeNames.get(i));
                 loanOfficerName.setRefersToFormula(TemplatePopulateImportConstants.STAFF_SHEET_NAME + "!$B$"
                         + officeNameToBeginEndIndexesOfStaff[0] + ":$B$" + officeNameToBeginEndIndexesOfStaff[1]);
             }
             if (officeNameToBeginEndIndexesOfClients != null) {
+                Name clientName = loanWorkbook.createName();
                 setSanitized(clientName, "Client_" + officeNames.get(i));
                 clientName.setRefersToFormula(TemplatePopulateImportConstants.CLIENT_SHEET_NAME + "!$B$"
                         + officeNameToBeginEndIndexesOfClients[0] + ":$B$" + officeNameToBeginEndIndexesOfClients[1]);
             }
             if (officeNameToBeginEndIndexesOfGroups != null) {
+                Name groupName = loanWorkbook.createName();
                 setSanitized(groupName, "Group_" + officeNames.get(i));
                 groupName.setRefersToFormula(TemplatePopulateImportConstants.GROUP_SHEET_NAME + "!$B$"
                         + officeNameToBeginEndIndexesOfGroups[0] + ":$B$" + officeNameToBeginEndIndexesOfGroups[1]);
@@ -552,7 +552,6 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
         // Tolerance, GraceOnPrincipalPayment, GraceOnInterestPayment,
         // GraceOnInterestCharged, StartDate Names for each loan product
         for (Integer i = 0; i < products.size(); i++) {
-            Name fundName = loanWorkbook.createName();
             Name principalName = loanWorkbook.createName();
             Name minPrincipalName = loanWorkbook.createName();
             Name maxPrincipalName = loanWorkbook.createName();
@@ -575,7 +574,11 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
             Name graceOnInterestChargedName = loanWorkbook.createName();
             Name startDateName = loanWorkbook.createName();
             String productName = products.get(i).getName().replaceAll("[ )(]", "_");
-            setSanitized(fundName, "FUND_" + productName);
+            if (products.get(i).getFundName() != null) {
+                Name fundName = loanWorkbook.createName();
+                setSanitized(fundName, "FUND_" + productName);
+                fundName.setRefersToFormula(TemplatePopulateImportConstants.PRODUCT_SHEET_NAME + "!$C$" + (i + 2));
+            }
             setSanitized(principalName, "PRINCIPAL_" + productName);
             setSanitized(minPrincipalName, "MIN_PRINCIPAL_" + productName);
             setSanitized(maxPrincipalName, "MAX_PRINCIPAL_" + productName);
@@ -597,9 +600,6 @@ public class LoanWorkbookPopulator extends AbstractWorkbookPopulator {
             setSanitized(graceOnInterestPaymentName, "GRACE_INTEREST_PAYMENT_" + productName);
             setSanitized(graceOnInterestChargedName, "GRACE_INTEREST_CHARGED_" + productName);
             setSanitized(startDateName, "START_DATE_" + productName);
-            if (products.get(i).getFundName() != null) {
-                fundName.setRefersToFormula(TemplatePopulateImportConstants.PRODUCT_SHEET_NAME + "!$C$" + (i + 2));
-            }
             principalName.setRefersToFormula(TemplatePopulateImportConstants.PRODUCT_SHEET_NAME + "!$D$" + (i + 2));
             minPrincipalName.setRefersToFormula(TemplatePopulateImportConstants.PRODUCT_SHEET_NAME + "!$E$" + (i + 2));
             maxPrincipalName.setRefersToFormula(TemplatePopulateImportConstants.PRODUCT_SHEET_NAME + "!$F$" + (i + 2));

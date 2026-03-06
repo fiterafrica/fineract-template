@@ -26,7 +26,7 @@ public final class LoanConstants {
 
     public static final int OFFICE_NAME_COL = 0;// A
     public static final int LOAN_TYPE_COL = 1;// B
-    public static final int CLIENT_NAME_COL = 2;// C
+    public static final int CLIENT_ID_COL = 2;// C
     public static final int CLIENT_EXTERNAL_ID = 3;// D
     public static final int PRODUCT_COL = 4;// E
     public static final int LOAN_OFFICER_NAME_COL = 5;// F
@@ -68,7 +68,7 @@ public final class LoanConstants {
     public static final int CHARGE_AMOUNT_2 = 40;// AO
     public static final int CHARGE_DUE_DATE_2 = 41;// AP
     public static final int GROUP_ID = 42;// AQ
-    public static final int LOOKUP_CLIENT_NAME_COL = 43;// AR
+    public static final int LOOKUP_CLIENT_ID_COL = 43;// AR
     public static final int LOOKUP_CLIENT_EXTERNAL_ID = 44;// AS
     public static final int LOOKUP_ACTIVATION_DATE_COL = 45;// AT
     public static final int LINK_ACCOUNT_ID = 46;// AU

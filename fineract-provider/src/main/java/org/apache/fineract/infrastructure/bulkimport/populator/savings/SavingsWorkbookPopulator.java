@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.infrastructure.bulkimport.populator.savings;
 
+import java.math.BigDecimal;
 import java.util.List;
 import org.apache.fineract.infrastructure.bulkimport.constants.SavingsConstants;
 import org.apache.fineract.infrastructure.bulkimport.constants.TemplatePopulateImportConstants;
@@ -70,7 +71,7 @@ public class SavingsWorkbookPopulator extends AbstractWorkbookPopulator {
         setRules(savingsSheet, dateFormat);
         setDefaults(savingsSheet, dateFormat);
         setClientAndGroupDateLookupTable(savingsSheet, clientSheetPopulator.getClients(), groupSheetPopulator.getGroups(),
-                SavingsConstants.LOOKUP_CLIENT_NAME_COL, SavingsConstants.LOOKUP_ACTIVATION_DATE_COL,
+                SavingsConstants.LOOKUP_CLIENT_ID_COL, SavingsConstants.LOOKUP_ACTIVATION_DATE_COL,
                 !TemplatePopulateImportConstants.CONTAINS_CLIENT_EXTERNAL_ID, dateFormat);
         setLayout(savingsSheet);
     }
@@ -80,7 +81,7 @@ public class SavingsWorkbookPopulator extends AbstractWorkbookPopulator {
         rowHeader.setHeight(TemplatePopulateImportConstants.ROW_HEADER_HEIGHT);
         worksheet.setColumnWidth(SavingsConstants.OFFICE_NAME_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
         worksheet.setColumnWidth(SavingsConstants.SAVINGS_TYPE_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
-        worksheet.setColumnWidth(SavingsConstants.CLIENT_NAME_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
+        worksheet.setColumnWidth(SavingsConstants.CLIENT_ID_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
         worksheet.setColumnWidth(SavingsConstants.PRODUCT_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
         worksheet.setColumnWidth(SavingsConstants.FIELD_OFFICER_NAME_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
         worksheet.setColumnWidth(SavingsConstants.SUBMITTED_ON_DATE_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
@@ -100,7 +101,7 @@ public class SavingsWorkbookPopulator extends AbstractWorkbookPopulator {
         worksheet.setColumnWidth(SavingsConstants.LOCKIN_PERIOD_FREQUENCY_COL, TemplatePopulateImportConstants.SMALL_COL_SIZE);
         worksheet.setColumnWidth(SavingsConstants.APPLY_WITHDRAWAL_FEE_FOR_TRANSFERS, TemplatePopulateImportConstants.SMALL_COL_SIZE);
 
-        worksheet.setColumnWidth(SavingsConstants.LOOKUP_CLIENT_NAME_COL, TemplatePopulateImportConstants.MEDIUM_COL_SIZE);
+        worksheet.setColumnWidth(SavingsConstants.LOOKUP_CLIENT_ID_COL, TemplatePopulateImportConstants.MEDIUM_COL_SIZE);
         worksheet.setColumnWidth(SavingsConstants.LOOKUP_ACTIVATION_DATE_COL, TemplatePopulateImportConstants.MEDIUM_COL_SIZE);
         worksheet.setColumnWidth(SavingsConstants.EXTERNAL_ID_COL, TemplatePopulateImportConstants.MEDIUM_COL_SIZE);
 
@@ -116,7 +117,7 @@ public class SavingsWorkbookPopulator extends AbstractWorkbookPopulator {
 
         writeString(SavingsConstants.OFFICE_NAME_COL, rowHeader, "Office Name*");
         writeString(SavingsConstants.SAVINGS_TYPE_COL, rowHeader, "Individual/Group*");
-        writeString(SavingsConstants.CLIENT_NAME_COL, rowHeader, "Client Name*");
+        writeString(SavingsConstants.CLIENT_ID_COL, rowHeader, "Client/Group ID*");
         writeString(SavingsConstants.PRODUCT_COL, rowHeader, "Product*");
         writeString(SavingsConstants.FIELD_OFFICER_NAME_COL, rowHeader, "Field Officer*");
         writeString(SavingsConstants.SUBMITTED_ON_DATE_COL, rowHeader, "Submitted On*");
@@ -134,7 +135,7 @@ public class SavingsWorkbookPopulator extends AbstractWorkbookPopulator {
         writeString(SavingsConstants.LOCKIN_PERIOD_COL, rowHeader, "Locked In For");
         writeString(SavingsConstants.APPLY_WITHDRAWAL_FEE_FOR_TRANSFERS, rowHeader, "Apply Withdrawal Fee For Transfers");
 
-        writeString(SavingsConstants.LOOKUP_CLIENT_NAME_COL, rowHeader, "Client Name");
+        writeString(SavingsConstants.LOOKUP_CLIENT_ID_COL, rowHeader, "Client ID");
         writeString(SavingsConstants.LOOKUP_ACTIVATION_DATE_COL, rowHeader, "Client Activation Date");
         writeString(SavingsConstants.EXTERNAL_ID_COL, rowHeader, "External Id");
 
@@ -194,8 +195,8 @@ public class SavingsWorkbookPopulator extends AbstractWorkbookPopulator {
                 SavingsConstants.OFFICE_NAME_COL, SavingsConstants.OFFICE_NAME_COL);
         CellRangeAddressList savingsTypeRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
                 SavingsConstants.SAVINGS_TYPE_COL, SavingsConstants.SAVINGS_TYPE_COL);
-        CellRangeAddressList clientNameRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
-                SavingsConstants.CLIENT_NAME_COL, SavingsConstants.CLIENT_NAME_COL);
+        CellRangeAddressList clientIdRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
+                SavingsConstants.CLIENT_ID_COL, SavingsConstants.CLIENT_ID_COL);
         CellRangeAddressList productNameRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
                 SavingsConstants.PRODUCT_COL, SavingsConstants.PRODUCT_COL);
         CellRangeAddressList fieldOfficerRange = new CellRangeAddressList(1, SpreadsheetVersion.EXCEL97.getLastRowIndex(),
@@ -228,8 +229,8 @@ public class SavingsWorkbookPopulator extends AbstractWorkbookPopulator {
         DataValidationConstraint officeNameConstraint = validationHelper.createFormulaListConstraint("Office");
         DataValidationConstraint savingsTypeConstraint = validationHelper
                 .createExplicitListConstraint(new String[] { "Individual", "Group" });
-        DataValidationConstraint clientNameConstraint = validationHelper.createFormulaListConstraint(
-                "IF($B1=\"Individual\",INDIRECT(CONCATENATE(\"Client_\",$A1)),INDIRECT(CONCATENATE(\"Group_\",$A1)))");
+        DataValidationConstraint clientIdConstraint = validationHelper
+                .createIntegerConstraint(DataValidationConstraint.OperatorType.GREATER_THAN, "0", null);
         DataValidationConstraint productNameConstraint = validationHelper.createFormulaListConstraint("Products");
         DataValidationConstraint fieldOfficerNameConstraint = validationHelper
                 .createFormulaListConstraint("INDIRECT(CONCATENATE(\"Staff_\",$A1))");
@@ -266,7 +267,7 @@ public class SavingsWorkbookPopulator extends AbstractWorkbookPopulator {
 
         DataValidation officeValidation = validationHelper.createValidation(officeNameConstraint, officeNameRange);
         DataValidation savingsTypeValidation = validationHelper.createValidation(savingsTypeConstraint, savingsTypeRange);
-        DataValidation clientValidation = validationHelper.createValidation(clientNameConstraint, clientNameRange);
+        DataValidation clientValidation = validationHelper.createValidation(clientIdConstraint, clientIdRange);
         DataValidation productNameValidation = validationHelper.createValidation(productNameConstraint, productNameRange);
         DataValidation fieldOfficerValidation = validationHelper.createValidation(fieldOfficerNameConstraint, fieldOfficerRange);
         DataValidation interestCompudingPeriodValidation = validationHelper.createValidation(interestCompudingPeriodConstraint,
@@ -318,20 +319,20 @@ public class SavingsWorkbookPopulator extends AbstractWorkbookPopulator {
             Integer[] officeNameToBeginEndIndexesOfClients = clientSheetPopulator.getOfficeNameToBeginEndIndexesOfClients().get(i);
             Integer[] officeNameToBeginEndIndexesOfStaff = personnelSheetPopulator.getOfficeNameToBeginEndIndexesOfStaff().get(i);
             Integer[] officeNameToBeginEndIndexesOfGroups = groupSheetPopulator.getOfficeNameToBeginEndIndexesOfGroups().get(i);
-            Name clientName = savingsWorkbook.createName();
-            Name fieldOfficerName = savingsWorkbook.createName();
-            Name groupName = savingsWorkbook.createName();
             if (officeNameToBeginEndIndexesOfStaff != null) {
+                Name fieldOfficerName = savingsWorkbook.createName();
                 setSanitized(fieldOfficerName, "Staff_" + officeNames.get(i));
                 fieldOfficerName.setRefersToFormula(TemplatePopulateImportConstants.STAFF_SHEET_NAME + "!$B$"
                         + officeNameToBeginEndIndexesOfStaff[0] + ":$B$" + officeNameToBeginEndIndexesOfStaff[1]);
             }
             if (officeNameToBeginEndIndexesOfClients != null) {
+                Name clientName = savingsWorkbook.createName();
                 setSanitized(clientName, "Client_" + officeNames.get(i));
                 clientName.setRefersToFormula(TemplatePopulateImportConstants.CLIENT_SHEET_NAME + "!$B$"
                         + officeNameToBeginEndIndexesOfClients[0] + ":$B$" + officeNameToBeginEndIndexesOfClients[1]);
             }
             if (officeNameToBeginEndIndexesOfGroups != null) {
+                Name groupName = savingsWorkbook.createName();
                 setSanitized(groupName, "Group_" + officeNames.get(i));
                 groupName.setRefersToFormula(TemplatePopulateImportConstants.GROUP_SHEET_NAME + "!$B$"
                         + officeNameToBeginEndIndexesOfGroups[0] + ":$B$" + officeNameToBeginEndIndexesOfGroups[1]);
@@ -351,23 +352,18 @@ public class SavingsWorkbookPopulator extends AbstractWorkbookPopulator {
         // Date
         // Names for each product
         for (Integer i = 0; i < products.size(); i++) {
-            Name interestRateName = savingsWorkbook.createName();
             Name interestCompoundingPeriodName = savingsWorkbook.createName();
             Name interestPostingPeriodName = savingsWorkbook.createName();
             Name interestCalculationName = savingsWorkbook.createName();
             Name daysInYearName = savingsWorkbook.createName();
-            Name minOpeningBalanceName = savingsWorkbook.createName();
-            Name lockinPeriodName = savingsWorkbook.createName();
-            Name lockinPeriodFrequencyName = savingsWorkbook.createName();
             Name currencyName = savingsWorkbook.createName();
             Name decimalPlacesName = savingsWorkbook.createName();
-            Name inMultiplesOfName = savingsWorkbook.createName();
             Name withdrawalFeeName = savingsWorkbook.createName();
             Name allowOverdraftName = savingsWorkbook.createName();
-            Name overdraftLimitName = savingsWorkbook.createName();
             SavingsProductData product = products.get(i);
             String productName = product.getName();
             if (product.getNominalAnnualInterestRate() != null) {
+                Name interestRateName = savingsWorkbook.createName();
                 setSanitized(interestRateName, "Interest_Rate_" + productName);
                 interestRateName.setRefersToFormula("Products!$C$" + (i + 2));
             }
@@ -388,23 +384,28 @@ public class SavingsWorkbookPopulator extends AbstractWorkbookPopulator {
             decimalPlacesName.setRefersToFormula(TemplatePopulateImportConstants.PRODUCT_SHEET_NAME + "!$L$" + (i + 2));
             withdrawalFeeName.setRefersToFormula(TemplatePopulateImportConstants.PRODUCT_SHEET_NAME + "!$N$" + (i + 2));
             allowOverdraftName.setRefersToFormula(TemplatePopulateImportConstants.PRODUCT_SHEET_NAME + "!$O$" + (i + 2));
-            if (product.getOverdraftLimit() != null) {
+            if (product.getOverdraftLimit() != null && product.getOverdraftLimit().compareTo(BigDecimal.ZERO) > 0) {
+                Name overdraftLimitName = savingsWorkbook.createName();
                 setSanitized(overdraftLimitName, "Overdraft_Limit_" + productName);
                 overdraftLimitName.setRefersToFormula(TemplatePopulateImportConstants.PRODUCT_SHEET_NAME + "!$P$" + (i + 2));
             }
-            if (product.getMinRequiredOpeningBalance() != null) {
+            if (product.getMinRequiredOpeningBalance() != null && product.getMinRequiredOpeningBalance().compareTo(BigDecimal.ZERO) > 0) {
+                Name minOpeningBalanceName = savingsWorkbook.createName();
                 setSanitized(minOpeningBalanceName, "Min_Balance_" + productName);
                 minOpeningBalanceName.setRefersToFormula(TemplatePopulateImportConstants.PRODUCT_SHEET_NAME + "!$H$" + (i + 2));
             }
             if (product.getLockinPeriodFrequency() != null) {
+                Name lockinPeriodName = savingsWorkbook.createName();
                 setSanitized(lockinPeriodName, "Lockin_Period_" + productName);
                 lockinPeriodName.setRefersToFormula(TemplatePopulateImportConstants.PRODUCT_SHEET_NAME + "!$I$" + (i + 2));
             }
             if (product.getLockinPeriodFrequencyType() != null) {
+                Name lockinPeriodFrequencyName = savingsWorkbook.createName();
                 setSanitized(lockinPeriodFrequencyName, "Lockin_Frequency_" + productName);
                 lockinPeriodFrequencyName.setRefersToFormula(TemplatePopulateImportConstants.PRODUCT_SHEET_NAME + "!$J$" + (i + 2));
             }
-            if (product.getCurrency().currencyInMultiplesOf() != null) {
+            if (product.getCurrency() != null && product.getCurrency().currencyInMultiplesOf() != null) {
+                Name inMultiplesOfName = savingsWorkbook.createName();
                 setSanitized(inMultiplesOfName, "In_Multiples_" + productName);
                 inMultiplesOfName.setRefersToFormula(TemplatePopulateImportConstants.PRODUCT_SHEET_NAME + "!$M$" + (i + 2));
             }
