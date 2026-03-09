@@ -624,8 +624,8 @@ public class FixedDepositAccount extends SavingsAccount {
         final LocalDate interestCalculatedToDate = accountCloseDate.minusDays(1);
 
         final Money interestOnMaturity = calculatePreMatureInterest(interestCalculatedToDate,
-                retreiveOrderedNonInterestPostingTransactionsExcludeAccruals(), isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
-                financialYearBeginningMonth);
+                retreiveOrderedNonInterestPostingTransactionsExcludeAccruals(), isPreMatureClosure,
+                isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
         boolean recalculateDailyBalance = false;
 
         // post remaining interest
@@ -643,7 +643,25 @@ public class FixedDepositAccount extends SavingsAccount {
             recalculateDailyBalance = this.postInterestCarriedForward(accountCloseDate, recalculateDailyBalance);
         }
 
-        recalculateDailyBalance = applyWithholdTaxForDepositAccounts(accountCloseDate, recalculateDailyBalance, backdatedTxnsAllowedTill,
+        // Calculate maturity amount: Principal + Net Interest (gross interest - penalty)
+        final BigDecimal totalInterestPostedAmount = this.savingsAccountTransactionSummaryWrapper
+                .calculateTotalInterestPosted(this.currency, this.transactions);
+        final BigDecimal grossInterest = totalInterestPostedAmount != null ? totalInterestPostedAmount : BigDecimal.ZERO;
+
+        // Net interest = Gross Interest - Penalty
+        BigDecimal netInterest = grossInterest;
+        if (penalCharge != null && penalCharge.compareTo(BigDecimal.ZERO) > 0) {
+            netInterest = grossInterest.subtract(penalCharge);
+            if (netInterest.compareTo(BigDecimal.ZERO) < 0) {
+                netInterest = BigDecimal.ZERO;
+            }
+        }
+
+        // Maturity amount = Principal + Net Interest (after penalty, before WHT)
+        final BigDecimal maturityAmount = this.accountTermAndPreClosure.depositAmount().add(netInterest);
+
+        // Use applyWithholdTaxForPrematureClosure which calculates WHT on NET interest (gross - penalty)
+        recalculateDailyBalance = applyWithholdTaxForPrematureClosure(accountCloseDate, recalculateDailyBalance, backdatedTxnsAllowedTill,
                 penalCharge);
         boolean postReversals = false;
         if (recalculateDailyBalance) {
@@ -652,7 +670,9 @@ public class FixedDepositAccount extends SavingsAccount {
             recalculateDailyBalances(Money.zero(this.currency), accountCloseDate, backdatedTxnsAllowedTill, postReversals);
         }
         this.summary.updateSummary(this.currency, this.savingsAccountTransactionSummaryWrapper, this.transactions);
-        this.accountTermAndPreClosure.updateMaturityDetails(this.getAccountBalance(), this.maturityDate());
+
+        // Set maturity amount to deposit + net interest (after penalty, before WHT)
+        this.accountTermAndPreClosure.updateMaturityDetails(maturityAmount, accountCloseDate);
 
     }
 
@@ -705,7 +725,6 @@ public class FixedDepositAccount extends SavingsAccount {
     private Money calculatePreMatureInterest(final LocalDate preMatureDate, final List<SavingsAccountTransaction> transactions,
             final boolean isPreMatureClosure, final boolean isSavingsInterestPostingAtCurrentPeriodEnd,
             final Integer financialYearBeginningMonth) {
-
 
         final MathContext mc = MathContext.DECIMAL64;
         final List<PostingPeriod> postingPeriods = calculateInterestPayable(mc, preMatureDate, transactions, isPreMatureClosure,

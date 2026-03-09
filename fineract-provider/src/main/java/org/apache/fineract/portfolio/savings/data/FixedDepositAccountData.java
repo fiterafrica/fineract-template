@@ -230,14 +230,23 @@ public final class FixedDepositAccountData extends DepositAccountData {
             template = account;
         }
 
+        // Get withhold tax amount from actual transactions instead of recalculating
+        // This ensures the display matches the actual transaction data
         BigDecimal withTaxAmount = BigDecimal.ZERO;
-        // Use the account's taxGroup which is now fully populated with tax associations
-        log.info("WithholdTax Display - Account ID: {}, withHoldTax: {}, taxGroup: {}", account.id, account.withHoldTax,
-                account.taxGroup != null ? account.taxGroup.getId() : "null");
+        if (transactions != null && !transactions.isEmpty()) {
+            for (SavingsAccountTransactionData transaction : transactions) {
+                if (transaction.getTransactionType() != null && transaction.getTransactionType().isWithholdTax()
+                        && !transaction.isReversed()) {
+                    withTaxAmount = withTaxAmount.add(transaction.getAmount());
+                }
+            }
+            log.info("WithholdTax Display - Read from transactions: {}", withTaxAmount);
+        }
 
-        if (account.withHoldTax && account.taxGroup != null && account.taxGroup.getTaxAssociations() != null) {
-            log.info("WithholdTax Display - TaxGroup ID: {}, TaxAssociations count: {}", account.taxGroup.getId(),
-                    account.taxGroup.getTaxAssociations().size());
+        // If no withhold tax transaction found, fall back to calculation (for preview/estimation)
+        if (withTaxAmount.compareTo(BigDecimal.ZERO) == 0 && account.withHoldTax && account.taxGroup != null
+                && account.taxGroup.getTaxAssociations() != null) {
+            log.info("WithholdTax Display - No transaction found, calculating estimate for Account ID: {}", account.id);
 
             BigDecimal depositAmount = account.depositAmount;
             BigDecimal maturityAmount = account.maturityAmount;
@@ -247,12 +256,10 @@ public final class FixedDepositAccountData extends DepositAccountData {
             // Get the applicable tax rate from the tax group's tax associations
             ZoneId zone = DateUtils.getDateTimeZoneOfTenant();
             LocalDate today = LocalDate.now(zone);
-            log.info("WithholdTax Display - Today's date for tax applicability check: {}", today);
 
             BigDecimal taxRate = BigDecimal.ZERO;
             for (TaxGroupMappingsData mapping : account.taxGroup.getTaxAssociations()) {
                 if (mapping == null) {
-                    log.warn("WithholdTax Display - Skipping null mapping");
                     continue;
                 }
 
@@ -266,33 +273,21 @@ public final class FixedDepositAccountData extends DepositAccountData {
                 TaxComponentData taxComponent = mapping.getTaxComponent();
                 BigDecimal componentPercentage = taxComponent != null ? taxComponent.getPercentage() : null;
 
-                log.info("WithholdTax Display - TaxMapping: TaxComponent={}, StartDate={}, EndDate={}, IsApplicable={}, Percentage={}",
-                        taxComponent != null ? taxComponent.getId() : "null", mapping.startDate(), mapping.endDate(), isApplicable,
-                        componentPercentage != null ? componentPercentage : "null");
-
                 if (isApplicable && taxComponent != null && componentPercentage != null) {
                     taxRate = taxRate.add(componentPercentage);
-                    log.info("WithholdTax Display - Added percentage: {}, Running taxRate: {}", componentPercentage, taxRate);
                 }
             }
 
-            log.info("WithholdTax Display - Final taxRate: {}, DepositAmount: {}, MaturityAmount: {}, TotalInterest: {}", taxRate,
-                    depositAmount, maturityAmount, totalInterest);
-
             if (taxRate.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal taxRateFraction = taxRate.divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
+
+                // For estimation, use the net interest (maturity - deposit already accounts for penalty if stored
+                // correctly)
                 withTaxAmount = totalInterest.multiply(taxRateFraction).setScale(2, RoundingMode.HALF_UP);
-                BigDecimal netInterest = totalInterest.subtract(withTaxAmount);
-                log.info("WithholdTax Display - Tax Rate: {}%, Tax Rate Fraction: {}, Withhold Tax Amount: {}, Net Interest: {}", taxRate,
-                        taxRateFraction, withTaxAmount, netInterest);
-            } else {
-                log.info("WithholdTax Display - Tax rate is ZERO, no withhold tax calculated");
+
+                log.info("WithholdTax Display - Calculated estimate: TaxRate={}%, TotalInterest={}, WithholdTax={}", taxRate, totalInterest,
+                        withTaxAmount);
             }
-        } else {
-            log.info("WithholdTax Display - Skipped: withHoldTax={}, taxGroup={}, taxAssociations={}", account.withHoldTax,
-                    account.taxGroup != null ? account.taxGroup.getId() : "null",
-                    account.taxGroup != null && account.taxGroup.getTaxAssociations() != null ? account.taxGroup.getTaxAssociations().size()
-                            : "null");
         }
 
         FixedDepositAccountData fixedDepositAccountData = new FixedDepositAccountData(account.id, account.accountNo, account.externalId,

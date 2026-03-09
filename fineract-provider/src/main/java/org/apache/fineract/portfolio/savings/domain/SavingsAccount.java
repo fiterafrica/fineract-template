@@ -4170,7 +4170,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
         final List<SavingsAccountTransaction> withholdTransactions = findWithHoldTransactions();
         SavingsAccountTransaction withholdTransaction = findTransactionFor(interestPostingUpToDate, withholdTransactions);
 
-        // Withhold tax should be calculated on gross interest (total interest posted), NOT reduced by penalty charge
+        // Withhold tax calculated on total interest posted (gross interest)
         final BigDecimal totalInterestPosted = this.savingsAccountTransactionSummaryWrapper.calculateTotalInterestPosted(this.currency,
                 this.transactions);
 
@@ -4179,6 +4179,39 @@ public class SavingsAccount extends AbstractPersistableCustom {
             recalucateDailyBalance = recalucateDailyBalance || isWithholdTaxAdded;
         } else {
             boolean isWithholdTaxAdded = updateWithHoldTransaction(totalInterestPosted, withholdTransaction);
+            recalucateDailyBalance = recalucateDailyBalance || isWithholdTaxAdded;
+        }
+
+        return recalucateDailyBalance;
+    }
+
+    /**
+     * Apply withhold tax for premature closure of deposit accounts. WHT should be calculated on NET interest (gross
+     * interest minus penalty charge).
+     */
+    protected boolean applyWithholdTaxForPrematureClosure(final LocalDate interestPostingUpToDate, boolean recalucateDailyBalance,
+            final boolean backdatedTxnsAllowedTill, BigDecimal penalCharge) {
+        final List<SavingsAccountTransaction> withholdTransactions = findWithHoldTransactions();
+        SavingsAccountTransaction withholdTransaction = findTransactionFor(interestPostingUpToDate, withholdTransactions);
+
+        // Get total interest posted (gross interest)
+        final BigDecimal totalInterestPosted = this.savingsAccountTransactionSummaryWrapper.calculateTotalInterestPosted(this.currency,
+                this.transactions);
+
+        // For premature closure, WHT should be calculated on NET interest (gross interest minus penalty charge)
+        BigDecimal netInterestForTax = totalInterestPosted;
+        if (penalCharge != null && penalCharge.compareTo(BigDecimal.ZERO) > 0) {
+            netInterestForTax = totalInterestPosted.subtract(penalCharge);
+            if (netInterestForTax.compareTo(BigDecimal.ZERO) < 0) {
+                netInterestForTax = BigDecimal.ZERO;
+            }
+        }
+
+        if (withholdTransaction == null && this.withHoldTax()) {
+            boolean isWithholdTaxAdded = createWithHoldTransaction(netInterestForTax, interestPostingUpToDate, backdatedTxnsAllowedTill);
+            recalucateDailyBalance = recalucateDailyBalance || isWithholdTaxAdded;
+        } else {
+            boolean isWithholdTaxAdded = updateWithHoldTransaction(netInterestForTax, withholdTransaction);
             recalucateDailyBalance = recalucateDailyBalance || isWithholdTaxAdded;
         }
 
