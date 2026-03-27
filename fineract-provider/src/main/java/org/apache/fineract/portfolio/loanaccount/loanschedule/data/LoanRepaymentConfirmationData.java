@@ -44,6 +44,9 @@ public class LoanRepaymentConfirmationData {
     private final String groupName;
     private final BigDecimal totalOverdueAmount;
     List<LoanRepaymentScheduleData> scheduleDataList = new ArrayList<>();
+    private String customerAccountNumber; // Savings account number from where transaction is being made
+    private String customerName; // Savings account holder name
+    private String bankNumber; // Bank name from where transaction is being made
 
     public LoanRepaymentConfirmationData(Long transactionId, Long loanId, Long transactionTypeEnum, String transactionDate,
             BigDecimal amount, BigDecimal principalPortionDerived, BigDecimal interestPortionDerived, BigDecimal feeChargesPortionDerived,
