@@ -42,7 +42,10 @@ import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.apache.fineract.infrastructure.core.exception.GeneralPlatformDomainRuleException;
+import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.infrastructure.dataqueries.service.ReadWriteNonCoreDataService;
+import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
+import org.apache.fineract.notification.service.ActiveMqNotificationDomainServiceImpl;
 import org.apache.fineract.portfolio.account.PortfolioAccountType;
 import org.apache.fineract.portfolio.account.data.AccountTransferDTO;
 import org.apache.fineract.portfolio.account.data.AccountTransfersDataValidator;
@@ -62,6 +65,8 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanTransaction;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionType;
 import org.apache.fineract.portfolio.loanaccount.exception.InvalidPaidInAdvanceAmountException;
+import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanRepaymentConfirmationData;
+import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanRepaymentScheduleData;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.service.LoanScheduleHistoryWritePlatformService;
 import org.apache.fineract.portfolio.loanaccount.service.LoanAssembler;
 import org.apache.fineract.portfolio.loanaccount.service.LoanReadPlatformService;
@@ -75,7 +80,9 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountDomainService;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransaction;
 import org.apache.fineract.portfolio.savings.domain.SavingsProductRepository;
 import org.apache.fineract.portfolio.savings.service.SavingsAccountWritePlatformService;
+import org.apache.fineract.useradministration.domain.AppUser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -102,19 +109,25 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
     private final LoanScheduleHistoryWritePlatformService loanScheduleHistoryWritePlatformService;
     private final LoanTransactionRepository loanTransactionRepository;
     private final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService;
+    private final ActiveMqNotificationDomainServiceImpl activeMqNotificationDomainService;
+    private final PlatformSecurityContext context;
+    private final Environment env;
+    private final FromJsonHelper fromApiJsonHelper;
+
+
 
     @Autowired
     public AccountTransfersWritePlatformServiceImpl(final AccountTransfersDataValidator accountTransfersDataValidator,
-            final AccountTransferAssembler accountTransferAssembler, final AccountTransferRepository accountTransferRepository,
-            final SavingsAccountAssembler savingsAccountAssembler, final SavingsAccountDomainService savingsAccountDomainService,
-            final LoanAssembler loanAssembler, final LoanAccountDomainService loanAccountDomainService,
-            final SavingsAccountWritePlatformService savingsAccountWritePlatformService,
-            final AccountTransferDetailRepository accountTransferDetailRepository, final LoanReadPlatformService loanReadPlatformService,
-            final GSIMRepositoy gsimRepository, ConfigurationDomainService configurationDomainService,
-            final ReadWriteNonCoreDataService readWriteNonCoreDataService, final SavingsProductRepository savingsProductRepository,
-            final LoanScheduleHistoryWritePlatformService loanScheduleHistoryWritePlatformService,
-            final LoanTransactionRepository loanTransactionRepository,
-            final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService) {
+                                                    final AccountTransferAssembler accountTransferAssembler, final AccountTransferRepository accountTransferRepository,
+                                                    final SavingsAccountAssembler savingsAccountAssembler, final SavingsAccountDomainService savingsAccountDomainService,
+                                                    final LoanAssembler loanAssembler, final LoanAccountDomainService loanAccountDomainService,
+                                                    final SavingsAccountWritePlatformService savingsAccountWritePlatformService,
+                                                    final AccountTransferDetailRepository accountTransferDetailRepository, final LoanReadPlatformService loanReadPlatformService,
+                                                    final GSIMRepositoy gsimRepository, ConfigurationDomainService configurationDomainService,
+                                                    final ReadWriteNonCoreDataService readWriteNonCoreDataService, final SavingsProductRepository savingsProductRepository,
+                                                    final LoanScheduleHistoryWritePlatformService loanScheduleHistoryWritePlatformService,
+                                                    final LoanTransactionRepository loanTransactionRepository,
+                                                    final AccountAssociationsReadPlatformService accountAssociationsReadPlatformService, ActiveMqNotificationDomainServiceImpl activeMqNotificationDomainService, PlatformSecurityContext context, Environment env, FromJsonHelper fromApiJsonHelper) {
         this.accountTransfersDataValidator = accountTransfersDataValidator;
         this.accountTransferAssembler = accountTransferAssembler;
         this.accountTransferRepository = accountTransferRepository;
@@ -132,6 +145,10 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
         this.loanScheduleHistoryWritePlatformService = loanScheduleHistoryWritePlatformService;
         this.loanTransactionRepository = loanTransactionRepository;
         this.accountAssociationsReadPlatformService = accountAssociationsReadPlatformService;
+        this.activeMqNotificationDomainService = activeMqNotificationDomainService;
+        this.context = context;
+        this.env = env;
+        this.fromApiJsonHelper = fromApiJsonHelper;
     }
 
     @Transactional
@@ -368,6 +385,7 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
         final boolean isRegularTransaction = accountTransferDTO.isRegularTransaction();
         final boolean backdatedTxnsAllowedTill = false;
         AccountTransferDetails accountTransferDetails = accountTransferDTO.getAccountTransferDetails();
+        final AppUser currentUser = context.authenticatedUser();
         if (isSavingsToLoanAccountTransfer(accountTransferDTO.getFromAccountType(), accountTransferDTO.getToAccountType())) {
             //
             SavingsAccount fromSavingsAccount = null;
@@ -449,6 +467,27 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
 
             loanTransaction.setAccountTransfer(Boolean.TRUE);
             loanTransaction.setAccountTransferId(transferTransactionId);
+
+            try {
+                final LoanRepaymentConfirmationData repaymentConfirmationData = loanReadPlatformService
+                        .generateLoanPaymentReceipt(loanTransaction.getId());
+                List<LoanRepaymentScheduleData> scheduleDataList = loanReadPlatformService.getLoanRepaymentScheduleData(loanTransaction.getLoan().getId());
+                repaymentConfirmationData.setScheduleDataList(scheduleDataList);
+                repaymentConfirmationData.setCustomerAccountNumber(fromSavingsAccount.getAccountNumber());
+                repaymentConfirmationData.setCustomerName(fromSavingsAccount.getClient().getDisplayName());
+                if(withdrawal.getPaymentDetail() != null) {
+                    repaymentConfirmationData.setBankNumber(withdrawal.getPaymentDetail().getBankNumber());
+                }
+
+
+                activeMqNotificationDomainService.buildNotification("ALL_FUNCTION", "LoanRepaymentConfirmation",
+                        repaymentConfirmationData.getTransactionId(), this.fromApiJsonHelper.toJson(repaymentConfirmationData), "PENDING",
+                        context.authenticatedUser().getId(), currentUser.getOffice().getId(),
+                        this.env.getProperty("fineract.activemq.loanRepaymentConfirmationQueue"));
+            } catch (Exception ex) {
+                throw ex;
+                // Don't react to this exception because If messaging fails, RpPayment Transaction shouldn't rollback
+            }
 
         } else if (isSavingsToSavingsAccountTransfer(accountTransferDTO.getFromAccountType(), accountTransferDTO.getToAccountType())) {
             SavingsAccount fromSavingsAccount = null;
