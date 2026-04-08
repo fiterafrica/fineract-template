@@ -121,6 +121,7 @@ import org.apache.fineract.portfolio.note.domain.Note;
 import org.apache.fineract.portfolio.note.domain.NoteRepository;
 import org.apache.fineract.portfolio.paymentdetail.domain.PaymentDetail;
 import org.apache.fineract.portfolio.paymentdetail.service.PaymentDetailWritePlatformService;
+import org.apache.fineract.portfolio.paymenttype.domain.PaymentTypeRepositoryWrapper;
 import org.apache.fineract.portfolio.savings.DepositAccountOnClosureType;
 import org.apache.fineract.portfolio.savings.DepositAccountType;
 import org.apache.fineract.portfolio.savings.DepositsApiConstants;
@@ -221,6 +222,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
     private final SavingsAccountReadPlatformService savingsAccountReadPlatformService;
     private final ChargeReadPlatformService chargeReadPlatformService;
     private final GLClosureRepository glClosureRepository;
+    private final PaymentTypeRepositoryWrapper paymentTypeRepositoryWrapper;
 
     @Autowired
     public DepositAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -248,7 +250,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             AccountingProcessorHelper helper, RecurringDepositProductRepository recurringDepositProductRepository,
             SavingsAccountWritePlatformService savingsAccountWritePlatformService, SavingsAccountRepository savingsAccountRepository,
             ChargeSlabRepository chargeSlabRepository, SavingsAccountReadPlatformService savingsAccountReadPlatformService,
-            ChargeReadPlatformService chargeReadPlatformService, GLClosureRepository glClosureRepository) {
+            ChargeReadPlatformService chargeReadPlatformService, GLClosureRepository glClosureRepository,
+            PaymentTypeRepositoryWrapper paymentTypeRepositoryWrapper) {
 
         this.context = context;
         this.savingAccountRepositoryWrapper = savingAccountRepositoryWrapper;
@@ -286,6 +289,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         this.savingsAccountReadPlatformService = savingsAccountReadPlatformService;
         this.chargeReadPlatformService = chargeReadPlatformService;
         this.glClosureRepository = glClosureRepository;
+        this.paymentTypeRepositoryWrapper = paymentTypeRepositoryWrapper;
     }
 
     @Transactional
@@ -667,6 +671,10 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
 
         final SavingsAccount account = this.depositAccountAssembler.assembleFrom(savingsId, depositAccountType);
         checkClientOrGroupActive(account);
+
+        // Validate: Do not allow interest posting after maturity date for Fixed/Recurring Deposit accounts
+        validateNotPostMaturity(account);
+
         postInterest(account);
         return new CommandProcessingResultBuilder() //
                 .withEntityId(savingsId) //
@@ -675,6 +683,33 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                 .withGroupId(account.groupId()) //
                 .withSavingsId(savingsId) //
                 .build();
+    }
+
+    private void validateNotPostMaturity(final SavingsAccount account) {
+        final LocalDate today = DateUtils.getLocalDateOfTenant();
+
+        // Check 1: If account status is already MATURED, do not allow interest posting
+        if (account instanceof FixedDepositAccount) {
+            FixedDepositAccount fdAccount = (FixedDepositAccount) account;
+            if (fdAccount.isMatured()) {
+                throw new PostInterestAsOnDateException(PostInterestAsOnExceptionType.INTEREST_POSTING_NOT_ALLOWED_AFTER_MATURITY);
+            }
+            // Check 2: If today is after maturity date, do not allow interest posting
+            LocalDate maturityDate = fdAccount.maturityDate();
+            if (maturityDate != null && today.isAfter(maturityDate)) {
+                throw new PostInterestAsOnDateException(PostInterestAsOnExceptionType.INTEREST_POSTING_NOT_ALLOWED_AFTER_MATURITY);
+            }
+        } else if (account instanceof RecurringDepositAccount) {
+            RecurringDepositAccount rdAccount = (RecurringDepositAccount) account;
+            if (rdAccount.getStatus().isMatured()) {
+                throw new PostInterestAsOnDateException(PostInterestAsOnExceptionType.INTEREST_POSTING_NOT_ALLOWED_AFTER_MATURITY);
+            }
+            // Check 2: If today is after maturity date, do not allow interest posting
+            LocalDate maturityDate = rdAccount.maturityDate();
+            if (maturityDate != null && today.isAfter(maturityDate)) {
+                throw new PostInterestAsOnDateException(PostInterestAsOnExceptionType.INTEREST_POSTING_NOT_ALLOWED_AFTER_MATURITY);
+            }
+        }
     }
 
     @Transactional
@@ -692,6 +727,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         boolean isInterestTransfer = false;
         LocalDate postInterestOnDate = null;
         account.setSavingsAccountTransactionRepository(this.savingsAccountTransactionRepository);
+        account.setRepositoryWrapper(this.paymentTypeRepositoryWrapper);
+        account.setPaymentDetailWritePlatformService(this.paymentDetailWritePlatformService);
 
         account.postInterest(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth,
                 postInterestOnDate);

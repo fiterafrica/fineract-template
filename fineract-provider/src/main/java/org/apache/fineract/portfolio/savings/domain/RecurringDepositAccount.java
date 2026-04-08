@@ -28,6 +28,7 @@ import java.math.MathContext;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -282,8 +283,11 @@ public class RecurringDepositAccount extends SavingsAccount {
         final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors)
                 .resource(RECURRING_DEPOSIT_ACCOUNT_RESOURCE_NAME + SavingsApiConstants.updateMaturityDetailsAction);
         final SavingsAccountStatusType currentStatus = SavingsAccountStatusType.fromInt(this.status);
-        if (!SavingsAccountStatusType.ACTIVE.hasStateOf(currentStatus)) {
-            baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("not.in.active.state");
+
+        // Allow both ACTIVE and MATURED accounts to be processed
+        // ACTIVE accounts will be matured, MATURED accounts will have their interest corrected if needed
+        if (!SavingsAccountStatusType.ACTIVE.hasStateOf(currentStatus) && !SavingsAccountStatusType.MATURED.hasStateOf(currentStatus)) {
+            baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("not.in.active.or.matured.state");
             if (!dataValidationErrors.isEmpty()) {
                 throw new PlatformApiDataValidationException(dataValidationErrors);
             }
@@ -291,8 +295,11 @@ public class RecurringDepositAccount extends SavingsAccount {
 
         final LocalDate todayDate = DateUtils.getBusinessLocalDate();
         if (!this.maturityDate().isAfter(todayDate)) {
-            // update account status
-            this.status = SavingsAccountStatusType.MATURED.getValue();
+            // update account status to MATURED if not already
+            if (SavingsAccountStatusType.ACTIVE.hasStateOf(currentStatus)) {
+                this.status = SavingsAccountStatusType.MATURED.getValue();
+            }
+            // Post/correct maturity interest - this will also reverse any incorrect post-maturity interest postings
             postMaturityInterest(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, todayDate, postReversals);
         }
     }
@@ -342,8 +349,12 @@ public class RecurringDepositAccount extends SavingsAccount {
         final SavingsInterestCalculationDaysInYearType daysInYearType = SavingsInterestCalculationDaysInYearType
                 .fromInt(this.interestCalculationDaysInYearType);
         List<LocalDate> PostedAsOnDates = getManualPostingDates();
-        final List<LocalDateInterval> postingPeriodIntervals = this.savingsHelper.determineInterestPostingPeriods(depositStartDate(),
-                maturityDate, postingPeriodType, financialYearBeginningMonth, PostedAsOnDates);
+
+        // For TENURE (At-Maturity) posting period, use single posting interval from deposit start to maturity
+        final List<LocalDateInterval> postingPeriodIntervals = postingPeriodType.equals(SavingsPostingInterestPeriodType.TENURE)
+                ? Arrays.asList(LocalDateInterval.create(depositStartDate(), maturityDate))
+                : this.savingsHelper.determineInterestPostingPeriods(depositStartDate(), maturityDate, postingPeriodType,
+                        financialYearBeginningMonth, PostedAsOnDates);
 
         final List<PostingPeriod> allPostingPeriods = new ArrayList<>();
 
@@ -650,13 +661,30 @@ public class RecurringDepositAccount extends SavingsAccount {
         boolean isInterestTransfer = false;
         LocalDate postInterestOnDate = null;
         final boolean backdatedTxnsAllowedTill = false;
+
+        // First, reverse any interest postings and withhold tax that were incorrectly made AFTER the maturity date
+        // This handles the case where interest was posted beyond maturity and needs to be corrected
+        boolean hasReversedPostMaturityInterest = false;
+        for (final SavingsAccountTransaction transaction : this.transactions) {
+            // Reverse interest postings after maturity
+            if (transaction.isInterestPostingAndNotReversed() && transaction.getTransactionLocalDate().isAfter(interestPostingUpToDate)) {
+                transaction.reverse();
+                hasReversedPostMaturityInterest = true;
+            }
+            // Also reverse withhold tax transactions after maturity
+            if (transaction.isWithHoldTaxAndNotReversed() && transaction.getTransactionLocalDate().isAfter(interestPostingUpToDate)) {
+                transaction.reverse();
+                hasReversedPostMaturityInterest = true;
+            }
+        }
+
         final List<PostingPeriod> postingPeriods = calculateInterestUsing(mc, interestPostingUpToDate.minusDays(1), isInterestTransfer,
                 isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, postInterestOnDate, backdatedTxnsAllowedTill,
                 postReversals);
 
         Money interestPostedToDate = Money.zero(this.currency);
 
-        boolean recalucateDailyBalanceDetails = false;
+        boolean recalucateDailyBalanceDetails = hasReversedPostMaturityInterest;
 
         for (final PostingPeriod interestPostingPeriod : postingPeriods) {
 
@@ -697,6 +725,22 @@ public class RecurringDepositAccount extends SavingsAccount {
     public void postPreMaturityInterest(final LocalDate accountCloseDate, final boolean isPreMatureClosure,
             final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth, boolean postReversals) {
 
+        // First, reverse any interest postings and withhold tax that were incorrectly made AFTER the closure date
+        // This handles the case where interest was posted beyond the closure date and needs to be corrected
+        boolean hasReversedPostClosureInterest = false;
+        for (final SavingsAccountTransaction transaction : this.transactions) {
+            // Reverse interest postings after closure date
+            if (transaction.isInterestPostingAndNotReversed() && transaction.getTransactionLocalDate().isAfter(accountCloseDate)) {
+                transaction.reverse();
+                hasReversedPostClosureInterest = true;
+            }
+            // Also reverse withhold tax transactions after closure date
+            if (transaction.isWithHoldTaxAndNotReversed() && transaction.getTransactionLocalDate().isAfter(accountCloseDate)) {
+                transaction.reverse();
+                hasReversedPostClosureInterest = true;
+            }
+        }
+
         final Money interestPostedToDate = totalInterestPosted();
         // calculate interest before one day of closure date
         final LocalDate interestCalculatedToDate = accountCloseDate.minusDays(1);
@@ -704,7 +748,7 @@ public class RecurringDepositAccount extends SavingsAccount {
                 retreiveOrderedNonInterestPostingTransactions(), isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
                 financialYearBeginningMonth);
 
-        boolean recalucateDailyBalance = false;
+        boolean recalucateDailyBalance = hasReversedPostClosureInterest;
         final boolean backdatedTxnsAllowedTill = false;
 
         // post remaining interest
@@ -764,6 +808,18 @@ public class RecurringDepositAccount extends SavingsAccount {
             final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth,
             final LocalDate postInterestAson, final boolean backdatedTxnsAllowedTill, final boolean postReversals) {
         final LocalDate interestPostingUpToDate = interestPostingUpToDate(postingDate);
+
+        // Reverse any interest postings that were incorrectly made AFTER the maturity date
+        // This corrects the account balance and ledger when interest was posted beyond maturity
+        final LocalDate maturityDateValue = maturityDate();
+        if (maturityDateValue != null) {
+            for (final SavingsAccountTransaction transaction : this.transactions) {
+                if (transaction.isInterestPostingAndNotReversed() && transaction.getTransactionLocalDate().isAfter(maturityDateValue)) {
+                    transaction.reverse();
+                }
+            }
+        }
+
         super.postInterest(mc, interestPostingUpToDate, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                 financialYearBeginningMonth, postInterestAson, backdatedTxnsAllowedTill, postReversals);
     }
@@ -795,7 +851,12 @@ public class RecurringDepositAccount extends SavingsAccount {
     }
 
     private LocalDate interestCalculatedUpto() {
-        LocalDate uptoMaturityDate = calculateMaturityDate();
+        // Use the stored maturity date if available, otherwise calculate it
+        // This ensures interest is capped at the actual maturity date, not a recalculated value
+        LocalDate uptoMaturityDate = maturityDate();
+        if (uptoMaturityDate == null) {
+            uptoMaturityDate = calculateMaturityDate();
+        }
         if (uptoMaturityDate != null) {
             // interest should not be calculated for maturity day
             uptoMaturityDate = uptoMaturityDate.minusDays(1);

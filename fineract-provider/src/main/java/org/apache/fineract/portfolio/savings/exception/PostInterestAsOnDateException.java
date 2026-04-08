@@ -24,7 +24,7 @@ public class PostInterestAsOnDateException extends AbstractPlatformDomainRuleExc
 
     public enum PostInterestAsOnExceptionType {
 
-        FUTURE_DATE, VALID_DATE, ACTIVATION_DATE, LAST_TRANSACTION_DATE;
+        FUTURE_DATE, VALID_DATE, ACTIVATION_DATE, LAST_TRANSACTION_DATE, INTEREST_POSTING_NOT_ALLOWED_AFTER_MATURITY;
 
         public String errorMessage() {
             if (name().toString().equalsIgnoreCase("FUTURE_DATE")) {
@@ -35,6 +35,8 @@ public class PostInterestAsOnDateException extends AbstractPlatformDomainRuleExc
                 return "Post Interest Date must be after the Activation date";
             } else if (name().toString().equalsIgnoreCase("LAST_TRANSACTION_DATE")) {
                 return "Cannot Post Interest before last transaction date";
+            } else if (name().toString().equalsIgnoreCase("INTEREST_POSTING_NOT_ALLOWED_AFTER_MATURITY")) {
+                return "Interest posting is not allowed after maturity date. Account has already matured.";
             }
             return name().toString();
         }
@@ -48,6 +50,8 @@ public class PostInterestAsOnDateException extends AbstractPlatformDomainRuleExc
                 return "error.msg.before activation date";
             } else if (name().toString().equalsIgnoreCase("LAST_TRANSACTION_DATE")) {
                 return "error.msg.countInterest";
+            } else if (name().toString().equalsIgnoreCase("INTEREST_POSTING_NOT_ALLOWED_AFTER_MATURITY")) {
+                return "error.msg.interest.posting.not.allowed.after.maturity";
             }
             return name().toString();
         }
