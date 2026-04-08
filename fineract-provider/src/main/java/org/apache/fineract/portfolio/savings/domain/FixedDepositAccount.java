@@ -43,7 +43,6 @@ import javax.persistence.OneToOne;
 import javax.persistence.Transient;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
@@ -56,7 +55,6 @@ import org.apache.fineract.portfolio.accountdetails.domain.AccountType;
 import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.group.domain.Group;
 import org.apache.fineract.portfolio.interestratechart.domain.InterestRateChart;
-import org.apache.fineract.portfolio.interestratechart.service.InterestRateChartAssembler;
 import org.apache.fineract.portfolio.savings.DepositAccountOnClosureType;
 import org.apache.fineract.portfolio.savings.DepositsApiConstants;
 import org.apache.fineract.portfolio.savings.PreClosurePenalInterestOnType;
@@ -83,11 +81,6 @@ public class FixedDepositAccount extends SavingsAccount {
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "account")
     protected DepositAccountInterestRateChart chart;
-
-    @Transient
-    protected InterestRateChartAssembler chartAssembler;
-    @Transient
-    private ConfigurationDomainService configurationDomainService;
 
     @Transient
     private boolean applyPreclosureCharges = true;
@@ -269,8 +262,11 @@ public class FixedDepositAccount extends SavingsAccount {
                 .resource(FIXED_DEPOSIT_ACCOUNT_RESOURCE_NAME + SavingsApiConstants.updateMaturityDetailsAction);
 
         final SavingsAccountStatusType currentStatus = SavingsAccountStatusType.fromInt(this.status);
-        if (!SavingsAccountStatusType.ACTIVE.hasStateOf(currentStatus)) {
-            baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("not.in.active.state");
+
+        // Allow both ACTIVE and MATURED accounts to be processed
+        // ACTIVE accounts will be matured, MATURED accounts will have their interest corrected if needed
+        if (!SavingsAccountStatusType.ACTIVE.hasStateOf(currentStatus) && !SavingsAccountStatusType.MATURED.hasStateOf(currentStatus)) {
+            baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("not.in.active.or.matured.state");
             if (!dataValidationErrors.isEmpty()) {
                 throw new PlatformApiDataValidationException(dataValidationErrors);
             }
@@ -278,8 +274,11 @@ public class FixedDepositAccount extends SavingsAccount {
 
         final LocalDate todayDate = DateUtils.getBusinessLocalDate();
         if (!this.maturityDate().isAfter(todayDate)) {
-            // update account status
-            this.status = SavingsAccountStatusType.MATURED.getValue();
+            // update account status to MATURED if not already
+            if (SavingsAccountStatusType.ACTIVE.hasStateOf(currentStatus)) {
+                this.status = SavingsAccountStatusType.MATURED.getValue();
+            }
+            // Post/correct maturity interest - this will also reverse any incorrect post-maturity interest postings
             postMaturityInterest(isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
         }
     }
@@ -567,13 +566,30 @@ public class FixedDepositAccount extends SavingsAccount {
         final LocalDate postInterestOnDate = null;
         final boolean backdatedTxnsAllowedTill = false;
         boolean postReversals = false;
+
+        // First, reverse any interest postings and withhold tax that were incorrectly made AFTER the maturity date
+        // This handles the case where interest was posted beyond maturity and needs to be corrected
+        boolean hasReversedPostMaturityInterest = false;
+        for (final SavingsAccountTransaction transaction : this.transactions) {
+            // Reverse interest postings after maturity
+            if (transaction.isInterestPostingAndNotReversed() && transaction.getTransactionLocalDate().isAfter(interestPostingUpToDate)) {
+                transaction.reverse();
+                hasReversedPostMaturityInterest = true;
+            }
+            // Also reverse withhold tax transactions after maturity (as they relate to invalid interest postings)
+            if (transaction.isWithHoldTaxAndNotReversed() && transaction.getTransactionLocalDate().isAfter(interestPostingUpToDate)) {
+                transaction.reverse();
+                hasReversedPostMaturityInterest = true;
+            }
+        }
+
         final List<PostingPeriod> postingPeriods = calculateInterestUsing(mc, interestPostingUpToDate, isInterestTransfer,
                 isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth, postInterestOnDate, backdatedTxnsAllowedTill,
                 postReversals);
 
         Money interestPostedToDate = Money.zero(this.currency);
 
-        boolean recalucateDailyBalanceDetails = false;
+        boolean recalucateDailyBalanceDetails = hasReversedPostMaturityInterest;
 
         for (final PostingPeriod interestPostingPeriod : postingPeriods) {
 
@@ -619,6 +635,22 @@ public class FixedDepositAccount extends SavingsAccount {
             final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth, boolean postInterest,
             BigDecimal penalCharge) {
 
+        // First, reverse any interest postings and withhold tax that were incorrectly made AFTER the closure date
+        // This handles the case where interest was posted beyond the closure date and needs to be corrected
+        boolean hasReversedPostClosureInterest = false;
+        for (final SavingsAccountTransaction transaction : this.transactions) {
+            // Reverse interest postings after closure date
+            if (transaction.isInterestPostingAndNotReversed() && transaction.getTransactionLocalDate().isAfter(accountCloseDate)) {
+                transaction.reverse();
+                hasReversedPostClosureInterest = true;
+            }
+            // Also reverse withhold tax transactions after closure date
+            if (transaction.isWithHoldTaxAndNotReversed() && transaction.getTransactionLocalDate().isAfter(accountCloseDate)) {
+                transaction.reverse();
+                hasReversedPostClosureInterest = true;
+            }
+        }
+
         Money interestPostedToDate = totalInterestPosted();
         // calculate interest before one day of closure date
         final LocalDate interestCalculatedToDate = accountCloseDate.minusDays(1);
@@ -626,7 +658,7 @@ public class FixedDepositAccount extends SavingsAccount {
         final Money interestOnMaturity = calculatePreMatureInterest(interestCalculatedToDate,
                 retreiveOrderedNonInterestPostingTransactionsExcludeAccruals(), isPreMatureClosure,
                 isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
-        boolean recalculateDailyBalance = false;
+        boolean recalculateDailyBalance = hasReversedPostClosureInterest;
 
         // post remaining interest
         final Money remainigInterestToBePosted = interestOnMaturity.minus(interestPostedToDate);
@@ -744,6 +776,18 @@ public class FixedDepositAccount extends SavingsAccount {
             final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth,
             final LocalDate postInterestOnDate, final boolean backdatedTxnsAllowedTill) {
         final LocalDate interestPostingUpToDate = interestPostingUpToDate(postingDate);
+
+        // Reverse any interest postings that were incorrectly made AFTER the maturity date
+        // This corrects the account balance and ledger when interest was posted beyond maturity
+        final LocalDate maturityDateValue = maturityDate();
+        if (maturityDateValue != null) {
+            for (final SavingsAccountTransaction transaction : this.transactions) {
+                if (transaction.isInterestPostingAndNotReversed() && transaction.getTransactionLocalDate().isAfter(maturityDateValue)) {
+                    transaction.reverse();
+                }
+            }
+        }
+
         boolean postReversals = false;
         super.postInterest(mc, interestPostingUpToDate, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                 financialYearBeginningMonth, postInterestOnDate, backdatedTxnsAllowedTill, postReversals);
@@ -812,7 +856,12 @@ public class FixedDepositAccount extends SavingsAccount {
     }
 
     private LocalDate interestCalculatedUpto() {
-        LocalDate uptoMaturityDate = calculateMaturityDate();
+        // Use the stored maturity date if available, otherwise calculate it
+        // This ensures interest is capped at the actual maturity date, not a recalculated value
+        LocalDate uptoMaturityDate = maturityDate();
+        if (uptoMaturityDate == null) {
+            uptoMaturityDate = calculateMaturityDate();
+        }
         if (uptoMaturityDate != null) {
             // interest should not be calculated for maturity day
             uptoMaturityDate = uptoMaturityDate.minusDays(1);

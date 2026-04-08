@@ -240,10 +240,13 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
         final StringBuilder sqlBuilder = new StringBuilder(200);
         sqlBuilder.append("SELECT ");
         sqlBuilder.append(this.depositAccountForMaturityRowMapper.schema());
-        sqlBuilder.append(" WHERE da.deposit_type_enum in (?, ?) and da.status_enum = ?");
+        // Include both ACTIVE and MATURED accounts:
+        // - ACTIVE accounts will be matured when their maturity date passes
+        // - MATURED accounts will have their interest corrected if there are incorrect post-maturity postings
+        sqlBuilder.append(" WHERE da.deposit_type_enum in (?, ?) and da.status_enum in (?, ?)");
         return this.jdbcTemplate.query(sqlBuilder.toString(), this.depositAccountForMaturityRowMapper,
                 new Object[] { DepositAccountType.FIXED_DEPOSIT.getValue(), DepositAccountType.RECURRING_DEPOSIT.getValue(),
-                        SavingsAccountStatusType.ACTIVE.getValue() });
+                        SavingsAccountStatusType.ACTIVE.getValue(), SavingsAccountStatusType.MATURED.getValue() });
     }
 
     @Override
