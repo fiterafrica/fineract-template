@@ -129,6 +129,7 @@ import org.apache.fineract.portfolio.savings.SavingsAccountTransactionType;
 import org.apache.fineract.portfolio.savings.SavingsApiConstants;
 import org.apache.fineract.portfolio.savings.SavingsInterestCalculationDaysInYearType;
 import org.apache.fineract.portfolio.savings.SavingsPeriodFrequencyType;
+import org.apache.fineract.portfolio.savings.SavingsPostingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.data.DepositAccountData;
 import org.apache.fineract.portfolio.savings.data.DepositAccountTransactionDataValidator;
 import org.apache.fineract.portfolio.savings.data.RecurringMissedTargetData;
@@ -646,6 +647,9 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         final SavingsAccount account = this.depositAccountAssembler.assembleFrom(savingsId, depositAccountType);
         checkClientOrGroupActive(account);
 
+        // Handle and reverse duplicate/incorrectly posted interest transactions
+        reverseDuplicateAndIncorrectInterestPostings(account, depositAccountType);
+
         final LocalDate today = DateUtils.getBusinessLocalDate();
         final boolean postReversals = false;
         final MathContext mc = new MathContext(15, MoneyHelper.getRoundingMode());
@@ -699,6 +703,14 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             if (maturityDate != null && today.isAfter(maturityDate)) {
                 throw new PostInterestAsOnDateException(PostInterestAsOnExceptionType.INTEREST_POSTING_NOT_ALLOWED_AFTER_MATURITY);
             }
+            // Check 3: If interest posting period is At-Maturity (TENURE), do not allow interest posting before
+            // maturity
+            if (SavingsPostingInterestPeriodType.TENURE.getValue().equals(fdAccount.getInterestPostingPeriodType())) {
+                if (maturityDate != null && today.isBefore(maturityDate)) {
+                    throw new PostInterestAsOnDateException(
+                            PostInterestAsOnExceptionType.INTEREST_POSTING_NOT_ALLOWED_BEFORE_MATURITY_FOR_TENURE);
+                }
+            }
         } else if (account instanceof RecurringDepositAccount) {
             RecurringDepositAccount rdAccount = (RecurringDepositAccount) account;
             if (rdAccount.getStatus().isMatured()) {
@@ -708,6 +720,14 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             LocalDate maturityDate = rdAccount.maturityDate();
             if (maturityDate != null && today.isAfter(maturityDate)) {
                 throw new PostInterestAsOnDateException(PostInterestAsOnExceptionType.INTEREST_POSTING_NOT_ALLOWED_AFTER_MATURITY);
+            }
+            // Check 3: If interest posting period is At-Maturity (TENURE), do not allow interest posting before
+            // maturity
+            if (SavingsPostingInterestPeriodType.TENURE.getValue().equals(rdAccount.getInterestPostingPeriodType())) {
+                if (maturityDate != null && today.isBefore(maturityDate)) {
+                    throw new PostInterestAsOnDateException(
+                            PostInterestAsOnExceptionType.INTEREST_POSTING_NOT_ALLOWED_BEFORE_MATURITY_FOR_TENURE);
+                }
             }
         }
     }
@@ -1656,7 +1676,6 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds);
     }
 
-    @Transactional
     private void disableWithHoldingTaxFromRecurringDepositAccountWhenTargetSavingsIsMissed(DepositAccountData depositAccount) {
         if (depositAccount.getDepositTillDate().compareTo(depositAccount.getPrincipalAmount()) < 0
                 && DepositAccountType.fromInt(depositAccount.depositType().getId().intValue()).isRecurringDeposit()
@@ -1670,7 +1689,6 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         }
     }
 
-    @Transactional
     private void applyChargeOnRecurringDepositAccountWhenSavingsTargetIsMissed(SavingsAccount account) {
         RecurringMissedTargetData recurringMissedTargetData = this.savingsAccountReadPlatformService
                 .findRecurringDepositAccountWithMissedTarget(account.getId());
@@ -1732,6 +1750,113 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             Set<Long> existingReversedTransactionIds) {
         existingTransactionIds.addAll(account.findExistingTransactionIds());
         existingReversedTransactionIds.addAll(account.findExistingReversedTransactionIds());
+    }
+
+    /**
+     * Reverses duplicate and incorrectly posted interest transactions.
+     *
+     * This method handles: 1. Interest postings made AFTER the maturity date (for matured accounts) 2. Interest
+     * postings made BEFORE maturity date for At-Maturity (TENURE) products 3. Duplicate interest postings on the same
+     * date 4. Withhold tax transactions related to incorrectly posted interest
+     *
+     * @param account
+     *            the savings account to check
+     * @param depositAccountType
+     *            the type of deposit account
+     */
+    private void reverseDuplicateAndIncorrectInterestPostings(SavingsAccount account, DepositAccountType depositAccountType) {
+        List<SavingsAccountTransaction> transactions = account.getTransactions();
+
+        LocalDate maturityDate = null;
+        boolean isAtMaturityPosting = false;
+
+        // Get maturity date and interest posting period type based on account type
+        if (depositAccountType.isFixedDeposit() && account instanceof FixedDepositAccount fdAccount) {
+            maturityDate = fdAccount.maturityDate();
+            isAtMaturityPosting = SavingsPostingInterestPeriodType.TENURE.getValue().equals(fdAccount.getInterestPostingPeriodType());
+        } else if (depositAccountType.isRecurringDeposit() && account instanceof RecurringDepositAccount rdAccount) {
+            maturityDate = rdAccount.maturityDate();
+            isAtMaturityPosting = SavingsPostingInterestPeriodType.TENURE.getValue().equals(rdAccount.getInterestPostingPeriodType());
+        }
+
+        if (maturityDate != null) {
+            for (SavingsAccountTransaction transaction : transactions) {
+                // 1. Reverse interest postings made AFTER maturity date
+                if (transaction.isInterestPostingAndNotReversed() && transaction.getTransactionLocalDate().isAfter(maturityDate)) {
+                    LOG.info(
+                            "Reversing interest posting after maturity date. Account ID: {}, Transaction ID: {}, Transaction Date: {}, Maturity Date: {}",
+                            account.getId(), transaction.getId(), transaction.getTransactionLocalDate(), maturityDate);
+                    transaction.reverse();
+                }
+
+                // 2. For At-Maturity (TENURE) products, reverse interest postings made BEFORE maturity date
+                // Interest should ONLY be posted ON the maturity date for these products
+                if (isAtMaturityPosting && transaction.isInterestPostingAndNotReversed()
+                        && transaction.getTransactionLocalDate().isBefore(maturityDate)) {
+                    LOG.info(
+                            "Reversing interest posting before maturity date for At-Maturity product. Account ID: {}, Transaction ID: {}, Transaction Date: {}, Maturity Date: {}",
+                            account.getId(), transaction.getId(), transaction.getTransactionLocalDate(), maturityDate);
+                    transaction.reverse();
+                }
+
+                // 3. Reverse withhold tax transactions after maturity
+                if (transaction.isWithHoldTaxAndNotReversed() && transaction.getTransactionLocalDate().isAfter(maturityDate)) {
+                    LOG.info(
+                            "Reversing withhold tax after maturity date. Account ID: {}, Transaction ID: {}, Transaction Date: {}, Maturity Date: {}",
+                            account.getId(), transaction.getId(), transaction.getTransactionLocalDate(), maturityDate);
+                    transaction.reverse();
+                }
+
+                // 4. For At-Maturity (TENURE) products, reverse withhold tax transactions made BEFORE maturity date
+                if (isAtMaturityPosting && transaction.isWithHoldTaxAndNotReversed()
+                        && transaction.getTransactionLocalDate().isBefore(maturityDate)) {
+                    LOG.info(
+                            "Reversing withhold tax before maturity date for At-Maturity product. Account ID: {}, Transaction ID: {}, Transaction Date: {}, Maturity Date: {}",
+                            account.getId(), transaction.getId(), transaction.getTransactionLocalDate(), maturityDate);
+                    transaction.reverse();
+                }
+            }
+        }
+
+        // 5. Detect and reverse duplicate interest postings on the same date
+        Map<LocalDate, List<SavingsAccountTransaction>> interestPostingsByDate = transactions.stream()
+                .filter(SavingsAccountTransaction::isInterestPostingAndNotReversed)
+                .collect(Collectors.groupingBy(SavingsAccountTransaction::getTransactionLocalDate));
+
+        for (Map.Entry<LocalDate, List<SavingsAccountTransaction>> entry : interestPostingsByDate.entrySet()) {
+            List<SavingsAccountTransaction> postingsOnDate = entry.getValue();
+            if (postingsOnDate.size() > 1) {
+                // Keep the first one (oldest by ID), reverse the rest as duplicates
+                postingsOnDate.sort((t1, t2) -> Long.compare(t1.getId(), t2.getId()));
+                for (int i = 1; i < postingsOnDate.size(); i++) {
+                    SavingsAccountTransaction duplicateTransaction = postingsOnDate.get(i);
+                    LOG.info(
+                            "Reversing duplicate interest posting. Account ID: {}, Transaction ID: {}, Transaction Date: {}, Keeping Transaction ID: {}",
+                            account.getId(), duplicateTransaction.getId(), entry.getKey(), postingsOnDate.get(0).getId());
+                    duplicateTransaction.reverse();
+                }
+            }
+        }
+
+        // 6. Detect and reverse duplicate withhold tax transactions on the same date
+        Map<LocalDate, List<SavingsAccountTransaction>> withholdTaxByDate = transactions.stream()
+                .filter(SavingsAccountTransaction::isWithHoldTaxAndNotReversed)
+                .collect(Collectors.groupingBy(SavingsAccountTransaction::getTransactionLocalDate));
+
+        for (Map.Entry<LocalDate, List<SavingsAccountTransaction>> entry : withholdTaxByDate.entrySet()) {
+            List<SavingsAccountTransaction> taxOnDate = entry.getValue();
+            if (taxOnDate.size() > 1) {
+                // Keep the first one (oldest by ID), reverse the rest as duplicates
+                taxOnDate.sort((t1, t2) -> Long.compare(t1.getId(), t2.getId()));
+                for (int i = 1; i < taxOnDate.size(); i++) {
+                    SavingsAccountTransaction duplicateTransaction = taxOnDate.get(i);
+                    LOG.info(
+                            "Reversing duplicate withhold tax. Account ID: {}, Transaction ID: {}, Transaction Date: {}, Keeping Transaction ID: {}",
+                            account.getId(), duplicateTransaction.getId(), entry.getKey(), taxOnDate.get(0).getId());
+                    duplicateTransaction.reverse();
+                }
+            }
+        }
     }
 
     private void postJournalEntries(final SavingsAccount savingsAccount, final Set<Long> existingTransactionIds,
