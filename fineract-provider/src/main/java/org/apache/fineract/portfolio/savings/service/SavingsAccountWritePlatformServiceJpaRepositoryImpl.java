@@ -116,6 +116,7 @@ import org.apache.fineract.portfolio.savings.domain.DepositAccountOnHoldTransact
 import org.apache.fineract.portfolio.savings.domain.FixedDepositAccount;
 import org.apache.fineract.portfolio.savings.domain.GSIMRepositoy;
 import org.apache.fineract.portfolio.savings.domain.GroupSavingsIndividualMonitoring;
+import org.apache.fineract.portfolio.savings.domain.RecurringDepositAccount;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountAssembler;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountCharge;
@@ -725,12 +726,19 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
     @Override
     public void postInterest(final SavingsAccount account, final boolean postInterestAs, final LocalDate transactionDate) {
 
-        // Skip interest posting for At-Maturity (TENURE) deposit accounts before maturity date
+        // Determine if this is an At-Maturity (TENURE) deposit account before maturity date
+        boolean isAtMaturityBeforeMaturity = false;
+        LocalDate maturityDate = null;
         if (SavingsPostingInterestPeriodType.TENURE.getValue().equals(account.getInterestPostingPeriodType())) {
             if (account instanceof FixedDepositAccount fdAccount) {
-                LocalDate maturityDate = fdAccount.maturityDate();
+                maturityDate = fdAccount.maturityDate();
                 if (maturityDate != null && DateUtils.getLocalDateOfTenant().isBefore(maturityDate)) {
-                    return;
+                    isAtMaturityBeforeMaturity = true;
+                }
+            } else if (account instanceof RecurringDepositAccount rdAccount) {
+                maturityDate = rdAccount.maturityDate();
+                if (maturityDate != null && DateUtils.getLocalDateOfTenant().isBefore(maturityDate)) {
+                    isAtMaturityBeforeMaturity = true;
                 }
             }
         }
@@ -755,8 +763,27 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
             account.setPaymentDetailWritePlatformService(this.paymentDetailWritePlatformService);
             account.setRepositoryWrapper(this.repositoryWrapper);
 
+            // Always post accrual interest (even for At-Maturity products before maturity)
             account.postAccrualInterest(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
-                    financialYearBeginningMonth, postInterestOnDate, null);
+                    financialYearBeginningMonth, postInterestOnDate, maturityDate);
+
+            // Skip interest posting for At-Maturity (TENURE) deposit accounts before maturity date
+            // Interest posting should only happen ON or AFTER maturity date for these products
+            if (isAtMaturityBeforeMaturity) {
+                // Save accrual transactions only, skip interest posting
+                List<SavingsAccountTransaction> transactions = this.savingsAccountDomainService.extractNewTransactions(account);
+                for (SavingsAccountTransaction accountTransaction : transactions) {
+                    if (accountTransaction.getId() == null) {
+                        this.savingsAccountTransactionRepository.save(accountTransaction);
+                        String noteText = SavingsEnumerations.transactionType(accountTransaction.getTypeOf()).getValue();
+                        this.noteRepository.save(Note.savingsTransactionNote(account, accountTransaction, noteText));
+                    }
+                }
+                this.savingAccountRepositoryWrapper.saveAndFlush(account);
+                postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds);
+                return;
+            }
+
             account.postInterest(mc, today, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth,
                     postInterestOnDate);
             // for generating transaction id's
