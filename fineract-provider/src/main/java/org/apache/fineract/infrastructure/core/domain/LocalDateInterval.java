@@ -66,10 +66,16 @@ public class LocalDateInterval {
     }
 
     public boolean contains(final LocalDate target) {
+        if (target == null) {
+            return false;
+        }
         return isBetweenInclusive(this.startDate, this.endDate, target);
     }
 
     private boolean isBetweenInclusive(final LocalDate start, final LocalDate end, final LocalDate target) {
+        if (target == null || start == null || end == null) {
+            return false;
+        }
         return !target.isBefore(start) && !target.isAfter(end);
     }
 

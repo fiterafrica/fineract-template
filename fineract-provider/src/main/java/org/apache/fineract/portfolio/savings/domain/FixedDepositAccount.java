@@ -956,7 +956,9 @@ public class FixedDepositAccount extends SavingsAccount {
 
         final DepositAccountTermAndPreClosure newAccountTermAndPreClosure = this.accountTermAndPreClosure.copy(depositAmount);
         final SavingsProduct product = this.product;
-        final InterestRateChart productChart = product.applicableChart(getClosedOnDate());
+        // Use maturity date as fallback if closedOnDate is not yet set
+        final LocalDate chartApplicableDate = getClosedOnDate() != null ? getClosedOnDate() : maturityDate();
+        final InterestRateChart productChart = product.applicableChart(chartApplicableDate);
         final DepositAccountInterestRateChart newChart = DepositAccountInterestRateChart.from(productChart);
 
         final AccountType accountType = AccountType.fromInt(this.accountType);
