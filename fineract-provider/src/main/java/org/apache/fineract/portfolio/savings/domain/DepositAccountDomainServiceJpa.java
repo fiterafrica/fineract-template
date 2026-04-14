@@ -534,6 +534,10 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         account.postPreMaturityInterest(closedDate, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
                 financialYearBeginningMonth, true, penalCharge);
 
+        // Save account to persist interest posting and withhold tax transactions BEFORE withdrawal
+        // This ensures withhold tax gets a lower transaction ID than the withdrawal
+        this.savingsAccountRepository.saveAndFlush(account);
+
         final Integer closureTypeValue = command.integerValueOfParameterNamed(DepositsApiConstants.onAccountClosureIdParamName);
         DepositAccountOnClosureType closureType = DepositAccountOnClosureType.fromInt(closureTypeValue);
 
@@ -761,6 +765,11 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
                 }
             }
         }
+
+        // Save account to persist interest posting and withhold tax transactions BEFORE withdrawal
+        // This ensures withhold tax gets a lower transaction ID than the withdrawal
+        this.savingsAccountRepository.saveAndFlush(account);
+
         if (closureType.isTransferToSavings()) {
             final boolean isExceptionForBalanceCheck = false;
             final Long toSavingsId = fixedDepositPreclosureReq.getToSavingsAccountId();
