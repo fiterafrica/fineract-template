@@ -1417,34 +1417,24 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
     }
 
     private String dataScopedSQL(final String appTable, final Long appTableId) {
-        /*
-         * unfortunately have to, one way or another, be able to restrict data to the users office hierarchy. Here, a
-         * few key tables are done. But if additional fields are needed on other tables the same pattern applies
-         */
-
         final AppUser currentUser = this.context.authenticatedUser();
         String scopedSQL = null;
-        /*
-         * m_loan and m_savings_account are connected to an m_office thru either an m_client or an m_group If both it
-         * means it relates to an m_client that is in a group (still an m_client account)
-         */
+
         if (appTable.equalsIgnoreCase("m_loan")) {
-            scopedSQL = "select distinct x.* from ("
-                    + " (select o.id as officeId, l.group_id as groupId, l.client_id as clientId, null as savingsId, l.id as loanId, null as entityId from m_loan l "
-                    + " join m_client c on c.id = l.client_id " + " join m_office o on o.id = c.office_id and o.hierarchy like '"
-                    + currentUser.getOffice().getHierarchy() + "%'" + " where l.id = " + appTableId + ")" + " union all "
-                    + " (select o.id as officeId, l.group_id as groupId, l.client_id as clientId, null as savingsId, l.id as loanId, null as entityId from m_loan l "
-                    + " join m_group g on g.id = l.group_id " + " join m_office o on o.id = g.office_id and o.hierarchy like '"
-                    + currentUser.getOffice().getHierarchy() + "%'" + " where l.id = " + appTableId + ")" + " ) as x";
+            // Optimized query: Use LEFT JOIN instead of UNION ALL with DISTINCT for better performance
+            // This avoids duplicate subquery execution and reduces query complexity
+            scopedSQL = "select o.id as officeId, l.group_id as groupId, l.client_id as clientId, null as savingsId, l.id as loanId, null as entityId "
+                    + "from m_loan l " + "left join m_client c on c.id = l.client_id " + "left join m_group g on g.id = l.group_id "
+                    + "join m_office o on (o.id = c.office_id or o.id = g.office_id) and o.hierarchy like '"
+                    + currentUser.getOffice().getHierarchy() + "%' " + "where l.id = " + appTableId + " " + "limit 1";
         }
         if (appTable.equalsIgnoreCase("m_savings_account")) {
-            scopedSQL = "select distinct x.* from ("
-                    + " (select o.id as officeId, s.group_id as groupId, s.client_id as clientId, s.id as savingsId, null as loanId, null as entityId from m_savings_account s "
-                    + " join m_client c on c.id = s.client_id " + " join m_office o on o.id = c.office_id and o.hierarchy like '"
-                    + currentUser.getOffice().getHierarchy() + "%'" + " where s.id = " + appTableId + ")" + " union all "
-                    + " (select o.id as officeId, s.group_id as groupId, s.client_id as clientId, s.id as savingsId, null as loanId, null as entityId from m_savings_account s "
-                    + " join m_group g on g.id = s.group_id " + " join m_office o on o.id = g.office_id and o.hierarchy like '"
-                    + currentUser.getOffice().getHierarchy() + "%'" + " where s.id = " + appTableId + ")" + " ) as x";
+            // Optimized query: Use LEFT JOIN instead of UNION ALL with DISTINCT for better performance
+            scopedSQL = "select o.id as officeId, s.group_id as groupId, s.client_id as clientId, s.id as savingsId, null as loanId, null as entityId "
+                    + "from m_savings_account s " + "left join m_client c on c.id = s.client_id "
+                    + "left join m_group g on g.id = s.group_id "
+                    + "join m_office o on (o.id = c.office_id or o.id = g.office_id) and o.hierarchy like '"
+                    + currentUser.getOffice().getHierarchy() + "%' " + "where s.id = " + appTableId + " " + "limit 1";
         }
         if (appTable.equalsIgnoreCase("m_client")) {
             scopedSQL = "select o.id as officeId, null as groupId, c.id as clientId, null as savingsId, null as loanId, null as entityId from m_client c "
