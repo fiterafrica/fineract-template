@@ -91,6 +91,29 @@ public class SavingsAccountRepositoryWrapper {
         return account;
     }
 
+    /**
+     * Finds a SavingsAccount with pessimistic write lock to prevent concurrent modifications. Use this method when
+     * updating critical account data that may be modified by scheduled jobs or concurrent API calls to prevent
+     * OptimisticLockException.
+     *
+     * @param savingsId
+     *            the savings account ID
+     * @param depositAccountType
+     *            the type of deposit account
+     * @return the locked SavingsAccount
+     * @throws SavingsAccountNotFoundException
+     *             if account not found
+     */
+    @Transactional
+    public SavingsAccount findOneWithNotFoundDetectionAndLock(final Long savingsId, final DepositAccountType depositAccountType) {
+        final SavingsAccount account = this.repository.findByIdAndDepositAccountTypeWithLock(savingsId, depositAccountType.getValue());
+        if (account == null) {
+            throw new SavingsAccountNotFoundException(savingsId);
+        }
+        account.loadLazyCollections();
+        return account;
+    }
+
     @Transactional(readOnly = true)
     public List<SavingsAccount> findSavingAccountByClientId(@Param("clientId") Long clientId) {
         List<SavingsAccount> accounts = this.repository.findSavingAccountByClientId(clientId);
