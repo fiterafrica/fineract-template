@@ -156,6 +156,7 @@ public class SavingsApiConstants {
     public static final String runningBalanceParamName = "runningBalance";
     public static final String reversedParamName = "reversed";
     public static final String dateParamName = "date";
+    public static final String refNoParamName = "refNo";
 
     // charges parameters
     public static final String chargeIdParamName = "chargeId";

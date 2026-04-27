@@ -396,6 +396,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final LocalDate transactionDate = command.localDateValueOfParameterNamed("transactionDate");
         final BigDecimal transactionAmount = command.bigDecimalValueOfParameterNamed("transactionAmount");
         final String externalReference = command.stringValueOfParameterNamed("externalReference");
+        final String refNo = command.stringValueOfParameterNamed("refNo");
 
         final List<SavingsAccountTransaction> transactions = this.savingsAccountDomainService
                 .findByExternalIdSavingsTransaction(externalReference);
@@ -413,7 +414,7 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         // Post overdraft interest if applicable
         this.postOverdraftInterest(account, transactionDate);
         final SavingsAccountTransaction deposit = this.savingsAccountDomainService.handleDeposit(account, fmt, transactionDate,
-                transactionAmount, paymentDetail, isAccountTransfer, isRegularTransaction, backdatedTxnsAllowedTill);
+                transactionAmount, paymentDetail, isAccountTransfer, isRegularTransaction, backdatedTxnsAllowedTill, refNo);
 
         if (StringUtils.isNotBlank(externalReference)) {
             deposit.updateExternalReference(externalReference);
