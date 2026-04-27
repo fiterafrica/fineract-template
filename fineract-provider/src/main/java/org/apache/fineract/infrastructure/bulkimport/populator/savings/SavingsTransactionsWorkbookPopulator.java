@@ -29,8 +29,6 @@ import org.apache.fineract.infrastructure.bulkimport.populator.ClientSheetPopula
 import org.apache.fineract.infrastructure.bulkimport.populator.ExtrasSheetPopulator;
 import org.apache.fineract.infrastructure.bulkimport.populator.OfficeSheetPopulator;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountData;
-import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.ss.SpreadsheetVersion;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.DataValidation;
@@ -41,6 +39,8 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddressList;
+import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
 
 public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopulator {
 
@@ -71,17 +71,25 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
     }
 
     private void setDefaults(Sheet worksheet) {
+        // Skip setting formulas if there are no savings accounts to look up
+        if (savingsAccounts == null || savingsAccounts.isEmpty()) {
+            return;
+        }
         for (Integer rowNo = 1; rowNo < 3000; rowNo++) {
             Row row = worksheet.getRow(rowNo);
             if (row == null) {
                 row = worksheet.createRow(rowNo);
             }
+            // Lookup columns: R=Account No, S=Product, T=Opening Balance
+            // Use TEXT() to convert both lookup value and lookup array to text to avoid type mismatch
             writeFormula(TransactionConstants.PRODUCT_COL, row,
-                    "IF(ISERROR(VLOOKUP($B" + (rowNo + 1) + ",$R$2:$T$" + (savingsAccounts.size() + 1) + ",2,FALSE)),\"\",VLOOKUP($B"
-                            + (rowNo + 1) + ",$R$2:$T$" + (savingsAccounts.size() + 1) + ",2,FALSE))");
+                    "IF(ISERROR(VLOOKUP(TEXT($B" + (rowNo + 1) + ",\"@\"),$R$2:$T$" + (savingsAccounts.size() + 1)
+                            + ",2,FALSE)),\"\",VLOOKUP(TEXT($B" + (rowNo + 1) + ",\"@\"),$R$2:$T$" + (savingsAccounts.size() + 1)
+                            + ",2,FALSE))");
             writeFormula(TransactionConstants.OPENING_BALANCE_COL, row,
-                    "IF(ISERROR(VLOOKUP($B" + (rowNo + 1) + ",$R$2:$T$" + (savingsAccounts.size() + 1) + ",3,FALSE)),\"\",VLOOKUP($B"
-                            + (rowNo + 1) + ",$R$2:$T$" + (savingsAccounts.size() + 1) + ",3,FALSE))");
+                    "IF(ISERROR(VLOOKUP(TEXT($B" + (rowNo + 1) + ",\"@\"),$R$2:$T$" + (savingsAccounts.size() + 1)
+                            + ",3,FALSE)),\"\",VLOOKUP(TEXT($B" + (rowNo + 1) + ",\"@\"),$R$2:$T$" + (savingsAccounts.size() + 1)
+                            + ",3,FALSE))");
         }
     }
 
@@ -99,7 +107,8 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
 
         DataValidationConstraint officeNameConstraint = validationHelper.createFormulaListConstraint("Office");
         DataValidationConstraint transactionTypeConstraint = validationHelper
-                .createExplicitListConstraint(new String[] { "Withdrawal", "Deposit" });
+                .createExplicitListConstraint(new String[] { TransactionConstants.TRANSACTION_TYPE_WITHDRAWAL,
+                        TransactionConstants.TRANSACTION_TYPE_DEPOSIT });
         DataValidationConstraint paymentTypeConstraint = validationHelper.createFormulaListConstraint("PaymentTypes");
 
         DataValidation officeValidation = validationHelper.createValidation(officeNameConstraint, officeNameRange);
@@ -128,8 +137,8 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
                 Name name = savingsTransactionWorkbook.createName();
                 if (officeNameToBeginEndIndexesOfClients != null) {
                     setSanitized(name, "Client_" + officeNames.get(i));
-                    name.setRefersToFormula(TemplatePopulateImportConstants.CLIENT_SHEET_NAME + "!$B$" + officeNameToBeginEndIndexesOfClients[0]
-                            + ":$B$" + officeNameToBeginEndIndexesOfClients[1]);
+                    name.setRefersToFormula(TemplatePopulateImportConstants.CLIENT_SHEET_NAME + "!$B$"
+                            + officeNameToBeginEndIndexesOfClients[0] + ":$B$" + officeNameToBeginEndIndexesOfClients[1]);
                 }
             }
 
@@ -176,6 +185,10 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
     }
 
     private void populateSavingsTable(Sheet savingsTransactionSheet, String dateFormat) {
+        // Skip populating savings table if there are no savings accounts
+        if (savingsAccounts == null || savingsAccounts.isEmpty()) {
+            return;
+        }
         Workbook workbook = savingsTransactionSheet.getWorkbook();
         CellStyle dateCellStyle = workbook.createCellStyle();
         short df = workbook.createDataFormat().getFormat(dateFormat);
@@ -192,11 +205,15 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
             if (savingsAccount.getMinRequiredOpeningBalance() != null) {
                 writeBigDecimal(TransactionConstants.LOOKUP_OPENING_BALANCE_COL, row, savingsAccount.getMinRequiredOpeningBalance());
             }
-            writeDate(TransactionConstants.LOOKUP_SAVINGS_ACTIVATION_DATE_COL, row,
-                    "" + savingsAccount.getTimeline().getActivatedOnDate().getDayOfMonth() + "/"
-                            + savingsAccount.getTimeline().getActivatedOnDate().getMonthValue() + "/"
-                            + savingsAccount.getTimeline().getActivatedOnDate().getYear(),
-                    dateCellStyle, dateFormat);
+            if (savingsAccount.getTimeline() != null && savingsAccount.getTimeline().getActivatedOnDate() != null) {
+                writeDate(TransactionConstants.LOOKUP_SAVINGS_ACTIVATION_DATE_COL, row,
+                        "" + savingsAccount.getTimeline().getActivatedOnDate().getDayOfMonth() + "/"
+                                + savingsAccount.getTimeline().getActivatedOnDate().getMonthValue() + "/"
+                                + savingsAccount.getTimeline().getActivatedOnDate().getYear(),
+                        dateCellStyle, dateFormat);
+            }
+            // Write the internal savings account ID for lookup
+            writeLong(TransactionConstants.LOOKUP_SAVINGS_ID_COL, row, savingsAccount.getId());
         }
     }
 
@@ -207,20 +224,24 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
         worksheet.setColumnWidth(TransactionConstants.SAVINGS_ACCOUNT_NO_COL, 3000);
         worksheet.setColumnWidth(TransactionConstants.PRODUCT_COL, 4000);
         worksheet.setColumnWidth(TransactionConstants.OPENING_BALANCE_COL, 4000);
-        worksheet.setColumnWidth(TransactionConstants.TRANSACTION_TYPE_COL, 3300);
+        worksheet.setColumnWidth(TransactionConstants.TRANSACTION_TYPE_COL, 4000);
         worksheet.setColumnWidth(TransactionConstants.AMOUNT_COL, 4000);
         worksheet.setColumnWidth(TransactionConstants.TRANSACTION_DATE_COL, 3000);
         worksheet.setColumnWidth(TransactionConstants.PAYMENT_TYPE_COL, 3000);
         worksheet.setColumnWidth(TransactionConstants.ACCOUNT_NO_COL, 3000);
         worksheet.setColumnWidth(TransactionConstants.CHECK_NO_COL, 3000);
-        worksheet.setColumnWidth(TransactionConstants.RECEIPT_NO_COL, 3000);
         worksheet.setColumnWidth(TransactionConstants.ROUTING_CODE_COL, 3000);
+        worksheet.setColumnWidth(TransactionConstants.RECEIPT_NO_COL, 3000);
         worksheet.setColumnWidth(TransactionConstants.BANK_NO_COL, 3000);
+        worksheet.setColumnWidth(TransactionConstants.TRANSACTION_REFERENCE_COL, 5000);
+        worksheet.setColumnWidth(TransactionConstants.STATUS_COL, 4000);
         worksheet.setColumnWidth(TransactionConstants.LOOKUP_CLIENT_NAME_COL, 5000);
         worksheet.setColumnWidth(TransactionConstants.LOOKUP_ACCOUNT_NO_COL, 3000);
         worksheet.setColumnWidth(TransactionConstants.LOOKUP_PRODUCT_COL, 3000);
         worksheet.setColumnWidth(TransactionConstants.LOOKUP_OPENING_BALANCE_COL, 3700);
         worksheet.setColumnWidth(TransactionConstants.LOOKUP_SAVINGS_ACTIVATION_DATE_COL, 3500);
+        worksheet.setColumnWidth(TransactionConstants.LOOKUP_SAVINGS_ID_COL, 3000);
+        // Write headers in correct column order
         writeString(TransactionConstants.OFFICE_NAME_COL, rowHeader, "Office Name*");
         writeString(TransactionConstants.SAVINGS_ACCOUNT_NO_COL, rowHeader, "Account No.*");
         writeString(TransactionConstants.PRODUCT_COL, rowHeader, "Product Name");
@@ -231,13 +252,16 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
         writeString(TransactionConstants.PAYMENT_TYPE_COL, rowHeader, "Type*");
         writeString(TransactionConstants.ACCOUNT_NO_COL, rowHeader, "Account No");
         writeString(TransactionConstants.CHECK_NO_COL, rowHeader, "Check No");
-        writeString(TransactionConstants.RECEIPT_NO_COL, rowHeader, "Receipt No");
         writeString(TransactionConstants.ROUTING_CODE_COL, rowHeader, "Routing Code");
+        writeString(TransactionConstants.RECEIPT_NO_COL, rowHeader, "Receipt No");
         writeString(TransactionConstants.BANK_NO_COL, rowHeader, "Bank No");
+        writeString(TransactionConstants.TRANSACTION_REFERENCE_COL, rowHeader, "Transaction Reference*");
+        writeString(TransactionConstants.STATUS_COL, rowHeader, "Status");
         writeString(TransactionConstants.LOOKUP_CLIENT_NAME_COL, rowHeader, "Lookup Client");
         writeString(TransactionConstants.LOOKUP_ACCOUNT_NO_COL, rowHeader, "Lookup Account");
         writeString(TransactionConstants.LOOKUP_PRODUCT_COL, rowHeader, "Lookup Product");
         writeString(TransactionConstants.LOOKUP_OPENING_BALANCE_COL, rowHeader, "Lookup Opening Balance");
         writeString(TransactionConstants.LOOKUP_SAVINGS_ACTIVATION_DATE_COL, rowHeader, "Lookup Savings Activation Date");
+        writeString(TransactionConstants.LOOKUP_SAVINGS_ID_COL, rowHeader, "Lookup Savings ID");
     }
 }

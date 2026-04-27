@@ -50,6 +50,17 @@ public interface SavingsAccountTransactionRepository
     @Query("select sat from SavingsAccountTransaction sat where sat.refNo = :refNo")
     List<SavingsAccountTransaction> findAllTransactionByRefNo(@Param("refNo") String refNo);
 
+    /**
+     * Check if a transaction with the given reference number already exists. Used to prevent duplicate transactions
+     * during bulk upload.
+     *
+     * @param refNo
+     *            the transaction reference number
+     * @return true if a transaction with this reference exists, false otherwise
+     */
+    @Query("select case when count(sat) > 0 then true else false end from SavingsAccountTransaction sat where sat.refNo = :refNo")
+    boolean existsByRefNo(@Param("refNo") String refNo);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<SavingsAccountTransaction> findBySavingsAccountId(@Param("savingsAccountId") Long savingsAccountId);
 
