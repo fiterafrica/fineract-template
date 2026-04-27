@@ -552,7 +552,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
                     null, null, null, AccountTransferType.ACCOUNT_TRANSFER.getValue(), null, null, null, null, toSavingsAccount, account,
                     isRegularTransaction, isExceptionForBalanceCheck);
             if (account.getProduct().isUSDProduct()) {
-                if (this.readWriteNonCoreDataService.retrieveDatatable("Fx_rate") != null) {
+                if (this.readWriteNonCoreDataService.checkDatatableExists("Fx_rate") != null) {
                     accountTransferDTO.setFdToSavings(true);
                 } else {
                     throw new Fx_RateTableShouldBeExistException();
@@ -587,7 +587,17 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
                     "No Interest accrued yet. Run Post Accrual Interest and try again later");
         }
 
-        DepositPreClosureDetail preClosureDetail = account.getAccountTermAndPreClosure().getPreClosureDetail();
+        DepositAccountTermAndPreClosure accountTermAndPreClosure = account.getAccountTermAndPreClosure();
+        if (accountTermAndPreClosure == null) {
+            throw new GeneralPlatformDomainRuleException("error.msg.fixed.deposit.account.term.and.preclosure.not.configured",
+                    "Fixed deposit account term and pre-closure details are not configured.");
+        }
+
+        DepositPreClosureDetail preClosureDetail = accountTermAndPreClosure.getPreClosureDetail();
+        if (preClosureDetail == null) {
+            throw new GeneralPlatformDomainRuleException("error.msg.fixed.deposit.preclosure.details.not.configured",
+                    "Pre-closure details are not configured for this fixed deposit account.");
+        }
 
         // Check if penal charge is configured to Apply on premature closure
         BigDecimal amountToApplyPenalty = null;
@@ -595,6 +605,10 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
 
             // No withholding Tax Applied
             BigDecimal penalty = preClosureDetail.preClosurePenalInterest();
+            if (penalty == null) {
+                throw new GeneralPlatformDomainRuleException("error.msg.fixed.deposit.preclosure.penal.interest.not.configured",
+                        "Pre-closure penal interest rate is not configured but pre-closure penalty is marked as applicable.");
+            }
             amountToApplyPenalty = penalty.divide(BigDecimal.valueOf(100L)).multiply(interest);
 
             // Apply pre-closure charges if applicable
@@ -785,7 +799,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
                     AccountTransferType.ACCOUNT_TRANSFER.getValue(), null, null, null, null, toSavingsAccount, account, false,
                     isExceptionForBalanceCheck);
             if (account.getProduct().isUSDProduct()) {
-                if (this.readWriteNonCoreDataService.retrieveDatatable("Fx_rate") != null) {
+                if (this.readWriteNonCoreDataService.checkDatatableExists("Fx_rate") != null) {
                     accountTransferDTO.setFdToSavings(true);
                 } else {
                     throw new Fx_RateTableShouldBeExistException();

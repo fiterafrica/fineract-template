@@ -1600,7 +1600,9 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
                 .isSavingsInterestPostingAtCurrentPeriodEnd();
         final Integer financialYearBeginningMonth = this.configurationDomainService.retrieveFinancialYearBeginningMonth();
         final boolean postReversals = false;
-        final SavingsAccount account = this.depositAccountAssembler.assembleFrom(depositAccount.id(), depositAccountType);
+        // Use pessimistic locking to prevent OptimisticLockException from concurrent modifications
+        final SavingsAccount account = this.depositAccountAssembler.assembleFromWithPessimisticLock(depositAccount.id(),
+                depositAccountType);
         final Set<Long> existingTransactionIds = new HashSet<>();
         final Set<Long> existingReversedTransactionIds = new HashSet<>();
         updateExistingTransactionsDetails(account, existingTransactionIds, existingReversedTransactionIds);

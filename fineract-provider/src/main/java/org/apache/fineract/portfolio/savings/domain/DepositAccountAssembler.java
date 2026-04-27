@@ -378,6 +378,25 @@ public class DepositAccountAssembler {
         return account;
     }
 
+    /**
+     * Assembles a SavingsAccount with pessimistic write lock to prevent concurrent modifications. Use this method when
+     * updating critical account data that may be modified by scheduled jobs or concurrent API calls to prevent
+     * OptimisticLockException.
+     *
+     * @param savingsId
+     *            the savings account ID
+     * @param depositAccountType
+     *            the type of deposit account
+     * @return the locked SavingsAccount
+     */
+    public SavingsAccount assembleFromWithPessimisticLock(final Long savingsId, DepositAccountType depositAccountType) {
+        final SavingsAccount account = this.savingsAccountRepository.findOneWithNotFoundDetectionAndLock(savingsId, depositAccountType);
+        account.setHelpers(this.savingsAccountTransactionSummaryWrapper, this.savingsHelper);
+        SavingsAccountActionService.populateTransactions(account,
+                this.savingsAccountTransactionRepository.getTransactionsByAccountId(savingsId));
+        return account;
+    }
+
     public void assignSavingAccountHelpers(final SavingsAccount savingsAccount) {
         savingsAccount.setHelpers(this.savingsAccountTransactionSummaryWrapper, this.savingsHelper);
     }
