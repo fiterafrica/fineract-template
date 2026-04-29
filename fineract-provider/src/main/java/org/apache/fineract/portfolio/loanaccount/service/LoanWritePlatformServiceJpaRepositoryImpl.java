@@ -1056,7 +1056,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             List<LoanRepaymentScheduleData> scheduleDataList = loanReadPlatformService.getLoanRepaymentScheduleData(loanId);
             repaymentConfirmationData.setScheduleDataList(scheduleDataList);
             if(paymentDetail != null) {
-                repaymentConfirmationData.setBankNumber(paymentDetail.getBankNumber());
+                repaymentConfirmationData.setBankName(paymentDetail.getBankNumber());
+                repaymentConfirmationData.setAccountName(paymentDetail.getAccountName());
+                repaymentConfirmationData.setAccountNumber(paymentDetail.getAccountNumber());
             }
             LOG.info("Notification data: {}", this.fromApiJsonHelper.toJson(repaymentConfirmationData));
             activeMqNotificationDomainService.buildNotification("ALL_FUNCTION", "LoanRepaymentConfirmation",

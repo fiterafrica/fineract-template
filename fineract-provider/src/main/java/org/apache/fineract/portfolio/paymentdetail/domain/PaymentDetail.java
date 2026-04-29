@@ -59,6 +59,9 @@ public final class PaymentDetail extends AbstractPersistableCustom {
     @Column(name = "bank_number", length = 50)
     private String bankNumber;
 
+    @Column(name = "account_name", length = 100)
+    private String accountName;
+
     @Column(name = "actual_transaction_type", length = 50)
     private String actualTransactionType;
 
@@ -82,6 +85,7 @@ public final class PaymentDetail extends AbstractPersistableCustom {
         final String routingCode = command.stringValueOfParameterNamed(PaymentDetailConstants.routingCodeParamName);
         final String receiptNumber = command.stringValueOfParameterNamed(PaymentDetailConstants.receiptNumberParamName);
         final String bankNumber = command.stringValueOfParameterNamed(PaymentDetailConstants.bankNumberParamName);
+        final String accountName = command.stringValueOfParameterNamed(PaymentDetailConstants.accountNameParamName);
 
         if (StringUtils.isNotBlank(accountNumber)) {
             changes.put(PaymentDetailConstants.accountNumberParamName, accountNumber);
@@ -98,9 +102,13 @@ public final class PaymentDetail extends AbstractPersistableCustom {
         if (StringUtils.isNotBlank(bankNumber)) {
             changes.put(PaymentDetailConstants.bankNumberParamName, bankNumber);
         }
+        if (StringUtils.isNotBlank(accountName)) {
+            changes.put(PaymentDetailConstants.accountNameParamName, accountName);
+        }
 
         final PaymentDetail paymentDetail = new PaymentDetail(paymentType, accountNumber, checkNumber, routingCode, receiptNumber,
                 bankNumber);
+        paymentDetail.setAccountName(accountName);
         return paymentDetail;
     }
 
@@ -170,6 +178,14 @@ public final class PaymentDetail extends AbstractPersistableCustom {
         this.accountNumber = accountNumber;
     }
 
+    public String getAccountName() {
+        return accountName;
+    }
+
+    public void setAccountName(String accountName) {
+        this.accountName = accountName;
+    }
+
     public static PaymentDetail paymentDetails(PaymentType paymentType, String accountNumber) {
         PaymentDetail pay = new PaymentDetail();
         pay.setPaymentType(paymentType);
@@ -177,4 +193,7 @@ public final class PaymentDetail extends AbstractPersistableCustom {
         return pay;
     }
 
+    public String getAccountNumber() {
+        return accountNumber;
+    }
 }

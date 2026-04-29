@@ -476,7 +476,7 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
                 repaymentConfirmationData.setCustomerAccountNumber(fromSavingsAccount.getAccountNumber());
                 repaymentConfirmationData.setCustomerName(fromSavingsAccount.getClient().getDisplayName());
                 if(withdrawal.getPaymentDetail() != null) {
-                    repaymentConfirmationData.setBankNumber(withdrawal.getPaymentDetail().getBankNumber());
+                    repaymentConfirmationData.setBankName(withdrawal.getPaymentDetail().getBankNumber());
                 }
 
 
