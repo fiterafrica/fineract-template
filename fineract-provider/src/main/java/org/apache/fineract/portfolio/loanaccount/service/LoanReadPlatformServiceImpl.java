@@ -1355,7 +1355,7 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                     + " tr.submitted_on_date as submittedOnDate,tr.created_on_utc as createdDate, "
                     + " tr.manually_adjusted_or_reversed as manuallyReversed, mo.id officeId,au.id userId, mc.id clientId,"
                     + " pd.payment_type_id as paymentType,pd.account_number as accountNumber,pd.check_number as checkNumber, "
-                    + " pd.receipt_number as receiptNumber, pd.bank_number as bankNumber,pd.routing_code as routingCode, l.net_disbursal_amount as netDisbursalAmount,"
+                    + " pd.receipt_number as receiptNumber, pd.bank_number as bankNumber,pd.routing_code as routingCode, pd.account_name as accountName, l.net_disbursal_amount as netDisbursalAmount,"
                     + " l.currency_code as currencyCode, l.currency_digits as currencyDigits, l.currency_multiplesof as inMultiplesOf, rc."
                     + sqlGenerator.escape("name") + " as currencyName,lp.id productId,tr.office_id officeId, "
                     + " rc.display_symbol as currencyDisplaySymbol, rc.internationalized_name_code as currencyNameCode, "
@@ -1406,8 +1406,10 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                     final String routingCode = rs.getString("routingCode");
                     final String receiptNumber = rs.getString("receiptNumber");
                     final String bankNumber = rs.getString("bankNumber");
+                    final String accountName = rs.getString("accountName");
                     paymentDetailData = new PaymentDetailData(id, paymentType, accountNumber, checkNumber, routingCode, receiptNumber,
                             bankNumber);
+                    paymentDetailData.setAccountName(accountName);
                 }
             }
             final LocalDate date = JdbcSupport.getLocalDate(rs, "date");

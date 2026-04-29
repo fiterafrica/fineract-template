@@ -46,7 +46,9 @@ public class LoanRepaymentConfirmationData {
     List<LoanRepaymentScheduleData> scheduleDataList = new ArrayList<>();
     private String customerAccountNumber; // Savings account number from where transaction is being made
     private String customerName; // Savings account holder name
-    private String bankNumber; // Bank name from where transaction is being made
+    private String bankName; // Bank name from where transaction is being made
+    private String accountNumber; // Account number from where transaction is being made
+    private String accountName; // Check number from where transaction is being made
 
     public LoanRepaymentConfirmationData(Long transactionId, Long loanId, Long transactionTypeEnum, String transactionDate,
             BigDecimal amount, BigDecimal principalPortionDerived, BigDecimal interestPortionDerived, BigDecimal feeChargesPortionDerived,

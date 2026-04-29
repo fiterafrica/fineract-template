@@ -42,6 +42,8 @@ public class PaymentDetailData implements Serializable {
     @SuppressWarnings("unused")
     private final String bankNumber;
 
+    private String accountName;
+
     private Long parentSavingsTranId;
 
     public PaymentDetailData(final Long id, final PaymentTypeData paymentType, final String accountNumber, final String checkNumber,
@@ -53,6 +55,14 @@ public class PaymentDetailData implements Serializable {
         this.routingCode = routingCode;
         this.receiptNumber = receiptNumber;
         this.bankNumber = bankNumber;
+    }
+
+    public String getAccountName() {
+        return accountName;
+    }
+
+    public void setAccountName(String accountName) {
+        this.accountName = accountName;
     }
 
     @Override
