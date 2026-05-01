@@ -218,6 +218,7 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
     }
 
     private void setLayout(Sheet worksheet) {
+        Workbook workbook = worksheet.getWorkbook();
         Row rowHeader = worksheet.createRow(TemplatePopulateImportConstants.ROWHEADER_INDEX);
         rowHeader.setHeight(TemplatePopulateImportConstants.ROW_HEADER_HEIGHT);
         worksheet.setColumnWidth(TransactionConstants.OFFICE_NAME_COL, 4000);
@@ -241,6 +242,28 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
         worksheet.setColumnWidth(TransactionConstants.LOOKUP_OPENING_BALANCE_COL, 3700);
         worksheet.setColumnWidth(TransactionConstants.LOOKUP_SAVINGS_ACTIVATION_DATE_COL, 3500);
         worksheet.setColumnWidth(TransactionConstants.LOOKUP_SAVINGS_ID_COL, 3000);
+
+        // Create text cell style for Account No columns to prevent Excel from auto-formatting
+        CellStyle textStyle = workbook.createCellStyle();
+        textStyle.setDataFormat(workbook.createDataFormat().getFormat("@"));
+
+        // Set column default style
+        worksheet.setDefaultColumnStyle(TransactionConstants.SAVINGS_ACCOUNT_NO_COL, textStyle);
+        worksheet.setDefaultColumnStyle(TransactionConstants.ACCOUNT_NO_COL, textStyle);
+        worksheet.setDefaultColumnStyle(TransactionConstants.LOOKUP_ACCOUNT_NO_COL, textStyle);
+
+        // Pre-create cells with text format for Account No columns (to handle pasted data)
+        for (int rowNo = 1; rowNo <= 3000; rowNo++) {
+            Row row = worksheet.getRow(rowNo);
+            if (row == null) {
+                row = worksheet.createRow(rowNo);
+            }
+            // Savings Account No column (column B)
+            row.createCell(TransactionConstants.SAVINGS_ACCOUNT_NO_COL).setCellStyle(textStyle);
+            // Payment details Account No column (column I)
+            row.createCell(TransactionConstants.ACCOUNT_NO_COL).setCellStyle(textStyle);
+        }
+
         // Write headers in correct column order
         writeString(TransactionConstants.OFFICE_NAME_COL, rowHeader, "Office Name*");
         writeString(TransactionConstants.SAVINGS_ACCOUNT_NO_COL, rowHeader, "Account No.*");
