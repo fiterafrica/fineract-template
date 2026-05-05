@@ -152,7 +152,12 @@ public class FileSystemContentRepository implements ContentRepository {
 
     private String writeFileToFileSystem(final String fileName, final InputStream uploadedInputStream, final String fileLocation) {
         try (BufferedInputStream bis = new BufferedInputStream(uploadedInputStream)) {
+            // Mark the stream before sanitization so we can reset it after MIME type detection
+            // Use a large read limit to handle files up to ~10MB for MIME detection
+            bis.mark(10 * 1024 * 1024);
             String sanitizedPath = pathSanitizer.sanitize(fileLocation, bis);
+            // Reset the stream to the beginning so we can write the full content to the file
+            bis.reset();
             makeDirectories(sanitizedPath);
             FileUtils.copyInputStreamToFile(bis, new File(sanitizedPath)); // NOSONAR
             return sanitizedPath;

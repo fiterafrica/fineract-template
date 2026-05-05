@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.apache.fineract.commands.domain.CommandSourceRepository;
 import org.apache.fineract.commands.domain.CommandWrapper;
 import org.apache.fineract.commands.service.CommandWrapperBuilder;
 import org.apache.fineract.commands.service.PortfolioCommandSourceWritePlatformService;
@@ -64,14 +65,16 @@ public class SavingsTransactionImportHandler implements ImportHandler {
     private final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService;
     private final SavingsAccountTransactionRepository savingsAccountTransactionRepository;
     private final SavingsAccountRepositoryWrapper savingsAccountRepositoryWrapper;
+    private final CommandSourceRepository commandSourceRepository;
 
     @Autowired
     public SavingsTransactionImportHandler(final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService,
             final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
-            final SavingsAccountRepositoryWrapper savingsAccountRepositoryWrapper) {
+            final SavingsAccountRepositoryWrapper savingsAccountRepositoryWrapper, final CommandSourceRepository commandSourceRepository) {
         this.commandsSourceWritePlatformService = commandsSourceWritePlatformService;
         this.savingsAccountTransactionRepository = savingsAccountTransactionRepository;
         this.savingsAccountRepositoryWrapper = savingsAccountRepositoryWrapper;
+        this.commandSourceRepository = commandSourceRepository;
     }
 
     @Override
@@ -260,9 +263,16 @@ public class SavingsTransactionImportHandler implements ImportHandler {
                     throw new RuntimeException("Duplicate Transaction Reference '" + transactionReference + "' found in upload file");
                 }
 
-                // Check for duplicate in database
+                // Check for duplicate in completed transactions in database
                 if (savingsAccountTransactionRepository.existsByRefNo(transactionReference)) {
                     throw new RuntimeException("Transaction with Reference '" + transactionReference + "' already exists in the system");
+                }
+
+                // Check for duplicate in pending commands (maker-checker awaiting approval)
+                // If already pending, mark as pending (not an error) and continue to next row
+                if (commandSourceRepository.existsPendingSavingsTransactionByRefNo(transactionReference)) {
+                    throw new RuntimeException(
+                            "Transaction with Reference '" + transactionReference + "' is already pending approval in the system");
                 }
 
                 JsonObject savingsTransactionJsonob = gsonBuilder.create().toJsonTree(transaction).getAsJsonObject();
@@ -323,17 +333,10 @@ public class SavingsTransactionImportHandler implements ImportHandler {
                 statusCell.setCellStyle(ImportHandlerUtils.getCellStyle(workbook, IndexedColors.LIGHT_GREEN));
             } catch (RuntimeException ex) {
                 errorCount++;
-                ex.printStackTrace();
                 LOG.error("Error processing row {}: {}", transaction.getRowIndex(), ex.getMessage(), ex);
                 errorMessage = ImportHandlerUtils.getErrorMessage(ex);
-                // Write error - ensure row exists
-                Row errorRow = savingsTransactionSheet.getRow(transaction.getRowIndex());
-                if (errorRow == null) {
-                    errorRow = savingsTransactionSheet.createRow(transaction.getRowIndex());
-                }
-                Cell errorCell = errorRow.createCell(TransactionConstants.STATUS_COL);
-                errorCell.setCellValue("Error: " + errorMessage);
-                errorCell.setCellStyle(ImportHandlerUtils.getCellStyle(workbook, IndexedColors.RED));
+                ImportHandlerUtils.writeErrorMessage(savingsTransactionSheet, transaction.getRowIndex(), errorMessage,
+                        TransactionConstants.STATUS_COL);
             }
         }
 

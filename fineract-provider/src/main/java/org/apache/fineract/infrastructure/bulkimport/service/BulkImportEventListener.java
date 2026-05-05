@@ -138,6 +138,32 @@ public class BulkImportEventListener implements ApplicationListener<BulkImportEv
         importDocument.update(DateUtils.getLocalDateTimeOfTenant(), count.getSuccessCount(), count.getErrorCount());
         this.importRepository.saveAndFlush(importDocument);
 
+        // First, write the workbook to a byte array to get the actual content and size
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        byte[] workbookBytes = null;
+        try {
+            workbook.write(bos);
+            bos.flush();
+            workbookBytes = bos.toByteArray();
+        } catch (IOException io) {
+            LOG.error("Problem occurred while writing workbook to byte array", io);
+            return;
+        } finally {
+            try {
+                bos.close();
+            } catch (IOException e) {
+                LOG.error("Error closing ByteArrayOutputStream", e);
+            }
+        }
+
+        if (workbookBytes == null || workbookBytes.length == 0) {
+            LOG.error("Workbook write produced empty content, skipping document update");
+            return;
+        }
+
+        LOG.info("Workbook written to byte array, size: {} bytes", workbookBytes.length);
+
+        // Now create the DocumentCommand with the actual size
         final Set<String> modifiedParams = new HashSet<>();
         modifiedParams.add("fileName");
         modifiedParams.add("size");
@@ -145,22 +171,26 @@ public class BulkImportEventListener implements ApplicationListener<BulkImportEv
         modifiedParams.add("location");
         Document document = importDocument.getDocument();
 
-        DocumentCommand documentCommand = new DocumentCommand(modifiedParams, document.getId(), entityType.name(), null, document.getName(),
-                document.getFileName(), document.getSize(), URLConnection.guessContentTypeFromName(document.getFileName()), null, null);
+        LOG.info("Document before update - ID: {}, parentEntityType: {}, parentEntityId: {}, fileName: {}, currentLocation: {}",
+                document.getId(), document.getParentEntityType(), document.getParentEntityId(), document.getFileName(),
+                document.getLocation());
 
-        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DocumentCommand documentCommand = new DocumentCommand(modifiedParams, document.getId(), document.getParentEntityType(),
+                document.getParentEntityId(), document.getName(), document.getFileName(), (long) workbookBytes.length,
+                URLConnection.guessContentTypeFromName(document.getFileName()), null, null);
+
+        // Update the document with the processed workbook content
+        ByteArrayInputStream bis = new ByteArrayInputStream(workbookBytes);
         try {
-            try {
-                workbook.write(bos);
-            } finally {
-                bos.close();
-            }
-        } catch (IOException io) {
-            LOG.error("Problem occurred in onApplicationEvent function", io);
+            this.documentService.updateDocument(documentCommand, bis);
+            LOG.info("Document updated successfully with new workbook content");
+
+            // Refresh the document to see the new location
+            Document updatedDoc = importDocument.getDocument();
+            LOG.info("Document after update - newLocation: {}", updatedDoc.getLocation());
+        } catch (Exception e) {
+            LOG.error("Failed to update document: {}", e.getMessage(), e);
         }
-        byte[] bytes = bos.toByteArray();
-        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-        this.documentService.updateDocument(documentCommand, bis);
     }
 
 }
