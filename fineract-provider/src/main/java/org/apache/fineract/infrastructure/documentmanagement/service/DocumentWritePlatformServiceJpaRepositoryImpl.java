@@ -118,20 +118,30 @@ public class DocumentWritePlatformServiceJpaRepositoryImpl implements DocumentWr
 
             final StorageType documentStoreType = documentForUpdate.storageType();
             oldLocation = documentForUpdate.getLocation();
+
+            LOG.info("updateDocument - documentId: {}, oldLocation: {}, inputStream is null: {}, isFileNameChanged: {}",
+                    documentCommand.getId(), oldLocation, inputStream == null, documentCommand.isFileNameChanged());
+
             if (inputStream != null && documentCommand.isFileNameChanged()) {
                 final ContentRepository contentRepository = this.contentRepositoryFactory.getRepository();
-                documentCommand.setLocation(contentRepository.saveFile(inputStream, documentCommand));
+                String newLocation = contentRepository.saveFile(inputStream, documentCommand);
+                documentCommand.setLocation(newLocation);
                 documentCommand.setStorageType(contentRepository.getStorageType().getValue());
+                LOG.info("updateDocument - File saved to newLocation: {}", newLocation);
             }
 
             documentForUpdate.update(documentCommand);
 
+            LOG.info("updateDocument - After update, document location: {}", documentForUpdate.getLocation());
+
             if (inputStream != null && documentCommand.isFileNameChanged()) {
                 final ContentRepository contentRepository = this.contentRepositoryFactory.getRepository(documentStoreType);
                 contentRepository.deleteFile(oldLocation);
+                LOG.info("updateDocument - Deleted old file at: {}", oldLocation);
             }
 
             this.documentRepository.saveAndFlush(documentForUpdate);
+            LOG.info("updateDocument - Document saved and flushed to database");
 
             return new CommandProcessingResult(documentForUpdate.getId());
         } catch (final JpaSystemException | DataIntegrityViolationException dve) {
