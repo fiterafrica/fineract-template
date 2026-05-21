@@ -97,6 +97,7 @@ public class OAuth2SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/**/downloadtemplate").fullyAuthenticated() //
                 .antMatchers("/api/**/uploadtemplate").fullyAuthenticated() //
                 .antMatchers("/api/**/bulkimport/**").fullyAuthenticated() //
+                // .antMatchers("/api/**/downloadOutputTemplate").fullyAuthenticated() //
                 .antMatchers("/api/**").access("isFullyAuthenticated() and hasAuthority('TWOFACTOR_AUTHENTICATED')") //
                 .accessDecisionManager(accessDecisionManager()).and() //
                 .exceptionHandling().authenticationEntryPoint(new OAuth2ExceptionEntryPoint()).and()

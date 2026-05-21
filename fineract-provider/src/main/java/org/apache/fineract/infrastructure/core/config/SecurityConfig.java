@@ -83,6 +83,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/**/downloadtemplate").fullyAuthenticated() //
                 .antMatchers("/api/**/uploadtemplate").fullyAuthenticated() //
                 .antMatchers("/api/**/bulkimport/**").fullyAuthenticated() //
+                .antMatchers("/api/**/downloadOutputTemplate").fullyAuthenticated() //
                 .antMatchers("/api/**").access("isFullyAuthenticated() and hasAuthority('TWOFACTOR_AUTHENTICATED')").and() //
                 .exceptionHandling().accessDeniedHandler(new FineractAccessDeniedHandler()).and() //
                 .httpBasic() //
