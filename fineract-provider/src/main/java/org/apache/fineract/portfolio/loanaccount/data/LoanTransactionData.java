@@ -369,6 +369,22 @@ public class LoanTransactionData {
         return this.interestPortion;
     }
 
+    public BigDecimal getPrincipalPortion() {
+        return this.principalPortion;
+    }
+
+    public BigDecimal getFeeChargesPortion() {
+        return this.feeChargesPortion;
+    }
+
+    public BigDecimal getPenaltyChargesPortion() {
+        return this.penaltyChargesPortion;
+    }
+
+    public BigDecimal getOutstandingLoanBalance() {
+        return this.outstandingLoanBalance;
+    }
+
     public void setWriteOffReasonOptions(Collection<CodeValueData> writeOffReasonOptions) {
         this.writeOffReasonOptions = writeOffReasonOptions;
     }

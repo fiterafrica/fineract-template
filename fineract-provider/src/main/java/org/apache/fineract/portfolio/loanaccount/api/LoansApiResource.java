@@ -33,6 +33,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -109,6 +111,7 @@ import org.apache.fineract.portfolio.group.data.GroupGeneralData;
 import org.apache.fineract.portfolio.group.service.GroupReadPlatformService;
 import org.apache.fineract.portfolio.interestratechart.data.InterestRateChartData;
 import org.apache.fineract.portfolio.interestratechart.service.InterestRateChartReadPlatformService;
+import org.apache.fineract.portfolio.loanaccount.data.BulkForeclosureJobData;
 import org.apache.fineract.portfolio.loanaccount.data.CollectionData;
 import org.apache.fineract.portfolio.loanaccount.data.DisbursementData;
 import org.apache.fineract.portfolio.loanaccount.data.GlimRepaymentTemplate;
@@ -116,6 +119,7 @@ import org.apache.fineract.portfolio.loanaccount.data.LoanAccountData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanApprovalData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanChargeData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanCollateralManagementData;
+import org.apache.fineract.portfolio.loanaccount.data.LoanForeclosureEligibleData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanTermVariationsData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanTransactionData;
 import org.apache.fineract.portfolio.loanaccount.data.PaidInAdvanceData;
@@ -131,6 +135,7 @@ import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.LoanSchedul
 import org.apache.fineract.portfolio.loanaccount.loanschedule.service.LoanScheduleCalculationPlatformService;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.service.LoanScheduleHistoryReadPlatformService;
 import org.apache.fineract.portfolio.loanaccount.service.GLIMAccountInfoReadPlatformService;
+import org.apache.fineract.portfolio.loanaccount.service.LoanBulkForeclosureService;
 import org.apache.fineract.portfolio.loanaccount.service.LoanChargeReadPlatformService;
 import org.apache.fineract.portfolio.loanaccount.service.LoanReadPlatformService;
 import org.apache.fineract.portfolio.loanproduct.LoanProductConstants;
@@ -266,8 +271,12 @@ public class LoansApiResource {
     private final LoanCollateralManagementReadPlatformService loanCollateralManagementReadPlatformService;
     private final InterestRateChartReadPlatformService chartReadPlatformService;
     private final ClientReadPlatformService clientReadPlatformService;
+    private final DefaultToApiJsonSerializer<LoanForeclosureEligibleData> loanForeclosureEligibleDataDefaultToApiJsonSerializer;
 
     private final DefaultToApiJsonSerializer<LoanTransactionData> loanTransactionApiJsonSerializer;
+
+    private final LoanBulkForeclosureService loanBulkForeclosureService;
+    private final DefaultToApiJsonSerializer<BulkForeclosureJobData> bulkForeclosureJobDataSerializer;
 
     public LoansApiResource(final PlatformSecurityContext context, final LoanReadPlatformService loanReadPlatformService,
             final LoanProductReadPlatformService loanProductReadPlatformService,
@@ -294,7 +303,10 @@ public class LoansApiResource {
             final GLIMAccountInfoReadPlatformService glimAccountInfoReadPlatformService,
             final LoanCollateralManagementReadPlatformService loanCollateralManagementReadPlatformService,
             final ClientReadPlatformService clientReadPlatformService, InterestRateChartReadPlatformService chartReadPlatformService,
-            DefaultToApiJsonSerializer<LoanTransactionData> loanTransactionApiJsonSerializer) {
+            DefaultToApiJsonSerializer<LoanTransactionData> loanTransactionApiJsonSerializer,
+            DefaultToApiJsonSerializer<LoanForeclosureEligibleData> loanForeclosureEligibleDataDefaultToApiJsonSerializer,
+            LoanBulkForeclosureService loanBulkForeclosureService,
+            DefaultToApiJsonSerializer<BulkForeclosureJobData> bulkForeclosureJobDataSerializer) {
         this.context = context;
         this.loanReadPlatformService = loanReadPlatformService;
         this.loanProductReadPlatformService = loanProductReadPlatformService;
@@ -329,6 +341,9 @@ public class LoansApiResource {
         this.chartReadPlatformService = chartReadPlatformService;
         this.clientReadPlatformService = clientReadPlatformService;
         this.loanTransactionApiJsonSerializer = loanTransactionApiJsonSerializer;
+        this.loanForeclosureEligibleDataDefaultToApiJsonSerializer = loanForeclosureEligibleDataDefaultToApiJsonSerializer;
+        this.loanBulkForeclosureService = loanBulkForeclosureService;
+        this.bulkForeclosureJobDataSerializer = bulkForeclosureJobDataSerializer;
     }
 
     /*
@@ -1143,5 +1158,95 @@ public class LoansApiResource {
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
 
         return this.loanTransactionApiJsonSerializer.serialize(settings, currentTransactions, loanDataParameters);
+    }
+
+    @GET
+    @Path("foreclosure/eligible")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    @Operation(summary = "Retrieve Foreclosure Eligible Loans", description = "Retrieves a paginated list of active loans eligible for foreclosure, filtered by product and optionally by disbursement date range.\n\n"
+            + "Example Requests: loans/foreclosure/eligible?productId=1\n\n"
+            + "loans/foreclosure/eligible?productId=1&fromDate=01-01-2023&toDate=31-12-2023&offset=0&limit=50")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = LoanTransactionsApiResourceSwagger.GetLoansForeclosureEligibleResponse.class))) })
+    public String retrieveForeclosureEligibleTransactions(
+            @QueryParam("productId") @Parameter(description = "Product ID (required)", required = true) final Long productId,
+            @QueryParam("fromDate") @Parameter(description = "Disbursement date range start (optional, format: dd-MM-yyyy)") final String fromDate,
+            @QueryParam("toDate") @Parameter(description = "Disbursement date range end (optional, format: dd-MM-yyyy)") final String toDate,
+            @QueryParam("limit") @DefaultValue("50") @Parameter(description = "Number of records per page") Integer limit,
+            @QueryParam("offset") @DefaultValue("0") @Parameter(description = "Offset for pagination") Integer offset) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+
+        LocalDate disbursementFromDate = StringUtils.isNotBlank(fromDate) ? LocalDate.parse(fromDate, formatter) : null;
+        LocalDate disbursementToDate = StringUtils.isNotBlank(toDate) ? LocalDate.parse(toDate, formatter) : null;
+
+        Page<LoanForeclosureEligibleData> loanForeclosureEligibleData = this.loanReadPlatformService
+                .retrieveLoanForeclosureEligibleLoans(productId, disbursementFromDate, disbursementToDate, offset, limit);
+        return loanForeclosureEligibleDataDefaultToApiJsonSerializer.serialize(loanForeclosureEligibleData);
+    }
+
+    @POST
+    @Path("foreclosure/bulk")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    @Operation(summary = "Trigger Bulk Loan Foreclosure", description = "Triggers bulk foreclosure for a list of loan IDs.\n\n"
+            + "Example Request:\n\n" + "POST /loans/foreclosure/bulk\n\n" + "Request body:\n"
+            + "{ \"loanIds\": [1, 2, 3], \"foreclosureDate\": \"26 May 2026\", \"dateFormat\": \"dd MMMM yyyy\", \"locale\": \"en\", \"executionMode\": \"ASYNC\" }")
+    @ApiResponses({ @ApiResponse(responseCode = "200", description = "OK") })
+    public String triggerBulkForeclosure(final String apiRequestBodyAsJson) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+
+        final JsonElement element = this.fromJsonHelper.parse(apiRequestBodyAsJson);
+        final List<Long> loanIds = new ArrayList<>();
+        for (JsonElement e : this.fromJsonHelper.extractJsonArrayNamed("loanIds", element)) {
+            if (e.isJsonPrimitive()) {
+                if (e.getAsJsonPrimitive().isNumber()) {
+                    loanIds.add(e.getAsLong());
+                } else {
+                    loanIds.add(Long.parseLong(e.getAsString()));
+                }
+            }
+        }
+        final LocalDate foreclosureDate = this.fromJsonHelper.extractLocalDateNamed("foreclosureDate", element);
+        final String executionMode = this.fromJsonHelper.extractStringNamed("executionMode", element);
+
+        final BulkForeclosureJobData result = this.loanBulkForeclosureService.triggerBulkForeclosure(loanIds, foreclosureDate,
+                executionMode != null ? executionMode : "ASYNC");
+        return this.bulkForeclosureJobDataSerializer.serialize(result);
+    }
+
+    @GET
+    @Path("foreclosure/jobs/{jobId}")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    @Operation(summary = "Check Bulk Foreclosure Job Status", description = "Retrieves the status of a bulk foreclosure job.\n\n"
+            + "Example Request:\n\n" + "GET /loans/foreclosure/bulk/{jobId}")
+    @ApiResponses({ @ApiResponse(responseCode = "200", description = "OK") })
+    public String getBulkForeclosureJobStatus(@PathParam("jobId") @Parameter(description = "Job ID") final String jobId) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+
+        final BulkForeclosureJobData result = this.loanBulkForeclosureService.getJobStatus(jobId);
+        return this.bulkForeclosureJobDataSerializer.serialize(result);
+    }
+
+    @GET
+    @Path("foreclosure/jobs")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    @Operation(summary = "List Bulk Foreclosure Jobs", description = "Retrieves a paginated list of bulk foreclosure jobs.\n\n"
+            + "Example Request:\n\n" + "GET /loans/foreclosure/jobs?offset=0&limit=20")
+    @ApiResponses({ @ApiResponse(responseCode = "200", description = "OK") })
+    public String getBulkForeclosureJobList(@QueryParam("offset") @Parameter(description = "Page number (0-based)") final Integer offset,
+            @QueryParam("limit") @Parameter(description = "Number of records per page") final Integer limit) {
+
+        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+
+        final org.apache.fineract.infrastructure.core.service.Page<BulkForeclosureJobData> result = this.loanBulkForeclosureService
+                .getJobList(offset, limit);
+        return this.bulkForeclosureJobDataSerializer.serialize(result);
     }
 }
