@@ -235,4 +235,34 @@ final class LoanTransactionsApiResourceSwagger {
         @Schema(example = "2")
         public Integer loanId;
     }
+
+    @Schema(description = "GetLoansForeclosureEligibleResponse")
+    public static final class GetLoansForeclosureEligibleResponse {
+
+        private GetLoansForeclosureEligibleResponse() {}
+
+        static final class GetLoansForeclosureEligiblePageItem {
+
+            private GetLoansForeclosureEligiblePageItem() {}
+
+            @Schema(example = "1")
+            public Long loanId;
+            @Schema(example = "1")
+            public Long clientId;
+            @Schema(example = "10000.00")
+            public Double principalOutstanding;
+            @Schema(example = "500.00")
+            public Double interestOutstanding;
+            @Schema(example = "100.00")
+            public Double feeChargesOutstanding;
+            @Schema(example = "50.00")
+            public Double penaltyChargesOutstanding;
+            @Schema(example = "10650.00")
+            public Double totalOutstanding;
+        }
+
+        @Schema(example = "100")
+        public Integer totalFilteredRecords;
+        public GetLoansForeclosureEligiblePageItem[] pageItems;
+    }
 }

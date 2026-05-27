@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.accounting.common.AccountingRuleType;
 import org.apache.fineract.infrastructure.codes.data.CodeValueData;
@@ -91,6 +92,7 @@ import org.apache.fineract.portfolio.loanaccount.data.DisbursementData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanAccountData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanApplicationTimelineData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanApprovalData;
+import org.apache.fineract.portfolio.loanaccount.data.LoanForeclosureEligibleData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanInterestRecalculationData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanRepaymentScheduleInstallmentData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanScheduleAccrualData;
@@ -144,6 +146,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
@@ -2320,6 +2323,74 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
                 loanRepaymentScheduleInstallment.getFeeChargesOutstanding(currency).getAmount(),
                 loanRepaymentScheduleInstallment.getPenaltyChargesOutstanding(currency).getAmount(), null, unrecognizedIncomePortion,
                 paymentTypeOptions, null, null, null, outstandingLoanBalance, isReversed, createdDate);
+    }
+
+    @Override
+    public Page<LoanForeclosureEligibleData> retrieveLoanForeclosureEligibleLoans(final Long productId,
+            final LocalDate disbursementFromDate, final LocalDate disbursementToDate, final Integer offset, final Integer limit) {
+
+        this.context.authenticatedUser();
+
+        if (productId != null) {
+            this.loanProductReadPlatformService.retrieveLoanProduct(productId);
+        }
+
+        final int effectiveLimit = limit != null ? limit : 50;
+        final int effectiveOffset = offset != null ? offset : 0;
+
+        final List<Object> params = new ArrayList<>();
+        final String fromClause = """
+                FROM m_loan l
+                    LEFT JOIN m_client c
+                        ON c.id = l.client_id
+                    LEFT JOIN m_group g
+                        ON g.id = l.group_id
+                    JOIN m_office o
+                        ON o.id = COALESCE(c.office_id, g.office_id)
+                    LEFT JOIN m_office transferToOffice
+                        ON transferToOffice.id = c.transfer_to_office_id
+                """;
+
+        final StringBuilder whereClause = new StringBuilder();
+        whereClause.append(" WHERE l.loan_status_id = ?");
+        params.add(LoanStatus.ACTIVE.getValue());
+        whereClause.append(" AND COALESCE(l.total_outstanding_derived, 0) > 0");
+        whereClause.append(" AND l.closedon_date IS NULL");
+        whereClause.append(" AND l.product_id = ?");
+        params.add(productId);
+
+        if (disbursementFromDate != null) {
+            whereClause.append(" AND l.disbursedon_date >= ?");
+            params.add(disbursementFromDate);
+        }
+        if (disbursementToDate != null) {
+            whereClause.append(" AND l.disbursedon_date <= ?");
+            params.add(disbursementToDate);
+        }
+
+        final String countSql = "SELECT COUNT(*) " + fromClause + whereClause;
+        final Integer totalFilteredRecords = this.jdbcTemplate.queryForObject(countSql, Integer.class, params.toArray());
+
+        final String sql = "SELECT l.id AS loanId, l.client_id AS clientId, " + "l.principal_outstanding_derived AS principalOutstanding, "
+                + "l.interest_outstanding_derived AS interestOutstanding, "
+                + "COALESCE(l.fee_charges_outstanding_derived, 0) AS feeChargesOutstanding, "
+                + "COALESCE(l.penalty_charges_outstanding_derived, 0) AS penaltyChargesOutstanding, "
+                + "l.total_outstanding_derived AS totalOutstanding " + fromClause + whereClause + " ORDER BY l.id "
+                + sqlGenerator.limit(effectiveLimit, effectiveOffset);
+
+        final List<LoanForeclosureEligibleData> eligibleLoans = this.jdbcTemplate.query(sql, (rs, rowNum) -> {
+            final Long loanId = rs.getLong("loanId");
+            final Long clientId = JdbcSupport.getLong(rs, "clientId");
+            final BigDecimal principalOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "principalOutstanding");
+            final BigDecimal interestOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "interestOutstanding");
+            final BigDecimal feeChargesOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "feeChargesOutstanding");
+            final BigDecimal penaltyChargesOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "penaltyChargesOutstanding");
+            final BigDecimal totalOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "totalOutstanding");
+            return LoanForeclosureEligibleData.instance(loanId, clientId, principalOutstanding, interestOutstanding, feeChargesOutstanding,
+                    penaltyChargesOutstanding, totalOutstanding);
+        }, params.toArray());
+
+        return new Page<>(eligibleLoans, totalFilteredRecords != null ? totalFilteredRecords : 0);
     }
 
     private static final class CurrencyMapper implements RowMapper<CurrencyData> {

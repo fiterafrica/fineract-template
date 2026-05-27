@@ -985,4 +985,28 @@ public class LoanTransactionHelper {
                 "---------------------------------GET A LOAN TRANSACTION ENTITY AUDIT FIELDS---------------------------------------------");
         return Utils.performServerGet(requestSpec, responseSpec, GET_LOAN_TRANSACTION_URL, jsonReturn);
     }
+
+    // Bulk Foreclosure Helper Methods
+
+    private static final String BULK_FORECLOSURE_URL = "/fineract-provider/api/v1/loans/foreclosure/bulk?" + Utils.TENANT_IDENTIFIER;
+    private static final String BULK_FORECLOSURE_STATUS_URL = "/fineract-provider/api/v1/loans/foreclosure/bulk/";
+
+    public HashMap<String, Object> triggerBulkForeclosure(final List<Long> loanIds, final String foreclosureDate,
+            final String executionMode) {
+        LOG.info("---------------------------------TRIGGER BULK FORECLOSURE---------------------------------------------");
+        final Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("loanIds", loanIds);
+        requestBody.put("foreclosureDate", foreclosureDate);
+        requestBody.put("executionMode", executionMode);
+
+        final String requestJson = new Gson().toJson(requestBody);
+        return Utils.performServerPost(this.requestSpec, this.responseSpec, BULK_FORECLOSURE_URL, requestJson, "");
+    }
+
+    public HashMap<String, Object> getBulkForeclosureJobStatus(final String jobId) {
+        LOG.info("---------------------------------GET BULK FORECLOSURE JOB STATUS---------------------------------------------");
+        final String url = BULK_FORECLOSURE_STATUS_URL + jobId + "?" + Utils.TENANT_IDENTIFIER;
+        return Utils.performServerGet(this.requestSpec, this.responseSpec, url, "");
+    }
 }
+

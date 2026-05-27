@@ -95,6 +95,7 @@
     <include file="parts/FSO-251-Add-checker-maker-flag-on-gl-account.xml" relativeToChangelogFile="true" />
     <include file="parts/FSO-272-add-checker-maker-flags.xml" relativeToChangelogFile="true" />
 <!--    <include file="parts/FSO_363_optimize_datatable_scoping_indexes.xml" relativeToChangelogFile="true" />-->
+    <include file="parts/FSO_373_bulk_foreclosure_job_tables.xml" relativeToChangelogFile="true" />
     <include file="parts/FSO-366_add_account_name_to_payment_detail.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>
