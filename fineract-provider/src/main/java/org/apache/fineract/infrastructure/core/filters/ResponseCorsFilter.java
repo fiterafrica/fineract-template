@@ -22,32 +22,72 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.container.ContainerResponseFilter;
 import javax.ws.rs.ext.Provider;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.fineract.infrastructure.core.config.FineractProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 /**
- * Filter that returns a response with headers that allows for Cross-Origin Requests (CORs) to be performed against the
- * platform API.
+ * Filter that handles Cross-Origin Resource Sharing (CORS) for the platform API.
+ * Only whitelisted origins receive CORS headers - wildcard (*) is no longer used.
  */
-
 @Provider
 @Component
 @Scope("singleton")
+@Slf4j
 public class ResponseCorsFilter implements ContainerResponseFilter {
+
+    @Autowired
+    private FineractProperties fineractProperties;
 
     @Override
     public void filter(final ContainerRequestContext request, final ContainerResponseContext response) {
+        FineractProperties.FineractCorsProperties corsConfig = fineractProperties.getCors();
 
-        response.getHeaders().add("Access-Control-Allow-Origin", "*");
-        // .header("Access-Control-Expose-Headers",
-        // "Fineract-Platform-TenantId")
-        response.getHeaders().add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        // If CORS config is null or disabled, skip
+        if (corsConfig == null || !corsConfig.isEnabled()) {
+            return;
+        }
 
-        final String reqHead = request.getHeaders().getFirst("Access-Control-Request-Headers");
+        String origin = request.getHeaderString("Origin");
 
-        if (null != reqHead && StringUtils.hasText(reqHead)) {
-            response.getHeaders().add("Access-Control-Allow-Headers", reqHead);
+        // Not a CORS request if no Origin header
+        if (origin == null || origin.isEmpty()) {
+            return;
+        }
+
+        // Validate origin against whitelist
+        if (corsConfig.isOriginAllowed(origin)) {
+            // Set the specific origin, not wildcard
+            response.getHeaders().add("Access-Control-Allow-Origin", origin);
+
+            if (corsConfig.isAllowCredentials()) {
+                response.getHeaders().add("Access-Control-Allow-Credentials", "true");
+            }
+
+            response.getHeaders().add("Access-Control-Allow-Methods",
+                String.join(", ", corsConfig.getAllowedMethods()));
+
+            response.getHeaders().add("Access-Control-Allow-Headers",
+                String.join(", ", corsConfig.getAllowedHeaders()));
+
+            response.getHeaders().add("Access-Control-Expose-Headers",
+                String.join(", ", corsConfig.getExposedHeaders()));
+
+            response.getHeaders().add("Access-Control-Max-Age",
+                String.valueOf(corsConfig.getMaxAge()));
+
+            log.debug("CORS allowed for origin: {}", origin);
+        } else {
+            // Log rejected CORS attempt
+            if (corsConfig.isAuditLoggingEnabled()) {
+                log.warn("SECURITY_AUDIT: CORS_REJECTED | origin={} | path={} | method={}",
+                    origin,
+                    request.getUriInfo().getPath(),
+                    request.getMethod());
+            }
+            // Do NOT add any CORS headers - browser will block the request
         }
     }
 }
