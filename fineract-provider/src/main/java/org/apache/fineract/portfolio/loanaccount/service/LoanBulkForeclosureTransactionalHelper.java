@@ -45,6 +45,27 @@ public class LoanBulkForeclosureTransactionalHelper {
             return "Loan is not in active state. Current status: " + loan.status().toString();
         }
 
+        // Validate foreclosure date is not in the future
+        if (org.apache.fineract.infrastructure.core.service.DateUtils.isDateInTheFuture(foreclosureDate)) {
+            return "Foreclosure date cannot be in the future";
+        }
+
+        // Validate foreclosure date is not before disbursement date
+        if (foreclosureDate.isBefore(loan.getDisbursementDate())) {
+            return "Foreclosure date cannot be before disbursement date: " + loan.getDisbursementDate();
+        }
+
+        // Validate foreclosure date is not before the last user transaction date (backdated foreclosure validation)
+        LocalDate lastUserTransactionDate = loan.getLastUserTransactionDate();
+        if (lastUserTransactionDate != null && lastUserTransactionDate.isAfter(foreclosureDate)) {
+            return "Foreclosure date cannot be before the last transaction date: " + lastUserTransactionDate;
+        }
+
+        // Validate interest recalculation is not enabled
+        if (loan.isInterestRecalculationEnabledForProduct()) {
+            return "Loan with interest recalculation enabled cannot be foreclosed";
+        }
+
         // Validate no undisbursed tranches before foreclosure date
         for (var dd : loan.getDisbursementDetails()) {
             if (!dd.expectedDisbursementDateAsLocalDate().isAfter(foreclosureDate) && dd.actualDisbursementDate() == null) {
@@ -55,7 +76,7 @@ public class LoanBulkForeclosureTransactionalHelper {
         // Archive schedule
         this.loanScheduleHistoryWritePlatformService.createAndSaveLoanScheduleArchive(loan.getRepaymentScheduleInstallments(), loan, null);
 
-        // Execute foreclosure
+        // Execute foreclosure - supports backdated transactions
         this.loanAccountDomainService.foreCloseLoan(loan, foreclosureDate, "Bulk foreclosure");
         return null;
     }

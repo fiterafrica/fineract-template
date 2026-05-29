@@ -19,6 +19,7 @@
 package org.apache.fineract.portfolio.loanaccount.service;
 
 import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -317,33 +318,41 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
     private BulkForeclosureJobData toJobData(BulkForeclosureJob job) {
         List<BulkForeclosureJobDetail> details = jobDetailRepository.findByJob(job);
 
-        List<BulkForeclosureJobData.BulkForeclosureSuccessData> successes = details.stream().filter(d -> "SUCCESS".equals(d.getStatus()))
-                .map(d -> {
-                    String loanAccountNo = d.getLoanAccountNo();
-                    String clientName = d.getClientName();
+        BigDecimal totalPayoff = BigDecimal.ZERO;
 
-                    // If loan account number or client name is missing, fetch from loan
-                    if (isNullOrEmpty(loanAccountNo) || isNullOrEmpty(clientName)) {
-                        try {
-                            Loan loan = loanRepositoryWrapper.findOneWithNotFoundDetection(d.getLoanId());
-                            if (isNullOrEmpty(loanAccountNo)) {
-                                loanAccountNo = loan.getAccountNumber();
-                            }
-                            if (isNullOrEmpty(clientName)) {
-                                if (loan.getClient() != null) {
-                                    clientName = loan.getClient().getDisplayName();
-                                } else if (loan.getGroup() != null) {
-                                    clientName = loan.getGroup().getName();
-                                }
-                            }
-                        } catch (Exception e) {
-                            log.warn("Could not fetch loan details for loan {}: {}", d.getLoanId(), e.getMessage());
-                        }
+        List<BulkForeclosureJobData.BulkForeclosureSuccessData> successes = new ArrayList<>();
+        for (BulkForeclosureJobDetail d : details) {
+            if (!"SUCCESS".equals(d.getStatus())) {
+                continue;
+            }
+
+            String loanAccountNo = d.getLoanAccountNo();
+            String clientName = d.getClientName();
+            BigDecimal payoffAmount = BigDecimal.ZERO;
+
+            // Fetch loan details and payoff amount from loan
+            try {
+                Loan loan = loanRepositoryWrapper.findOneWithNotFoundDetection(d.getLoanId());
+                if (isNullOrEmpty(loanAccountNo)) {
+                    loanAccountNo = loan.getAccountNumber();
+                }
+                if (isNullOrEmpty(clientName)) {
+                    if (loan.getClient() != null) {
+                        clientName = loan.getClient().getDisplayName();
+                    } else if (loan.getGroup() != null) {
+                        clientName = loan.getGroup().getName();
                     }
+                }
+                // Get payoff amount: the foreclosure transaction amount (last repayment that closed the loan)
+                payoffAmount = getForeclosureTransactionAmount(loan);
+            } catch (Exception e) {
+                log.warn("Could not fetch loan details for loan {}: {}", d.getLoanId(), e.getMessage());
+            }
 
-                    return new BulkForeclosureJobData.BulkForeclosureSuccessData(String.valueOf(d.getLoanId()), loanAccountNo, clientName,
-                            d.getProcessedOn());
-                }).collect(Collectors.toList());
+            totalPayoff = totalPayoff.add(payoffAmount);
+            successes.add(new BulkForeclosureJobData.BulkForeclosureSuccessData(String.valueOf(d.getLoanId()), loanAccountNo, clientName,
+                    payoffAmount, d.getProcessedOn()));
+        }
 
         List<BulkForeclosureFailureData> failures = details.stream().filter(d -> "FAILED".equals(d.getStatus())).map(d -> {
             String loanAccountNo = d.getLoanAccountNo();
@@ -387,6 +396,7 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
         data.setSubmittedByUserId(job.getSubmittedByUserId());
         data.setSubmittedByUserName(submittedByUserName);
         data.setForeclosureDate(job.getForeclosureDate());
+        data.setTotalPayoff(totalPayoff);
         data.setSuccesses(successes);
         data.setFailures(failures);
         return data;
@@ -394,6 +404,20 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
 
     private boolean isNullOrEmpty(String str) {
         return str == null || str.trim().isEmpty();
+    }
+
+    /**
+     * Get the foreclosure transaction amount from a loan. The foreclosure payment is the last non-reversed repayment
+     * transaction that closed the loan (principal + interest + fees + penalties paid at foreclosure time).
+     */
+    private BigDecimal getForeclosureTransactionAmount(Loan loan) {
+        if (loan.getLoanTransactions() == null || loan.getLoanTransactions().isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        // Find the last non-reversed repayment transaction (the foreclosure payment)
+        return loan.getLoanTransactions().stream().filter(t -> !t.isReversed() && t.isRepayment()).reduce((first, second) -> second) // get
+                                                                                                                                     // last
+                .map(t -> t.getAmount(loan.getCurrency()).getAmount()).orElse(BigDecimal.ZERO);
     }
 
     private BulkForeclosureJobData toJobDataSummary(BulkForeclosureJob job) {
@@ -455,7 +479,7 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
 
             // Create header row
             Row headerRow = sheet.createRow(0);
-            String[] headers = { "Loan ID", "Loan Account No", "Client Name", "Status", "Failure Reason", "Processed On" };
+            String[] headers = { "Loan ID", "Loan Account No", "Client Name", "Status", "Total Payoff", "Failure Reason", "Processed On" };
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -464,28 +488,36 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
 
             // Create data rows
             DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            BigDecimal grandTotalPayoff = BigDecimal.ZERO;
             int rowNum = 1;
             for (BulkForeclosureJobDetail detail : filteredDetails) {
                 String loanAccountNo = detail.getLoanAccountNo();
                 String clientName = detail.getClientName();
+                BigDecimal payoffAmount = BigDecimal.ZERO;
 
-                // If loan account number or client name is missing, fetch from loan
-                if (isNullOrEmpty(loanAccountNo) || isNullOrEmpty(clientName)) {
-                    try {
-                        Loan loan = loanRepositoryWrapper.findOneWithNotFoundDetection(detail.getLoanId());
-                        if (isNullOrEmpty(loanAccountNo)) {
-                            loanAccountNo = loan.getAccountNumber();
-                        }
-                        if (isNullOrEmpty(clientName)) {
-                            if (loan.getClient() != null) {
-                                clientName = loan.getClient().getDisplayName();
-                            } else if (loan.getGroup() != null) {
-                                clientName = loan.getGroup().getName();
-                            }
-                        }
-                    } catch (Exception e) {
-                        log.warn("Could not fetch loan details for loan {}: {}", detail.getLoanId(), e.getMessage());
+                // Fetch loan details
+                try {
+                    Loan loan = loanRepositoryWrapper.findOneWithNotFoundDetection(detail.getLoanId());
+                    if (isNullOrEmpty(loanAccountNo)) {
+                        loanAccountNo = loan.getAccountNumber();
                     }
+                    if (isNullOrEmpty(clientName)) {
+                        if (loan.getClient() != null) {
+                            clientName = loan.getClient().getDisplayName();
+                        } else if (loan.getGroup() != null) {
+                            clientName = loan.getGroup().getName();
+                        }
+                    }
+                    // Get payoff amount: the foreclosure transaction amount
+                    if ("SUCCESS".equals(detail.getStatus())) {
+                        payoffAmount = getForeclosureTransactionAmount(loan);
+                    }
+                } catch (Exception e) {
+                    log.warn("Could not fetch loan details for loan {}: {}", detail.getLoanId(), e.getMessage());
+                }
+
+                if ("SUCCESS".equals(detail.getStatus())) {
+                    grandTotalPayoff = grandTotalPayoff.add(payoffAmount);
                 }
 
                 Row row = sheet.createRow(rowNum++);
@@ -493,8 +525,9 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
                 row.createCell(1).setCellValue(loanAccountNo != null ? loanAccountNo : "");
                 row.createCell(2).setCellValue(clientName != null ? clientName : "");
                 row.createCell(3).setCellValue(detail.getStatus());
-                row.createCell(4).setCellValue(detail.getFailureReason() != null ? detail.getFailureReason() : "");
-                row.createCell(5).setCellValue(detail.getProcessedOn() != null ? detail.getProcessedOn().format(dateFormatter) : "");
+                row.createCell(4).setCellValue("SUCCESS".equals(detail.getStatus()) ? payoffAmount.doubleValue() : 0);
+                row.createCell(5).setCellValue(detail.getFailureReason() != null ? detail.getFailureReason() : "");
+                row.createCell(6).setCellValue(detail.getProcessedOn() != null ? detail.getProcessedOn().format(dateFormatter) : "");
             }
 
             // Add summary sheet
@@ -538,6 +571,10 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
             Row summaryRow9 = summarySheet.createRow(8);
             summaryRow9.createCell(0).setCellValue("Submitted By:");
             summaryRow9.createCell(1).setCellValue(submittedByUserName != null ? submittedByUserName : "");
+
+            Row summaryRow10 = summarySheet.createRow(9);
+            summaryRow10.createCell(0).setCellValue("Total Payoff:");
+            summaryRow10.createCell(1).setCellValue(grandTotalPayoff.doubleValue());
 
             // Auto-size columns
             for (int i = 0; i < headers.length; i++) {

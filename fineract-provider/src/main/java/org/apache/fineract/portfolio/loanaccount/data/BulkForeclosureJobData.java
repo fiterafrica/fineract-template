@@ -19,6 +19,7 @@
 package org.apache.fineract.portfolio.loanaccount.data;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +44,7 @@ public class BulkForeclosureJobData implements Serializable {
     private Long submittedByUserId;
     private String submittedByUserName;
     private java.time.LocalDate foreclosureDate;
+    private BigDecimal totalPayoff;
     private List<BulkForeclosureSuccessData> successes = new ArrayList<>();
     private List<BulkForeclosureFailureData> failures = new ArrayList<>();
 
@@ -56,6 +58,7 @@ public class BulkForeclosureJobData implements Serializable {
         private String loanId;
         private String loanAccountNo;
         private String clientName;
+        private BigDecimal payoffAmount;
         private LocalDateTime processedOn;
     }
 
@@ -79,6 +82,7 @@ public class BulkForeclosureJobData implements Serializable {
         data.setTotal(total);
         data.setSuccessful(0);
         data.setFailed(0);
+        data.setTotalPayoff(BigDecimal.ZERO);
         data.setSuccesses(new ArrayList<>());
         data.setFailures(new ArrayList<>());
         return data;
