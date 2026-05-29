@@ -44,6 +44,12 @@ public class BulkForeclosureJobDetail extends AbstractPersistableCustom {
     @Column(name = "loan_id", nullable = false)
     private Long loanId;
 
+    @Column(name = "loan_account_no")
+    private String loanAccountNo;
+
+    @Column(name = "client_name")
+    private String clientName;
+
     @Column(name = "status", nullable = false)
     private String status; // SUCCESS, FAILED
 
@@ -53,19 +59,24 @@ public class BulkForeclosureJobDetail extends AbstractPersistableCustom {
     @Column(name = "processed_on")
     private LocalDateTime processedOn;
 
-    public static BulkForeclosureJobDetail success(BulkForeclosureJob job, Long loanId) {
+    public static BulkForeclosureJobDetail success(BulkForeclosureJob job, Long loanId, String loanAccountNo, String clientName) {
         BulkForeclosureJobDetail detail = new BulkForeclosureJobDetail();
         detail.setJob(job);
         detail.setLoanId(loanId);
+        detail.setLoanAccountNo(loanAccountNo);
+        detail.setClientName(clientName);
         detail.setStatus("SUCCESS");
         detail.setProcessedOn(LocalDateTime.now(DateUtils.getDateTimeZoneOfTenant()));
         return detail;
     }
 
-    public static BulkForeclosureJobDetail failure(BulkForeclosureJob job, Long loanId, String reason) {
+    public static BulkForeclosureJobDetail failure(BulkForeclosureJob job, Long loanId, String loanAccountNo, String clientName,
+            String reason) {
         BulkForeclosureJobDetail detail = new BulkForeclosureJobDetail();
         detail.setJob(job);
         detail.setLoanId(loanId);
+        detail.setLoanAccountNo(loanAccountNo);
+        detail.setClientName(clientName);
         detail.setStatus("FAILED");
         detail.setFailureReason(reason);
         detail.setProcessedOn(LocalDateTime.now(DateUtils.getDateTimeZoneOfTenant()));

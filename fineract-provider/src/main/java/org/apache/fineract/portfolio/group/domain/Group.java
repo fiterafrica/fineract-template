@@ -765,4 +765,7 @@ public final class Group extends AbstractPersistableCustom {
         this.groupMembers = groupMembers;
     }
 
+    public String getName() {
+        return this.name;
+    }
 }

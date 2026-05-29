@@ -139,4 +139,78 @@
         </createIndex>
     </changeSet>
 
+    <!-- Add loan_account_no column to job detail -->
+    <changeSet id="FSO_373_7" author="tabrez-fiter">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="m_bulk_foreclosure_job_detail"/>
+            <not>
+                <columnExists tableName="m_bulk_foreclosure_job_detail" columnName="loan_account_no"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="m_bulk_foreclosure_job_detail">
+            <column name="loan_account_no" type="VARCHAR(100)"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- Add client_name column to job detail -->
+    <changeSet id="FSO_373_8" author="tabrez-fiter">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="m_bulk_foreclosure_job_detail"/>
+            <not>
+                <columnExists tableName="m_bulk_foreclosure_job_detail" columnName="client_name"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="m_bulk_foreclosure_job_detail">
+            <column name="client_name" type="VARCHAR(255)"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- Add permission for bulk foreclosure -->
+    <changeSet id="FSO_373_9" author="tabrez-fiter">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(1) FROM m_permission WHERE code = 'BULKFORECLOSURE_LOAN'
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="m_permission">
+            <column name="grouping" value="transaction_loan"/>
+            <column name="code" value="BULKFORECLOSURE_LOAN"/>
+            <column name="entity_name" value="LOAN"/>
+            <column name="action_name" value="BULKFORECLOSURE"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+
+    <!-- Add permission for reading bulk foreclosure jobs -->
+    <changeSet id="FSO_373_10" author="tabrez-fiter">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(1) FROM m_permission WHERE code = 'READ_BULKFORECLOSUREJOB'
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="m_permission">
+            <column name="grouping" value="transaction_loan"/>
+            <column name="code" value="READ_BULKFORECLOSUREJOB"/>
+            <column name="entity_name" value="BULKFORECLOSUREJOB"/>
+            <column name="action_name" value="READ"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+
+    <!-- Add permission for downloading bulk foreclosure report -->
+    <changeSet id="FSO_373_11" author="tabrez-fiter">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(1) FROM m_permission WHERE code = 'DOWNLOAD_BULKFORECLOSUREJOB'
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="m_permission">
+            <column name="grouping" value="transaction_loan"/>
+            <column name="code" value="DOWNLOAD_BULKFORECLOSUREJOB"/>
+            <column name="entity_name" value="BULKFORECLOSUREJOB"/>
+            <column name="action_name" value="DOWNLOAD"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+
 </databaseChangeLog>

@@ -20,6 +20,7 @@ package org.apache.fineract.portfolio.loanaccount.service;
 
 import java.time.LocalDate;
 import java.util.List;
+import javax.ws.rs.core.Response;
 import org.apache.fineract.infrastructure.core.service.Page;
 import org.apache.fineract.portfolio.loanaccount.data.BulkForeclosureJobData;
 
@@ -32,4 +33,6 @@ public interface LoanBulkForeclosureService {
     Page<BulkForeclosureJobData> getJobList(Integer offset, Integer limit);
 
     void forecloseSingleLoan(Long loanId, LocalDate foreclosureDate);
+
+    Response downloadJobReport(String jobId, String reportType);
 }

@@ -40,6 +40,9 @@ public class BulkForeclosureJobData implements Serializable {
     private Integer failed;
     private LocalDateTime createdOn;
     private LocalDateTime completedOn;
+    private Long submittedByUserId;
+    private String submittedByUserName;
+    private java.time.LocalDate foreclosureDate;
     private List<BulkForeclosureSuccessData> successes = new ArrayList<>();
     private List<BulkForeclosureFailureData> failures = new ArrayList<>();
 
@@ -51,6 +54,8 @@ public class BulkForeclosureJobData implements Serializable {
         private static final long serialVersionUID = 1L;
 
         private String loanId;
+        private String loanAccountNo;
+        private String clientName;
         private LocalDateTime processedOn;
     }
 
@@ -62,6 +67,8 @@ public class BulkForeclosureJobData implements Serializable {
         private static final long serialVersionUID = 1L;
 
         private String loanId;
+        private String loanAccountNo;
+        private String clientName;
         private String reason;
     }
 

@@ -18,8 +18,10 @@
  */
 package org.apache.fineract.portfolio.loanaccount.service;
 
+import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +31,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import javax.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.infrastructure.core.domain.FineractContext;
@@ -42,6 +45,17 @@ import org.apache.fineract.portfolio.loanaccount.domain.BulkForeclosureJob;
 import org.apache.fineract.portfolio.loanaccount.domain.BulkForeclosureJobDetail;
 import org.apache.fineract.portfolio.loanaccount.domain.BulkForeclosureJobDetailRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.BulkForeclosureJobRepository;
+import org.apache.fineract.portfolio.loanaccount.domain.Loan;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
+import org.apache.fineract.useradministration.domain.AppUser;
+import org.apache.fineract.useradministration.domain.AppUserRepository;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -55,6 +69,8 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
     private final LoanBulkForeclosureAsyncExecutor asyncExecutor;
     private final BulkForeclosureJobRepository jobRepository;
     private final BulkForeclosureJobDetailRepository jobDetailRepository;
+    private final LoanRepositoryWrapper loanRepositoryWrapper;
+    private final AppUserRepository appUserRepository;
 
     // Configuration for batch processing
     private static final int BATCH_SIZE = 10; // Process loans in batches
@@ -206,6 +222,21 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
                 continue;
             }
 
+            // Fetch loan details for audit trail
+            String loanAccountNo = null;
+            String clientName = null;
+            try {
+                Loan loan = loanRepositoryWrapper.findOneWithNotFoundDetection(loanId);
+                loanAccountNo = loan.getAccountNumber();
+                if (loan.getClient() != null) {
+                    clientName = loan.getClient().getDisplayName();
+                } else if (loan.getGroup() != null) {
+                    clientName = loan.getGroup().getName();
+                }
+            } catch (Exception e) {
+                log.warn("Could not fetch loan details for loan {}: {}", loanId, e.getMessage());
+            }
+
             boolean success = false;
             String lastError = null;
 
@@ -244,10 +275,10 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
             synchronized (batchedDetails) {
                 if (success) {
                     successful.incrementAndGet();
-                    batchedDetails.add(BulkForeclosureJobDetail.success(job, loanId));
+                    batchedDetails.add(BulkForeclosureJobDetail.success(job, loanId, loanAccountNo, clientName));
                 } else {
                     failed.incrementAndGet();
-                    batchedDetails.add(BulkForeclosureJobDetail.failure(job, loanId, lastError));
+                    batchedDetails.add(BulkForeclosureJobDetail.failure(job, loanId, loanAccountNo, clientName, lastError));
                     log.warn("Bulk foreclosure failed for loan {}: {}", loanId, lastError);
                 }
             }
@@ -287,24 +318,64 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
         List<BulkForeclosureJobDetail> details = jobDetailRepository.findByJob(job);
 
         List<BulkForeclosureJobData.BulkForeclosureSuccessData> successes = details.stream().filter(d -> "SUCCESS".equals(d.getStatus()))
-                .map(d -> new BulkForeclosureJobData.BulkForeclosureSuccessData(String.valueOf(d.getLoanId()), d.getProcessedOn()))
-                .collect(Collectors.toList());
+                .map(d -> {
+                    String loanAccountNo = d.getLoanAccountNo();
+                    String clientName = d.getClientName();
 
-        List<BulkForeclosureFailureData> failures = details.stream().filter(d -> "FAILED".equals(d.getStatus()))
-                .map(d -> new BulkForeclosureFailureData(String.valueOf(d.getLoanId()), d.getFailureReason())).collect(Collectors.toList());
+                    // If loan account number or client name is missing, fetch from loan
+                    if (isNullOrEmpty(loanAccountNo) || isNullOrEmpty(clientName)) {
+                        try {
+                            Loan loan = loanRepositoryWrapper.findOneWithNotFoundDetection(d.getLoanId());
+                            if (isNullOrEmpty(loanAccountNo)) {
+                                loanAccountNo = loan.getAccountNumber();
+                            }
+                            if (isNullOrEmpty(clientName)) {
+                                if (loan.getClient() != null) {
+                                    clientName = loan.getClient().getDisplayName();
+                                } else if (loan.getGroup() != null) {
+                                    clientName = loan.getGroup().getName();
+                                }
+                            }
+                        } catch (Exception e) {
+                            log.warn("Could not fetch loan details for loan {}: {}", d.getLoanId(), e.getMessage());
+                        }
+                    }
 
-        BulkForeclosureJobData data = new BulkForeclosureJobData();
-        data.setJobId(job.getJobId());
-        data.setStatus(job.getStatus());
-        data.setTotal(job.getTotalLoans());
-        data.setSuccessful(job.getSuccessful());
-        data.setFailed(job.getFailed());
-        data.setSuccesses(successes);
-        data.setFailures(failures);
-        return data;
-    }
+                    return new BulkForeclosureJobData.BulkForeclosureSuccessData(String.valueOf(d.getLoanId()), loanAccountNo, clientName,
+                            d.getProcessedOn());
+                }).collect(Collectors.toList());
 
-    private BulkForeclosureJobData toJobDataSummary(BulkForeclosureJob job) {
+        List<BulkForeclosureFailureData> failures = details.stream().filter(d -> "FAILED".equals(d.getStatus())).map(d -> {
+            String loanAccountNo = d.getLoanAccountNo();
+            String clientName = d.getClientName();
+
+            // If loan account number or client name is missing, fetch from loan
+            if (isNullOrEmpty(loanAccountNo) || isNullOrEmpty(clientName)) {
+                try {
+                    Loan loan = loanRepositoryWrapper.findOneWithNotFoundDetection(d.getLoanId());
+                    if (isNullOrEmpty(loanAccountNo)) {
+                        loanAccountNo = loan.getAccountNumber();
+                    }
+                    if (isNullOrEmpty(clientName)) {
+                        if (loan.getClient() != null) {
+                            clientName = loan.getClient().getDisplayName();
+                        } else if (loan.getGroup() != null) {
+                            clientName = loan.getGroup().getName();
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Could not fetch loan details for loan {}: {}", d.getLoanId(), e.getMessage());
+                }
+            }
+
+            return new BulkForeclosureFailureData(String.valueOf(d.getLoanId()), loanAccountNo, clientName, d.getFailureReason());
+        }).collect(Collectors.toList());
+
+        String submittedByUserName = null;
+        if (job.getSubmittedByUserId() != null) {
+            submittedByUserName = appUserRepository.findById(job.getSubmittedByUserId()).map(AppUser::getUsername).orElse(null);
+        }
+
         BulkForeclosureJobData data = new BulkForeclosureJobData();
         data.setJobId(job.getJobId());
         data.setStatus(job.getStatus());
@@ -313,6 +384,176 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
         data.setFailed(job.getFailed());
         data.setCreatedOn(job.getSubmittedOn());
         data.setCompletedOn(job.getCompletedOn());
+        data.setSubmittedByUserId(job.getSubmittedByUserId());
+        data.setSubmittedByUserName(submittedByUserName);
+        data.setForeclosureDate(job.getForeclosureDate());
+        data.setSuccesses(successes);
+        data.setFailures(failures);
         return data;
+    }
+
+    private boolean isNullOrEmpty(String str) {
+        return str == null || str.trim().isEmpty();
+    }
+
+    private BulkForeclosureJobData toJobDataSummary(BulkForeclosureJob job) {
+        String submittedByUserName = null;
+        if (job.getSubmittedByUserId() != null) {
+            submittedByUserName = appUserRepository.findById(job.getSubmittedByUserId()).map(AppUser::getUsername).orElse(null);
+        }
+
+        BulkForeclosureJobData data = new BulkForeclosureJobData();
+        data.setJobId(job.getJobId());
+        data.setStatus(job.getStatus());
+        data.setTotal(job.getTotalLoans());
+        data.setSuccessful(job.getSuccessful());
+        data.setFailed(job.getFailed());
+        data.setCreatedOn(job.getSubmittedOn());
+        data.setCompletedOn(job.getCompletedOn());
+        data.setSubmittedByUserId(job.getSubmittedByUserId());
+        data.setSubmittedByUserName(submittedByUserName);
+        data.setForeclosureDate(job.getForeclosureDate());
+        return data;
+    }
+
+    @Override
+    public Response downloadJobReport(String jobId, String reportType) {
+        this.context.authenticatedUser();
+
+        final BulkForeclosureJob job = jobRepository.findByJobId(jobId)
+                .orElseThrow(() -> new IllegalArgumentException("Bulk foreclosure job not found: " + jobId));
+
+        List<BulkForeclosureJobDetail> details = jobDetailRepository.findByJob(job);
+
+        // Filter based on report type
+        List<BulkForeclosureJobDetail> filteredDetails;
+        String sheetName;
+        String fileName;
+
+        if ("failed".equalsIgnoreCase(reportType)) {
+            filteredDetails = details.stream().filter(d -> "FAILED".equals(d.getStatus())).collect(Collectors.toList());
+            sheetName = "Failed Loans";
+            fileName = "bulk_foreclosure_failed_" + jobId + ".xlsx";
+        } else if ("success".equalsIgnoreCase(reportType)) {
+            filteredDetails = details.stream().filter(d -> "SUCCESS".equals(d.getStatus())).collect(Collectors.toList());
+            sheetName = "Successful Loans";
+            fileName = "bulk_foreclosure_success_" + jobId + ".xlsx";
+        } else {
+            filteredDetails = details;
+            sheetName = "All Loans";
+            fileName = "bulk_foreclosure_report_" + jobId + ".xlsx";
+        }
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet(sheetName);
+
+            // Create header style
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            // Create header row
+            Row headerRow = sheet.createRow(0);
+            String[] headers = { "Loan ID", "Loan Account No", "Client Name", "Status", "Failure Reason", "Processed On" };
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Create data rows
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            int rowNum = 1;
+            for (BulkForeclosureJobDetail detail : filteredDetails) {
+                String loanAccountNo = detail.getLoanAccountNo();
+                String clientName = detail.getClientName();
+
+                // If loan account number or client name is missing, fetch from loan
+                if (isNullOrEmpty(loanAccountNo) || isNullOrEmpty(clientName)) {
+                    try {
+                        Loan loan = loanRepositoryWrapper.findOneWithNotFoundDetection(detail.getLoanId());
+                        if (isNullOrEmpty(loanAccountNo)) {
+                            loanAccountNo = loan.getAccountNumber();
+                        }
+                        if (isNullOrEmpty(clientName)) {
+                            if (loan.getClient() != null) {
+                                clientName = loan.getClient().getDisplayName();
+                            } else if (loan.getGroup() != null) {
+                                clientName = loan.getGroup().getName();
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("Could not fetch loan details for loan {}: {}", detail.getLoanId(), e.getMessage());
+                    }
+                }
+
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(detail.getLoanId());
+                row.createCell(1).setCellValue(loanAccountNo != null ? loanAccountNo : "");
+                row.createCell(2).setCellValue(clientName != null ? clientName : "");
+                row.createCell(3).setCellValue(detail.getStatus());
+                row.createCell(4).setCellValue(detail.getFailureReason() != null ? detail.getFailureReason() : "");
+                row.createCell(5).setCellValue(detail.getProcessedOn() != null ? detail.getProcessedOn().format(dateFormatter) : "");
+            }
+
+            // Add summary sheet
+            Sheet summarySheet = workbook.createSheet("Summary");
+            Row summaryRow1 = summarySheet.createRow(0);
+            summaryRow1.createCell(0).setCellValue("Job ID:");
+            summaryRow1.createCell(1).setCellValue(job.getJobId());
+
+            Row summaryRow2 = summarySheet.createRow(1);
+            summaryRow2.createCell(0).setCellValue("Status:");
+            summaryRow2.createCell(1).setCellValue(job.getStatus());
+
+            Row summaryRow3 = summarySheet.createRow(2);
+            summaryRow3.createCell(0).setCellValue("Foreclosure Date:");
+            summaryRow3.createCell(1).setCellValue(job.getForeclosureDate() != null ? job.getForeclosureDate().toString() : "");
+
+            Row summaryRow4 = summarySheet.createRow(3);
+            summaryRow4.createCell(0).setCellValue("Total Loans:");
+            summaryRow4.createCell(1).setCellValue(job.getTotalLoans());
+
+            Row summaryRow5 = summarySheet.createRow(4);
+            summaryRow5.createCell(0).setCellValue("Successful:");
+            summaryRow5.createCell(1).setCellValue(job.getSuccessful());
+
+            Row summaryRow6 = summarySheet.createRow(5);
+            summaryRow6.createCell(0).setCellValue("Failed:");
+            summaryRow6.createCell(1).setCellValue(job.getFailed());
+
+            Row summaryRow7 = summarySheet.createRow(6);
+            summaryRow7.createCell(0).setCellValue("Submitted On:");
+            summaryRow7.createCell(1).setCellValue(job.getSubmittedOn() != null ? job.getSubmittedOn().format(dateFormatter) : "");
+
+            Row summaryRow8 = summarySheet.createRow(7);
+            summaryRow8.createCell(0).setCellValue("Completed On:");
+            summaryRow8.createCell(1).setCellValue(job.getCompletedOn() != null ? job.getCompletedOn().format(dateFormatter) : "");
+
+            String submittedByUserName = null;
+            if (job.getSubmittedByUserId() != null) {
+                submittedByUserName = appUserRepository.findById(job.getSubmittedByUserId()).map(AppUser::getUsername).orElse(null);
+            }
+            Row summaryRow9 = summarySheet.createRow(8);
+            summaryRow9.createCell(0).setCellValue("Submitted By:");
+            summaryRow9.createCell(1).setCellValue(submittedByUserName != null ? submittedByUserName : "");
+
+            // Auto-size columns
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+            summarySheet.autoSizeColumn(0);
+            summarySheet.autoSizeColumn(1);
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+
+            return Response.ok(outputStream.toByteArray()).type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    .header("Content-Disposition", "attachment; filename=\"" + fileName + "\"").build();
+        } catch (Exception e) {
+            log.error("Error generating Excel report for job {}: {}", jobId, e.getMessage(), e);
+            throw new IllegalStateException("Failed to generate Excel report: " + e.getMessage());
+        }
     }
 }

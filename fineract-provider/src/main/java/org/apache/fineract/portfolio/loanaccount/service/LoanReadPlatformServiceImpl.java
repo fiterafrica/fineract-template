@@ -2371,8 +2371,9 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
         final String countSql = "SELECT COUNT(*) " + fromClause + whereClause;
         final Integer totalFilteredRecords = this.jdbcTemplate.queryForObject(countSql, Integer.class, params.toArray());
 
-        final String sql = "SELECT l.id AS loanId, l.client_id AS clientId, " + "l.principal_outstanding_derived AS principalOutstanding, "
-                + "l.interest_outstanding_derived AS interestOutstanding, "
+        final String sql = "SELECT l.id AS loanId, l.account_no AS loanAccountNo, l.client_id AS clientId, "
+                + "COALESCE(c.display_name, c.firstname || ' ' || c.lastname, g.display_name) AS clientName, "
+                + "l.principal_outstanding_derived AS principalOutstanding, " + "l.interest_outstanding_derived AS interestOutstanding, "
                 + "COALESCE(l.fee_charges_outstanding_derived, 0) AS feeChargesOutstanding, "
                 + "COALESCE(l.penalty_charges_outstanding_derived, 0) AS penaltyChargesOutstanding, "
                 + "l.total_outstanding_derived AS totalOutstanding " + fromClause + whereClause + " ORDER BY l.id "
@@ -2380,14 +2381,16 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
 
         final List<LoanForeclosureEligibleData> eligibleLoans = this.jdbcTemplate.query(sql, (rs, rowNum) -> {
             final Long loanId = rs.getLong("loanId");
+            final String loanAccountNo = rs.getString("loanAccountNo");
             final Long clientId = JdbcSupport.getLong(rs, "clientId");
+            final String clientName = rs.getString("clientName");
             final BigDecimal principalOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "principalOutstanding");
             final BigDecimal interestOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "interestOutstanding");
             final BigDecimal feeChargesOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "feeChargesOutstanding");
             final BigDecimal penaltyChargesOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "penaltyChargesOutstanding");
             final BigDecimal totalOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "totalOutstanding");
-            return LoanForeclosureEligibleData.instance(loanId, clientId, principalOutstanding, interestOutstanding, feeChargesOutstanding,
-                    penaltyChargesOutstanding, totalOutstanding);
+            return LoanForeclosureEligibleData.instance(loanId, loanAccountNo, clientId, clientName, principalOutstanding,
+                    interestOutstanding, feeChargesOutstanding, penaltyChargesOutstanding, totalOutstanding);
         }, params.toArray());
 
         return new Page<>(eligibleLoans, totalFilteredRecords != null ? totalFilteredRecords : 0);
