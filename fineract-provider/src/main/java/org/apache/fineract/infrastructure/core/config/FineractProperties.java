@@ -19,6 +19,7 @@
 
 package org.apache.fineract.infrastructure.core.config;
 
+import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
@@ -42,6 +43,8 @@ public class FineractProperties {
     private FineractTemplateProperties template;
 
     private FineractSupportedProperties supported;
+
+    private FineractCorsProperties cors;
 
     @Getter
     @Setter
@@ -124,5 +127,84 @@ public class FineractProperties {
     public static class FineractSupportedProperties {
 
         private List<String> urls;
+    }
+
+    @Getter
+    @Setter
+    public static class FineractCorsProperties {
+
+        /**
+         * Enable/disable CORS support
+         */
+        private boolean enabled = true;
+
+        /**
+         * List of allowed origins (exact match)
+         */
+        private List<String> allowedOrigins = new ArrayList<>();
+
+        /**
+         * List of allowed origin patterns (regex)
+         */
+        private List<String> allowedOriginPatterns = new ArrayList<>();
+
+        /**
+         * HTTP methods to allow
+         */
+        private List<String> allowedMethods = new ArrayList<>();
+
+        /**
+         * Headers that clients are allowed to send
+         */
+        private List<String> allowedHeaders = new ArrayList<>();
+
+        /**
+         * Headers exposed to the client
+         */
+        private List<String> exposedHeaders = new ArrayList<>();
+
+        /**
+         * Whether to allow credentials (cookies, auth headers)
+         */
+        private boolean allowCredentials = true;
+
+        /**
+         * Preflight cache duration in seconds
+         */
+        private long maxAge = 3600;
+
+        /**
+         * Enable audit logging for CORS rejections
+         */
+        private boolean auditLoggingEnabled = true;
+
+        /**
+         * Check if origin is allowed
+         */
+        public boolean isOriginAllowed(String origin) {
+            if (origin == null || origin.isEmpty()) {
+                return false;
+            }
+
+            // Check exact match
+            if (allowedOrigins != null && allowedOrigins.contains(origin)) {
+                return true;
+            }
+
+            // Check pattern match
+            if (allowedOriginPatterns != null) {
+                for (String pattern : allowedOriginPatterns) {
+                    try {
+                        if (origin.matches(pattern)) {
+                            return true;
+                        }
+                    } catch (Exception e) {
+                        // Invalid regex pattern, skip
+                    }
+                }
+            }
+
+            return false;
+        }
     }
 }

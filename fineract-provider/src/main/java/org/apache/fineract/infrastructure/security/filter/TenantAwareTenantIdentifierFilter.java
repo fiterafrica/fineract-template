@@ -36,6 +36,7 @@ import org.apache.fineract.infrastructure.businessdate.service.BusinessDateReadP
 import org.apache.fineract.infrastructure.cache.domain.CacheType;
 import org.apache.fineract.infrastructure.cache.service.CacheWritePlatformService;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
+import org.apache.fineract.infrastructure.core.config.FineractProperties;
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
 import org.apache.fineract.infrastructure.core.serialization.ToApiJsonSerializer;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
@@ -70,8 +71,8 @@ public class TenantAwareTenantIdentifierFilter extends GenericFilterBean {
     private final ToApiJsonSerializer<PlatformRequestLog> toApiJsonSerializer;
     private final ConfigurationDomainService configurationDomainService;
     private final CacheWritePlatformService cacheWritePlatformService;
-
     private final BusinessDateReadPlatformService businessDateReadPlatformService;
+    private final FineractProperties fineractProperties;
 
     private final String tenantRequestHeader = "Fineract-Platform-TenantId";
     private final boolean exceptionIfHeaderMissing = true;
@@ -88,16 +89,8 @@ public class TenantAwareTenantIdentifierFilter extends GenericFilterBean {
         task.start();
 
         try {
-
-            // allows for Cross-Origin
-            // Requests (CORs) to be performed against the platform API.
-            response.setHeader("Access-Control-Allow-Origin", "*"); // NOSONAR
-            response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-            final String reqHead = request.getHeader("Access-Control-Request-Headers");
-
-            if (null != reqHead && !reqHead.isEmpty()) {
-                response.setHeader("Access-Control-Allow-Headers", reqHead);
-            }
+            // Set CORS headers based on whitelist configuration
+            setCorsHeaders(request, response);
 
             if (!"OPTIONS".equalsIgnoreCase(request.getMethod())) {
 
@@ -155,5 +148,51 @@ public class TenantAwareTenantIdentifierFilter extends GenericFilterBean {
             log.info("{}", this.toApiJsonSerializer.serialize(logRequest));
         }
 
+    }
+
+    /**
+     * Sets CORS headers based on configured whitelist.
+     * No longer uses wildcard (*) - only explicitly allowed origins get CORS headers.
+     */
+    private void setCorsHeaders(HttpServletRequest request, HttpServletResponse response) {
+        FineractProperties.FineractCorsProperties corsConfig = fineractProperties.getCors();
+
+        if (corsConfig == null || !corsConfig.isEnabled()) {
+            return;
+        }
+
+        String origin = request.getHeader("Origin");
+
+        if (origin == null || origin.isEmpty()) {
+            return;
+        }
+
+        if (corsConfig.isOriginAllowed(origin)) {
+            response.setHeader("Access-Control-Allow-Origin", origin);
+
+            if (corsConfig.isAllowCredentials()) {
+                response.setHeader("Access-Control-Allow-Credentials", "true");
+            }
+
+            response.setHeader("Access-Control-Allow-Methods",
+                String.join(", ", corsConfig.getAllowedMethods()));
+
+            response.setHeader("Access-Control-Allow-Headers",
+                String.join(", ", corsConfig.getAllowedHeaders()));
+
+            response.setHeader("Access-Control-Expose-Headers",
+                String.join(", ", corsConfig.getExposedHeaders()));
+
+            response.setHeader("Access-Control-Max-Age",
+                String.valueOf(corsConfig.getMaxAge()));
+
+            log.debug("CORS allowed for origin: {}", origin);
+        } else {
+            if (corsConfig.isAuditLoggingEnabled()) {
+                log.warn("SECURITY_AUDIT: CORS_REJECTED | origin={} | path={} | method={}",
+                    origin, request.getRequestURI(), request.getMethod());
+            }
+            // Do NOT add any CORS headers - browser will block the request
+        }
     }
 }
