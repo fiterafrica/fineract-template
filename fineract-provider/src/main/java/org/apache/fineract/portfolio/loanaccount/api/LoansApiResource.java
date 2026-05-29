@@ -1165,7 +1165,10 @@ public class LoansApiResource {
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
     @Operation(summary = "Retrieve Foreclosure Eligible Loans", description = "Retrieves a paginated list of active loans eligible for foreclosure, filtered by product and optionally by disbursement date range.\n\n"
-            + "Example Requests: loans/foreclosure/eligible?productId=1\n\n"
+            + "The foreclosureDate parameter allows calculating payoff amounts for a specific date (supports backdated foreclosure).\n\n"
+            + "Example Requests:\n\n" + "loans/foreclosure/eligible?productId=1\n\n"
+            + "loans/foreclosure/eligible?productId=1&foreclosureDate=25-05-2026\n\n"
+            + "loans/foreclosure/eligible?productId=1&foreclosureDate=01 April 2026&dateFormat=dd MMMM yyyy&locale=en\n\n"
             + "loans/foreclosure/eligible?productId=1&fromDate=01-01-2023&toDate=31-12-2023&offset=0&limit=50")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = LoanTransactionsApiResourceSwagger.GetLoansForeclosureEligibleResponse.class))) })
@@ -1173,17 +1176,46 @@ public class LoansApiResource {
             @QueryParam("productId") @Parameter(description = "Product ID (required)", required = true) final Long productId,
             @QueryParam("fromDate") @Parameter(description = "Disbursement date range start (optional, format: dd-MM-yyyy)") final String fromDate,
             @QueryParam("toDate") @Parameter(description = "Disbursement date range end (optional, format: dd-MM-yyyy)") final String toDate,
+            @QueryParam("foreclosureDate") @Parameter(description = "Foreclosure date for payoff calculation (optional, format: dd-MM-yyyy or dd MMMM yyyy). Supports backdated dates.") final String foreclosureDateStr,
+            @QueryParam("dateFormat") @Parameter(description = "Date format for foreclosureDate (optional, e.g., 'dd MMMM yyyy')") final String dateFormat,
+            @QueryParam("locale") @Parameter(description = "Locale for date parsing (optional, e.g., 'en')") final String locale,
             @QueryParam("limit") @DefaultValue("50") @Parameter(description = "Number of records per page") Integer limit,
             @QueryParam("offset") @DefaultValue("0") @Parameter(description = "Offset for pagination") Integer offset) {
 
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
-        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        final DateTimeFormatter defaultFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
-        LocalDate disbursementFromDate = StringUtils.isNotBlank(fromDate) ? LocalDate.parse(fromDate, formatter) : null;
-        LocalDate disbursementToDate = StringUtils.isNotBlank(toDate) ? LocalDate.parse(toDate, formatter) : null;
+        LocalDate disbursementFromDate = StringUtils.isNotBlank(fromDate) ? LocalDate.parse(fromDate, defaultFormatter) : null;
+        LocalDate disbursementToDate = StringUtils.isNotBlank(toDate) ? LocalDate.parse(toDate, defaultFormatter) : null;
+
+        // Parse foreclosure date with flexible format support (like individual foreclosure endpoint)
+        LocalDate foreclosureDate = null;
+        if (StringUtils.isNotBlank(foreclosureDateStr)) {
+            if (StringUtils.isNotBlank(dateFormat)) {
+                // Use provided date format (e.g., "dd MMMM yyyy")
+                java.util.Locale parseLocale = StringUtils.isNotBlank(locale) ? new java.util.Locale(locale) : java.util.Locale.ENGLISH;
+                DateTimeFormatter customFormatter = DateTimeFormatter.ofPattern(dateFormat, parseLocale);
+                foreclosureDate = LocalDate.parse(foreclosureDateStr, customFormatter);
+            } else {
+                // Try default format first (dd-MM-yyyy), then fallback to common formats
+                try {
+                    foreclosureDate = LocalDate.parse(foreclosureDateStr, defaultFormatter);
+                } catch (java.time.format.DateTimeParseException e) {
+                    // Try "dd MMMM yyyy" format (e.g., "01 April 2026")
+                    try {
+                        DateTimeFormatter textMonthFormatter = DateTimeFormatter.ofPattern("dd MMMM yyyy", java.util.Locale.ENGLISH);
+                        foreclosureDate = LocalDate.parse(foreclosureDateStr, textMonthFormatter);
+                    } catch (java.time.format.DateTimeParseException e2) {
+                        // If all parsing fails, throw original exception with helpful message
+                        throw new IllegalArgumentException(
+                                "Invalid foreclosureDate format. Use 'dd-MM-yyyy' (e.g., '01-04-2026') or provide dateFormat parameter for other formats like 'dd MMMM yyyy'");
+                    }
+                }
+            }
+        }
 
         Page<LoanForeclosureEligibleData> loanForeclosureEligibleData = this.loanReadPlatformService
-                .retrieveLoanForeclosureEligibleLoans(productId, disbursementFromDate, disbursementToDate, offset, limit);
+                .retrieveLoanForeclosureEligibleLoans(productId, disbursementFromDate, disbursementToDate, foreclosureDate, offset, limit);
         return loanForeclosureEligibleDataDefaultToApiJsonSerializer.serialize(loanForeclosureEligibleData);
     }
 
