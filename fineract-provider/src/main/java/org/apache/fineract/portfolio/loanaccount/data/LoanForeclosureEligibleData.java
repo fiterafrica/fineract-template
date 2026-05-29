@@ -26,18 +26,22 @@ public final class LoanForeclosureEligibleData implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final String loanId;
+    private final String loanAccountNo;
     private final String clientId;
+    private final String clientName;
     private final BigDecimal principalOutstanding;
     private final BigDecimal interestOutstanding;
     private final BigDecimal feeChargesOutstanding;
     private final BigDecimal penalyOutstanding;
     private final BigDecimal totalPayoff;
 
-    public LoanForeclosureEligibleData(final String loanId, final String clientId, final BigDecimal principalOutstanding,
-            final BigDecimal interestOutstanding, final BigDecimal feeChargesOutstanding, final BigDecimal penalyOutstanding,
-            final BigDecimal totalPayoff) {
+    public LoanForeclosureEligibleData(final String loanId, final String loanAccountNo, final String clientId, final String clientName,
+            final BigDecimal principalOutstanding, final BigDecimal interestOutstanding, final BigDecimal feeChargesOutstanding,
+            final BigDecimal penalyOutstanding, final BigDecimal totalPayoff) {
         this.loanId = loanId;
+        this.loanAccountNo = loanAccountNo;
         this.clientId = clientId;
+        this.clientName = clientName;
         this.principalOutstanding = principalOutstanding;
         this.interestOutstanding = interestOutstanding;
         this.feeChargesOutstanding = feeChargesOutstanding;
@@ -45,19 +49,27 @@ public final class LoanForeclosureEligibleData implements Serializable {
         this.totalPayoff = totalPayoff;
     }
 
-    public static LoanForeclosureEligibleData instance(final Long loanId, final Long clientId, final BigDecimal principalOutstanding,
-            final BigDecimal interestOutstanding, final BigDecimal feeChargesOutstanding, final BigDecimal penalyOutstanding,
-            final BigDecimal totalPayoff) {
-        return new LoanForeclosureEligibleData(String.valueOf(loanId), String.valueOf(clientId), principalOutstanding, interestOutstanding,
-                feeChargesOutstanding, penalyOutstanding, totalPayoff);
+    public static LoanForeclosureEligibleData instance(final Long loanId, final String loanAccountNo, final Long clientId,
+            final String clientName, final BigDecimal principalOutstanding, final BigDecimal interestOutstanding,
+            final BigDecimal feeChargesOutstanding, final BigDecimal penalyOutstanding, final BigDecimal totalPayoff) {
+        return new LoanForeclosureEligibleData(String.valueOf(loanId), loanAccountNo, String.valueOf(clientId), clientName,
+                principalOutstanding, interestOutstanding, feeChargesOutstanding, penalyOutstanding, totalPayoff);
     }
 
     public String getLoanId() {
         return this.loanId;
     }
 
+    public String getLoanAccountNo() {
+        return this.loanAccountNo;
+    }
+
     public String getClientId() {
         return this.clientId;
+    }
+
+    public String getClientName() {
+        return this.clientName;
     }
 
     public BigDecimal getPrincipalOutstanding() {

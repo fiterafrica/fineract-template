@@ -62,7 +62,8 @@ public class LoanBulkForeclosureIntegrationTest {
     private LoanTransactionHelper loanTransactionHelper;
 
     private static final String BULK_FORECLOSURE_URL = "/fineract-provider/api/v1/loans/foreclosure/bulk?" + Utils.TENANT_IDENTIFIER;
-    private static final String BULK_FORECLOSURE_STATUS_URL = "/fineract-provider/api/v1/loans/foreclosure/bulk/";
+    private static final String BULK_FORECLOSURE_STATUS_URL = "/fineract-provider/api/v1/loans/foreclosure/jobs/";
+    private static final String BULK_FORECLOSURE_JOBS_URL = "/fineract-provider/api/v1/loans/foreclosure/jobs?" + Utils.TENANT_IDENTIFIER;
 
     @BeforeEach
     public void setup() {
@@ -222,6 +223,75 @@ public class LoanBulkForeclosureIntegrationTest {
         LOG.info("Job history retrieved successfully: {}", jobStatus);
     }
 
+    @Test
+    public void testBulkForeclosureJobList() {
+        LOG.info("-------------------------- TESTING BULK FORECLOSURE - JOB LIST --------------------------");
+
+        // Create loans and trigger foreclosure to ensure at least one job exists
+        List<Integer> loanIds = createMultipleActiveLoans(2);
+        final String foreclosureDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        Map<String, Object> response = triggerBulkForeclosure(loanIds, foreclosureDate, "SYNC");
+        assertNotNull(response.get("jobId"), "Job ID should not be null");
+
+        // Fetch job list
+        Map<String, Object> jobListResponse = getJobList(0, 10);
+        assertNotNull(jobListResponse, "Job list response should not be null");
+        assertNotNull(jobListResponse.get("totalFilteredRecords"), "Total filtered records should be present");
+
+        List<Map<String, Object>> pageItems = (List<Map<String, Object>>) jobListResponse.get("pageItems");
+        assertNotNull(pageItems, "Page items should not be null");
+        assertTrue(pageItems.size() > 0, "Should have at least one job");
+
+        // Verify job contains expected fields
+        Map<String, Object> job = pageItems.get(0);
+        assertNotNull(job.get("jobId"), "Job should have jobId");
+        assertNotNull(job.get("status"), "Job should have status");
+        assertNotNull(job.get("total"), "Job should have total count");
+
+        LOG.info("Job list retrieved successfully: {} jobs found", pageItems.size());
+    }
+
+    @Test
+    public void testBulkForeclosureAuditTrail() {
+        LOG.info("-------------------------- TESTING BULK FORECLOSURE - AUDIT TRAIL --------------------------");
+
+        // Create loans and trigger foreclosure
+        List<Integer> loanIds = createMultipleActiveLoans(2);
+        final String foreclosureDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        Map<String, Object> response = triggerBulkForeclosure(loanIds, foreclosureDate, "SYNC");
+        String jobId = (String) response.get("jobId");
+
+        // Get job status and verify audit fields
+        Map<String, Object> jobStatus = getBulkForeclosureJobStatus(jobId);
+
+        // Verify audit trail fields
+        assertNotNull(jobStatus.get("submittedByUserId"), "Submitted by user ID should be present");
+        assertNotNull(jobStatus.get("submittedByUserName"), "Submitted by user name should be present");
+        assertNotNull(jobStatus.get("foreclosureDate"), "Foreclosure date should be present");
+        assertNotNull(jobStatus.get("createdOn"), "Created on timestamp should be present");
+
+        LOG.info("Audit trail verified: submittedBy={}, foreclosureDate={}, createdOn={}",
+                jobStatus.get("submittedByUserName"), jobStatus.get("foreclosureDate"), jobStatus.get("createdOn"));
+
+        // Verify details contain loan account info
+        List<Map<String, Object>> successes = (List<Map<String, Object>>) jobStatus.get("successes");
+        if (successes != null && !successes.isEmpty()) {
+            Map<String, Object> successDetail = successes.get(0);
+            LOG.info("Success detail: loanId={}, loanAccountNo={}, clientName={}",
+                    successDetail.get("loanId"), successDetail.get("loanAccountNo"), successDetail.get("clientName"));
+        }
+
+        List<Map<String, Object>> failures = (List<Map<String, Object>>) jobStatus.get("failures");
+        if (failures != null && !failures.isEmpty()) {
+            Map<String, Object> failureDetail = failures.get(0);
+            LOG.info("Failure detail: loanId={}, loanAccountNo={}, clientName={}, reason={}",
+                    failureDetail.get("loanId"), failureDetail.get("loanAccountNo"), failureDetail.get("clientName"),
+                    failureDetail.get("reason"));
+        }
+    }
+
     // Helper methods
 
     private List<Integer> createMultipleActiveLoans(int count) {
@@ -329,6 +399,11 @@ public class LoanBulkForeclosureIntegrationTest {
 
     private Map<String, Object> getBulkForeclosureJobStatus(String jobId) {
         final String url = BULK_FORECLOSURE_STATUS_URL + jobId + "?" + Utils.TENANT_IDENTIFIER;
+        return Utils.performServerGet(this.requestSpec, this.responseSpec, url, "");
+    }
+
+    private Map<String, Object> getJobList(int offset, int limit) {
+        final String url = BULK_FORECLOSURE_JOBS_URL + "&offset=" + offset + "&limit=" + limit;
         return Utils.performServerGet(this.requestSpec, this.responseSpec, url, "");
     }
 }

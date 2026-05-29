@@ -1197,7 +1197,7 @@ public class LoansApiResource {
     @ApiResponses({ @ApiResponse(responseCode = "200", description = "OK") })
     public String triggerBulkForeclosure(final String apiRequestBodyAsJson) {
 
-        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+        this.context.authenticatedUser().validateHasPermissionTo("BULKFORECLOSURE_LOAN");
 
         final JsonElement element = this.fromJsonHelper.parse(apiRequestBodyAsJson);
         final List<Long> loanIds = new ArrayList<>();
@@ -1227,7 +1227,7 @@ public class LoansApiResource {
     @ApiResponses({ @ApiResponse(responseCode = "200", description = "OK") })
     public String getBulkForeclosureJobStatus(@PathParam("jobId") @Parameter(description = "Job ID") final String jobId) {
 
-        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+        this.context.authenticatedUser().validateHasReadPermission("READ_BULKFORECLOSUREJOB");
 
         final BulkForeclosureJobData result = this.loanBulkForeclosureService.getJobStatus(jobId);
         return this.bulkForeclosureJobDataSerializer.serialize(result);
@@ -1243,10 +1243,25 @@ public class LoansApiResource {
     public String getBulkForeclosureJobList(@QueryParam("offset") @Parameter(description = "Page number (0-based)") final Integer offset,
             @QueryParam("limit") @Parameter(description = "Number of records per page") final Integer limit) {
 
-        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+        this.context.authenticatedUser().validateHasReadPermission("READ_BULKFORECLOSUREJOB");
 
         final org.apache.fineract.infrastructure.core.service.Page<BulkForeclosureJobData> result = this.loanBulkForeclosureService
                 .getJobList(offset, limit);
         return this.bulkForeclosureJobDataSerializer.serialize(result);
+    }
+
+    @GET
+    @Path("foreclosure/jobs/{jobId}/download")
+    @Produces("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    @Operation(summary = "Download Bulk Foreclosure Job Report", description = "Downloads an Excel report of the bulk foreclosure job results.\n\n"
+            + "Example Request:\n\n" + "GET /loans/foreclosure/jobs/{jobId}/download?reportType=all\n\n"
+            + "Report types: all, success, failed")
+    @ApiResponses({ @ApiResponse(responseCode = "200", description = "OK") })
+    public Response downloadBulkForeclosureJobReport(@PathParam("jobId") @Parameter(description = "Job ID") final String jobId,
+            @QueryParam("reportType") @Parameter(description = "Report type: all, success, failed") @DefaultValue("all") final String reportType) {
+
+        this.context.authenticatedUser().validateHasReadPermission("DOWNLOAD_BULKFORECLOSUREJOB");
+
+        return this.loanBulkForeclosureService.downloadJobReport(jobId, reportType);
     }
 }

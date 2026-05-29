@@ -36,6 +36,8 @@ import org.apache.fineract.portfolio.loanaccount.domain.BulkForeclosureJob;
 import org.apache.fineract.portfolio.loanaccount.domain.BulkForeclosureJobDetail;
 import org.apache.fineract.portfolio.loanaccount.domain.BulkForeclosureJobDetailRepository;
 import org.apache.fineract.portfolio.loanaccount.domain.BulkForeclosureJobRepository;
+import org.apache.fineract.portfolio.loanaccount.domain.Loan;
+import org.apache.fineract.portfolio.loanaccount.domain.LoanRepositoryWrapper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -47,6 +49,7 @@ public class LoanBulkForeclosureAsyncExecutor {
     private final LoanBulkForeclosureTransactionalHelper transactionalHelper;
     private final BulkForeclosureJobRepository jobRepository;
     private final BulkForeclosureJobDetailRepository jobDetailRepository;
+    private final LoanRepositoryWrapper loanRepositoryWrapper;
 
     // Configuration for batch processing
     private static final int BATCH_SIZE = 10;
@@ -138,6 +141,21 @@ public class LoanBulkForeclosureAsyncExecutor {
                 continue;
             }
 
+            // Fetch loan details for audit trail
+            String loanAccountNo = null;
+            String clientName = null;
+            try {
+                Loan loan = loanRepositoryWrapper.findOneWithNotFoundDetection(loanId);
+                loanAccountNo = loan.getAccountNumber();
+                if (loan.getClient() != null) {
+                    clientName = loan.getClient().getDisplayName();
+                } else if (loan.getGroup() != null) {
+                    clientName = loan.getGroup().getName();
+                }
+            } catch (Exception e) {
+                log.warn("Could not fetch loan details for loan {}: {}", loanId, e.getMessage());
+            }
+
             boolean success = false;
             String lastError = null;
 
@@ -173,10 +191,10 @@ public class LoanBulkForeclosureAsyncExecutor {
             synchronized (batchedDetails) {
                 if (success) {
                     successful.incrementAndGet();
-                    batchedDetails.add(BulkForeclosureJobDetail.success(job, loanId));
+                    batchedDetails.add(BulkForeclosureJobDetail.success(job, loanId, loanAccountNo, clientName));
                 } else {
                     failed.incrementAndGet();
-                    batchedDetails.add(BulkForeclosureJobDetail.failure(job, loanId, lastError));
+                    batchedDetails.add(BulkForeclosureJobDetail.failure(job, loanId, loanAccountNo, clientName, lastError));
                     log.warn("Bulk foreclosure failed for loan {}: {}", loanId, lastError);
                 }
             }
