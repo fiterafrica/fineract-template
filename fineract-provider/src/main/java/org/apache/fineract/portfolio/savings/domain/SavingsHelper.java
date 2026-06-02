@@ -161,7 +161,10 @@ public final class SavingsHelper {
                     }
                     periodEndDate = periodEndDate.with(TemporalAdjusters.lastDayOfMonth());
                 break;
-                default:
+                case TENURE:
+                    // For TENURE posting period, interest should only be posted at maturity
+                    // Set periodEndDate to interestPostingUpToDate (maturity date)
+                    periodEndDate = interestPostingUpToDate;
                 break;
             }
         } else {

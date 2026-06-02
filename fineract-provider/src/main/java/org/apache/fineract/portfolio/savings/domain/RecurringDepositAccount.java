@@ -28,16 +28,16 @@ import java.math.MathContext;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.Arrays;
-import java.util.HashMap;
 import javax.persistence.CascadeType;
 import javax.persistence.DiscriminatorValue;
 import javax.persistence.Entity;
@@ -793,6 +793,15 @@ public class RecurringDepositAccount extends SavingsAccount {
     public void postInterest(final MathContext mc, final LocalDate postingDate, final boolean isInterestTransfer,
             final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth,
             final LocalDate postInterestAson, final boolean backdatedTxnsAllowedTill, final boolean postReversals) {
+        // For TENURE posting period type, skip interest posting until maturity date
+        final SavingsPostingInterestPeriodType postingPeriodType = SavingsPostingInterestPeriodType.fromInt(this.interestPostingPeriodType);
+        if (postingPeriodType.equals(SavingsPostingInterestPeriodType.TENURE)) {
+            final LocalDate maturityDate = calculateMaturityDate();
+            if (maturityDate != null && postingDate.isBefore(maturityDate)) {
+                // Do not post interest before maturity for TENURE posting period
+                return;
+            }
+        }
         final LocalDate interestPostingUpToDate = interestPostingUpToDate(postingDate);
         super.postInterest(mc, interestPostingUpToDate, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
                 financialYearBeginningMonth, postInterestAson, backdatedTxnsAllowedTill, postReversals);
