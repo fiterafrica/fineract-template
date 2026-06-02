@@ -789,6 +789,15 @@ public class FixedDepositAccount extends SavingsAccount {
     public void postInterest(final MathContext mc, final LocalDate postingDate, boolean isInterestTransfer,
             final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth,
             final LocalDate postInterestOnDate, final boolean backdatedTxnsAllowedTill) {
+        // For TENURE posting period type, skip interest posting until maturity date
+        final SavingsPostingInterestPeriodType postingPeriodType = SavingsPostingInterestPeriodType.fromInt(this.interestPostingPeriodType);
+        if (postingPeriodType.equals(SavingsPostingInterestPeriodType.TENURE)) {
+            final LocalDate maturityDate = calculateMaturityDate();
+            if (maturityDate != null && postingDate.isBefore(maturityDate)) {
+                // Do not post interest before maturity for TENURE posting period
+                return;
+            }
+        }
         final LocalDate interestPostingUpToDate = interestPostingUpToDate(postingDate);
         boolean postReversals = false;
         super.postInterest(mc, interestPostingUpToDate, isInterestTransfer, isSavingsInterestPostingAtCurrentPeriodEnd,
