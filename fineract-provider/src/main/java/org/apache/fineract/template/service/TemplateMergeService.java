@@ -43,6 +43,7 @@ import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.infrastructure.configuration.service.ExternalServiceHelper;
+import org.apache.fineract.infrastructure.configuration.service.SupportedUrlService;
 import org.apache.fineract.infrastructure.core.config.FineractProperties;
 import org.apache.fineract.template.domain.Template;
 import org.apache.fineract.template.domain.TemplateFunctions;
@@ -56,6 +57,7 @@ import org.springframework.stereotype.Service;
 public class TemplateMergeService {
 
     private final FineractProperties fineractProperties;
+    private final SupportedUrlService supportedUrlService;
 
     private Map<String, Object> scopes;
     private String authToken;
@@ -155,19 +157,21 @@ public class TemplateMergeService {
 
         HttpURLConnection connection = null;
         try {
-            if (ExternalServiceHelper.validateUrl(fineractProperties, url)) {
-                // This Rule should be suppressed as the URL is validated above
-                connection = (HttpURLConnection) new URL(url).openConnection(); // codeql[js/csrf-disabled] This URL is
-                                                                                // validated above in
-                                                                                // ExternalServiceHelper.validateUrl(fineractProperties,
-                                                                                // url) method
-                if (this.authToken != null) {
-                    connection.setRequestProperty("Authorization", "Basic " + this.authToken);// NOSONAR
-                }
-                TrustModifier.relaxHostChecking(connection);
+            // SSRF Protection: Validate URL before making connection
+            // This method throws ExternalServiceForbiddenException if:
+            ExternalServiceHelper.validateUrl(fineractProperties, supportedUrlService, url);
 
-                connection.setDoInput(true);
+            // URL has been validated - safe to open connection
+            // lgtm[java/ssrf] - URL is validated by ExternalServiceHelper.validateUrl() above
+            URL validatedUrl = new URL(url);
+            connection = (HttpURLConnection) validatedUrl.openConnection();
+
+            if (this.authToken != null) {
+                connection.setRequestProperty("Authorization", "Basic " + this.authToken);// NOSONAR
             }
+            TrustModifier.relaxHostChecking(connection);
+
+            connection.setDoInput(true);
 
         } catch (IOException | KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {
             log.error("getConnection() failed, return null", e);

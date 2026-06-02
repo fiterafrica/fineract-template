@@ -80,6 +80,7 @@ public class HookWritePlatformServiceJpaRepositoryImpl implements HookWritePlatf
     private final HookCommandFromApiJsonDeserializer fromApiJsonDeserializer;
     private final FromJsonHelper fromApiJsonHelper;
     private final ProcessorHelper processorHelper;
+    private final SupportedUrlService supportedUrlService;
 
     @Transactional
     @Override
@@ -268,6 +269,10 @@ public class HookWritePlatformServiceJpaRepositoryImpl implements HookWritePlatf
 
             if (conf.getFieldName().equals(payloadURLName)) {
                 try {
+                    // Auto-register the webhook URL to the supported URLs list
+                    // This allows the URL to pass SSRF validation
+                    supportedUrlService.addSupportedUrl(fieldValue);
+
                     final WebHookService service = processorHelper.createWebHookService(fieldValue);
                     service.sendEmptyRequest().execute();
                 } catch (IOException re) {

@@ -18,18 +18,24 @@
  */
 package org.apache.fineract.infrastructure.hooks.processor;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.List;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import lombok.RequiredArgsConstructor;
+import okhttp3.Dns;
 import okhttp3.OkHttpClient;
 import org.apache.fineract.infrastructure.configuration.service.ExternalServiceHelper;
+import org.apache.fineract.infrastructure.configuration.service.SupportedUrlService;
 import org.apache.fineract.infrastructure.core.config.FineractProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +54,7 @@ public final class ProcessorHelper {
     // org.apache.fineract.client.util.FineractClient.Builder.insecure()
 
     private final FineractProperties fineractProperties;
+    private final SupportedUrlService supportedUrlService;
 
     private static final Logger LOG = LoggerFactory.getLogger(ProcessorHelper.class);
 
@@ -75,8 +82,10 @@ public final class ProcessorHelper {
     private final SSLContext insecureSSLContext;
 
     @Autowired
-    public ProcessorHelper(FineractProperties fineractProperties) throws KeyManagementException, NoSuchAlgorithmException {
+    public ProcessorHelper(FineractProperties fineractProperties, SupportedUrlService supportedUrlService)
+            throws KeyManagementException, NoSuchAlgorithmException {
         this.fineractProperties = fineractProperties;
+        this.supportedUrlService = supportedUrlService;
         if (insecureHttpClient) {
             insecureSSLContext = createInsecureSSLContext();
         } else {
@@ -89,7 +98,59 @@ public final class ProcessorHelper {
         if (insecureHttpClient) {
             configureInsecureClient(okBuilder);
         }
+        // SSRF Protection: Use custom DNS resolver to validate resolved IPs at connection time
+        // This prevents DNS rebinding attacks where a hostname resolves to different IPs between validation and use
+        boolean allowInternalAddresses = fineractProperties.getSupported() != null
+                && fineractProperties.getSupported().isAllowInternalAddresses();
+        okBuilder.dns(new SsrfSafeDns(allowInternalAddresses));
         return okBuilder.build();
+    }
+
+    /**
+     * Custom DNS resolver that validates resolved IP addresses to prevent SSRF attacks. This provides defense-in-depth
+     * against DNS rebinding attacks.
+     */
+    private static class SsrfSafeDns implements Dns {
+
+        private final boolean allowInternalAddresses;
+
+        SsrfSafeDns(boolean allowInternalAddresses) {
+            this.allowInternalAddresses = allowInternalAddresses;
+        }
+
+        @Override
+        public List<InetAddress> lookup(String hostname) throws UnknownHostException {
+            List<InetAddress> addresses = Arrays.asList(InetAddress.getAllByName(hostname));
+            if (!allowInternalAddresses) {
+                for (InetAddress address : addresses) {
+                    if (isInternalAddress(address)) {
+                        LOG.warn("DNS rebinding attack prevented: {} resolved to internal address {}", hostname, address.getHostAddress());
+                        throw new UnknownHostException("Internal addresses are not allowed: " + hostname);
+                    }
+                }
+            }
+            return addresses;
+        }
+
+        private boolean isInternalAddress(InetAddress address) {
+            if (address.isLoopbackAddress() || address.isSiteLocalAddress() || address.isLinkLocalAddress() || address.isAnyLocalAddress()
+                    || address.isMulticastAddress()) {
+                return true;
+            }
+
+            byte[] bytes = address.getAddress();
+            if (bytes.length == 4) {
+                int firstOctet = bytes[0] & 0xFF;
+                int secondOctet = bytes[1] & 0xFF;
+                // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16, 127.0.0.0/8, 0.0.0.0/8
+                if (firstOctet == 10 || firstOctet == 127 || firstOctet == 0
+                        || (firstOctet == 172 && secondOctet >= 16 && secondOctet <= 31) || (firstOctet == 192 && secondOctet == 168)
+                        || (firstOctet == 169 && secondOctet == 254)) {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     private void configureInsecureClient(final OkHttpClient.Builder okBuilder) {
@@ -123,20 +184,12 @@ public final class ProcessorHelper {
 
     public WebHookService createWebHookService(final String url) {
         final OkHttpClient client = createClient();
-        final Retrofit.Builder retrofitBuilder = new Retrofit.Builder();
-        if (ExternalServiceHelper.validateUrl(fineractProperties, url)) {
-            /*
-             * This URL is captured via UI and saved in the database. we assume that the system user should only
-             * register valid URLs for webhook services. And we can have more than one webhook service registered in the
-             * system. So hardcoding the URL is not a good idea.
-             */
-            retrofitBuilder.baseUrl(url); // codeql[js/csrf-disabled] FSO-122
-            retrofitBuilder.client(client);
-            retrofitBuilder.addConverterFactory(GsonConverterFactory.create());
-            final Retrofit retrofit = retrofitBuilder.build();
-            return retrofit.create(WebHookService.class);
-        }
-        return retrofitBuilder.build().create(WebHookService.class);
+        ExternalServiceHelper.validateUrl(fineractProperties, supportedUrlService, url);
+
+        final Retrofit retrofit = new Retrofit.Builder().baseUrl(url).client(client).addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        return retrofit.create(WebHookService.class);
     }
 
     @SuppressWarnings("rawtypes")
