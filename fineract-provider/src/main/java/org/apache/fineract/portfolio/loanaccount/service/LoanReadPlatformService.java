@@ -146,7 +146,7 @@ public interface LoanReadPlatformService {
     LoanTransactionData retrieveLoanForeclosureTemplate(Long loanId, LocalDate transactionDate);
 
     Page<LoanForeclosureEligibleData> retrieveLoanForeclosureEligibleLoans(Long productId, LocalDate disbursementFromDate,
-            LocalDate disbursementToDate, Integer offset, Integer limit);
+            LocalDate disbursementToDate, LocalDate foreclosureDate, Integer offset, Integer limit);
 
     LoanAccountData retrieveLoanByLoanAccount(String loanAccountNumber);
 
