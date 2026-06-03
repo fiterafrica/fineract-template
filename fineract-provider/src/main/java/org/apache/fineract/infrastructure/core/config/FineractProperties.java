@@ -127,6 +127,12 @@ public class FineractProperties {
     public static class FineractSupportedProperties {
 
         private List<String> urls;
+
+        /**
+         * Allow internal/localhost addresses for external service calls. WARNING: This should ONLY be enabled in
+         * development/testing environments. Enabling this in production creates SSRF vulnerabilities.
+         */
+        private boolean allowInternalAddresses = false;
     }
 
     @Getter

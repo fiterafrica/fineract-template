@@ -39,6 +39,7 @@ import java.util.Set;
 import javax.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.fineract.infrastructure.configuration.service.SupportedUrlService;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
@@ -80,6 +81,7 @@ public class HookWritePlatformServiceJpaRepositoryImpl implements HookWritePlatf
     private final HookCommandFromApiJsonDeserializer fromApiJsonDeserializer;
     private final FromJsonHelper fromApiJsonHelper;
     private final ProcessorHelper processorHelper;
+    private final SupportedUrlService supportedUrlService;
 
     @Transactional
     @Override
@@ -268,6 +270,10 @@ public class HookWritePlatformServiceJpaRepositoryImpl implements HookWritePlatf
 
             if (conf.getFieldName().equals(payloadURLName)) {
                 try {
+                    // Auto-register the webhook URL to the supported URLs list
+                    // This allows the URL to pass SSRF validation
+                    supportedUrlService.addSupportedUrl(fieldValue);
+
                     final WebHookService service = processorHelper.createWebHookService(fieldValue);
                     service.sendEmptyRequest().execute();
                 } catch (IOException re) {
