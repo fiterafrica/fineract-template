@@ -20,18 +20,8 @@ package org.apache.fineract.infrastructure.hooks.processor;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import lombok.RequiredArgsConstructor;
 import okhttp3.Dns;
 import okhttp3.OkHttpClient;
 import org.apache.fineract.infrastructure.configuration.service.ExternalServiceHelper;
@@ -47,50 +37,26 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 @Service
-@RequiredArgsConstructor
 public final class ProcessorHelper {
 
     // Nota bene: Similar code to insecure HTTPS is also in Fineract Client's
     // org.apache.fineract.client.util.FineractClient.Builder.insecure()
 
     private final FineractProperties fineractProperties;
-    private final SupportedUrlService supportedUrlService;
 
     private static final Logger LOG = LoggerFactory.getLogger(ProcessorHelper.class);
 
-    @SuppressWarnings("unused")
-    private static final X509TrustManager insecureX509TrustManager = new X509TrustManager() {
-
-        @Override
-        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {}// NOSONAR
-
-        @Override
-        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {}// NOSONAR
-
-        @Override
-        public X509Certificate[] getAcceptedIssuers() {
-            return new X509Certificate[] {};
-        }
-    };
-
     /**
-     * Configure HTTP client to be "insecure", as in skipping host SSL certificate verification. While this can be
-     * useful during development e.g. when using self-signed certificates, it should never be enabled in production (due
-     * to "man in the middle").
+     * Deprecated insecure HTTP client switch. Kept only for backward compatibility; TLS validation is always enforced.
      */
     private final boolean insecureHttpClient = Boolean.getBoolean("fineract.insecureHttpClient");
-    private final SSLContext insecureSSLContext;
+
+    private final SupportedUrlService supportedUrlService;
 
     @Autowired
-    public ProcessorHelper(FineractProperties fineractProperties, SupportedUrlService supportedUrlService)
-            throws KeyManagementException, NoSuchAlgorithmException {
+    public ProcessorHelper(FineractProperties fineractProperties, SupportedUrlService supportedUrlService) {
         this.fineractProperties = fineractProperties;
         this.supportedUrlService = supportedUrlService;
-        if (insecureHttpClient) {
-            insecureSSLContext = createInsecureSSLContext();
-        } else {
-            insecureSSLContext = null;
-        }
     }
 
     private OkHttpClient createClient() {
@@ -154,16 +120,7 @@ public final class ProcessorHelper {
     }
 
     private void configureInsecureClient(final OkHttpClient.Builder okBuilder) {
-        okBuilder.sslSocketFactory(insecureSSLContext.getSocketFactory(), insecureX509TrustManager);
-        HostnameVerifier insecureHostnameVerifier = (hostname, session) -> true;// NOSONAR
-        okBuilder.hostnameVerifier(insecureHostnameVerifier);
-    }
-
-    private SSLContext createInsecureSSLContext() throws NoSuchAlgorithmException, KeyManagementException {
-        SSLContext insecureSSLContext = SSLContext.getInstance("TLS"); // TODO "TLS" or "SSL" as in
-        // FineractClient.Builder?
-        insecureSSLContext.init(null, new TrustManager[] { insecureX509TrustManager }, new SecureRandom());
-        return insecureSSLContext;
+        LOG.warn("Ignoring `fineract.insecureHttpClient=true`: insecure TLS settings are disabled; using default secure TLS validation.");
     }
 
     @SuppressWarnings("rawtypes")

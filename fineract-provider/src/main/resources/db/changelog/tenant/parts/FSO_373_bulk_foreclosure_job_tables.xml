@@ -213,4 +213,48 @@
         </insert>
     </changeSet>
 
+    <!-- Add retry_count column to job detail for tracking retry attempts -->
+    <changeSet id="FSO_373_12" author="fiter">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="m_bulk_foreclosure_job_detail"/>
+            <not>
+                <columnExists tableName="m_bulk_foreclosure_job_detail" columnName="retry_count"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="m_bulk_foreclosure_job_detail">
+            <column name="retry_count" type="INT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Add last_retried_on column to job detail for tracking last retry timestamp -->
+    <changeSet id="FSO_373_13" author="fiter">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="m_bulk_foreclosure_job_detail"/>
+            <not>
+                <columnExists tableName="m_bulk_foreclosure_job_detail" columnName="last_retried_on"/>
+            </not>
+        </preConditions>
+        <addColumn tableName="m_bulk_foreclosure_job_detail">
+            <column name="last_retried_on" type="DATETIME"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- Add permission for retrying failed bulk foreclosure records -->
+    <changeSet id="FSO_373_14" author="fiter">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(1) FROM m_permission WHERE code = 'RETRY_BULKFORECLOSUREJOB'
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="m_permission">
+            <column name="grouping" value="transaction_loan"/>
+            <column name="code" value="RETRY_BULKFORECLOSUREJOB"/>
+            <column name="entity_name" value="BULKFORECLOSUREJOB"/>
+            <column name="action_name" value="RETRY"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+
 </databaseChangeLog>

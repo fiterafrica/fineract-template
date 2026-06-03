@@ -19,7 +19,6 @@
 package org.apache.fineract.portfolio.loanaccount.data;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,66 +26,52 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Data class representing the result of a bulk foreclosure retry operation.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class BulkForeclosureJobData implements Serializable {
+public class BulkForeclosureRetryResultData implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
     private String jobId;
-    private String status; // PENDING, RUNNING, COMPLETED, FAILED
-    private Integer total;
+    private String status; // PENDING, RUNNING, COMPLETED
+    private Integer totalRetried;
     private Integer successful;
     private Integer failed;
-    private LocalDateTime createdOn;
-    private LocalDateTime completedOn;
-    private Long submittedByUserId;
-    private String submittedByUserName;
-    private java.time.LocalDate foreclosureDate;
-    private BigDecimal totalPayoff;
-    private List<BulkForeclosureSuccessData> successes = new ArrayList<>();
-    private List<BulkForeclosureFailureData> failures = new ArrayList<>();
+    private LocalDateTime retriedOn;
+    private Long retriedByUserId;
+    private String retriedByUserName;
+    private List<RetryDetailResult> results = new ArrayList<>();
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class BulkForeclosureSuccessData implements Serializable {
+    public static class RetryDetailResult implements Serializable {
 
         private static final long serialVersionUID = 1L;
 
-        private String loanId;
+        private Long detailId;
+        private Long loanId;
         private String loanAccountNo;
         private String clientName;
-        private BigDecimal payoffAmount;
-        private LocalDateTime processedOn;
+        private String previousStatus;
+        private String newStatus;
+        private String failureReason;
+        private Integer retryCount;
     }
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class BulkForeclosureFailureData implements Serializable {
-
-        private static final long serialVersionUID = 1L;
-
-        private Long detailId; // Added for retry selection
-        private String loanId;
-        private String loanAccountNo;
-        private String clientName;
-        private String reason;
-        private Integer retryCount; // Added to show retry attempts
-    }
-
-    public static BulkForeclosureJobData pending(String jobId, int total) {
-        BulkForeclosureJobData data = new BulkForeclosureJobData();
+    public static BulkForeclosureRetryResultData pending(String jobId, int totalRetried, Long userId) {
+        BulkForeclosureRetryResultData data = new BulkForeclosureRetryResultData();
         data.setJobId(jobId);
         data.setStatus("PENDING");
-        data.setTotal(total);
+        data.setTotalRetried(totalRetried);
         data.setSuccessful(0);
         data.setFailed(0);
-        data.setTotalPayoff(BigDecimal.ZERO);
-        data.setSuccesses(new ArrayList<>());
-        data.setFailures(new ArrayList<>());
+        data.setRetriedByUserId(userId);
+        data.setResults(new ArrayList<>());
         return data;
     }
 }

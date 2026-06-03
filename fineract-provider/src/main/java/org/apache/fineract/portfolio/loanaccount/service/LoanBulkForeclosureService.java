@@ -23,6 +23,7 @@ import java.util.List;
 import javax.ws.rs.core.Response;
 import org.apache.fineract.infrastructure.core.service.Page;
 import org.apache.fineract.portfolio.loanaccount.data.BulkForeclosureJobData;
+import org.apache.fineract.portfolio.loanaccount.data.BulkForeclosureRetryResultData;
 
 public interface LoanBulkForeclosureService {
 
@@ -35,4 +36,17 @@ public interface LoanBulkForeclosureService {
     void forecloseSingleLoan(Long loanId, LocalDate foreclosureDate);
 
     Response downloadJobReport(String jobId, String reportType);
+
+    /**
+     * Retry failed foreclosure records for a given job.
+     *
+     * @param jobId
+     *            the job ID
+     * @param detailIds
+     *            list of detail record IDs to retry (failed records)
+     * @param executionMode
+     *            "SYNC" or "ASYNC"
+     * @return retry result data
+     */
+    BulkForeclosureRetryResultData retryFailedRecords(String jobId, List<Long> detailIds, String executionMode);
 }

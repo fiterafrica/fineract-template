@@ -2327,7 +2327,8 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
 
     @Override
     public Page<LoanForeclosureEligibleData> retrieveLoanForeclosureEligibleLoans(final Long productId,
-            final LocalDate disbursementFromDate, final LocalDate disbursementToDate, final Integer offset, final Integer limit) {
+            final LocalDate disbursementFromDate, final LocalDate disbursementToDate, final LocalDate foreclosureDate, final Integer offset,
+            final Integer limit) {
 
         this.context.authenticatedUser();
 
@@ -2337,6 +2338,9 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
 
         final int effectiveLimit = limit != null ? limit : 50;
         final int effectiveOffset = offset != null ? offset : 0;
+
+        // Determine the effective foreclosure date (use provided date or current business date)
+        final LocalDate effectiveForeclosureDate = foreclosureDate != null ? foreclosureDate : DateUtils.getBusinessLocalDate();
 
         final List<Object> params = new ArrayList<>();
         final String fromClause = """
@@ -2368,29 +2372,52 @@ public class LoanReadPlatformServiceImpl implements LoanReadPlatformService {
             params.add(disbursementToDate);
         }
 
+        // For backdated foreclosure, also filter loans that were disbursed before the foreclosure date
+        if (foreclosureDate != null) {
+            whereClause.append(" AND l.disbursedon_date <= ?");
+            params.add(foreclosureDate);
+        }
+
         final String countSql = "SELECT COUNT(*) " + fromClause + whereClause;
         final Integer totalFilteredRecords = this.jdbcTemplate.queryForObject(countSql, Integer.class, params.toArray());
 
         final String sql = "SELECT l.id AS loanId, l.account_no AS loanAccountNo, l.client_id AS clientId, "
-                + "COALESCE(c.display_name, c.firstname || ' ' || c.lastname, g.display_name) AS clientName, "
-                + "l.principal_outstanding_derived AS principalOutstanding, " + "l.interest_outstanding_derived AS interestOutstanding, "
-                + "COALESCE(l.fee_charges_outstanding_derived, 0) AS feeChargesOutstanding, "
-                + "COALESCE(l.penalty_charges_outstanding_derived, 0) AS penaltyChargesOutstanding, "
-                + "l.total_outstanding_derived AS totalOutstanding " + fromClause + whereClause + " ORDER BY l.id "
-                + sqlGenerator.limit(effectiveLimit, effectiveOffset);
+                + "COALESCE(c.display_name, c.firstname || ' ' || c.lastname, g.display_name) AS clientName " + fromClause + whereClause
+                + " ORDER BY l.id " + sqlGenerator.limit(effectiveLimit, effectiveOffset);
 
+        // First, get the loan IDs and basic info
         final List<LoanForeclosureEligibleData> eligibleLoans = this.jdbcTemplate.query(sql, (rs, rowNum) -> {
             final Long loanId = rs.getLong("loanId");
             final String loanAccountNo = rs.getString("loanAccountNo");
             final Long clientId = JdbcSupport.getLong(rs, "clientId");
             final String clientName = rs.getString("clientName");
-            final BigDecimal principalOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "principalOutstanding");
-            final BigDecimal interestOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "interestOutstanding");
-            final BigDecimal feeChargesOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "feeChargesOutstanding");
-            final BigDecimal penaltyChargesOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "penaltyChargesOutstanding");
-            final BigDecimal totalOutstanding = JdbcSupport.getBigDecimalDefaultToZeroIfNull(rs, "totalOutstanding");
-            return LoanForeclosureEligibleData.instance(loanId, loanAccountNo, clientId, clientName, principalOutstanding,
-                    interestOutstanding, feeChargesOutstanding, penaltyChargesOutstanding, totalOutstanding);
+
+            // Calculate foreclosure amounts for the specific date using same logic as
+            // retrieveLoanForeclosureTemplate (GET /loans/{loanId}/transactions/template?command=foreclosure)
+            try {
+                final Loan loan = this.loanRepositoryWrapper.findOneWithNotFoundDetection(loanId, true);
+                final MonetaryCurrency currency = loan.getCurrency();
+
+                // Use fetchLoanForeclosureDetail same as retrieveLoanForeclosureTemplate
+                final LoanRepaymentScheduleInstallment foreclosureDetail = loan.fetchLoanForeclosureDetail(effectiveForeclosureDate);
+
+                // Use getXxxOutstanding methods same as retrieveLoanForeclosureTemplate
+                final BigDecimal principalOutstanding = foreclosureDetail.getPrincipalOutstanding(currency).getAmount();
+                final BigDecimal interestOutstanding = foreclosureDetail.getInterestOutstanding(currency).getAmount();
+                final BigDecimal feeChargesOutstanding = foreclosureDetail.getFeeChargesOutstanding(currency).getAmount();
+                final BigDecimal penaltyChargesOutstanding = foreclosureDetail.getPenaltyChargesOutstanding(currency).getAmount();
+
+                // Total payoff = total outstanding (same as retrieveLoanForeclosureTemplate)
+                final BigDecimal totalPayoff = foreclosureDetail.getTotalOutstanding(currency).getAmount();
+
+                return LoanForeclosureEligibleData.instance(loanId, loanAccountNo, clientId, clientName, principalOutstanding,
+                        interestOutstanding, feeChargesOutstanding, penaltyChargesOutstanding, totalPayoff);
+            } catch (Exception e) {
+                log.warn("Could not calculate foreclosure details for loan {}: {}", loanId, e.getMessage());
+                // Return with zero amounts if calculation fails
+                return LoanForeclosureEligibleData.instance(loanId, loanAccountNo, clientId, clientName, BigDecimal.ZERO, BigDecimal.ZERO,
+                        BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+            }
         }, params.toArray());
 
         return new Page<>(eligibleLoans, totalFilteredRecords != null ? totalFilteredRecords : 0);

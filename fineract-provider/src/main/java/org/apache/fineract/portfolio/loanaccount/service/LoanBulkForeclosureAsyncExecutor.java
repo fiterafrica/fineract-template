@@ -215,4 +215,145 @@ public class LoanBulkForeclosureAsyncExecutor {
         }
         return partitions;
     }
+
+    /**
+     * Async method to retry failed foreclosure records.
+     *
+     * @param job
+     *            the bulk foreclosure job
+     * @param failedDetails
+     *            list of failed detail records to retry
+     * @param context
+     *            the Fineract context
+     */
+    @Async
+    public void retryFailedRecordsAsync(BulkForeclosureJob job, List<BulkForeclosureJobDetail> failedDetails, FineractContext context) {
+        // Set full context for this async thread
+        ThreadLocalContextUtil.init(context);
+
+        log.info("Starting async retry for job {} with {} failed records", job.getJobId(), failedDetails.size());
+
+        final AtomicInteger successful = new AtomicInteger(0);
+        final AtomicInteger failed = new AtomicInteger(0);
+
+        // Split into batches for controlled processing
+        List<List<BulkForeclosureJobDetail>> batches = partitionList(failedDetails, BATCH_SIZE);
+        log.info("Job {} retry: Split {} records into {} batches", job.getJobId(), failedDetails.size(), batches.size());
+
+        // Use limited thread pool to control concurrency
+        ExecutorService executor = Executors.newFixedThreadPool(MAX_CONCURRENT_THREADS);
+
+        try {
+            List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+            for (List<BulkForeclosureJobDetail> batch : batches) {
+                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                    // Restore full context in each worker thread
+                    ThreadLocalContextUtil.init(context);
+                    try {
+                        processRetryBatch(job, batch, successful, failed);
+                    } finally {
+                        ThreadLocalContextUtil.clearTenant();
+                    }
+                }, executor);
+                futures.add(future);
+            }
+
+            // Wait for all batches with timeout
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(30, TimeUnit.MINUTES);
+
+        } catch (Exception e) {
+            log.error("Error during async retry processing for job {}: {}", job.getJobId(), e.getMessage(), e);
+        } finally {
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(5, TimeUnit.MINUTES)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        // Update job counters
+        long totalSuccessful = jobDetailRepository.countSuccessfulByJob(job.getId());
+        long totalFailed = jobDetailRepository.countFailedByJob(job.getId());
+        job.setSuccessful((int) totalSuccessful);
+        job.setFailed((int) totalFailed);
+
+        // Update job status based on new totals
+        if (totalFailed == 0) {
+            job.setStatus("COMPLETED");
+        } else if (totalSuccessful == 0) {
+            job.setStatus("FAILED");
+        } else {
+            job.setStatus("COMPLETED"); // Partial success is still COMPLETED
+        }
+        jobRepository.saveAndFlush(job);
+
+        log.info("Async retry completed for job {}: {} newly successful, {} still failed", job.getJobId(), successful.get(), failed.get());
+    }
+
+    /**
+     * Process a batch of retry records.
+     */
+    private void processRetryBatch(BulkForeclosureJob job, List<BulkForeclosureJobDetail> details, AtomicInteger successful,
+            AtomicInteger failed) {
+
+        for (BulkForeclosureJobDetail detail : details) {
+            if (!detail.canRetry()) {
+                log.warn("Detail {} cannot be retried (status: {})", detail.getId(), detail.getStatus());
+                continue;
+            }
+
+            boolean success = false;
+            String lastError = null;
+
+            // Retry strategy for transient failures
+            for (int attempt = 1; attempt <= MAX_RETRIES && !success; attempt++) {
+                try {
+                    String validationError = transactionalHelper.forecloseSingleLoan(detail.getLoanId(), job.getForeclosureDate());
+                    if (validationError != null) {
+                        lastError = validationError;
+                        // Validation errors are not retryable
+                        break;
+                    } else {
+                        success = true;
+                    }
+                } catch (Exception e) {
+                    lastError = e.getMessage() != null ? e.getMessage().substring(0, Math.min(e.getMessage().length(), 500))
+                            : "Unknown error";
+
+                    if (isRetryableError(e) && attempt < MAX_RETRIES) {
+                        log.warn("Retryable error for loan {} retry (attempt {}/{}): {}", detail.getLoanId(), attempt, MAX_RETRIES,
+                                lastError);
+                        try {
+                            Thread.sleep(RETRY_DELAY_MS * attempt);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                    } else {
+                        log.error("Non-retryable error for loan {} retry: {}", detail.getLoanId(), lastError, e);
+                        break;
+                    }
+                }
+            }
+
+            // Update detail status
+            if (success) {
+                detail.markAsRetrySuccess();
+                successful.incrementAndGet();
+                log.info("Async retry successful for loan {} (detail {})", detail.getLoanId(), detail.getId());
+            } else {
+                detail.markAsRetryFailed(lastError);
+                failed.incrementAndGet();
+                log.warn("Async retry failed for loan {} (detail {}): {}", detail.getLoanId(), detail.getId(), lastError);
+            }
+
+            // Save the updated detail
+            jobDetailRepository.save(detail);
+        }
+    }
 }

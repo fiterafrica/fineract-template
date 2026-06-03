@@ -59,6 +59,12 @@ public class BulkForeclosureJobDetail extends AbstractPersistableCustom {
     @Column(name = "processed_on")
     private LocalDateTime processedOn;
 
+    @Column(name = "retry_count", nullable = false)
+    private Integer retryCount = 0;
+
+    @Column(name = "last_retried_on")
+    private LocalDateTime lastRetriedOn;
+
     public static BulkForeclosureJobDetail success(BulkForeclosureJob job, Long loanId, String loanAccountNo, String clientName) {
         BulkForeclosureJobDetail detail = new BulkForeclosureJobDetail();
         detail.setJob(job);
@@ -81,5 +87,37 @@ public class BulkForeclosureJobDetail extends AbstractPersistableCustom {
         detail.setFailureReason(reason);
         detail.setProcessedOn(LocalDateTime.now(DateUtils.getDateTimeZoneOfTenant()));
         return detail;
+    }
+
+    /**
+     * Mark this detail as successfully retried.
+     */
+    public void markAsRetrySuccess() {
+        this.status = "SUCCESS";
+        this.failureReason = null;
+        this.retryCount = this.retryCount + 1;
+        this.lastRetriedOn = LocalDateTime.now(DateUtils.getDateTimeZoneOfTenant());
+    }
+
+    /**
+     * Mark this detail as failed after retry.
+     *
+     * @param reason
+     *            the failure reason
+     */
+    public void markAsRetryFailed(String reason) {
+        this.status = "FAILED";
+        this.failureReason = reason;
+        this.retryCount = this.retryCount + 1;
+        this.lastRetriedOn = LocalDateTime.now(DateUtils.getDateTimeZoneOfTenant());
+    }
+
+    /**
+     * Check if this record is eligible for retry (only FAILED records can be retried).
+     *
+     * @return true if can be retried
+     */
+    public boolean canRetry() {
+        return "FAILED".equals(this.status);
     }
 }
