@@ -42,6 +42,7 @@ import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.portfolio.loanaccount.data.BulkForeclosureJobData;
 import org.apache.fineract.portfolio.loanaccount.data.BulkForeclosureJobData.BulkForeclosureFailureData;
+import org.apache.fineract.portfolio.loanaccount.data.BulkForeclosureRetryResultData;
 import org.apache.fineract.portfolio.loanaccount.domain.BulkForeclosureJob;
 import org.apache.fineract.portfolio.loanaccount.domain.BulkForeclosureJobDetail;
 import org.apache.fineract.portfolio.loanaccount.domain.BulkForeclosureJobDetailRepository;
@@ -377,7 +378,8 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
                 }
             }
 
-            return new BulkForeclosureFailureData(String.valueOf(d.getLoanId()), loanAccountNo, clientName, d.getFailureReason());
+            return new BulkForeclosureFailureData(d.getId(), String.valueOf(d.getLoanId()), loanAccountNo, clientName, d.getFailureReason(),
+                    d.getRetryCount());
         }).collect(Collectors.toList());
 
         String submittedByUserName = null;
@@ -592,5 +594,150 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
             log.error("Error generating Excel report for job {}: {}", jobId, e.getMessage(), e);
             throw new IllegalStateException("Failed to generate Excel report: " + e.getMessage());
         }
+    }
+
+    @Override
+    public BulkForeclosureRetryResultData retryFailedRecords(String jobId, List<Long> detailIds, String executionMode) {
+        final Long userId = this.context.authenticatedUser().getId();
+
+        // Find the job
+        final BulkForeclosureJob job = jobRepository.findByJobId(jobId)
+                .orElseThrow(() -> new IllegalArgumentException("Bulk foreclosure job not found: " + jobId));
+
+        // Job must be in COMPLETED or FAILED status to retry
+        if (!"COMPLETED".equals(job.getStatus()) && !"FAILED".equals(job.getStatus())) {
+            throw new IllegalStateException(
+                    "Cannot retry records for job in status: " + job.getStatus() + ". Job must be COMPLETED or FAILED.");
+        }
+
+        // Find the failed detail records to retry
+        List<BulkForeclosureJobDetail> failedDetails;
+        if (detailIds == null || detailIds.isEmpty()) {
+            // If no specific IDs provided, retry all failed records
+            failedDetails = jobDetailRepository.findAllFailedByJob(job.getId());
+        } else {
+            // Find only the specified failed records
+            failedDetails = jobDetailRepository.findFailedByIdsAndJob(detailIds, job.getId());
+        }
+
+        if (failedDetails.isEmpty()) {
+            throw new IllegalArgumentException("No failed records found to retry for job: " + jobId);
+        }
+
+        log.info("Retrying {} failed records for job {}", failedDetails.size(), jobId);
+
+        final String finalExecutionMode = failedDetails.size() > 50 ? "ASYNC" : (executionMode != null ? executionMode : "SYNC");
+
+        if ("ASYNC".equalsIgnoreCase(finalExecutionMode)) {
+            // Capture context for async processing
+            final FineractContext context = ThreadLocalContextUtil.getContext();
+            asyncExecutor.retryFailedRecordsAsync(job, failedDetails, context);
+
+            // Return pending status for async
+            BulkForeclosureRetryResultData result = BulkForeclosureRetryResultData.pending(jobId, failedDetails.size(), userId);
+            result.setStatus("PENDING");
+            return result;
+        } else {
+            // Synchronous retry
+            return processRetrySync(job, failedDetails, userId);
+        }
+    }
+
+    /**
+     * Process retry synchronously.
+     */
+    private BulkForeclosureRetryResultData processRetrySync(BulkForeclosureJob job, List<BulkForeclosureJobDetail> failedDetails,
+            Long userId) {
+        List<BulkForeclosureRetryResultData.RetryDetailResult> results = new ArrayList<>();
+        int successful = 0;
+        int failed = 0;
+
+        for (BulkForeclosureJobDetail detail : failedDetails) {
+            if (!detail.canRetry()) {
+                log.warn("Detail {} cannot be retried (status: {})", detail.getId(), detail.getStatus());
+                continue;
+            }
+
+            String previousStatus = detail.getStatus();
+            String newStatus;
+            String failureReason = null;
+
+            try {
+                String validationError = transactionalHelper.forecloseSingleLoan(detail.getLoanId(), job.getForeclosureDate());
+                if (validationError != null) {
+                    newStatus = "FAILED";
+                    failureReason = validationError;
+                    detail.markAsRetryFailed(validationError);
+                    failed++;
+                    log.warn("Retry failed for loan {} (detail {}): {}", detail.getLoanId(), detail.getId(), validationError);
+                } else {
+                    newStatus = "SUCCESS";
+                    detail.markAsRetrySuccess();
+                    successful++;
+                    log.info("Retry successful for loan {} (detail {})", detail.getLoanId(), detail.getId());
+                }
+            } catch (Exception e) {
+                newStatus = "FAILED";
+                failureReason = e.getMessage() != null ? e.getMessage().substring(0, Math.min(e.getMessage().length(), 500))
+                        : "Unknown error";
+                detail.markAsRetryFailed(failureReason);
+                failed++;
+                log.error("Retry error for loan {} (detail {}): {}", detail.getLoanId(), detail.getId(), failureReason, e);
+            }
+
+            // Save the updated detail
+            jobDetailRepository.save(detail);
+
+            // Build result entry
+            BulkForeclosureRetryResultData.RetryDetailResult retryResult = new BulkForeclosureRetryResultData.RetryDetailResult();
+            retryResult.setDetailId(detail.getId());
+            retryResult.setLoanId(detail.getLoanId());
+            retryResult.setLoanAccountNo(detail.getLoanAccountNo());
+            retryResult.setClientName(detail.getClientName());
+            retryResult.setPreviousStatus(previousStatus);
+            retryResult.setNewStatus(newStatus);
+            retryResult.setFailureReason(failureReason);
+            retryResult.setRetryCount(detail.getRetryCount());
+            results.add(retryResult);
+        }
+
+        // Update job counters
+        long totalSuccessful = jobDetailRepository.countSuccessfulByJob(job.getId());
+        long totalFailed = jobDetailRepository.countFailedByJob(job.getId());
+        job.setSuccessful((int) totalSuccessful);
+        job.setFailed((int) totalFailed);
+
+        // Update job status based on new totals
+        if (totalFailed == 0) {
+            job.setStatus("COMPLETED");
+        } else if (totalSuccessful == 0) {
+            job.setStatus("FAILED");
+        } else {
+            job.setStatus("COMPLETED"); // Partial success is still COMPLETED
+        }
+        jobRepository.save(job);
+
+        // Get user name
+        String userName = null;
+        if (userId != null) {
+            userName = appUserRepository.findById(userId).map(AppUser::getUsername).orElse(null);
+        }
+
+        // Build and return result
+        BulkForeclosureRetryResultData result = new BulkForeclosureRetryResultData();
+        result.setJobId(job.getJobId());
+        result.setStatus("COMPLETED");
+        result.setTotalRetried(failedDetails.size());
+        result.setSuccessful(successful);
+        result.setFailed(failed);
+        result.setRetriedOn(LocalDateTime.now(DateUtils.getDateTimeZoneOfTenant()));
+        result.setRetriedByUserId(userId);
+        result.setRetriedByUserName(userName);
+        result.setResults(results);
+
+        log.info("Retry completed for job {}: {} successful, {} failed out of {} total", job.getJobId(), successful, failed,
+                failedDetails.size());
+
+        return result;
     }
 }

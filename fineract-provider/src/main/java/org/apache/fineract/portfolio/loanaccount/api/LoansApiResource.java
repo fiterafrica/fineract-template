@@ -112,6 +112,7 @@ import org.apache.fineract.portfolio.group.service.GroupReadPlatformService;
 import org.apache.fineract.portfolio.interestratechart.data.InterestRateChartData;
 import org.apache.fineract.portfolio.interestratechart.service.InterestRateChartReadPlatformService;
 import org.apache.fineract.portfolio.loanaccount.data.BulkForeclosureJobData;
+import org.apache.fineract.portfolio.loanaccount.data.BulkForeclosureRetryResultData;
 import org.apache.fineract.portfolio.loanaccount.data.CollectionData;
 import org.apache.fineract.portfolio.loanaccount.data.DisbursementData;
 import org.apache.fineract.portfolio.loanaccount.data.GlimRepaymentTemplate;
@@ -277,6 +278,7 @@ public class LoansApiResource {
 
     private final LoanBulkForeclosureService loanBulkForeclosureService;
     private final DefaultToApiJsonSerializer<BulkForeclosureJobData> bulkForeclosureJobDataSerializer;
+    private final DefaultToApiJsonSerializer<BulkForeclosureRetryResultData> bulkForeclosureRetryResultDataSerializer;
 
     public LoansApiResource(final PlatformSecurityContext context, final LoanReadPlatformService loanReadPlatformService,
             final LoanProductReadPlatformService loanProductReadPlatformService,
@@ -306,7 +308,8 @@ public class LoansApiResource {
             DefaultToApiJsonSerializer<LoanTransactionData> loanTransactionApiJsonSerializer,
             DefaultToApiJsonSerializer<LoanForeclosureEligibleData> loanForeclosureEligibleDataDefaultToApiJsonSerializer,
             LoanBulkForeclosureService loanBulkForeclosureService,
-            DefaultToApiJsonSerializer<BulkForeclosureJobData> bulkForeclosureJobDataSerializer) {
+            DefaultToApiJsonSerializer<BulkForeclosureJobData> bulkForeclosureJobDataSerializer,
+            DefaultToApiJsonSerializer<BulkForeclosureRetryResultData> bulkForeclosureRetryResultDataSerializer) {
         this.context = context;
         this.loanReadPlatformService = loanReadPlatformService;
         this.loanProductReadPlatformService = loanProductReadPlatformService;
@@ -344,6 +347,7 @@ public class LoansApiResource {
         this.loanForeclosureEligibleDataDefaultToApiJsonSerializer = loanForeclosureEligibleDataDefaultToApiJsonSerializer;
         this.loanBulkForeclosureService = loanBulkForeclosureService;
         this.bulkForeclosureJobDataSerializer = bulkForeclosureJobDataSerializer;
+        this.bulkForeclosureRetryResultDataSerializer = bulkForeclosureRetryResultDataSerializer;
     }
 
     /*
