@@ -39,6 +39,7 @@ import java.util.Set;
 import javax.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.fineract.infrastructure.configuration.service.SupportedUrlService;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
