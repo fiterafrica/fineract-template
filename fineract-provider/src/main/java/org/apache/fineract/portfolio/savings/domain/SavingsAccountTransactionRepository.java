@@ -93,4 +93,15 @@ public interface SavingsAccountTransactionRepository
     @Query("select st from SavingsAccountTransaction st  where st.externalReference = :externalId")
     List<SavingsAccountTransaction> findByExternalIdSavingsTransaction(@Param("externalId") String externalId);
 
+    /**
+     * Check if a transaction with the given external reference already exists. Used to validate bulk upload Transaction
+     * Reference against External ID used in manual postings.
+     *
+     * @param externalReference
+     *            the external reference (External ID from manual postings)
+     * @return true if a transaction with this external reference exists, false otherwise
+     */
+    @Query("select case when count(sat) > 0 then true else false end from SavingsAccountTransaction sat where sat.externalReference = :externalReference")
+    boolean existsByExternalReference(@Param("externalReference") String externalReference);
+
 }
