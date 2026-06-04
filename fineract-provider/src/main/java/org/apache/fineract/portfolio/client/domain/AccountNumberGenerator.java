@@ -19,9 +19,9 @@
 package org.apache.fineract.portfolio.client.domain;
 
 import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.accountnumberformat.domain.AccountNumberFormat;
 import org.apache.fineract.infrastructure.accountnumberformat.domain.AccountNumberFormatEnumerations.AccountNumberPrefixType;
@@ -46,6 +46,7 @@ import org.springframework.stereotype.Component;
 public class AccountNumberGenerator {
 
     private static final int maxLength = 9;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private static final String ID = "id";
     private static final String ENTITY_TYPE = "entityType";
@@ -190,15 +191,19 @@ public class AccountNumberGenerator {
     }
 
     private String randomNumberGenerator(int accountMaxLength, Map<String, String> propertyMap) {
-        String randomNumber = RandomStringUtils.random(accountMaxLength, false, true); // NOSONAR
+        // Use SecureRandom for cryptographically secure random number generation
+        StringBuilder sb = new StringBuilder(accountMaxLength);
+        for (int i = 0; i < accountMaxLength; i++) {
+            sb.append(SECURE_RANDOM.nextInt(10));
+        }
+        String randomNumber = sb.toString();
 
         BigInteger accNumber = new BigInteger(randomNumber);
         if (accNumber.equals(BigInteger.ZERO)) { // to avoid account no. 00 in randomisation
             randomNumber = randomNumberGenerator(accountMaxLength, propertyMap);
         }
 
-        String accountNumber = randomNumber.substring(0, accountMaxLength);
-        return accountNumber;
+        return randomNumber.substring(0, accountMaxLength);
     }
 
     private Boolean checkAccountNumberConflict(Map<String, String> propertyMap, AccountNumberFormat accountNumberFormat,
