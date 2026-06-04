@@ -263,9 +263,16 @@ public class SavingsTransactionImportHandler implements ImportHandler {
                     throw new RuntimeException("Duplicate Transaction Reference '" + transactionReference + "' found in upload file");
                 }
 
-                // Check for duplicate in completed transactions in database
+                // Check for duplicate in completed transactions in database (ref_no field from bulk uploads)
                 if (savingsAccountTransactionRepository.existsByRefNo(transactionReference)) {
                     throw new RuntimeException("Transaction with Reference '" + transactionReference + "' already exists in the system");
+                }
+
+                // Check for duplicate against External ID field used in manual postings
+                // This ensures consistency and prevents duplicate postings across different channels
+                if (savingsAccountTransactionRepository.existsByExternalReference(transactionReference)) {
+                    throw new RuntimeException("Transaction with Reference '" + transactionReference
+                            + "' already exists as an External ID from a manual posting");
                 }
 
                 // Check for duplicate in pending commands (maker-checker awaiting approval)
