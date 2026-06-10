@@ -29,7 +29,29 @@
 	baseURL = "";
 	defQueryParams = "tenantIdentifier=default&pretty=true";
 
+	function sanitizeApiLink(apiLink) {
+		if (!apiLink) {
+			return null;
+		}
+		var link = $.trim(apiLink);
+		var lower = link.toLowerCase();
+
+		// Prevent scriptable/absolute URLs; this page should only navigate to relative API paths.
+		if (lower.indexOf("javascript:") === 0 || lower.indexOf("data:") === 0
+				|| lower.indexOf("vbscript:") === 0 || lower.indexOf("//") === 0
+				|| lower.indexOf("http://") === 0 || lower.indexOf("https://") === 0) {
+			return null;
+		}
+
+		return link;
+	}
+
 	function clickAPILink(apiLink) {
+
+	    apiLink = sanitizeApiLink(apiLink);
+		if (!apiLink)
+			return;
+
 		var currentLink = baseURL + apiLink;
 		if (apiLink.indexOf("?") < 0)
 			currentLink += "?" + defQueryParams;
@@ -46,6 +68,10 @@
 	}
 
 	function clickAPILinkNotPretty(apiLink) {
+	    apiLink = sanitizeApiLink(apiLink);
+		if (!apiLink)
+			return;
+
 		var fixedQueryParams = "tenantIdentifier=default";
 		var currentLink = baseURL + apiLink;
 		if (apiLink.indexOf("?") < 0)
