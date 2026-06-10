@@ -1,5 +1,9 @@
 name: Fineract Spotless Check
 
+# Added permissions block to enforce least privilege
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches:
