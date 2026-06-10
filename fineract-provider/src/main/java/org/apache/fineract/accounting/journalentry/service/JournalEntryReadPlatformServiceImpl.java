@@ -336,12 +336,17 @@ public class JournalEntryReadPlatformServiceImpl implements JournalEntryReadPlat
         }
 
         if (searchParameters.isOrderByRequested()) {
-            this.columnValidator.validateSqlInjection(sqlBuilder.toString(), searchParameters.getOrderBy());
-            sqlBuilder.append(" order by ").append(searchParameters.getOrderBy());
+            final String orderBy = searchParameters.getOrderBy();
+            // Validate orderBy against allowlist of valid journal entry columns
+            this.columnValidator.validateSqlInjection("journalEntry.id,journalEntry.entry_date,journalEntry.transaction_id,"
+                    + "journalEntry.office_id,journalEntry.gl_account_id,journalEntry.amount,journalEntry.created_date", orderBy);
+            sqlBuilder.append(" order by ").append(orderBy);
 
             if (searchParameters.isSortOrderProvided()) {
-                this.columnValidator.validateSqlInjection(sqlBuilder.toString(), searchParameters.getOrderBy());
-                sqlBuilder.append(' ').append(searchParameters.getSortOrder());
+                final String sortOrder = searchParameters.getSortOrder();
+                // Validate sortOrder against allowlist (ASC/DESC only)
+                this.columnValidator.validateSqlInjection("ASC,DESC", sortOrder);
+                sqlBuilder.append(' ').append(sortOrder);
             }
         } else {
             sqlBuilder.append(" order by journalEntry.entry_date, journalEntry.id");
