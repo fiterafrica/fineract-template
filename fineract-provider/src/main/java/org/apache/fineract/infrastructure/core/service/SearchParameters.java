@@ -121,8 +121,10 @@ public final class SearchParameters {
         final Long staffId = null;
         final Boolean orphansOnly = false;
         final boolean isSelfUser = false;
+        final String safeOrderBy = getAllowedJournalEntryOrderBy(orderBy);
+        final String safeSortOrder = getAllowedSortOrder(sortOrder);
 
-        return new SearchParameters(null, officeId, null, null, null, null, null, offset, maxLimitAllowed, orderBy, sortOrder, staffId,
+        return new SearchParameters(null, officeId, null, null, null, null, null, offset, maxLimitAllowed, safeOrderBy, safeSortOrder, staffId,
                 null, loanId, savingsId, orphansOnly, isSelfUser);
     }
 
@@ -131,8 +133,10 @@ public final class SearchParameters {
         final Integer maxLimitAllowed = getCheckedLimit(limit);
         final Long staffId = null;
         final Boolean orphansOnly = false;
+        final String safeOrderBy = getAllowedJournalEntryOrderBy(orderBy);
+        final String safeSortOrder = getAllowedSortOrder(sortOrder);
 
-        return new SearchParameters(null, officeId, null, null, null, null, null, offset, maxLimitAllowed, orderBy, sortOrder, staffId,
+        return new SearchParameters(null, officeId, null, null, null, null, null, offset, maxLimitAllowed, safeOrderBy, safeSortOrder, staffId,
                 null, loanId, savingsId, orphansOnly, currencyCode);
     }
 
@@ -578,5 +582,38 @@ public final class SearchParameters {
 
     public String getClientType() {
         return clientType;
+    }
+
+    /**
+     * Validates and returns the orderBy column for journal entries against an allowlist.
+     * Returns null if the input is blank or not in the allowlist.
+     */
+    private static String getAllowedJournalEntryOrderBy(final String orderBy) {
+        if (StringUtils.isBlank(orderBy)) {
+            return null;
+        }
+        final String normalized = StringUtils.trim(orderBy);
+        if ("journalEntry.id".equals(normalized) || "journalEntry.entry_date".equals(normalized)
+                || "journalEntry.transaction_id".equals(normalized) || "journalEntry.office_id".equals(normalized)
+                || "journalEntry.gl_account_id".equals(normalized) || "journalEntry.amount".equals(normalized)
+                || "journalEntry.created_date".equals(normalized)) {
+            return normalized;
+        }
+        return null;
+    }
+
+    /**
+     * Validates and returns the sortOrder against an allowlist (ASC/DESC only).
+     * Returns null if the input is blank or not in the allowlist.
+     */
+    private static String getAllowedSortOrder(final String sortOrder) {
+        if (StringUtils.isBlank(sortOrder)) {
+            return null;
+        }
+        final String normalized = StringUtils.upperCase(StringUtils.trim(sortOrder));
+        if ("ASC".equals(normalized) || "DESC".equals(normalized)) {
+            return normalized;
+        }
+        return null;
     }
 }
