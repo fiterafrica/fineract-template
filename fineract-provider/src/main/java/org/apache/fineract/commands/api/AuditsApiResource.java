@@ -45,6 +45,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.commands.data.AuditData;
 import org.apache.fineract.commands.data.AuditSearchData;
 import org.apache.fineract.commands.service.AuditReadPlatformService;
@@ -113,7 +114,9 @@ public class AuditsApiResource {
             @QueryParam("sortOrder") @Parameter(description = "sortOrder") final String sortOrder) {
 
         this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
-        final PaginationParameters parameters = PaginationParameters.instance(paged, offset, limit, orderBy, sortOrder);
+        final String safeOrderBy = getAllowedAuditOrderBy(orderBy);
+        final String safeSortOrder = getAllowedSortOrder(sortOrder);
+        final PaginationParameters parameters = PaginationParameters.instance(paged, offset, limit, safeOrderBy, safeSortOrder);
         final SQLBuilder extraCriteria = getExtraCriteria(actionName, entityName, resourceId, makerId, makerDateTimeFrom, makerDateTimeTo,
                 checkerId, checkerDateTimeFrom, checkerDateTimeTo, processingResult, officeId, groupId, clientId, loanId, savingsAccountId);
 
@@ -216,5 +219,39 @@ public class AuditsApiResource {
         extraCriteria.addNonNullBetweenCriteria("aud.made_on_date", makerFromDateTime, makerToDateTime);
 
         return extraCriteria;
+    }
+
+    /**
+     * Validates and returns the orderBy column for audits against an allowlist.
+     * Returns null if the input is blank or not in the allowlist.
+     */
+    private String getAllowedAuditOrderBy(final String orderBy) {
+        if (StringUtils.isBlank(orderBy)) {
+            return null;
+        }
+        final String normalized = StringUtils.trim(orderBy);
+        if ("id".equals(normalized) || "action_name".equals(normalized) || "entity_name".equals(normalized)
+                || "resource_id".equals(normalized) || "maker_id".equals(normalized) || "made_on_date".equals(normalized)
+                || "checker_id".equals(normalized) || "checked_on_date".equals(normalized) || "processing_result_enum".equals(normalized)
+                || "office_id".equals(normalized) || "group_id".equals(normalized) || "client_id".equals(normalized)
+                || "loan_id".equals(normalized) || "savings_account_id".equals(normalized)) {
+            return normalized;
+        }
+        return null;
+    }
+
+    /**
+     * Validates and returns the sortOrder against an allowlist (ASC/DESC only).
+     * Returns null if the input is blank or not in the allowlist.
+     */
+    private String getAllowedSortOrder(final String sortOrder) {
+        if (StringUtils.isBlank(sortOrder)) {
+            return null;
+        }
+        final String normalized = StringUtils.upperCase(StringUtils.trim(sortOrder));
+        if ("ASC".equals(normalized) || "DESC".equals(normalized)) {
+            return normalized;
+        }
+        return null;
     }
 }
