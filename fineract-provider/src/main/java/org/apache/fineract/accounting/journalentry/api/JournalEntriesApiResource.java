@@ -135,7 +135,9 @@ public class JournalEntriesApiResource {
             toDate = toDateParam.getDate("toDate", dateFormat, locale);
         }
 
-        final SearchParameters searchParameters = SearchParameters.forJournalEntries(officeId, offset, limit, orderBy, sortOrder, loanId,
+        final String safeOrderBy = getAllowedJournalEntryOrderBy(orderBy);
+        final String safeSortOrder = getAllowedSortOrder(sortOrder);
+        final SearchParameters searchParameters = SearchParameters.forJournalEntries(officeId, offset, limit, safeOrderBy, safeSortOrder, loanId,
                 savingsId);
         JournalEntryAssociationParametersData associationParametersData = new JournalEntryAssociationParametersData(transactionDetails,
                 runningBalance);
@@ -277,5 +279,40 @@ public class JournalEntriesApiResource {
         final Long importDocumentId = this.bulkImportWorkbookService.importWorkbook(GlobalEntityType.GL_JOURNAL_ENTRIES.toString(),
                 uploadedInputStream, fileDetail, locale, dateFormat);
         return this.apiJsonSerializerService.serialize(importDocumentId);
+    }
+
+    /**
+     * Validates and returns the orderBy column for journal entries against an allowlist.
+     * Returns null if the input is blank or not in the allowlist.
+     */
+    private String getAllowedJournalEntryOrderBy(final String orderBy) {
+        if (StringUtils.isBlank(orderBy)) {
+            return null;
+        }
+        final String normalized = StringUtils.trim(orderBy);
+        if ("id".equals(normalized) || "entry_date".equals(normalized) || "transaction_id".equals(normalized)
+                || "office_id".equals(normalized) || "gl_account_id".equals(normalized) || "amount".equals(normalized)
+                || "created_date".equals(normalized) || "journalEntry.id".equals(normalized)
+                || "journalEntry.entry_date".equals(normalized) || "journalEntry.transaction_id".equals(normalized)
+                || "journalEntry.office_id".equals(normalized) || "journalEntry.gl_account_id".equals(normalized)
+                || "journalEntry.amount".equals(normalized) || "journalEntry.created_date".equals(normalized)) {
+            return normalized;
+        }
+        return null;
+    }
+
+    /**
+     * Validates and returns the sortOrder against an allowlist (ASC/DESC only).
+     * Returns null if the input is blank or not in the allowlist.
+     */
+    private String getAllowedSortOrder(final String sortOrder) {
+        if (StringUtils.isBlank(sortOrder)) {
+            return null;
+        }
+        final String normalized = StringUtils.upperCase(StringUtils.trim(sortOrder));
+        if ("ASC".equals(normalized) || "DESC".equals(normalized)) {
+            return normalized;
+        }
+        return null;
     }
 }
