@@ -1,0 +1,7 @@
+extensions:
+  - addsTo:
+      pack: codeql/java-all
+      extensible: taintSanitizer
+    data:
+      # [Package, Class, Method, Signature, Ext, Kind]
+      - ["org.apache.fineract.infrastructure.security.utils", "ColumnValidator", "validateSqlInjection", "(String, String[])", "", "sql"]
