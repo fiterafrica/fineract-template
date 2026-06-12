@@ -1,4 +1,0 @@
-name: "Fineract Custom Configuration"
-packs:
-  # Points to the local directory containing your custom models
-  - ./.github/codeql/custom-models
