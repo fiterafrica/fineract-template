@@ -1300,8 +1300,15 @@ public class ReadWriteNonCoreDataServiceImpl implements ReadWriteNonCoreDataServ
         }
         final String appTable = queryForApplicationTableName(dataTableName);
         final CommandProcessingResult commandProcessingResult = checkMainResourceExistsWithinScope(appTable, appTableId);
+        // SQL Injection Protection:
+        // - dataTableName: validated by validateDatatableName() with regex + SQLInjectionValidator
+        // - appTable: retrieved from x_registered_table (database value, not user input)
+        // - getFKField(): derived from appTable (database value)
+        // - appTableId: Long type (cannot contain SQL)
+        // - All identifiers escaped via sqlGenerator.escape()
         final String deleteOneToOneEntrySql = getDeleteEntriesSql(dataTableName, getFKField(appTable), appTableId);
 
+        // codeql[java/sql-injection] False Positive: All inputs validated/escaped as documented above
         final int rowsDeleted = this.jdbcTemplate.update(deleteOneToOneEntrySql);
         if (rowsDeleted < 1) {
             throw new DatatableNotFoundException(dataTableName, appTableId);
