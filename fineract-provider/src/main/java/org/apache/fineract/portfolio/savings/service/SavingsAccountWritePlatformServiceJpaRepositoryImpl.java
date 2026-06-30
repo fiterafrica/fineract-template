@@ -516,6 +516,11 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
         final SavingsAccountTransaction withdrawal = this.savingsAccountDomainService.handleWithdrawal(account, fmt, transactionDate,
                 transactionAmount, paymentDetail, transactionBooleanValues, backdatedTxnsAllowedTill, isAccountTransfer, null);
 
+        // Set external reference if provided (for both manual and bulk import transactions)
+        if (StringUtils.isNotBlank(txnExternalId)) {
+            withdrawal.updateExternalReference(txnExternalId);
+        }
+
         if (isGsim && (withdrawal.getId() != null)) {
 
             validateValtTribeTransactionShouldNotBeBeforeExistingTransaction(transactionDate, account);
