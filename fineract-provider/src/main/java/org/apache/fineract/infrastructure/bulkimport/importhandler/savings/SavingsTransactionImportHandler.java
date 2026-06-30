@@ -61,6 +61,7 @@ public class SavingsTransactionImportHandler implements ImportHandler {
     private Workbook workbook;
     private List<SavingsAccountTransactionData> savingsTransactions;
     private List<String> transactionReferences;
+    private List<String> transactionNotes;
 
     private final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService;
     private final SavingsAccountTransactionRepository savingsAccountTransactionRepository;
@@ -82,6 +83,7 @@ public class SavingsTransactionImportHandler implements ImportHandler {
         this.workbook = workbook;
         this.savingsTransactions = new ArrayList<>();
         this.transactionReferences = new ArrayList<>();
+        this.transactionNotes = new ArrayList<>();
 
         try {
             readExcelFile(locale, dateFormat);
@@ -143,6 +145,9 @@ public class SavingsTransactionImportHandler implements ImportHandler {
                     // Read and store transaction reference for duplicate checking
                     String transactionReference = ImportHandlerUtils.readAsString(TransactionConstants.TRANSACTION_REFERENCE_COL, row);
                     transactionReferences.add(transactionReference);
+                    // Read and store notes separately
+                    String note = ImportHandlerUtils.readAsString(TransactionConstants.NOTES_COL, row);
+                    transactionNotes.add(note);
 
                 } catch (RuntimeException ex) {
 
@@ -151,6 +156,7 @@ public class SavingsTransactionImportHandler implements ImportHandler {
                     // Add null to keep indices aligned, will be handled in importEntity
                     savingsTransactions.add(null);
                     transactionReferences.add(null);
+                    transactionNotes.add(null);
                     // Write error to the row - ensure row exists
                     Row errorRow = savingsTransactionSheet.getRow(rowIndex);
                     if (errorRow == null) {
@@ -245,6 +251,7 @@ public class SavingsTransactionImportHandler implements ImportHandler {
         for (int i = 0; i < savingsTransactions.size(); i++) {
             SavingsAccountTransactionData transaction = savingsTransactions.get(i);
             String transactionReference = transactionReferences.get(i);
+            String note = transactionNotes.get(i);
 
             // Skip transactions that had errors during reading (null entries)
             if (transaction == null) {
@@ -290,8 +297,14 @@ public class SavingsTransactionImportHandler implements ImportHandler {
                 savingsTransactionJsonob.remove("lienTransaction");
                 savingsTransactionJsonob.remove("chargesPaidByData");
 
-                // Add transaction reference to payload
+                // Add transaction reference to payload for duplicate checking
                 savingsTransactionJsonob.addProperty("refNo", transactionReference);
+                // Add externalReference for display in Transaction Details (External ID field)
+                savingsTransactionJsonob.addProperty("externalReference", transactionReference);
+                // Add note for display in Transaction Details (Notes field) - use separate notes column if provided
+                if (note != null && !note.trim().isEmpty()) {
+                    savingsTransactionJsonob.addProperty("note", note);
+                }
 
                 String payload = savingsTransactionJsonob.toString();
 

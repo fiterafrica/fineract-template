@@ -235,6 +235,7 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
         worksheet.setColumnWidth(TransactionConstants.RECEIPT_NO_COL, 3000);
         worksheet.setColumnWidth(TransactionConstants.BANK_NO_COL, 3000);
         worksheet.setColumnWidth(TransactionConstants.TRANSACTION_REFERENCE_COL, 5000);
+        worksheet.setColumnWidth(TransactionConstants.NOTES_COL, 5000);
         worksheet.setColumnWidth(TransactionConstants.STATUS_COL, 4000);
         worksheet.setColumnWidth(TransactionConstants.LOOKUP_CLIENT_NAME_COL, 5000);
         worksheet.setColumnWidth(TransactionConstants.LOOKUP_ACCOUNT_NO_COL, 3000);
@@ -279,6 +280,7 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
         writeString(TransactionConstants.RECEIPT_NO_COL, rowHeader, "Receipt No");
         writeString(TransactionConstants.BANK_NO_COL, rowHeader, "Bank No");
         writeString(TransactionConstants.TRANSACTION_REFERENCE_COL, rowHeader, "Transaction Reference*");
+        writeString(TransactionConstants.NOTES_COL, rowHeader, "Notes");
         writeString(TransactionConstants.STATUS_COL, rowHeader, "Status");
         writeString(TransactionConstants.LOOKUP_CLIENT_NAME_COL, rowHeader, "Lookup Client");
         writeString(TransactionConstants.LOOKUP_ACCOUNT_NO_COL, rowHeader, "Lookup Account");
@@ -288,3 +290,4 @@ public class SavingsTransactionsWorkbookPopulator extends AbstractWorkbookPopula
         writeString(TransactionConstants.LOOKUP_SAVINGS_ID_COL, rowHeader, "Lookup Savings ID");
     }
 }
+
