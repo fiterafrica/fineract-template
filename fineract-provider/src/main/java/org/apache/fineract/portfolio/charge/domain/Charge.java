@@ -160,6 +160,9 @@ public class Charge extends AbstractPersistableCustom {
     @Column(name = "is_grace_extention", nullable = false)
     private boolean isGraceExtention;
 
+    @Column(name = "is_cli_charge", nullable = false)
+    private boolean isCLICharge;
+
     @OneToMany(mappedBy = "charge", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<ChargeSlab> chargeSlabs = new HashSet<>();
 
@@ -213,11 +216,12 @@ public class Charge extends AbstractPersistableCustom {
         }
 
         final Integer maxOccurrence = command.integerValueOfParameterNamed("maxOccurrence");
+        final boolean isCLICharge = command.booleanPrimitiveValueOfParameterNamed("isCLICharge");
 
         return new Charge(name, amount, currencyCode, chargeAppliesTo, chargeTimeType, chargeCalculationType, penalty, active, paymentMode,
                 feeOnMonthDay, feeInterval, minCap, maxCap, feeFrequency, enableFreeWithdrawalCharge, freeWithdrawalFrequency,
                 restartCountFrequency, countFrequencyType, account, taxGroup, enablePaymentType, paymentType, minAmount, maxAmount,
-                chargeVarying, maxOccurrence, isGraceExtention);
+                chargeVarying, maxOccurrence, isGraceExtention, isCLICharge);
     }
 
     protected Charge() {}
@@ -229,7 +233,7 @@ public class Charge extends AbstractPersistableCustom {
             final Integer freeWithdrawalFrequency, final Integer restartFrequency, final PeriodFrequencyType restartFrequencyEnum,
             final GLAccount account, final TaxGroup taxGroup, final boolean enablePaymentType, final PaymentType paymentType,
             final BigDecimal minAmount, final BigDecimal maxAmount, Boolean hasVaryingCharge, Integer maxOccurrence,
-            boolean isGraceExtention) {
+            boolean isGraceExtention, boolean isCLICharge) {
         this.name = name;
         this.amount = amount;
         this.minAmount = minAmount;
@@ -324,6 +328,7 @@ public class Charge extends AbstractPersistableCustom {
         }
         this.hasVaryingCharge = hasVaryingCharge;
         this.maxOccurrence = maxOccurrence;
+        this.isCLICharge = isCLICharge;
     }
 
     public String getName() {
@@ -682,6 +687,13 @@ public class Charge extends AbstractPersistableCustom {
             this.isGraceExtention = newValue;
         }
 
+        final String isCLIChargeParamName = "isCLICharge";
+        if (command.isChangeInBooleanParameterNamed(isCLIChargeParamName, this.isCLICharge)) {
+            final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(isCLIChargeParamName);
+            actualChanges.put(isCLIChargeParamName, newValue);
+            this.isCLICharge = newValue;
+        }
+
         final String activeParamName = "active";
         if (command.isChangeInBooleanParameterNamed(activeParamName, this.active)) {
             final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(activeParamName);
@@ -774,7 +786,7 @@ public class Charge extends AbstractPersistableCustom {
                 chargePaymentmode, getFeeOnMonthDay(), this.feeInterval, this.penalty, this.active, this.enableFreeWithdrawal,
                 this.freeWithdrawalFrequency, this.restartFrequency, this.restartFrequencyEnum, this.enablePaymentType, paymentTypeData,
                 this.minCap, this.maxCap, feeFrequencyType, accountData, taxGroupData, this.minAmount, this.maxAmount,
-                this.hasVaryingCharge, null, this.isGraceExtention);
+                this.hasVaryingCharge, this.maxOccurrence, this.isGraceExtention, this.isCLICharge);
     }
 
     public void updateChargeSlabs(JsonCommand command, final Map<String, Object> actualChanges,
@@ -992,5 +1004,13 @@ public class Charge extends AbstractPersistableCustom {
 
     public void setGraceExtention(boolean graceExtention) {
         isGraceExtention = graceExtention;
+    }
+
+    public boolean isCLICharge() {
+        return isCLICharge;
+    }
+
+    public void setCLICharge(boolean cliCharge) {
+        isCLICharge = cliCharge;
     }
 }

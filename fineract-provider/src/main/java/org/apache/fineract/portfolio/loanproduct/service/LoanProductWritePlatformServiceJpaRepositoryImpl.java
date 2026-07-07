@@ -62,6 +62,8 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionProcessin
 import org.apache.fineract.portfolio.loanaccount.exception.LoanTransactionProcessingStrategyNotFoundException;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.AprCalculator;
 import org.apache.fineract.portfolio.loanproduct.LoanProductConstants;
+import org.apache.fineract.portfolio.loanproduct.domain.CLIChargeSlab;
+import org.apache.fineract.portfolio.loanproduct.domain.CLIChargeSlabRepository;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProduct;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProductRepository;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanTransactionProcessingStrategy;
@@ -107,6 +109,8 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
 
     private final CodeValueRepositoryWrapper codeValueRepository;
 
+    private final CLIChargeSlabRepository cliChargeSlabRepository;
+
     @Autowired
     public LoanProductWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
             final LoanProductDataValidator fromApiJsonDeserializer, final LoanProductRepository loanProductRepository,
@@ -117,7 +121,7 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
             final FineractEntityAccessUtil fineractEntityAccessUtil, final FloatingRateRepositoryWrapper floatingRateRepository,
             final LoanRepositoryWrapper loanRepositoryWrapper, final BusinessEventNotifierService businessEventNotifierService,
             DepositProductAssembler depositProductAssembler, InterestRateChartAssembler chartAssembler,
-            CodeValueRepositoryWrapper codeValueRepository) {
+            CodeValueRepositoryWrapper codeValueRepository, CLIChargeSlabRepository cliChargeSlabRepository) {
         this.context = context;
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
         this.loanProductRepository = loanProductRepository;
@@ -134,6 +138,7 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
         this.depositProductAssembler = depositProductAssembler;
         this.chartAssembler = chartAssembler;
         this.codeValueRepository = codeValueRepository;
+        this.cliChargeSlabRepository = cliChargeSlabRepository;
     }
 
     @Transactional
@@ -176,6 +181,9 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
             loanProduct.setCharts(charts);
 
             this.loanProductRepository.saveAndFlush(loanProduct);
+
+            // Handle CLI charge slabs
+            assembleCLIChargeSlabs(command, loanProduct);
 
             // save accounting mappings
             this.accountMappingWritePlatformService.createLoanProductToGLAccountMapping(loanProduct.getId(), command);
@@ -246,6 +254,7 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
 
             final Map<String, Object> changes = product.update(command, this.aprCalculator, floatingRate);
             this.updateCharts(command, changes, product);
+            this.updateCLIChargeSlabs(command, product, changes);
             if (changes.containsKey("fundId")) {
                 final Long fundId = (Long) changes.get("fundId");
                 final Fund fund = findFundByIdIfProvided(fundId);
@@ -486,5 +495,71 @@ public class LoanProductWritePlatformServiceJpaRepositoryImpl implements LoanPro
                     productTypeId);
         }
         return productType;
+    }
+
+    /**
+     * Assemble and save CLI (Credit Life Insurance) charge slabs from JSON command.
+     * Expected JSON format in request:
+     * {
+     *   "cliChargeSlabs": [
+     *     {
+     *       "chargeId": 1,
+     *       "slabs": [
+     *         { "fromPeriod": 1, "toPeriod": 6, "amountRangeTo": 100000000, "rate": 0.9 },
+     *         { "fromPeriod": 7, "toPeriod": 12, "amountRangeTo": 100000000, "rate": 1.0 },
+     *         { "fromPeriod": 13, "toPeriod": 24, "amountRangeTo": 100000000, "rate": 1.2 }
+     *       ]
+     *     }
+     *   ]
+     * }
+     */
+    private void assembleCLIChargeSlabs(JsonCommand command, LoanProduct loanProduct) {
+        if (!command.parameterExists("cliChargeSlabs")) {
+            return;
+        }
+
+        // Delete existing CLI slabs for this loan product
+        this.cliChargeSlabRepository.deleteByLoanProductId(loanProduct.getId());
+
+        final JsonArray cliChargeSlabsArray = command.arrayOfParameterNamed("cliChargeSlabs");
+        if (cliChargeSlabsArray == null || cliChargeSlabsArray.size() == 0) {
+            return;
+        }
+
+        List<CLIChargeSlab> allSlabs = new ArrayList<>();
+
+        for (int i = 0; i < cliChargeSlabsArray.size(); i++) {
+            final JsonObject cliChargeObj = cliChargeSlabsArray.get(i).getAsJsonObject();
+
+            if (!cliChargeObj.has("chargeId")) {
+                continue;
+            }
+
+            final Long chargeId = cliChargeObj.get("chargeId").getAsLong();
+            final Charge charge = this.chargeRepository.findOneWithNotFoundDetection(chargeId);
+
+            if (cliChargeObj.has("slabs") && cliChargeObj.get("slabs").isJsonArray()) {
+                final JsonArray slabsArray = cliChargeObj.getAsJsonArray("slabs");
+                List<CLIChargeSlab> slabs = CLIChargeSlab.assembleFrom(slabsArray, loanProduct, charge);
+                allSlabs.addAll(slabs);
+            }
+        }
+
+        if (!allSlabs.isEmpty()) {
+            this.cliChargeSlabRepository.saveAll(allSlabs);
+        }
+    }
+
+    /**
+     * Update CLI charge slabs for an existing loan product
+     */
+    private void updateCLIChargeSlabs(JsonCommand command, LoanProduct loanProduct, Map<String, Object> actualChanges) {
+        if (!command.parameterExists("cliChargeSlabs")) {
+            return;
+        }
+
+        // Reassemble CLI slabs (delete and recreate)
+        assembleCLIChargeSlabs(command, loanProduct);
+        actualChanges.put("cliChargeSlabs", "updated");
     }
 }

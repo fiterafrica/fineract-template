@@ -209,6 +209,9 @@ public class LoanProductData implements Serializable {
     private Collection<InterestRateChartData> interestRateCharts;
     private InterestRateChartData activeChart;
 
+    // CLI (Credit Life Insurance) charge slabs
+    private Collection<CLIChargeSlabData> cliChargeSlabs;
+
     private Boolean isBnplLoanProduct;
     private Boolean requiresEquityContribution;
     private BigDecimal equityContributionLoanPercentage;
@@ -1468,5 +1471,13 @@ public class LoanProductData implements Serializable {
 
     public Long getProductCategoryId() {
         return productCategoryId;
+    }
+
+    public Collection<CLIChargeSlabData> getCliChargeSlabs() {
+        return cliChargeSlabs;
+    }
+
+    public void setCliChargeSlabs(Collection<CLIChargeSlabData> cliChargeSlabs) {
+        this.cliChargeSlabs = cliChargeSlabs;
     }
 }

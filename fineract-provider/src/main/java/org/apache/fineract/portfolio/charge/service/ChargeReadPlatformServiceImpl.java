@@ -295,7 +295,7 @@ public class ChargeReadPlatformServiceImpl implements ChargeReadPlatformService 
 
         public String chargeSchema() {
             return "c.id as id, c.name as name, c.amount as amount, c.currency_code as currencyCode, "
-                    + "c.is_grace_extention as isGraceExtension, "
+                    + "c.is_grace_extention as isGraceExtension, c.is_cli_charge as isCLICharge, "
                     + "c.charge_applies_to_enum as chargeAppliesTo, c.charge_time_enum as chargeTime, "
                     + "c.charge_payment_mode_enum as chargePaymentMode, " + "c.max_occurrence as maxOccurrence, "
                     + "c.charge_calculation_enum as chargeCalculation, c.is_penalty as penalty, "
@@ -398,6 +398,7 @@ public class ChargeReadPlatformServiceImpl implements ChargeReadPlatformService 
 
             final String paymentTypeName = rs.getString("paymentTypeName");
             final boolean isGraceExtension = rs.getBoolean("isGraceExtension");
+            final boolean isCLICharge = rs.getBoolean("isCLICharge");
             final Boolean varyAmounts = rs.getBoolean("varyAmounts");
             PaymentTypeData paymentTypeData = null;
             if (paymentTypeId != null) {
@@ -408,7 +409,7 @@ public class ChargeReadPlatformServiceImpl implements ChargeReadPlatformService 
             return ChargeData.instance(id, name, amount, currency, chargeTimeType, chargeAppliesToType, chargeCalculationType,
                     chargePaymentMode, feeOnMonthDay, feeInterval, penalty, active, isFreeWithdrawal, freeWithdrawalChargeFrequency,
                     restartFrequency, restartFrequencyEnum, isPaymentType, paymentTypeData, minCap, maxCap, feeFrequencyType, glAccountData,
-                    taxGroupData, minAmount, maxAmount, varyAmounts, maxOccurrence, isGraceExtension);
+                    taxGroupData, minAmount, maxAmount, varyAmounts, maxOccurrence, isGraceExtension, isCLICharge);
         }
     }
 

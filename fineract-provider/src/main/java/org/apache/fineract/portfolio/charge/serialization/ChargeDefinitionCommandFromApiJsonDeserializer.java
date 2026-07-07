@@ -61,7 +61,7 @@ public final class ChargeDefinitionCommandFromApiJsonDeserializer {
             "enableFreeWithdrawalCharge", "freeWithdrawalFrequency", "restartCountFrequency", "countFrequencyType", "paymentTypeId",
             "enablePaymentType", "minAmount", "maxAmount", "maxOccurrence", "chart", ChargesApiConstants.glAccountIdParamName,
             ChargesApiConstants.taxGroupIdParamName, ChargesApiConstants.graceExtensionParamName,
-            ChargesApiConstants.graceExtensionDaysParamName));
+            ChargesApiConstants.graceExtensionDaysParamName, ChargesApiConstants.isCLIChargeParamName));
 
     private final FromJsonHelper fromApiJsonHelper;
 

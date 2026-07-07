@@ -155,4 +155,7 @@ public interface LoanProductConstants {
     String LOAN_PRODUCT_CATEGORY = "productCategoryId";
 
     String LOAN_PRODUCT_TYPE = "productTypeId";
+
+    // CLI (Credit Life Insurance) Charge Slabs
+    String CLI_CHARGE_SLABS_PARAM_NAME = "cliChargeSlabs";
 }

@@ -140,9 +140,11 @@ import org.apache.fineract.portfolio.loanaccount.service.LoanBulkForeclosureServ
 import org.apache.fineract.portfolio.loanaccount.service.LoanChargeReadPlatformService;
 import org.apache.fineract.portfolio.loanaccount.service.LoanReadPlatformService;
 import org.apache.fineract.portfolio.loanproduct.LoanProductConstants;
+import org.apache.fineract.portfolio.loanproduct.data.CLIChargeSlabData;
 import org.apache.fineract.portfolio.loanproduct.data.LoanProductData;
 import org.apache.fineract.portfolio.loanproduct.data.TransactionProcessingStrategyData;
 import org.apache.fineract.portfolio.loanproduct.domain.InterestMethod;
+import org.apache.fineract.portfolio.loanproduct.service.CLIChargeSlabReadPlatformService;
 import org.apache.fineract.portfolio.loanproduct.service.LoanDropdownReadPlatformService;
 import org.apache.fineract.portfolio.loanproduct.service.LoanProductReadPlatformService;
 import org.apache.fineract.portfolio.note.data.NoteData;
@@ -232,7 +234,8 @@ public class LoansApiResource {
             "isFloatingInterestRate", "interestRatesPeriods", LoanApiConstants.canUseForTopup, LoanApiConstants.isTopup,
             LoanApiConstants.loanIdToClose, LoanApiConstants.topupAmount, LoanApiConstants.clientActiveLoanOptions,
             LoanApiConstants.datatables, LoanProductConstants.RATES_PARAM_NAME, LoanApiConstants.MULTIDISBURSE_DETAILS_PARAMNAME,
-            LoanApiConstants.EMI_AMOUNT_VARIATIONS_PARAMNAME, LoanApiConstants.COLLECTION_PARAMNAME, "linkedVendorAccount"));
+            LoanApiConstants.EMI_AMOUNT_VARIATIONS_PARAMNAME, LoanApiConstants.COLLECTION_PARAMNAME, "linkedVendorAccount",
+            "cliChargeSlabs"));
 
     private final Set<String> loanApprovalDataParameters = new HashSet<>(Arrays.asList("approvalDate", "approvalAmount"));
     final Set<String> glimAccountsDataParameters = new HashSet<>(Arrays.asList("glimId", "groupId", "clientId", "parentLoanAccountNo",
@@ -271,6 +274,7 @@ public class LoansApiResource {
     private final GLIMAccountInfoReadPlatformService glimAccountInfoReadPlatformService;
     private final LoanCollateralManagementReadPlatformService loanCollateralManagementReadPlatformService;
     private final InterestRateChartReadPlatformService chartReadPlatformService;
+    private final CLIChargeSlabReadPlatformService cliChargeSlabReadPlatformService;
     private final ClientReadPlatformService clientReadPlatformService;
     private final DefaultToApiJsonSerializer<LoanForeclosureEligibleData> loanForeclosureEligibleDataDefaultToApiJsonSerializer;
 
@@ -305,6 +309,7 @@ public class LoansApiResource {
             final GLIMAccountInfoReadPlatformService glimAccountInfoReadPlatformService,
             final LoanCollateralManagementReadPlatformService loanCollateralManagementReadPlatformService,
             final ClientReadPlatformService clientReadPlatformService, InterestRateChartReadPlatformService chartReadPlatformService,
+            CLIChargeSlabReadPlatformService cliChargeSlabReadPlatformService,
             DefaultToApiJsonSerializer<LoanTransactionData> loanTransactionApiJsonSerializer,
             DefaultToApiJsonSerializer<LoanForeclosureEligibleData> loanForeclosureEligibleDataDefaultToApiJsonSerializer,
             LoanBulkForeclosureService loanBulkForeclosureService,
@@ -342,6 +347,7 @@ public class LoansApiResource {
         this.glimAccountInfoReadPlatformService = glimAccountInfoReadPlatformService;
         this.loanCollateralManagementReadPlatformService = loanCollateralManagementReadPlatformService;
         this.chartReadPlatformService = chartReadPlatformService;
+        this.cliChargeSlabReadPlatformService = cliChargeSlabReadPlatformService;
         this.clientReadPlatformService = clientReadPlatformService;
         this.loanTransactionApiJsonSerializer = loanTransactionApiJsonSerializer;
         this.loanForeclosureEligibleDataDefaultToApiJsonSerializer = loanForeclosureEligibleDataDefaultToApiJsonSerializer;
@@ -505,6 +511,10 @@ public class LoansApiResource {
             final Collection<InterestRateChartData> charts = this.chartReadPlatformService
                     .retrieveAllWithSlabsWithTemplateForLoan(productId);
             newLoanAccount.setInterestRateCharts(charts);
+
+            // Retrieve CLI (Credit Life Insurance) charge slabs for the loan product
+            final Collection<CLIChargeSlabData> cliSlabs = this.cliChargeSlabReadPlatformService.retrieveAllByLoanProductId(productId);
+            newLoanAccount.setCliChargeSlabs(cliSlabs);
         }
 
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());

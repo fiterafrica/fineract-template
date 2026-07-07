@@ -47,6 +47,7 @@ import org.apache.fineract.portfolio.interestratechart.data.InterestRateChartSla
 import org.apache.fineract.portfolio.loanaccount.domain.LoanStatus;
 import org.apache.fineract.portfolio.loanaccount.guarantor.data.GuarantorData;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.data.LoanScheduleData;
+import org.apache.fineract.portfolio.loanproduct.data.CLIChargeSlabData;
 import org.apache.fineract.portfolio.loanproduct.data.LoanProductBorrowerCycleVariationData;
 import org.apache.fineract.portfolio.loanproduct.data.LoanProductData;
 import org.apache.fineract.portfolio.loanproduct.data.TransactionProcessingStrategyData;
@@ -244,6 +245,9 @@ public final class LoanAccountData {
     private final CollectionData delinquent;
 
     private Collection<InterestRateChartSlabData> interestRateChartSlabData;
+
+    // CLI (Credit Life Insurance) charge slabs from loan product
+    private Collection<CLIChargeSlabData> cliChargeSlabs;
 
     private Collection<ClientData> vendorClientOptions;
     private Collection<PortfolioAccountData> vendorSavingsAccountOptions;
@@ -2062,5 +2066,13 @@ public final class LoanAccountData {
 
     public void setLinkedVendorAccount(PortfolioAccountData linkedVendorAccount) {
         this.linkedVendorAccount = linkedVendorAccount;
+    }
+
+    public Collection<CLIChargeSlabData> getCliChargeSlabs() {
+        return cliChargeSlabs;
+    }
+
+    public void setCliChargeSlabs(Collection<CLIChargeSlabData> cliChargeSlabs) {
+        this.cliChargeSlabs = cliChargeSlabs;
     }
 }

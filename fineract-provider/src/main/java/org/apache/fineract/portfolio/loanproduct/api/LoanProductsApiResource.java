@@ -77,10 +77,12 @@ import org.apache.fineract.portfolio.interestratechart.data.InterestRateChartDat
 import org.apache.fineract.portfolio.interestratechart.service.InterestRateChartReadPlatformService;
 import org.apache.fineract.portfolio.loanaccount.api.LoanApiConstants;
 import org.apache.fineract.portfolio.loanproduct.LoanProductConstants;
+import org.apache.fineract.portfolio.loanproduct.data.CLIChargeSlabData;
 import org.apache.fineract.portfolio.loanproduct.data.LoanProductData;
 import org.apache.fineract.portfolio.loanproduct.data.TransactionProcessingStrategyData;
 import org.apache.fineract.portfolio.loanproduct.productmix.data.ProductMixData;
 import org.apache.fineract.portfolio.loanproduct.productmix.service.ProductMixReadPlatformService;
+import org.apache.fineract.portfolio.loanproduct.service.CLIChargeSlabReadPlatformService;
 import org.apache.fineract.portfolio.loanproduct.service.LoanDropdownReadPlatformService;
 import org.apache.fineract.portfolio.loanproduct.service.LoanProductReadPlatformService;
 import org.apache.fineract.portfolio.paymenttype.data.PaymentTypeData;
@@ -111,7 +113,8 @@ public class LoanProductsApiResource {
             "isLinkedToFloatingInterestRates", "floatingRatesId", "interestRateDifferential", "minDifferentialLendingRate",
             "defaultDifferentialLendingRate", "maxDifferentialLendingRate", "isFloatingInterestRateCalculationAllowed",
             LoanProductConstants.CAN_USE_FOR_TOPUP, LoanProductConstants.IS_EQUAL_AMORTIZATION_PARAM, LoanProductConstants.RATES_PARAM_NAME,
-            LoanApiConstants.fixedPrincipalPercentagePerInstallmentParamName, LoanProductConstants.LOAN_TERM_INCLUDES_TOPPED_UP_LOAN_TERM));
+            LoanApiConstants.fixedPrincipalPercentagePerInstallmentParamName, LoanProductConstants.LOAN_TERM_INCLUDES_TOPPED_UP_LOAN_TERM,
+            "cliChargeSlabs", "interestRateCharts"));
 
     private final Set<String> productMixDataParameters = new HashSet<>(
             Arrays.asList("productId", "productName", "restrictedProducts", "allowedProducts", "productOptions"));
@@ -138,6 +141,7 @@ public class LoanProductsApiResource {
     private final ConfigurationDomainService configurationDomainService;
     private final InterestRateChartReadPlatformService chartReadPlatformService;
     private final CodeValueReadPlatformService codeValueReadPlatformService;
+    private final CLIChargeSlabReadPlatformService cliChargeSlabReadPlatformService;
 
     @Autowired
     public LoanProductsApiResource(final PlatformSecurityContext context, final LoanProductReadPlatformService readPlatformService,
@@ -154,7 +158,7 @@ public class LoanProductsApiResource {
             PaymentTypeReadPlatformService paymentTypeReadPlatformService,
             final FloatingRatesReadPlatformService floatingRateReadPlatformService, final RateReadService rateReadService,
             final ConfigurationDomainService configurationDomainService, InterestRateChartReadPlatformService chartReadPlatformService,
-            CodeValueReadPlatformService codeValueReadPlatformService) {
+            CodeValueReadPlatformService codeValueReadPlatformService, CLIChargeSlabReadPlatformService cliChargeSlabReadPlatformService) {
         this.context = context;
         this.loanProductReadPlatformService = readPlatformService;
         this.chargeReadPlatformService = chargeReadPlatformService;
@@ -175,6 +179,7 @@ public class LoanProductsApiResource {
         this.configurationDomainService = configurationDomainService;
         this.chartReadPlatformService = chartReadPlatformService;
         this.codeValueReadPlatformService = codeValueReadPlatformService;
+        this.cliChargeSlabReadPlatformService = cliChargeSlabReadPlatformService;
     }
 
     @POST
@@ -298,6 +303,11 @@ public class LoanProductsApiResource {
         }
         final Collection<InterestRateChartData> charts = this.chartReadPlatformService.retrieveAllWithSlabsWithTemplateForLoan(productId);
         loanProduct.setInterestRateCharts(charts);
+
+        // Retrieve CLI charge slabs for this loan product
+        final Collection<CLIChargeSlabData> cliSlabs = this.cliChargeSlabReadPlatformService.retrieveAllByLoanProductId(productId);
+        loanProduct.setCliChargeSlabs(cliSlabs);
+
         return this.toApiJsonSerializer.serialize(settings, loanProduct, this.loanProductDataParameters);
     }
 
