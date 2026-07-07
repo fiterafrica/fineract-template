@@ -89,12 +89,20 @@ public class LoanOfficerAssignmentHistory extends AbstractAuditableCustom {
     }
 
     /**
-     * If endDate is null then return false.
+     * Checks if this record's endDate is after the given compareDate.
+     * If endDate is null then return false (no end date to compare).
+     * If compareDate is null and endDate is not null, return true.
      *
-     * @param compareDate
-     * @return
+     * @param compareDate the date to compare against
+     * @return true if endDate is after compareDate, false otherwise
      */
     public boolean isEndDateAfter(final LocalDate compareDate) {
+        if (this.endDate == null) {
+            return false;
+        }
+        if (compareDate == null) {
+            return true;
+        }
         return this.endDate.isAfter(compareDate);
     }
 
