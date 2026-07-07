@@ -219,6 +219,7 @@ import org.apache.fineract.portfolio.loanaccount.serialization.LoanUpdateCommand
 import org.apache.fineract.portfolio.loanproduct.data.LoanOverdueDTO;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProduct;
 import org.apache.fineract.portfolio.loanproduct.exception.InvalidCurrencyException;
+import org.apache.fineract.portfolio.loanproduct.service.CLIChargeSlabReadPlatformService;
 import org.apache.fineract.portfolio.loanproduct.exception.LinkedAccountRequiredException;
 import org.apache.fineract.portfolio.note.domain.Note;
 import org.apache.fineract.portfolio.note.domain.NoteRepository;
@@ -286,6 +287,7 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
     private final RepaymentWithPostDatedChecksAssembler repaymentWithPostDatedChecksAssembler;
     private final PostDatedChecksRepository postDatedChecksRepository;
     private final AccountingProcessorHelper helper;
+    private final CLIChargeSlabReadPlatformService cliChargeSlabReadPlatformService;
     private static final Logger LOG = LoggerFactory.getLogger(LoanWritePlatformServiceJpaRepositoryImpl.class);
 
     @Autowired
@@ -385,6 +387,9 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
             if (loanProduct.syncExpectedWithDisbursementDate()) {
                 syncExpectedDateWithActualDisbursementDate(loan, actualDisbursementDate);
             }
+
+            // Resolve CLI (Credit Life Insurance) rates based on loan tenor and amount
+            resolveCLIChargeRates(loan, loanProduct);
 
             for (final LoanCharge loanCharge : loan.charges()) {
                 if (loanCharge.isDisburseToSavings()) {
@@ -3569,6 +3574,84 @@ public class LoanWritePlatformServiceJpaRepositoryImpl implements LoanWritePlatf
         LOG.error("Error due to Exception", dve);
         throw new PlatformDataIntegrityException("error.msg.loan.unknown.data.integrity.issue",
                 "Unknown data integrity issue with resource: " + realCause.getMessage());
+    }
+
+    /**
+     * Resolves CLI (Credit Life Insurance) charge rates based on loan tenor and amount.
+     * For CLI charges that have configured rate slabs on the loan product, this method
+     * looks up the applicable rate and updates the loan charge percentage.
+     *
+     * @param loan the loan being disbursed
+     * @param loanProduct the loan product associated with the loan
+     */
+    private void resolveCLIChargeRates(final Loan loan, final LoanProduct loanProduct) {
+        if (loan.charges() == null || loan.charges().isEmpty()) {
+            return;
+        }
+
+        // Calculate loan tenor in months
+        final Integer tenorInMonths = calculateLoanTenorInMonths(loan);
+        final BigDecimal loanAmount = loan.getProposedPrincipal();
+        final Long loanProductId = loanProduct.getId();
+
+        for (final LoanCharge loanCharge : loan.charges()) {
+            // Check if the charge is a CLI charge
+            if (loanCharge.getCharge() != null && loanCharge.getCharge().isCLICharge()) {
+                final Long chargeId = loanCharge.getCharge().getId();
+
+                // Resolve the CLI rate from the configured slabs
+                final BigDecimal resolvedRate = this.cliChargeSlabReadPlatformService.resolveCLIRate(
+                        loanProductId, chargeId, tenorInMonths, loanAmount);
+
+                if (resolvedRate != null) {
+                    // Update the loan charge with the resolved rate
+                    loanCharge.updatePercentage(resolvedRate);
+                    log.info("CLI charge {} rate resolved to {}% for loan {} (tenor: {} months, amount: {})",
+                            chargeId, resolvedRate, loan.getId(), tenorInMonths, loanAmount);
+                } else {
+                    log.debug("No matching CLI slab found for charge {} on loan {} (tenor: {} months, amount: {}). Using default charge rate.",
+                            chargeId, loan.getId(), tenorInMonths, loanAmount);
+                }
+            }
+        }
+    }
+
+    /**
+     * Calculates the loan tenor in months based on number of repayments and repayment frequency.
+     *
+     * @param loan the loan to calculate tenor for
+     * @return the loan tenor in months
+     */
+    private Integer calculateLoanTenorInMonths(final Loan loan) {
+        final Integer numberOfRepayments = loan.getLoanRepaymentScheduleDetail().getNumberOfRepayments();
+        final Integer repayEvery = loan.getLoanRepaymentScheduleDetail().getRepayEvery();
+        final PeriodFrequencyType repaymentFrequencyType = loan.getLoanRepaymentScheduleDetail().getRepaymentPeriodFrequencyType();
+
+        if (numberOfRepayments == null || repayEvery == null) {
+            return 0;
+        }
+
+        int tenorInMonths;
+        switch (repaymentFrequencyType) {
+            case DAYS:
+                // Convert days to approximate months (assuming 30 days per month)
+                tenorInMonths = (numberOfRepayments * repayEvery) / 30;
+                break;
+            case WEEKS:
+                // Convert weeks to approximate months (assuming 4 weeks per month)
+                tenorInMonths = (numberOfRepayments * repayEvery) / 4;
+                break;
+            case MONTHS:
+                tenorInMonths = numberOfRepayments * repayEvery;
+                break;
+            case YEARS:
+                tenorInMonths = numberOfRepayments * repayEvery * 12;
+                break;
+            default:
+                tenorInMonths = numberOfRepayments;
+        }
+
+        return Math.max(tenorInMonths, 1); // Minimum 1 month
     }
 
 }

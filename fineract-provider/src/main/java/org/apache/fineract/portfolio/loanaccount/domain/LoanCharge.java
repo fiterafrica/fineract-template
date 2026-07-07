@@ -495,6 +495,46 @@ public class LoanCharge extends AbstractPersistableCustom {
         update(amount, dueDate, amountPercentageAppliedTo, numberOfRepayments, BigDecimal.ZERO);
     }
 
+    /**
+     * Updates the percentage rate for this loan charge and recalculates the amount.
+     * This is used for CLI (Credit Life Insurance) charges where the rate is dynamically
+     * resolved based on loan tenor and amount at disbursement time.
+     *
+     * @param newPercentage the new percentage rate to apply
+     */
+    public void updatePercentage(final BigDecimal newPercentage) {
+        if (newPercentage == null || !isPercentageBasedCharge()) {
+            return;
+        }
+
+        this.percentage = newPercentage;
+        this.amountOrPercentage = newPercentage;
+
+        // Recalculate the charge amount based on the new percentage
+        if (this.loan != null && this.amountPercentageAppliedTo != null) {
+            BigDecimal loanCharge = percentageOf(this.amountPercentageAppliedTo);
+            this.amount = minimumAndMaximumCap(loanCharge);
+            this.amountOutstanding = calculateOutstanding();
+
+            if (isInstalmentFee()) {
+                updateInstallmentCharges();
+            }
+        }
+    }
+
+    /**
+     * Checks if this charge is calculated based on a percentage.
+     *
+     * @return true if the charge calculation is percentage-based
+     */
+    private boolean isPercentageBasedCharge() {
+        ChargeCalculationType calcType = ChargeCalculationType.fromInt(this.chargeCalculation);
+        return calcType == ChargeCalculationType.PERCENT_OF_AMOUNT
+                || calcType == ChargeCalculationType.PERCENT_OF_AMOUNT_AND_INTEREST
+                || calcType == ChargeCalculationType.PERCENT_OF_INTEREST
+                || calcType == ChargeCalculationType.PERCENT_OF_DISBURSEMENT_AMOUNT;
+    }
+
     public Map<String, Object> update(final JsonCommand command, final BigDecimal amount) {
 
         final Map<String, Object> actualChanges = new LinkedHashMap<>(7);

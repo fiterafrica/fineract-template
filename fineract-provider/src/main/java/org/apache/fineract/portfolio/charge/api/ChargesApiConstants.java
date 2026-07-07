@@ -28,5 +28,6 @@ public final class ChargesApiConstants {
     public static final String taxGroupIdParamName = "taxGroupId";
     public static final String graceExtensionParamName = "graceExtension";
     public static final String graceExtensionDaysParamName = "extensionDays";
+    public static final String isCLIChargeParamName = "isCLICharge";
 
 }
