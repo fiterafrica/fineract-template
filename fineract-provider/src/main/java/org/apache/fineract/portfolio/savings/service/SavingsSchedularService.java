@@ -29,4 +29,6 @@ public interface SavingsSchedularService {
 
     void postInterestForAccountsThreaded(Map<String, String> jobParameters) throws JobExecutionException;
 
+    void recalculatePrematureInterestPostings() throws JobExecutionException;
+
 }

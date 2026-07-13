@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,14 +46,21 @@ import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.client.exception.ClientNotActiveException;
 import org.apache.fineract.portfolio.group.domain.Group;
 import org.apache.fineract.portfolio.group.exception.GroupNotActiveException;
+import org.apache.fineract.portfolio.savings.SavingsAccountTransactionType;
+import org.apache.fineract.portfolio.savings.SavingsPostingInterestPeriodType;
+import org.apache.fineract.portfolio.savings.domain.FixedDepositAccount;
+import org.apache.fineract.portfolio.savings.domain.RecurringDepositAccount;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountAssembler;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountRepositoryWrapper;
+import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransaction;
+import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransactionRepository;
 import org.apache.fineract.portfolio.savings.domain.SavingsProduct;
 import org.apache.fineract.portfolio.savings.domain.SavingsProductRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -70,6 +78,8 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
     private final SavingsProductRepository savingsProductRepository;
     private final JobExecuter jobExecuter;
     private final SchedulerJobRunnerReadService schedulerJobRunnerReadService;
+    private final SavingsAccountTransactionRepository savingsAccountTransactionRepository;
+    private final JdbcTemplate jdbcTemplate;
     private static final Logger logger = LoggerFactory.getLogger(SavingsSchedularServiceImpl.class);
 
     @Override
@@ -251,10 +261,31 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
                     final SavingsAccount savingAccount = this.savingAccountAssembler.assembleFrom(savingAccountId);
                     savingsAccountNumber = savingAccount.getAccountNumber();
                     checkClientOrGroupActive(savingAccount);
+
+                    // Skip posting for Fixed Deposit and Recurring Deposit accounts when
+                    // interest posting period is TENURE (At-Maturity) unless today is the maturity date
+                    if (savingAccount instanceof FixedDepositAccount || savingAccount instanceof RecurringDepositAccount) {
+                        Integer postingPeriodType = savingAccount.getInterestPostingPeriodType();
+                        if (Objects.equals(SavingsPostingInterestPeriodType.TENURE.getValue(), postingPeriodType)) {
+                            LocalDate maturityDate = null;
+                            if (savingAccount instanceof FixedDepositAccount) {
+                                maturityDate = ((FixedDepositAccount) savingAccount).maturityDate();
+                            } else if (savingAccount instanceof RecurringDepositAccount) {
+                                maturityDate = ((RecurringDepositAccount) savingAccount).maturityDate();
+                            }
+                            if (!jobRunDate.equals(maturityDate)) {
+                                // Do not post interest today for At-Maturity posting period
+                                log.info("Skipping At-Maturity interest posting for account {} (id={}) - maturityDate={} (jobRunDate={})",
+                                        savingsAccountNumber, savingAccount.getId(), maturityDate, jobRunDate);
+                                break; // exit retry loop for this account
+                            }
+                        }
+                    }
+
                     if (!savingAccount.isPostOverdraftInterestOnDeposit()) {
                         this.savingsAccountWritePlatformService.postInterest(savingAccount, false, jobRunDate);
                     }
-                    numberOfRetries = maxNumberOfRetries + 1;
+                    break;
                 } catch (CannotAcquireLockException | ObjectOptimisticLockingFailureException exception) {
                     logger.info("Recalulate interest job has been retried  {} time(s)", numberOfRetries);
                     // Fail if the transaction has been retried for maxNumberOfRetries
@@ -308,5 +339,67 @@ public class SavingsSchedularServiceImpl implements SavingsSchedularService {
                 throw new GroupNotActiveException(group.getId());
             }
         }
+    }
+
+    @CronTarget(jobName = JobName.REVERSAL_PREMATURE_INTEREST_POSTING)
+    @Override
+    public void recalculatePrematureInterestPostings() throws JobExecutionException {
+        log.info("Running REVERSAL_PREMATURE_INTEREST_POSTING job");
+        // Find deposit accounts (Fixed + Recurring) with posting period TENURE and maturity date not null
+        final String sql = "SELECT da.id FROM m_savings_account da INNER JOIN m_deposit_account_term_and_preclosure dat ON dat.savings_account_id = da.id "
+                + "WHERE da.interest_posting_period_enum = 8 AND dat.maturity_date IS NOT NULL and da.status_enum = 300";
+        List<Long> accountIds = this.jdbcTemplate.queryForList(sql, Long.class);
+        log.info("Found {} deposit accounts with TENURE posting to inspect", accountIds.size());
+        for (Long accountId : accountIds) {
+            try {
+                SavingsAccount account = this.savingsAccountRepository.findOneWithNotFoundDetection(accountId);
+                // Only process Fixed or Recurring
+                if (!(account instanceof FixedDepositAccount || account instanceof RecurringDepositAccount)) {
+                    continue;
+                }
+                LocalDate maturityDate = null;
+                if (account instanceof FixedDepositAccount) {
+                    maturityDate = ((FixedDepositAccount) account).maturityDate();
+                } else if (account instanceof RecurringDepositAccount) {
+                    maturityDate = ((RecurringDepositAccount) account).maturityDate();
+                }
+                if (maturityDate == null) {
+                    continue;
+                }
+
+                // Find interest posting transactions that occurred before maturity
+                List<SavingsAccountTransaction> txns = this.savingsAccountTransactionRepository.getTransactionsByAccountIdAndType(accountId,
+                        SavingsAccountTransactionType.INTEREST_POSTING.getValue());
+                boolean shouldRepost = false;
+                for (SavingsAccountTransaction txn : txns) {
+                    if (!txn.isNotReversed() || txn.isReversalTransaction()) {
+                        continue;
+                    }
+                    if (txn.transactionLocalDate().isBefore(maturityDate)) {
+                        // reverse this transaction
+                        txn.reverse();
+                        this.savingsAccountTransactionRepository.save(txn);
+                        log.info("Reversed premature interest posting txn id {} for account {}", txn.getId(), accountId);
+                        shouldRepost = true;
+                    }
+                }
+                if (shouldRepost) {
+                    // reload account to ensure transactions collection reflects reversal
+                    account = this.savingsAccountRepository.findOneWithNotFoundDetection(accountId);
+                    // Post maturity interest using domain method
+                    if (account instanceof FixedDepositAccount) {
+                        ((FixedDepositAccount) account).postMaturityInterest(false, null);
+                    } else if (account instanceof RecurringDepositAccount) {
+                        ((RecurringDepositAccount) account).postMaturityInterest(false, null, maturityDate, false);
+                    }
+                    // save account
+                    this.savingsAccountRepository.saveAndFlush(account);
+                    log.info("Reposted maturity interest for account {}", accountId);
+                }
+            } catch (Exception e) {
+                log.error("Error fixing premature interest postings for account {}: {}", accountId, e.getMessage(), e);
+            }
+        }
+        log.info("FIX_PREMATURE_INTEREST_POSTING job completed");
     }
 }

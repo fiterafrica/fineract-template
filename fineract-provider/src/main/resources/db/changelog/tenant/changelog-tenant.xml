@@ -91,5 +91,6 @@
     <include file="parts/MON-192_deleted_savings_account_transaction.xml" relativeToChangelogFile="true" />
     <include file="parts/FSMA-196_update-reports-name-changelog.xml" relativeToChangelogFile="true" />
     <include file="parts/FSMA-196_create-bvn-business-tables-changelog.xml" relativeToChangelogFile="true" />
+    <include file="parts/FSMA-231-add-jobname-fix-interst-posting-for-savings.xml" relativeToChangelogFile="true" />
     <includeAll path="custom-changelog" relativeToChangelogFile="true"/>
 </databaseChangeLog>
