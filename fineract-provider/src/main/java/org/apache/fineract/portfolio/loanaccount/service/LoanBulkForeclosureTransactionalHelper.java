@@ -86,7 +86,8 @@ public class LoanBulkForeclosureTransactionalHelper {
         // Validate foreclosure date is not before the last user transaction date (backdated foreclosure validation)
         LocalDate lastUserTransactionDate = loan.getLastUserTransactionDate();
         if (lastUserTransactionDate != null && lastUserTransactionDate.isAfter(foreclosureDate)) {
-            return "Foreclosure date cannot be before the last transaction date: " + lastUserTransactionDate;
+            foreclosureDate = lastUserTransactionDate;
+            // return "Foreclosure date cannot be before the last transaction date: " + lastUserTransactionDate;
         }
 
         // Validate interest recalculation is not enabled
@@ -115,6 +116,7 @@ public class LoanBulkForeclosureTransactionalHelper {
 
         // Parse JSON to create JsonCommand
         final JsonElement parsedCommand = this.fromApiJsonHelper.parse(json);
+
         final JsonCommand command = JsonCommand.from(json, parsedCommand, this.fromApiJsonHelper, wrapper.getEntityName(),
                 wrapper.getEntityId(), wrapper.getSubentityId(), wrapper.getGroupId(), wrapper.getClientId(), wrapper.getLoanId(),
                 wrapper.getSavingsId(), wrapper.getTransactionId(), wrapper.getHref(), wrapper.getProductId(), wrapper.getCreditBureauId(),

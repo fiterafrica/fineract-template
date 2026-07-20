@@ -1310,4 +1310,35 @@ public class LoansApiResource {
 
         return this.loanBulkForeclosureService.downloadJobReport(jobId, reportType);
     }
+
+    @POST
+    @Path("foreclosure/jobs/{jobId}/retry")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    @Operation(summary = "Retry Failed Bulk Loan Foreclosure Records")
+    @ApiResponses({ @ApiResponse(responseCode = "200", description = "OK") })
+    public String retryBulkForeclosure(@PathParam("jobId") final String jobId, final String apiRequestBodyAsJson) {
+
+        this.context.authenticatedUser().validateHasPermissionTo("BULKFORECLOSURE_LOAN");
+
+        final JsonElement element = this.fromJsonHelper.parse(apiRequestBodyAsJson);
+
+        final List<Long> loanIds = new ArrayList<>();
+        for (JsonElement e : this.fromJsonHelper.extractJsonArrayNamed("loanIds", element)) {
+            if (e.isJsonPrimitive()) {
+                if (e.getAsJsonPrimitive().isNumber()) {
+                    loanIds.add(e.getAsLong());
+                } else {
+                    loanIds.add(Long.parseLong(e.getAsString()));
+                }
+            }
+        }
+
+        final String executionMode = this.fromJsonHelper.extractStringNamed("executionMode", element);
+
+        final BulkForeclosureRetryResultData result = this.loanBulkForeclosureService.retryFailedRecords(jobId, loanIds,
+                executionMode != null ? executionMode : "ASYNC");
+
+        return this.bulkForeclosureRetryResultDataSerializer.serialize(result);
+    }
 }
