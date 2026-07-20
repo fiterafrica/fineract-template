@@ -138,4 +138,8 @@ public class PortfolioAccountData implements Serializable {
     public String getAccountNo() {
         return accountNo;
     }
+
+    public Long productId() {
+        return this.productId;
+    }
 }

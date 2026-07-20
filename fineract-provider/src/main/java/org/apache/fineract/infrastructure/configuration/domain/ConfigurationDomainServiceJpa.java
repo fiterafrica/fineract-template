@@ -18,10 +18,14 @@
  */
 package org.apache.fineract.infrastructure.configuration.domain;
 
+import com.google.common.base.Splitter;
 import io.fiter.ff4j.validators.FeatureList;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.cache.domain.CacheType;
 import org.apache.fineract.infrastructure.cache.domain.PlatformCache;
@@ -502,5 +506,67 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
             return 0L;
         }
         return property.getValue();
+    }
+
+    @Override
+    public boolean isStandingInstructionPaydayDeferralEnabled() {
+        final String propertyName = "standing-instruction-payday-deferral-enabled";
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
+        return property.isEnabled();
+    }
+
+    @Override
+    public Integer retrieveStandingInstructionPaydayDayOfMonth() {
+        final String propertyName = "standing-instruction-payday-day-of-month";
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
+        if (property.getValue() == null) {
+            return 24;
+        }
+        final int value = property.getValue().intValue();
+        if (value < 1 || value > 31) {
+            return 24;
+        }
+        return value;
+    }
+
+    @Override
+    public Integer retrieveStandingInstructionPaydayCutoffHour() {
+        final String propertyName = "standing-instruction-payday-cutoff-hour";
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
+        if (property.getValue() == null) {
+            return 23;
+        }
+        final int value = property.getValue().intValue();
+        if (value < 0 || value > 23) {
+            return 23;
+        }
+        return value;
+    }
+
+    @Override
+    public Set<Long> retrieveStandingInstructionPaydayLoanProductIds() {
+        final String propertyName = "standing-instruction-payday-loan-product-ids";
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
+        final String configuredProductIds = property.getStringValue();
+        if (StringUtils.isBlank(configuredProductIds)) {
+            return Collections.emptySet();
+        }
+
+        final Set<Long> loanProductIds = new HashSet<>();
+        for (final String configuredProductId : Splitter.on(',').split(configuredProductIds)) {
+            final String trimmedProductId = configuredProductId.trim();
+            if (StringUtils.isBlank(trimmedProductId)) {
+                continue;
+            }
+            try {
+                final Long loanProductId = Long.valueOf(trimmedProductId);
+                if (loanProductId > 0) {
+                    loanProductIds.add(loanProductId);
+                }
+            } catch (final NumberFormatException ignored) {
+                // Ignore invalid tokens so one bad value does not break the standing instruction job.
+            }
+        }
+        return loanProductIds;
     }
 }

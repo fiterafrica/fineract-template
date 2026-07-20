@@ -19,6 +19,7 @@
 package org.apache.fineract.infrastructure.configuration.domain;
 
 import java.time.LocalDate;
+import java.util.Set;
 import org.apache.fineract.infrastructure.cache.domain.CacheType;
 
 public interface ConfigurationDomainService {
@@ -130,4 +131,12 @@ public interface ConfigurationDomainService {
     boolean isMaxActiveLoansEnabled();
 
     Long getMaxActiveLoans();
+
+    boolean isStandingInstructionPaydayDeferralEnabled();
+
+    Integer retrieveStandingInstructionPaydayDayOfMonth();
+
+    Integer retrieveStandingInstructionPaydayCutoffHour();
+
+    Set<Long> retrieveStandingInstructionPaydayLoanProductIds();
 }

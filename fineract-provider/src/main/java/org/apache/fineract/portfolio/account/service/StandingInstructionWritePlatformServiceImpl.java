@@ -25,8 +25,12 @@ import static org.apache.fineract.portfolio.account.api.StandingInstructionApiCo
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -72,7 +76,10 @@ import org.apache.fineract.portfolio.client.data.ClientData;
 import org.apache.fineract.portfolio.common.domain.PeriodFrequencyType;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.DefaultScheduledDateGenerator;
 import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.ScheduledDateGenerator;
+import org.apache.fineract.portfolio.savings.DepositAccountType;
+import org.apache.fineract.portfolio.savings.domain.DepositAccountAssembler;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
+import org.apache.fineract.portfolio.savings.domain.SavingsAccountAssembler;
 import org.apache.fineract.portfolio.savings.exception.InsufficientAccountBalanceException;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.slf4j.Logger;
@@ -104,6 +111,9 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
     private final NotificationEventPublisher notificationEventPublisher;
     private final Environment env;
     private final FromJsonHelper fromJsonHelper;
+    private final SavingsAccountAssembler savingsAccountAssembler;
+    private final DepositAccountAssembler depositAccountAssembler;
+    private final StandingInstructionPaydayDeferralService paydayDeferralService;
 
     @Autowired
     public StandingInstructionWritePlatformServiceImpl(PlatformSecurityContext context,
@@ -115,7 +125,10 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
             final AccountTransfersWritePlatformService accountTransfersWritePlatformService, final JdbcTemplate jdbcTemplate,
             DatabaseSpecificSQLGenerator sqlGenerator, FromJsonHelper fromJsonHelper,
             final StandingInstructionHistoryReadPlatformService standingInstructionHistoryReadPlatformService,
-            final NotificationEventPublisher notificationEventPublisher, final Environment env) {
+            final NotificationEventPublisher notificationEventPublisher, final Environment env,
+            SavingsAccountAssembler savingsAccountAssembler, DepositAccountAssembler depositAccountAssembler,
+            StandingInstructionPaydayDeferralService paydayDeferralService) {
+
         this.standingInstructionDataValidator = standingInstructionDataValidator;
         this.standingInstructionAssembler = standingInstructionAssembler;
         this.accountTransferDetailRepository = accountTransferDetailRepository;
@@ -129,6 +142,9 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
         this.notificationEventPublisher = notificationEventPublisher;
         this.fromJsonHelper = fromJsonHelper;
         this.env = env;
+        this.savingsAccountAssembler = savingsAccountAssembler;
+        this.depositAccountAssembler = depositAccountAssembler;
+        this.paydayDeferralService = paydayDeferralService;
     }
 
     @Transactional
@@ -327,12 +343,21 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
         Collection<StandingInstructionData> instructionDatas = this.standingInstructionReadPlatformService
                 .retrieveAll(StandingInstructionStatus.ACTIVE.getValue());
         List<Throwable> errors = new ArrayList<>();
-        LocalDate transactionDate = DateUtils.getBusinessLocalDate();
+        final LocalDate tenantDate = LocalDate.now(DateUtils.getDateTimeZoneOfTenant());
+        final LocalTime tenantTime = LocalTime.now(DateUtils.getDateTimeZoneOfTenant());
         for (StandingInstructionData data : instructionDatas) {
+            if (data.toAccountType() == null) {
+                LOG.warn("Disabling standing instruction {} because destination account is no longer valid.", data.getId());
 
+                jdbcTemplate.update("UPDATE m_account_transfer_standing_instructions SET status=? WHERE id=?",
+                        StandingInstructionStatus.DISABLED.getValue(), data.getId());
+
+                continue;
+            }
             boolean isDueForTransfer = false;
             AccountTransferRecurrenceType recurrenceType = data.recurrenceType();
             StandingInstructionType instructionType = data.instructionType();
+            LocalDate transactionDate = tenantDate;
             if (recurrenceType.isPeriodicRecurrence()) {
                 final ScheduledDateGenerator scheduledDateGenerator = new DefaultScheduledDateGenerator();
                 PeriodFrequencyType frequencyType = data.recurrenceFrequency();
@@ -353,34 +378,89 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
 
             }
             BigDecimal transactionAmount = data.amount();
+            LocalDate installmentDueDate = null;
             if (data.toAccountType().isLoanAccount()
                     && (recurrenceType.isDuesRecurrence() || (isDueForTransfer && instructionType.isDuesAmoutTransfer()))) {
                 StandingInstructionDuesData standingInstructionDuesData = this.standingInstructionReadPlatformService
                         .retriveLoanDuesData(data.toAccount().accountId());
-                if (data.instructionType().isDuesAmoutTransfer()) {
-                    transactionAmount = standingInstructionDuesData.totalDueAmount();
-                }
-                if (recurrenceType.isDuesRecurrence()) {
-                    isDueForTransfer = (DateUtils.getBusinessLocalDate().equals(standingInstructionDuesData.dueDate())
-                            || (standingInstructionDuesData.dueDate() != null
-                                    && DateUtils.getBusinessLocalDate().isAfter(standingInstructionDuesData.dueDate())));
+                if (standingInstructionDuesData != null) {
+                    if (data.instructionType().isDuesAmoutTransfer()) {
+                        transactionAmount = standingInstructionDuesData.totalDueAmount();
+                    }
+                    if (recurrenceType.isDuesRecurrence()) {
+                        // true, if due date is before or equal to today's date. Also false if dueDate is null
+                        LocalDate today = tenantDate;
+                        installmentDueDate = standingInstructionDuesData.dueDate();
+                        if (installmentDueDate != null) {
+                            isDueForTransfer = !today.isBefore(installmentDueDate);
+                        } else {
+                            isDueForTransfer = false;
+                        }
+                    }
                 }
             }
 
             if (isDueForTransfer && transactionAmount != null && transactionAmount.compareTo(BigDecimal.ZERO) > 0) {
-                final SavingsAccount fromSavingsAccount = null;
+                if (this.paydayDeferralService.shouldDeferPaydayRepayment(data, installmentDueDate, tenantDate, tenantTime)) {
+                    recordDeferredStandingInstruction(data.getId(), transactionAmount);
+                    continue;
+                }
+                SavingsAccount fromSavingsAccount = null;
+                boolean isTargetAccount = false;
                 final boolean isRegularTransaction = true;
                 final boolean isExceptionForBalanceCheck = false;
+                if (data.toAccountType().isSavingsAccount()) {
+                    try {
+                        SavingsAccount toTargetAccount = this.depositAccountAssembler.assembleFrom(data.toAccount().accountId(),
+                                DepositAccountType.RECURRING_DEPOSIT);
+                        if (toTargetAccount.depositAccountType().isRecurringDeposit()) {
+                            isTargetAccount = true;
+                        }
+                    } catch (Exception e) {
+                        errors.add(e);
+                    }
+
+                }
+                final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMMM yyyy");
                 AccountTransferDTO accountTransferDTO = new AccountTransferDTO(transactionDate, transactionAmount, data.fromAccountType(),
                         data.toAccountType(), data.fromAccount().accountId(), data.toAccount().accountId(),
-                        data.name() + " Standing instruction transfer ", null, null, null, null, data.toTransferType(), null, null,
+                        data.name() + " Standing instruction trasfer ", null, fmt, null, null, data.toTransferType(), null, null,
                         data.transferType().getValue(), null, null, null, null, null, fromSavingsAccount, isRegularTransaction,
                         isExceptionForBalanceCheck);
+
+                // Check if the savings account has sufficient balance. If not, wipe it out partly repaying the loan
+                if (data.fromAccountType().isSavingsAccount() && (data.toAccountType().isLoanAccount() || isTargetAccount)
+                        && data.fromAccount().accountId() != null) {
+                    fromSavingsAccount = this.savingsAccountAssembler.assembleFrom(data.fromAccount().accountId());
+                    BigDecimal availableBalance = fromSavingsAccount.getSummary().getAccountBalance();
+                    if (availableBalance.compareTo(BigDecimal.ZERO) <= 0) {
+                        LOG.info("Skipping standing instruction {} because source savings account {} has no available balance.",
+                                data.getId(), fromSavingsAccount.getId());
+                        continue;
+                    }
+                    BigDecimal originalAmount = transactionAmount;
+                    LOG.info(
+                            "Checking if the savings account {} to loan account {} has sufficient balance for transfer of amount {} available balance is {}",
+                            fromSavingsAccount.getId(), data.toAccount().accountId(), transactionAmount, availableBalance);
+                    if (availableBalance.compareTo(transactionAmount) < 0 && availableBalance.compareTo(BigDecimal.ZERO) > 0) {
+                        transactionAmount = availableBalance;
+                        accountTransferDTO.setTransactionAmount(transactionAmount);
+                        accountTransferDTO.setPartialProcessing(true);
+                        accountTransferDTO.setPartialAmount(originalAmount.subtract(availableBalance));
+                    }
+                }
                 final boolean transferCompleted = transferAmount(errors, accountTransferDTO, data.getId());
 
                 if (transferCompleted) {
-                    final String updateQuery = "UPDATE m_account_transfer_standing_instructions SET last_run_date = ? where id = ?";
-                    this.jdbcTemplate.update(updateQuery, transactionDate, data.getId());
+                    if (!Boolean.TRUE.equals(accountTransferDTO.getPartialProcessing())) {
+                        final String updateQuery = "UPDATE m_account_transfer_standing_instructions SET last_run_date = ? WHERE id = ?";
+
+                        this.jdbcTemplate.update(updateQuery, Date.from(transactionDate.atStartOfDay(ZoneId.systemDefault()).toInstant()),
+                                data.getId());
+                    } else {
+                        LOG.info("Standing instruction {} partially processed. Skipping last_run_date update to allow retry.",
+                                data.getId());
+                    }
                 }
 
             }
@@ -441,5 +521,11 @@ public class StandingInstructionWritePlatformServiceImpl implements StandingInst
         } else
             transferCompleted = false;
         return transferCompleted;
+    }
+
+    private void recordDeferredStandingInstruction(final Long instructionId, final BigDecimal transactionAmount) {
+        final String updateQuery = "INSERT INTO `m_account_transfer_standing_instructions_history` "
+                + "(`standing_instruction_id`, `status`, `amount`, `execution_time`, `error_log`) VALUES (?, ?, ?, now(), ?)";
+        this.jdbcTemplate.update(updateQuery, instructionId, "deferred", transactionAmount, "PAYDAY_DEFERRAL");
     }
 }
