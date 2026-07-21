@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
@@ -67,6 +68,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+@Slf4j
 @Service
 public class StandingInstructionReadPlatformServiceImpl implements StandingInstructionReadPlatformService {
 
@@ -333,15 +335,24 @@ public class StandingInstructionReadPlatformServiceImpl implements StandingInstr
 
     @Override
     public Collection<StandingInstructionData> retrieveAll(final Integer status) {
-        final StringBuilder sqlBuilder = new StringBuilder(200);
-        String businessDate = sqlGenerator.currentBusinessDate();
-        sqlBuilder.append("select ");
+        final String businessDate = sqlGenerator.currentBusinessDate();
+
+        final StringBuilder sqlBuilder = new StringBuilder(500);
+
+        sqlBuilder.append("SELECT ");
         sqlBuilder.append(this.standingInstructionMapper.schema());
-        sqlBuilder
-                .append(" where atsi.status=? and " + businessDate + " >= atsi.valid_from and (atsi.valid_till IS NULL or " + businessDate
-                        + " < atsi.valid_till) ")
-                .append(" and  (atsi.last_run_date <> " + businessDate + " or atsi.last_run_date IS NULL)")
-                .append(" ORDER BY atsi.priority DESC");
+
+        sqlBuilder.append(" WHERE atsi.status = ? ").append("AND ").append(businessDate).append(" >= atsi.valid_from ")
+                .append("AND (atsi.valid_till IS NULL OR ").append(businessDate).append(" < atsi.valid_till) ")
+                .append("AND (atsi.last_run_date <> ").append(businessDate).append(" OR atsi.last_run_date IS NULL) ");
+
+        if (StandingInstructionStatus.ACTIVE.getValue().equals(status)) {
+            sqlBuilder.append("AND (").append("(atd.to_savings_account_id IS NOT NULL AND tosavacc.status_enum = 300)").append(" OR ")
+                    .append("(atd.to_loan_account_id IS NOT NULL AND toloanacc.loan_status_id = 300)").append(") ");
+        }
+
+        sqlBuilder.append("ORDER BY atsi.priority DESC");
+
         return this.jdbcTemplate.query(sqlBuilder.toString(), this.standingInstructionMapper, status);
     }
 

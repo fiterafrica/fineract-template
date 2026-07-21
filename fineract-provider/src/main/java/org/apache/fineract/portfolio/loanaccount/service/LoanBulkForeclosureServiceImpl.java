@@ -617,6 +617,7 @@ public class LoanBulkForeclosureServiceImpl implements LoanBulkForeclosureServic
             failedDetails = jobDetailRepository.findAllFailedByJob(job.getId());
         } else {
             // Find only the specified failed records
+            log.info("Retrying specific failed records for job {}: {}", jobId, detailIds);
             failedDetails = jobDetailRepository.findFailedByIdsAndJob(detailIds, job.getId());
         }
 

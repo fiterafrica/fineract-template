@@ -40,7 +40,7 @@ public interface BulkForeclosureJobDetailRepository extends JpaRepository<BulkFo
      *            the job primary key ID
      * @return list of failed details
      */
-    @Query("SELECT d FROM BulkForeclosureJobDetail d WHERE d.id IN :detailIds AND d.job.id = :jobId AND d.status = 'FAILED'")
+    @Query("SELECT d FROM BulkForeclosureJobDetail d WHERE d.loanId IN :detailIds AND d.job.id = :jobId AND d.status = 'FAILED'")
     List<BulkForeclosureJobDetail> findFailedByIdsAndJob(@Param("detailIds") List<Long> detailIds, @Param("jobId") Long jobId);
 
     /**
