@@ -245,4 +245,8 @@ public final class ClientFamilyMembersData implements Serializable {
         return this.isDependent;
     }
 
+    public String getEmail() {
+        return this.email;
+    }
+
 }

@@ -16,13 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.portfolio.client.domain;
+package org.apache.fineract.portfolio.businessevent.domain.deposit;
 
-import java.util.List;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.apache.fineract.portfolio.savings.domain.FixedDepositAccount;
 
-public interface ClientIdentifierRepository extends JpaRepository<ClientIdentifier, Long>, JpaSpecificationExecutor<ClientIdentifier> {
+/**
+ * Fired when a fixed deposit account is closed at or after maturity (manual close or scheduled auto-maturity
+ * closure). Not fired for premature closure - see {@link FixedDepositAccountPreClosureBusinessEvent} - or when the
+ * account rolls over into a new term - see {@link FixedDepositAccountRolloverBusinessEvent}.
+ */
+public class FixedDepositAccountCloseBusinessEvent extends FixedDepositAccountBusinessEvent {
 
-    List<ClientIdentifier> findByClient(Client client);
+    public FixedDepositAccountCloseBusinessEvent(FixedDepositAccount value) {
+        super(value);
+    }
 }

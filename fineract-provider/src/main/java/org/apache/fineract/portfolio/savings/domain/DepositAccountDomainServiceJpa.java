@@ -62,6 +62,11 @@ import org.apache.fineract.portfolio.account.domain.AccountAssociations;
 import org.apache.fineract.portfolio.account.domain.AccountAssociationsRepository;
 import org.apache.fineract.portfolio.account.domain.AccountTransferType;
 import org.apache.fineract.portfolio.account.service.AccountTransfersWritePlatformService;
+import org.apache.fineract.portfolio.businessevent.domain.deposit.FixedDepositAccountCloseBusinessEvent;
+import org.apache.fineract.portfolio.businessevent.domain.deposit.FixedDepositAccountPreClosureBusinessEvent;
+import org.apache.fineract.portfolio.businessevent.domain.deposit.FixedDepositAccountRolloverBusinessEvent;
+import org.apache.fineract.portfolio.businessevent.domain.deposit.FixedDepositRolloverEventData;
+import org.apache.fineract.portfolio.businessevent.service.BusinessEventNotifierService;
 import org.apache.fineract.portfolio.calendar.domain.Calendar;
 import org.apache.fineract.portfolio.calendar.domain.CalendarEntityType;
 import org.apache.fineract.portfolio.calendar.domain.CalendarFrequencyType;
@@ -110,6 +115,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
     private final SavingsAccountChargeRepository savingsAccountChargeRepository;
 
     private final ReadWriteNonCoreDataService readWriteNonCoreDataService;
+    private final BusinessEventNotifierService businessEventNotifierService;
 
     @Autowired
     public DepositAccountDomainServiceJpa(final PlatformSecurityContext context,
@@ -123,7 +129,8 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
             final CalendarInstanceRepository calendarInstanceRepository, final AccountAssociationsRepository accountAssociationsRepository,
             final SavingsAccountTransactionRepository savingsAccountTransactionRepository,
             final SavingsAccountWritePlatformService savingsAccountWritePlatformService,
-            final SavingsAccountChargeRepository savingsAccountChargeRepository, ReadWriteNonCoreDataService readWriteNonCoreDataService) {
+            final SavingsAccountChargeRepository savingsAccountChargeRepository, ReadWriteNonCoreDataService readWriteNonCoreDataService,
+            final BusinessEventNotifierService businessEventNotifierService) {
         this.context = context;
         this.savingsAccountRepository = savingsAccountRepository;
         this.applicationCurrencyRepositoryWrapper = applicationCurrencyRepositoryWrapper;
@@ -140,6 +147,7 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         this.savingsAccountWritePlatformService = savingsAccountWritePlatformService;
         this.savingsAccountChargeRepository = savingsAccountChargeRepository;
         this.readWriteNonCoreDataService = readWriteNonCoreDataService;
+        this.businessEventNotifierService = businessEventNotifierService;
     }
 
     @Transactional
@@ -274,6 +282,10 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
             final SavingsAccountTransaction withdrawal = this.handleWithdrawal(account, fmt, closedDate, account.getAccountBalance(),
                     paymentDetail, false, isRegularTransaction);
             savingsTransactionId = withdrawal.getId();
+
+            businessEventNotifierService
+                    .notifyPostBusinessEvent(new FixedDepositAccountRolloverBusinessEvent(new FixedDepositRolloverEventData(account,
+                            reinvestedDeposit)));
         } else if (onClosureType.isTransferToSavings()) {
             final Long toSavingsId = command.longValueOfParameterNamed(toSavingsAccountIdParamName);
             final String transferDescription = command.stringValueOfParameterNamed(transferDescriptionParamName);
@@ -295,6 +307,10 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
 
         account.close(user, command, tenantsTodayDate, changes);
         this.savingsAccountRepository.save(account);
+
+        if (!onClosureType.isReinvest()) {
+            businessEventNotifierService.notifyPostBusinessEvent(new FixedDepositAccountCloseBusinessEvent(account));
+        }
 
         return savingsTransactionId;
     }
@@ -348,6 +364,10 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
             reinvestedDeposit.approveAndActivateApplication(closedDate, user);
             this.savingsAccountRepository.save(reinvestedDeposit);
 
+            businessEventNotifierService
+                    .notifyPostBusinessEvent(new FixedDepositAccountRolloverBusinessEvent(new FixedDepositRolloverEventData(account,
+                            reinvestedDeposit)));
+
         } else if (onClosureType.isTransferToSavings()) {
             final SavingsAccount toSavingsAccount = this.depositAccountAssembler.assembleFrom(toSavingsId,
                     DepositAccountType.SAVINGS_DEPOSIT);
@@ -385,6 +405,11 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         }
 
         this.savingsAccountRepository.save(account);
+
+        if (!onClosureType.isReinvest()) {
+            businessEventNotifierService.notifyPostBusinessEvent(new FixedDepositAccountCloseBusinessEvent(account));
+        }
+
         return savingsTransactionId;
     }
 
@@ -577,6 +602,9 @@ public class DepositAccountDomainServiceJpa implements DepositAccountDomainServi
         this.savingsAccountRepository.save(account);
 
         postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds, isAccountTransfer);
+
+        businessEventNotifierService.notifyPostBusinessEvent(new FixedDepositAccountPreClosureBusinessEvent(account));
+
         return savingsTransactionId;
     }
 

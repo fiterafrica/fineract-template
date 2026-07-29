@@ -96,6 +96,8 @@ import org.apache.fineract.portfolio.account.domain.AccountTransferType;
 import org.apache.fineract.portfolio.account.service.AccountAssociationsReadPlatformService;
 import org.apache.fineract.portfolio.account.service.AccountTransfersReadPlatformService;
 import org.apache.fineract.portfolio.account.service.AccountTransfersWritePlatformService;
+import org.apache.fineract.portfolio.businessevent.domain.deposit.FixedDepositAccountActivateBusinessEvent;
+import org.apache.fineract.portfolio.businessevent.service.BusinessEventNotifierService;
 import org.apache.fineract.portfolio.calendar.domain.Calendar;
 import org.apache.fineract.portfolio.calendar.domain.CalendarEntityType;
 import org.apache.fineract.portfolio.calendar.domain.CalendarFrequencyType;
@@ -224,6 +226,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
     private final ChargeReadPlatformService chargeReadPlatformService;
     private final GLClosureRepository glClosureRepository;
     private final PaymentTypeRepositoryWrapper paymentTypeRepositoryWrapper;
+    private final BusinessEventNotifierService businessEventNotifierService;
 
     @Autowired
     public DepositAccountWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
@@ -252,7 +255,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             SavingsAccountWritePlatformService savingsAccountWritePlatformService, SavingsAccountRepository savingsAccountRepository,
             ChargeSlabRepository chargeSlabRepository, SavingsAccountReadPlatformService savingsAccountReadPlatformService,
             ChargeReadPlatformService chargeReadPlatformService, GLClosureRepository glClosureRepository,
-            PaymentTypeRepositoryWrapper paymentTypeRepositoryWrapper) {
+            PaymentTypeRepositoryWrapper paymentTypeRepositoryWrapper, final BusinessEventNotifierService businessEventNotifierService) {
 
         this.context = context;
         this.savingAccountRepositoryWrapper = savingAccountRepositoryWrapper;
@@ -291,6 +294,7 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         this.chargeReadPlatformService = chargeReadPlatformService;
         this.glClosureRepository = glClosureRepository;
         this.paymentTypeRepositoryWrapper = paymentTypeRepositoryWrapper;
+        this.businessEventNotifierService = businessEventNotifierService;
     }
 
     @Transactional
@@ -377,6 +381,8 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
             this.savingAccountRepositoryWrapper.saveAndFlush(account);
         }
         postJournalEntries(account, existingTransactionIds, existingReversedTransactionIds);
+
+        businessEventNotifierService.notifyPostBusinessEvent(new FixedDepositAccountActivateBusinessEvent(account));
 
         return new CommandProcessingResultBuilder() //
                 .withEntityId(savingsId) //

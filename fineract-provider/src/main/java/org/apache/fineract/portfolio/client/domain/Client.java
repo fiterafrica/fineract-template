@@ -767,6 +767,10 @@ public class Client extends AbstractAuditableWithUTCDateTimeCustom {
         return this.externalId;
     }
 
+    public String getAccountNumber() {
+        return this.accountNumber;
+    }
+
     public void setEmailAddress(final String emailAddress) {
         this.emailAddress = emailAddress;
     }
