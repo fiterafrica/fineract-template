@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.portfolio.client.domain;
+package org.apache.fineract.portfolio.businessevent.domain.deposit;
 
-import java.util.List;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.apache.fineract.portfolio.businessevent.domain.AbstractBusinessEvent;
 
-public interface ClientIdentifierRepository extends JpaRepository<ClientIdentifier, Long>, JpaSpecificationExecutor<ClientIdentifier> {
+public class FixedDepositAccountRolloverBusinessEvent extends AbstractBusinessEvent<FixedDepositRolloverEventData> {
 
-    List<ClientIdentifier> findByClient(Client client);
+    public FixedDepositAccountRolloverBusinessEvent(FixedDepositRolloverEventData value) {
+        super(value);
+    }
 }

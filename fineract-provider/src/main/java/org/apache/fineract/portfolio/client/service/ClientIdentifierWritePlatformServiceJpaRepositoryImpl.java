@@ -29,6 +29,8 @@ import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
+import org.apache.fineract.portfolio.businessevent.domain.client.ClientIdentifierCreateBusinessEvent;
+import org.apache.fineract.portfolio.businessevent.service.BusinessEventNotifierService;
 import org.apache.fineract.portfolio.client.command.ClientIdentifierCommand;
 import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.client.domain.ClientIdentifier;
@@ -55,17 +57,20 @@ public class ClientIdentifierWritePlatformServiceJpaRepositoryImpl implements Cl
     private final ClientIdentifierRepository clientIdentifierRepository;
     private final CodeValueRepositoryWrapper codeValueRepository;
     private final ClientIdentifierCommandFromApiJsonDeserializer clientIdentifierCommandFromApiJsonDeserializer;
+    private final BusinessEventNotifierService businessEventNotifierService;
 
     @Autowired
     public ClientIdentifierWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
             final ClientRepositoryWrapper clientRepository, final ClientIdentifierRepository clientIdentifierRepository,
             final CodeValueRepositoryWrapper codeValueRepository,
-            final ClientIdentifierCommandFromApiJsonDeserializer clientIdentifierCommandFromApiJsonDeserializer) {
+            final ClientIdentifierCommandFromApiJsonDeserializer clientIdentifierCommandFromApiJsonDeserializer,
+            final BusinessEventNotifierService businessEventNotifierService) {
         this.context = context;
         this.clientRepository = clientRepository;
         this.clientIdentifierRepository = clientIdentifierRepository;
         this.codeValueRepository = codeValueRepository;
         this.clientIdentifierCommandFromApiJsonDeserializer = clientIdentifierCommandFromApiJsonDeserializer;
+        this.businessEventNotifierService = businessEventNotifierService;
     }
 
     @Transactional
@@ -91,6 +96,8 @@ public class ClientIdentifierWritePlatformServiceJpaRepositoryImpl implements Cl
             final ClientIdentifier clientIdentifier = ClientIdentifier.fromJson(client, documentType, command);
 
             this.clientIdentifierRepository.saveAndFlush(clientIdentifier);
+
+            businessEventNotifierService.notifyPostBusinessEvent(new ClientIdentifierCreateBusinessEvent(clientIdentifier));
 
             return new CommandProcessingResultBuilder() //
                     .withCommandId(command.commandId()) //

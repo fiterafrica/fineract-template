@@ -127,4 +127,12 @@ public class ClientIdentifier extends AbstractAuditableCustom {
     public Long documentTypeId() {
         return this.documentType.getId();
     }
+
+    public CodeValue documentType() {
+        return this.documentType;
+    }
+
+    public Client getClient() {
+        return this.client;
+    }
 }

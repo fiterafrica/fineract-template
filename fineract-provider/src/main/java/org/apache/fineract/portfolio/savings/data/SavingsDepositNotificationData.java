@@ -16,13 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.portfolio.client.domain;
+package org.apache.fineract.portfolio.savings.data;
 
-import java.util.List;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import java.math.BigDecimal;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public interface ClientIdentifierRepository extends JpaRepository<ClientIdentifier, Long>, JpaSpecificationExecutor<ClientIdentifier> {
+/**
+ * Payload published to ActiveMQ (SavingsDepositConfirmation queue) when a deposit is posted to a savings account.
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class SavingsDepositNotificationData {
 
-    List<ClientIdentifier> findByClient(Client client);
+    private Long savingsAccountId;
+    private Long clientId;
+    private String externalId;
+    private String clientName;
+    private Long transactionId;
+    private BigDecimal amount;
+    private String currency;
+    private String transactionType;
+    private BigDecimal runningBalance;
+    private String eventTimestamp;
+    private String transactionDate;
 }

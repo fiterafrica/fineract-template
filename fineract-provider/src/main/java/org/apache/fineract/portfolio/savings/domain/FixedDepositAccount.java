@@ -810,6 +810,14 @@ public class FixedDepositAccount extends SavingsAccount {
         return this.accountTermAndPreClosure.maturityAmount();
     }
 
+    public Integer depositPeriod() {
+        return this.accountTermAndPreClosure.depositPeriod();
+    }
+
+    public SavingsPeriodFrequencyType depositPeriodFrequencyType() {
+        return this.accountTermAndPreClosure.depositPeriodFrequencyType();
+    }
+
     private Money totalInterestPosted() {
         Money interestPostedToDate = Money.zero(this.currency);
         for (final SavingsAccountTransaction transaction : this.transactions) {

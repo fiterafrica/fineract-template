@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.portfolio.client.domain;
+package org.apache.fineract.portfolio.businessevent.domain.client;
 
-import java.util.List;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.apache.fineract.portfolio.businessevent.domain.AbstractBusinessEvent;
+import org.apache.fineract.portfolio.client.domain.ClientIdentifier;
 
-public interface ClientIdentifierRepository extends JpaRepository<ClientIdentifier, Long>, JpaSpecificationExecutor<ClientIdentifier> {
+public class ClientIdentifierCreateBusinessEvent extends AbstractBusinessEvent<ClientIdentifier> {
 
-    List<ClientIdentifier> findByClient(Client client);
+    public ClientIdentifierCreateBusinessEvent(ClientIdentifier value) {
+        super(value);
+    }
 }

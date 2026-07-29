@@ -16,13 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.fineract.portfolio.client.domain;
+package org.apache.fineract.portfolio.loanaccount.data;
 
-import java.util.List;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import java.math.BigDecimal;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public interface ClientIdentifierRepository extends JpaRepository<ClientIdentifier, Long>, JpaSpecificationExecutor<ClientIdentifier> {
+/**
+ * Payload published to ActiveMQ (LoanCreationConfirmation queue) when a loan application is submitted.
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class LoanCreationNotificationData {
 
-    List<ClientIdentifier> findByClient(Client client);
+    private Long loanId;
+    private String accountNumber;
+    private Long clientId;
+    private String clientName;
+    private Long loanProductId;
+    private String productName;
+    private BigDecimal proposedPrincipal;
+    private String submittedOnDate;
+    private String expectedDisbursementDate;
+    private String expectedMaturityDate;
+    private Integer termFrequency;
+    private String termPeriodFrequencyType;
 }
