@@ -2266,8 +2266,29 @@ public class DepositAccountWritePlatformServiceJpaRepositoryImpl implements Depo
         }
     }
 
+    private void validateAccrualInterestPostingNotAfterMaturity(final SavingsAccount account, final LocalDate transactionDate) {
+        LocalDate maturityDate = null;
+
+        if (account instanceof FixedDepositAccount fdAccount) {
+            maturityDate = fdAccount.maturityDate();
+        } else if (account instanceof RecurringDepositAccount rdAccount) {
+            maturityDate = rdAccount.maturityDate();
+        }
+
+        if (maturityDate != null && transactionDate.isAfter(maturityDate)) {
+            LOG.warn("Attempt to post accrual interest on matured {} account ID: {}, Maturity Date: {}, Transaction Date: {}",
+                    account instanceof FixedDepositAccount ? "Fixed Deposit" : "Recurring Deposit",
+                    account.getId(), maturityDate, transactionDate);
+            throw new GeneralPlatformDomainRuleException(
+                    "error.msg.accrual.posting.after.maturity.date",
+                    "Cannot post accrual interest for account ID " + account.getId() + " after its maturity date of " + maturityDate);
+        }
+    }
+
     @Transactional
     public void postAccrualInterest(final SavingsAccount account, final LocalDate transactionDate) {
+
+        validateAccrualInterestPostingNotAfterMaturity(account, transactionDate);
 
         final boolean isSavingsInterestPostingAtCurrentPeriodEnd = this.configurationDomainService
                 .isSavingsInterestPostingAtCurrentPeriodEnd();

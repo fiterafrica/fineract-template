@@ -709,6 +709,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                        OR msa.last_interest_calculation_date < :jobRunDate)
                   AND (msa.start_interest_accrual_calculation_date IS NOT NULL
                        OR msa.start_interest_accrual_calculation_date <= :jobRunDate)
+                  AND (msa.maturity_date IS NULL OR msa.maturity_date > :jobRunDate)
                 """;
 
         Map<String, Object> params = new HashMap<>();
