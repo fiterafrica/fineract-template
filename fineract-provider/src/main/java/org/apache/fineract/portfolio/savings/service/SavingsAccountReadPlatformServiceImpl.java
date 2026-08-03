@@ -701,6 +701,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                 SELECT msa.id
                 FROM m_savings_account msa
                 JOIN m_savings_product msp ON msp.id = msa.product_id
+                LEFT JOIN m_deposit_account_term_and_preclosure mdatpc ON mdatpc.savings_account_id = msa.id
                 WHERE msa.status_enum = 300
                   AND msp.accounting_type = 3
                   AND (msa.nominal_annual_interest_rate != 0 OR msa.allow_overdraft = true)
@@ -709,6 +710,7 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                        OR msa.last_interest_calculation_date < :jobRunDate)
                   AND (msa.start_interest_accrual_calculation_date IS NOT NULL
                        OR msa.start_interest_accrual_calculation_date <= :jobRunDate)
+                  AND (mdatpc.maturity_date IS NULL OR mdatpc.maturity_date > :jobRunDate)
                 """;
 
         Map<String, Object> params = new HashMap<>();

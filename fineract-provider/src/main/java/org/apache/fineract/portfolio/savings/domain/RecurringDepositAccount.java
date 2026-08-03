@@ -612,12 +612,18 @@ public class RecurringDepositAccount extends SavingsAccount {
         }
         final List<SavingsAccountTransaction> savingsAccountTransactions = retreiveListOfTransactions();
         if (savingsAccountTransactions.size() > 0) {
-            final SavingsAccountTransaction accountTransaction = savingsAccountTransactions.get(savingsAccountTransactions.size() - 1);
-            if (accountTransaction.isAfter(closedDate)) {
-                baseDataValidator.reset().parameter(SavingsApiConstants.closedOnDateParamName).value(closedDate)
-                        .failWithCode("must.be.after.last.transaction.date");
-                if (!dataValidationErrors.isEmpty()) {
-                    throw new PlatformApiDataValidationException(dataValidationErrors);
+            final List<SavingsAccountTransaction> unreversedTransactions = savingsAccountTransactions.stream()
+                    .filter(txn -> !txn.isReversed())
+                    .toList();
+
+            if (unreversedTransactions.size() > 0) {
+                final SavingsAccountTransaction accountTransaction = unreversedTransactions.get(unreversedTransactions.size() - 1);
+                if (accountTransaction.isAfter(closedDate)) {
+                    baseDataValidator.reset().parameter(SavingsApiConstants.closedOnDateParamName).value(closedDate)
+                            .failWithCode("must.be.after.last.transaction.date");
+                    if (!dataValidationErrors.isEmpty()) {
+                        throw new PlatformApiDataValidationException(dataValidationErrors);
+                    }
                 }
             }
         }
