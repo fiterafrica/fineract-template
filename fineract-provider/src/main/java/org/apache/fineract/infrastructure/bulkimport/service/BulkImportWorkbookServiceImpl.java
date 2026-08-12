@@ -27,11 +27,15 @@ import java.net.URLConnection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.io.IOUtils;
 import org.apache.fineract.infrastructure.bulkimport.data.BulkImportEvent;
 import org.apache.fineract.infrastructure.bulkimport.data.GlobalEntityType;
 import org.apache.fineract.infrastructure.bulkimport.data.ImportData;
+import org.apache.fineract.infrastructure.bulkimport.data.ImportDocumentStatus;
 import org.apache.fineract.infrastructure.bulkimport.domain.ImportDocument;
 import org.apache.fineract.infrastructure.bulkimport.domain.ImportDocumentRepository;
 import org.apache.fineract.infrastructure.bulkimport.importhandler.ImportHandlerUtils;
@@ -65,6 +69,24 @@ import org.springframework.stereotype.Service;
 public class BulkImportWorkbookServiceImpl implements BulkImportWorkbookService {
 
     private static final Logger LOG = LoggerFactory.getLogger(BulkImportWorkbookServiceImpl.class);
+
+    /**
+     * A PENDING import job older than this is assumed orphaned (its background thread died or the app
+     * restarted mid-processing) rather than genuinely still running, and is no longer treated as blocking new
+     * uploads of the same entity type. Chosen generously so legitimately long-running large-file imports are
+     * never mistaken for stale jobs.
+     */
+    private static final long STALE_IMPORT_THRESHOLD_MINUTES = 120;
+
+    /**
+     * Per entity-type locks used to make the "is an import already running" check and the creation of the new
+     * PENDING {@link ImportDocument} atomic with respect to concurrent requests (e.g. duplicate submit clicks)
+     * hitting this instance at the same time. This only protects a single application instance; a
+     * horizontally-scaled deployment would need a DB-level lock (e.g. a unique index) for the same guarantee
+     * across nodes.
+     */
+    private final Map<Integer, Object> entityImportLocks = new ConcurrentHashMap<>();
+
     private final ApplicationContext applicationContext;
     private final PlatformSecurityContext securityContext;
     private final DocumentWritePlatformService documentWritePlatformService;
@@ -188,21 +210,53 @@ public class BulkImportWorkbookServiceImpl implements BulkImportWorkbookService 
             final InputStream clonedInputStreamWorkbook, final GlobalEntityType entityType, final Workbook workbook, final String locale,
             final String dateFormat) {
 
-        final String fileName = fileDetail.getFileName();
+        final Object entityLock = this.entityImportLocks.computeIfAbsent(entityType.getValue(), k -> new Object());
+        synchronized (entityLock) {
+            try {
+                assertNoActiveImport(entityType);
+            } catch (final RuntimeException e) {
+                try {
+                    workbook.close();
+                } catch (final IOException io) {
+                    LOG.error("Problem occurred closing rejected workbook", io);
+                }
+                throw e;
+            }
 
-        final Long documentId = this.documentWritePlatformService.createInternalDocument(
-                DocumentWritePlatformServiceJpaRepositoryImpl.DocumentManagementEntity.IMPORT.name(),
-                this.securityContext.authenticatedUser().getId(), null, clonedInputStreamWorkbook,
-                URLConnection.guessContentTypeFromName(fileName), fileName, null, fileName);
-        final Document document = this.documentRepository.findById(documentId).orElse(null);
+            final String fileName = fileDetail.getFileName();
 
-        final ImportDocument importDocument = ImportDocument.instance(document, DateUtils.getLocalDateTimeOfTenant(), entityType.getValue(),
-                this.securityContext.authenticatedUser(), ImportHandlerUtils.getNumberOfRows(workbook.getSheetAt(0), primaryColumn));
-        this.importDocumentRepository.saveAndFlush(importDocument);
-        BulkImportEvent event = BulkImportEvent.instance(this, workbook, importDocument.getId(), locale, dateFormat,
-                ThreadLocalContextUtil.getContext());
-        applicationContext.publishEvent(event);
-        return importDocument.getId();
+            final Long documentId = this.documentWritePlatformService.createInternalDocument(
+                    DocumentWritePlatformServiceJpaRepositoryImpl.DocumentManagementEntity.IMPORT.name(),
+                    this.securityContext.authenticatedUser().getId(), null, clonedInputStreamWorkbook,
+                    URLConnection.guessContentTypeFromName(fileName), fileName, null, fileName);
+            final Document document = this.documentRepository.findById(documentId).orElse(null);
+
+            final ImportDocument importDocument = ImportDocument.instance(document, DateUtils.getLocalDateTimeOfTenant(),
+                    entityType.getValue(), this.securityContext.authenticatedUser(),
+                    ImportHandlerUtils.getNumberOfRows(workbook.getSheetAt(0), primaryColumn));
+            this.importDocumentRepository.saveAndFlush(importDocument);
+            BulkImportEvent event = BulkImportEvent.instance(this, workbook, importDocument.getId(), locale, dateFormat,
+                    ThreadLocalContextUtil.getContext());
+            applicationContext.publishEvent(event);
+            return importDocument.getId();
+        }
+    }
+
+    /**
+     * Rejects the upload if another import of the same entity type is still PENDING and was started recently
+     * enough to be considered genuinely in progress (see {@link #STALE_IMPORT_THRESHOLD_MINUTES}). This is
+     * what prevents a second upload from being enqueued/processed while the first is still running, which was
+     * previously producing duplicate transactions and success/failure counts corrupted by the two imports
+     * racing on the same (stateful, singleton) entity import handler.
+     */
+    private void assertNoActiveImport(final GlobalEntityType entityType) {
+        final LocalDateTime staleThreshold = DateUtils.getLocalDateTimeOfTenant().minusMinutes(STALE_IMPORT_THRESHOLD_MINUTES);
+        final boolean importInProgress = this.importDocumentRepository.existsByEntityTypeAndStatusAndImportTimeGreaterThanEqual(
+                entityType.getValue(), ImportDocumentStatus.PENDING.getValue(), staleThreshold);
+        if (importInProgress) {
+            throw new GeneralPlatformDomainRuleException("error.msg.import.in.progress",
+                    "A file is currently being processed. Please wait until it is completed before uploading another file.");
+        }
     }
 
     @Override
@@ -221,7 +275,7 @@ public class BulkImportWorkbookServiceImpl implements BulkImportWorkbookService 
             final StringBuilder sql = new StringBuilder();
             sql.append("i.id as id, i.document_id as documentId, d.name as name, i.import_time as importTime, i.end_time as endTime, ")
                     .append("i.completed as completed, i.total_records as totalRecords, i.success_count as successCount, ")
-                    .append("i.failure_count as failureCount, i.createdby_id as createdBy ")
+                    .append("i.failure_count as failureCount, i.createdby_id as createdBy, i.status as status ")
                     .append("from m_import_document i inner join m_document d on i.document_id=d.id ").append("where i.entity_type= ? ");
             return sql.toString();
         }
@@ -239,9 +293,10 @@ public class BulkImportWorkbookServiceImpl implements BulkImportWorkbookService 
             final Integer successCount = JdbcSupport.getInteger(rs, "successCount");
             final Integer failureCount = JdbcSupport.getInteger(rs, "failureCount");
             final Long createdBy = rs.getLong("createdBy");
+            final Integer status = JdbcSupport.getInteger(rs, "status");
 
             return ImportData.instance(id, documentId, importTime, endTime, completed, name, createdBy, totalRecords, successCount,
-                    failureCount);
+                    failureCount, status);
         }
     }
 

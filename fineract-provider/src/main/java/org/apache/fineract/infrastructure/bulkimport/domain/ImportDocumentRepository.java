@@ -18,9 +18,16 @@
  */
 package org.apache.fineract.infrastructure.bulkimport.domain;
 
+import java.time.LocalDateTime;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 public interface ImportDocumentRepository extends JpaRepository<ImportDocument, Long>, JpaSpecificationExecutor<ImportDocument> {
-    // no added behaviour
+
+    /**
+     * Used to detect an already-running upload for the given entity type. {@code importedAfter} bounds the
+     * check to jobs started recently so that a PENDING row orphaned by an app restart or crashed thread (which
+     * will never be picked up again) does not permanently block future uploads of the same entity type.
+     */
+    boolean existsByEntityTypeAndStatusAndImportTimeGreaterThanEqual(Integer entityType, Integer status, LocalDateTime importedAfter);
 }

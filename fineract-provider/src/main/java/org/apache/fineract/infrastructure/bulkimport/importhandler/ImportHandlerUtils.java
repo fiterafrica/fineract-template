@@ -25,6 +25,7 @@ import org.apache.fineract.infrastructure.bulkimport.constants.TemplatePopulateI
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.exception.AbstractPlatformException;
+import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.apache.fineract.infrastructure.core.exception.UnsupportedParameterException;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.poi.ss.usermodel.Cell;
@@ -258,8 +259,11 @@ public final class ImportHandlerUtils {
 
     public static String getDefaultUserMessages(List<ApiParameterError> ApiParameterErrorList) {
         StringBuilder defaultUserMessages = new StringBuilder();
-        for (ApiParameterError error : ApiParameterErrorList) {
-            defaultUserMessages = defaultUserMessages.append(error.getDefaultUserMessage() + '\t');
+        for (int i = 0; i < ApiParameterErrorList.size(); i++) {
+            if (i > 0) {
+                defaultUserMessages.append("; ");
+            }
+            defaultUserMessages.append(ApiParameterErrorList.get(i).getDefaultUserMessage());
         }
         return defaultUserMessages.toString();
     }
@@ -279,7 +283,16 @@ public final class ImportHandlerUtils {
     }
 
     public static String getErrorMessage(RuntimeException re) {
-        if (re instanceof AbstractPlatformException) {
+        if (re instanceof PlatformApiDataValidationException) {
+            // PlatformApiDataValidationException.getDefaultUserMessage() is always the generic
+            // "Validation errors exist." - the actually useful, field-specific messages live in getErrors().
+            final PlatformApiDataValidationException validationException = (PlatformApiDataValidationException) re;
+            final List<ApiParameterError> errors = validationException.getErrors();
+            if (errors != null && !errors.isEmpty()) {
+                return getDefaultUserMessages(errors);
+            }
+            return validationException.getDefaultUserMessage();
+        } else if (re instanceof AbstractPlatformException) {
             AbstractPlatformException abstractPlatformException = (AbstractPlatformException) re;
             return abstractPlatformException.getDefaultUserMessage();
         } else if (re instanceof UnsupportedParameterException) {

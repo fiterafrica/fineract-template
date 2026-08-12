@@ -66,9 +66,48 @@ public class BulkImportEventListener implements ApplicationListener<BulkImportEv
     @Override
     public void onApplicationEvent(final BulkImportEvent event) {
         ThreadLocalContextUtil.init(event.getContext());
-        ImportHandler importHandler = null;
         final ImportDocument importDocument = this.importRepository.findById(event.getImportId()).orElse(null);
         final GlobalEntityType entityType = GlobalEntityType.fromInt(importDocument.getEntityType());
+
+        try {
+            processImport(importDocument, entityType, event);
+        } catch (final RuntimeException e) {
+            // An import job must always reach a terminal status (COMPLETED or FAILED). Leaving it PENDING here
+            // would permanently block subsequent uploads of the same entity type via assertNoActiveImport().
+            LOG.error("Bulk import processing failed for importDocument id {}", importDocument.getId(), e);
+            importDocument.markFailed(DateUtils.getLocalDateTimeOfTenant());
+            this.importRepository.saveAndFlush(importDocument);
+            return;
+        }
+
+        final Workbook workbook = event.getWorkbook();
+        final Set<String> modifiedParams = new HashSet<>();
+        modifiedParams.add("fileName");
+        modifiedParams.add("size");
+        modifiedParams.add("type");
+        modifiedParams.add("location");
+        Document document = importDocument.getDocument();
+
+        DocumentCommand documentCommand = new DocumentCommand(modifiedParams, document.getId(), entityType.name(), null, document.getName(),
+                document.getFileName(), document.getSize(), URLConnection.guessContentTypeFromName(document.getFileName()), null, null);
+
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try {
+            try {
+                workbook.write(bos);
+            } finally {
+                bos.close();
+            }
+        } catch (IOException io) {
+            LOG.error("Problem occurred in onApplicationEvent function", io);
+        }
+        byte[] bytes = bos.toByteArray();
+        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+        this.documentService.updateDocument(documentCommand, bis);
+    }
+
+    private void processImport(final ImportDocument importDocument, final GlobalEntityType entityType, final BulkImportEvent event) {
+        ImportHandler importHandler = null;
 
         switch (entityType) {
             case OFFICES:
@@ -137,30 +176,6 @@ public class BulkImportEventListener implements ApplicationListener<BulkImportEv
         final Count count = importHandler.process(workbook, event.getLocale(), event.getDateFormat());
         importDocument.update(DateUtils.getLocalDateTimeOfTenant(), count.getSuccessCount(), count.getErrorCount());
         this.importRepository.saveAndFlush(importDocument);
-
-        final Set<String> modifiedParams = new HashSet<>();
-        modifiedParams.add("fileName");
-        modifiedParams.add("size");
-        modifiedParams.add("type");
-        modifiedParams.add("location");
-        Document document = importDocument.getDocument();
-
-        DocumentCommand documentCommand = new DocumentCommand(modifiedParams, document.getId(), entityType.name(), null, document.getName(),
-                document.getFileName(), document.getSize(), URLConnection.guessContentTypeFromName(document.getFileName()), null, null);
-
-        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        try {
-            try {
-                workbook.write(bos);
-            } finally {
-                bos.close();
-            }
-        } catch (IOException io) {
-            LOG.error("Problem occurred in onApplicationEvent function", io);
-        }
-        byte[] bytes = bos.toByteArray();
-        ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-        this.documentService.updateDocument(documentCommand, bis);
     }
 
 }
