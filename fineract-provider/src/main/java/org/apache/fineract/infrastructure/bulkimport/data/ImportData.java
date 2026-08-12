@@ -42,21 +42,23 @@ public final class ImportData {
     private Integer successCount;
     @SuppressWarnings("unused")
     private Integer failureCount;
+    @SuppressWarnings("unused")
+    private Integer status;
 
     public static ImportData instance(final Long importId, final Long documentId, final LocalDate importTime, final LocalDate endTime,
             final Boolean completed, final String name, final Long createdBy, final Integer totalRecords, final Integer successCount,
-            final Integer failureCount) {
+            final Integer failureCount, final Integer status) {
         return new ImportData(importId, documentId, importTime, endTime, completed, name, createdBy, totalRecords, successCount,
-                failureCount);
+                failureCount, status);
     }
 
     public static ImportData instance(final Long importId) {
-        return new ImportData(importId, null, null, null, null, null, null, null, null, null);
+        return new ImportData(importId, null, null, null, null, null, null, null, null, null, null);
     }
 
     private ImportData(final Long importId, final Long documentId, final LocalDate importTime, final LocalDate endTime,
             final Boolean completed, final String name, final Long createdBy, final Integer totalRecords, final Integer successCount,
-            final Integer failureCount) {
+            final Integer failureCount, final Integer status) {
         this.importId = importId;
         this.documentId = documentId;
         this.name = name;
@@ -67,6 +69,7 @@ public final class ImportData {
         this.totalRecords = totalRecords;
         this.successCount = successCount;
         this.failureCount = failureCount;
+        this.status = status;
     }
 
 }

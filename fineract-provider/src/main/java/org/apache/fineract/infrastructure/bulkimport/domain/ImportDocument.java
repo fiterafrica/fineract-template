@@ -25,6 +25,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import org.apache.fineract.infrastructure.bulkimport.data.ImportDocumentStatus;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.documentmanagement.domain.Document;
@@ -63,6 +64,9 @@ public class ImportDocument extends AbstractPersistableCustom {
     @Column(name = "failure_count", nullable = true)
     private Integer failureCount;
 
+    @Column(name = "status", nullable = false)
+    private Integer status;
+
     protected ImportDocument() {
 
     }
@@ -76,12 +80,12 @@ public class ImportDocument extends AbstractPersistableCustom {
         final LocalDateTime endTime = LocalDateTime.now(DateUtils.getDateTimeZoneOfTenant());
 
         return new ImportDocument(document, importTime, endTime, completed, entityType, createdBy, totalRecords, successCount,
-                failureCount);
+                failureCount, ImportDocumentStatus.PENDING.getValue());
     }
 
     private ImportDocument(final Document document, final LocalDateTime importTime, final LocalDateTime endTime, Boolean completed,
             final Integer entityType, final AppUser createdBy, final Integer totalRecords, final Integer successCount,
-            final Integer failureCount) {
+            final Integer failureCount, final Integer status) {
         this.document = document;
         this.importTime = importTime;
         this.endTime = endTime;
@@ -91,6 +95,7 @@ public class ImportDocument extends AbstractPersistableCustom {
         this.totalRecords = totalRecords;
         this.successCount = successCount;
         this.failureCount = failureCount;
+        this.status = status;
 
     }
 
@@ -99,6 +104,19 @@ public class ImportDocument extends AbstractPersistableCustom {
         this.completed = Boolean.TRUE;
         this.successCount = successCount;
         this.failureCount = errorCount;
+        this.status = ImportDocumentStatus.COMPLETED.getValue();
+    }
+
+    /**
+     * Marks this import job as terminally failed without per-row counts, used when the background processing
+     * thread dies (uncaught exception, unresolvable handler, etc.) before it can compute a result. Without
+     * this, the job would stay in PENDING forever and permanently block subsequent uploads of the same entity
+     * type.
+     */
+    public void markFailed(final LocalDateTime endTime) {
+        this.endTime = endTime;
+        this.completed = Boolean.TRUE;
+        this.status = ImportDocumentStatus.FAILED.getValue();
     }
 
     public Document getDocument() {
@@ -107,6 +125,14 @@ public class ImportDocument extends AbstractPersistableCustom {
 
     public Integer getEntityType() {
         return this.entityType;
+    }
+
+    public Integer getStatus() {
+        return this.status;
+    }
+
+    public boolean isPending() {
+        return ImportDocumentStatus.PENDING.getValue().equals(this.status);
     }
 
 }

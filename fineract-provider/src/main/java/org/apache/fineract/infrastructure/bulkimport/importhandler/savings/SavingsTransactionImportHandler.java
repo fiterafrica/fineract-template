@@ -130,6 +130,13 @@ public class SavingsTransactionImportHandler implements ImportHandler {
                 savingsTransactionJsonob.remove("transactionType");
                 savingsTransactionJsonob.remove("reversed");
                 savingsTransactionJsonob.remove("interestedPostedAsOn");
+                // These fields are always present on the DTO (non-null defaults) so Gson always serializes them,
+                // but the deposit/withdrawal command's parameter whitelist
+                // (SavingsAccountConstant.SAVINGS_ACCOUNT_TRANSACTION_REQUEST_DATA_PARAMETERS) does not include
+                // them, so every row failed with an UnsupportedParameterException until they were removed here.
+                savingsTransactionJsonob.remove("isManualTransaction");
+                savingsTransactionJsonob.remove("lienTransaction");
+                savingsTransactionJsonob.remove("chargesPaidByData");
                 String payload = savingsTransactionJsonob.toString();
                 CommandWrapper commandRequest = null;
                 if (transaction.getTransactionType().getValue().equals("Withdrawal")) {
