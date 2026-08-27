@@ -382,7 +382,10 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
         final boolean backdatedTxnsAllowedTill = this.savingAccountAssembler.getPivotConfigStatus();
 
-        final SavingsAccount account = this.savingAccountAssembler.assembleFrom(savingsId, backdatedTxnsAllowedTill);
+        // Row-lock up front (SELECT ... FOR UPDATE): without this, concurrent deposits/withdrawals on the
+        // same account race to an OptimisticLockException instead of queuing, which is what caused the
+        // production incident on shared/high-traffic accounts.
+        final SavingsAccount account = this.savingAccountAssembler.assembleFromWithLock(savingsId, backdatedTxnsAllowedTill);
 
         if (account.getGsim() != null) {
             isGsim = true;
@@ -497,7 +500,10 @@ public class SavingsAccountWritePlatformServiceJpaRepositoryImpl implements Savi
 
         final boolean backdatedTxnsAllowedTill = this.savingAccountAssembler.getPivotConfigStatus();
 
-        final SavingsAccount account = this.savingAccountAssembler.assembleFrom(savingsId, backdatedTxnsAllowedTill);
+        // Row-lock up front (SELECT ... FOR UPDATE): without this, concurrent deposits/withdrawals on the
+        // same account race to an OptimisticLockException instead of queuing, which is what caused the
+        // production incident on shared/high-traffic accounts.
+        final SavingsAccount account = this.savingAccountAssembler.assembleFromWithLock(savingsId, backdatedTxnsAllowedTill);
 
         if (account.getGsim() != null) {
             isGsim = true;
