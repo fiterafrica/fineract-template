@@ -381,6 +381,17 @@ public class SavingsAccountAssembler {
         return loadTransactionsToSavingsAccount(account, backdatedTxnsAllowedTill);
     }
 
+    /**
+     * Same as {@link #assembleFrom(Long, boolean)} but takes a {@code SELECT ... FOR UPDATE} row lock on the account
+     * up front, regardless of {@code backdatedTxnsAllowedTill}. Use for accounts that are known or suspected to be
+     * shared/high-contention targets (e.g. a savings account that many other accounts settle into), so concurrent
+     * writers queue deterministically instead of racing to an optimistic-lock failure after doing the work.
+     */
+    public SavingsAccount assembleFromWithLock(final Long savingsId, final boolean backdatedTxnsAllowedTill) {
+        SavingsAccount account = this.savingsAccountRepository.findOneWithNotFoundDetectionAndLock(savingsId);
+        return loadTransactionsToSavingsAccount(account, backdatedTxnsAllowedTill);
+    }
+
     public SavingsAccount loadTransactionsToSavingsAccount(final SavingsAccount account, final boolean backdatedTxnsAllowedTill) {
         List<SavingsAccountTransaction> savingsAccountTransactions = null;
         if (backdatedTxnsAllowedTill) {

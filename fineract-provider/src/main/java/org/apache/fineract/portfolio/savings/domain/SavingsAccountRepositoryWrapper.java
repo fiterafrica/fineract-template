@@ -66,6 +66,23 @@ public class SavingsAccountRepositoryWrapper {
         return account;
     }
 
+    /**
+     * Loads the account with a {@code SELECT ... FOR UPDATE} row lock, independent of the
+     * {@code backdatedTxnsAllowedTill} flag (unlike {@link #findSavingsWithNotFoundDetection}, whose locking is a
+     * side effect of that unrelated business flag). Callers taking locks on more than one account in the same
+     * transaction (e.g. account transfers) must acquire them in a consistent order (ascending account id) to avoid
+     * deadlocking against a concurrent transfer running in the opposite direction.
+     */
+    @Transactional
+    public SavingsAccount findOneWithNotFoundDetectionAndLock(final Long savingsId) {
+        final SavingsAccount account = this.repository.findOneLocked(savingsId);
+        if (account == null) {
+            throw new SavingsAccountNotFoundException(savingsId);
+        }
+        account.loadLazyCollections();
+        return account;
+    }
+
     @Transactional
     public SavingsAccount findSavingsWithNotFoundDetection(final Long savingsId, final boolean backdatedTxnsAllowedTill) {
         SavingsAccount account = null;
