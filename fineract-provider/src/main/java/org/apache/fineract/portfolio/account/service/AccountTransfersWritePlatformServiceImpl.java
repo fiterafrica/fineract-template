@@ -182,17 +182,22 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
         if (isSavingsToSavingsAccountTransfer(fromAccountType, toAccountType)) {
 
             fromSavingsAccountId = command.longValueOfParameterNamed(fromAccountIdParamName);
-            final SavingsAccount fromSavingsAccount = this.savingsAccountAssembler.assembleFrom(fromSavingsAccountId,
+            final Long toSavingsId = command.longValueOfParameterNamed(toAccountIdParamName);
+
+            // Lock both accounts up front in a consistent (ascending id) order: avoids deadlocking against a
+            // concurrent transfer running in the opposite direction between the same two accounts, and lets
+            // concurrent writers on a shared/high-traffic account queue deterministically instead of racing to
+            // an optimistic-lock failure after redoing the work.
+            final SavingsAccount[] lockedAccounts = assembleAndLockTransferAccounts(fromSavingsAccountId, toSavingsId,
                     backdatedTxnsAllowedTill);
+            final SavingsAccount fromSavingsAccount = lockedAccounts[0];
+            final SavingsAccount toSavingsAccount = lockedAccounts[1];
 
             final SavingsTransactionBooleanValues transactionBooleanValues = new SavingsTransactionBooleanValues(isAccountTransfer,
                     isRegularTransaction, fromSavingsAccount.isWithdrawalFeeApplicableForTransfer(), isInterestTransfer, isWithdrawBalance);
             final SavingsAccountTransaction withdrawal = this.savingsAccountDomainService.handleWithdrawal(fromSavingsAccount, fmt,
                     transactionDate, transactionAmount, paymentDetail, transactionBooleanValues, backdatedTxnsAllowedTill,
                     isAccountTransfer, null);
-
-            final Long toSavingsId = command.longValueOfParameterNamed(toAccountIdParamName);
-            final SavingsAccount toSavingsAccount = this.savingsAccountAssembler.assembleFrom(toSavingsId, backdatedTxnsAllowedTill);
 
             final SavingsAccountTransaction deposit = this.savingsAccountDomainService.handleDeposit(toSavingsAccount, fmt, transactionDate,
                     transactionAmount, paymentDetail, isAccountTransfer, isRegularTransaction, backdatedTxnsAllowedTill);
@@ -289,6 +294,28 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
         }
 
         return builder.build();
+    }
+
+    /**
+     * Loads and row-locks (SELECT ... FOR UPDATE) both sides of a savings-to-savings transfer, always acquiring the
+     * lower account id's lock first regardless of transfer direction. This prevents a classic deadlock: a concurrent
+     * transfer running in the opposite direction between the same two accounts (B->A while A->B is in flight) would
+     * otherwise lock "from" then "to" in the opposite order, each waiting on the lock the other already holds.
+     *
+     * @return a two-element array: {@code [fromAccount, toAccount]}, in that semantic order.
+     */
+    private SavingsAccount[] assembleAndLockTransferAccounts(final Long fromAccountId, final Long toAccountId,
+            final boolean backdatedTxnsAllowedTill) {
+        final SavingsAccount fromAccount;
+        final SavingsAccount toAccount;
+        if (fromAccountId.compareTo(toAccountId) <= 0) {
+            fromAccount = this.savingsAccountAssembler.assembleFromWithLock(fromAccountId, backdatedTxnsAllowedTill);
+            toAccount = this.savingsAccountAssembler.assembleFromWithLock(toAccountId, backdatedTxnsAllowedTill);
+        } else {
+            toAccount = this.savingsAccountAssembler.assembleFromWithLock(toAccountId, backdatedTxnsAllowedTill);
+            fromAccount = this.savingsAccountAssembler.assembleFromWithLock(fromAccountId, backdatedTxnsAllowedTill);
+        }
+        return new SavingsAccount[] { fromAccount, toAccount };
     }
 
     @Override
@@ -493,18 +520,30 @@ public class AccountTransfersWritePlatformServiceImpl implements AccountTransfer
             SavingsAccount fromSavingsAccount = null;
             SavingsAccount toSavingsAccount = null;
             if (accountTransferDetails == null) {
-                if (accountTransferDTO.getFromSavingsAccount() == null) {
-                    fromSavingsAccount = this.savingsAccountAssembler.assembleFrom(accountTransferDTO.getFromAccountId(),
-                            backdatedTxnsAllowedTill);
+                if (accountTransferDTO.getFromSavingsAccount() == null && accountTransferDTO.getToSavingsAccount() == null) {
+                    // Neither account is already loaded by the caller: lock both up front, in a consistent
+                    // (ascending id) order, to avoid deadlocking against a concurrent transfer running in the
+                    // opposite direction, and to let concurrent writers on a shared/high-traffic account (e.g. a
+                    // savings account many FD/RD accounts settle proceeds into) queue deterministically instead of
+                    // racing to an optimistic-lock failure after redoing the work.
+                    final SavingsAccount[] lockedAccounts = assembleAndLockTransferAccounts(accountTransferDTO.getFromAccountId(),
+                            accountTransferDTO.getToAccountId(), backdatedTxnsAllowedTill);
+                    fromSavingsAccount = lockedAccounts[0];
+                    toSavingsAccount = lockedAccounts[1];
                 } else {
-                    fromSavingsAccount = accountTransferDTO.getFromSavingsAccount();
-                    this.savingsAccountAssembler.setHelpers(fromSavingsAccount);
-                }
-                if (accountTransferDTO.getToSavingsAccount() == null) {
-                    toSavingsAccount = this.savingsAccountAssembler.assembleFrom(accountTransferDTO.getToAccountId(), false);
-                } else {
-                    toSavingsAccount = accountTransferDTO.getToSavingsAccount();
-                    this.savingsAccountAssembler.setHelpers(toSavingsAccount);
+                    if (accountTransferDTO.getFromSavingsAccount() == null) {
+                        fromSavingsAccount = this.savingsAccountAssembler.assembleFrom(accountTransferDTO.getFromAccountId(),
+                                backdatedTxnsAllowedTill);
+                    } else {
+                        fromSavingsAccount = accountTransferDTO.getFromSavingsAccount();
+                        this.savingsAccountAssembler.setHelpers(fromSavingsAccount);
+                    }
+                    if (accountTransferDTO.getToSavingsAccount() == null) {
+                        toSavingsAccount = this.savingsAccountAssembler.assembleFrom(accountTransferDTO.getToAccountId(), false);
+                    } else {
+                        toSavingsAccount = accountTransferDTO.getToSavingsAccount();
+                        this.savingsAccountAssembler.setHelpers(toSavingsAccount);
+                    }
                 }
             } else {
                 fromSavingsAccount = accountTransferDetails.fromSavingsAccount();
