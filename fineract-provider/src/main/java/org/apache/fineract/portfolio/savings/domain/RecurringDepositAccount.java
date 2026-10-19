@@ -399,15 +399,38 @@ public class RecurringDepositAccount extends SavingsAccount {
         }
         String refNo = null;
         if (generateFutureTransactions) {
+            // Real cash already received but not yet attributed to a schedule installment (e.g. a deposit
+            // posted before its installment's due date) must not be projected again as a synthetic amount
+            // below, or the projected total deposit would double count it.
+            Money totalRealDeposits = Money.zero(getCurrency());
+            for (final SavingsAccountTransaction transaction : allTransactions) {
+                if (transaction.isDepositAndNotReversed()) {
+                    totalRealDeposits = totalRealDeposits.plus(transaction.getAmount(getCurrency()));
+                }
+            }
+            Money totalAttributed = Money.zero(getCurrency());
+            for (RecurringDepositScheduleInstallment installment : depositScheduleInstallments()) {
+                totalAttributed = totalAttributed.plus(installment.getDepositAmountCompleted(getCurrency()));
+            }
+            Money unattributedCash = totalRealDeposits.minus(totalAttributed);
+            if (unattributedCash.isLessThanZero()) {
+                unattributedCash = Money.zero(getCurrency());
+            }
             for (RecurringDepositScheduleInstallment installment : depositScheduleInstallments()) {
                 if (installment.isPrincipalNotCompleted(getCurrency())) {
-                    LocalDate dueDate = installment.dueDate();
-                    if (latestTransactionDate != null && dueDate.isBefore(latestTransactionDate)) {
-                        dueDate = latestTransactionDate;
+                    final Money outstanding = installment.getDepositAmountOutstanding(getCurrency());
+                    final Money covered = unattributedCash.isGreaterThanOrEqualTo(outstanding) ? outstanding : unattributedCash;
+                    final Money netOutstanding = outstanding.minus(covered);
+                    unattributedCash = unattributedCash.minus(covered);
+                    if (netOutstanding.isGreaterThanZero()) {
+                        LocalDate dueDate = installment.dueDate();
+                        if (latestTransactionDate != null && dueDate.isBefore(latestTransactionDate)) {
+                            dueDate = latestTransactionDate;
+                        }
+                        final SavingsAccountTransaction transaction = SavingsAccountTransaction.deposit(null, office(), null, dueDate,
+                                netOutstanding, DateUtils.getLocalDateTimeOfSystem(), null, refNo);
+                        allTransactions.add(transaction);
                     }
-                    final SavingsAccountTransaction transaction = SavingsAccountTransaction.deposit(null, office(), null, dueDate,
-                            installment.getDepositAmountOutstanding(getCurrency()), DateUtils.getLocalDateTimeOfSystem(), null, refNo);
-                    allTransactions.add(transaction);
                 }
             }
         }
