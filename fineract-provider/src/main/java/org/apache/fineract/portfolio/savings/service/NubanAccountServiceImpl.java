@@ -55,7 +55,18 @@ public class NubanAccountServiceImpl implements NubanAccountService {
     @Override
     public String generateNubanAccountNumber(String serialNumber, String prefix) {
         int[] nubanMultipliers = new int[] { 3, 7, 3, 3, 7, 3, 3, 7, 3, 3, 7, 3 };
-        serialNumber = prefix + serialNumber.substring(1);
+        // Account number prefixes configured for the CLIENT entity (office name, client type, custom prefix) may be
+        // alphabetic and/or longer than one character, so strip every non-digit instead of assuming a single leading
+        // prefix character, keeping the same digit count as before (total length minus the one prefix slot).
+        int digitsNeeded = serialNumber.length() - 1;
+        String digitsOnly = serialNumber.replaceAll("\\D", "");
+        if (digitsOnly.length() > digitsNeeded) {
+            digitsOnly = digitsOnly.substring(digitsOnly.length() - digitsNeeded);
+        }
+        while (digitsOnly.length() < digitsNeeded) {
+            digitsOnly = "0" + digitsOnly;
+        }
+        serialNumber = prefix + digitsOnly;
         String extendSerialNumber = this.env.getProperty("fineract.configuration.nubanCode") + serialNumber;
         // Step1
         int digit = 0;

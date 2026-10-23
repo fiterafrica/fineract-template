@@ -55,7 +55,7 @@ public class ClientBusinessOwnerReadPlatformServiceImpl implements ClientBusines
     private static final class ClientBusinessOwnerMapper implements RowMapper<ClientBusinessOwnerData> {
 
         public String schema() {
-            return "fmb.id AS id, fmb.client_id AS clientId, fmb.firstname AS firstName, fmb.title_id AS title_id,fmb.middlename AS middleName, tc.code_value as title_name,"
+            return "fmb.id AS id, fmb.client_id AS clientId, fmb.firstname AS firstName,fmb.middlename AS middleName, tc.code_value as title_name,"
                     + "fmb.lastname AS lastName, fmb.ownership AS ownership, fmb.email AS email, fmb.mobile_number as mobileNumber,"
                     + "fmb.business_owner_number as businessOwnerNumber, fmb.city_id as city_id, cc.code_value as city_name, "
                     + "fmb.address1 as address1, fmb.address2 as address2, fmb.address3 as address3, fmb.type_id as type_id, type_code.code_value as type_name, "
@@ -65,7 +65,7 @@ public class ClientBusinessOwnerReadPlatformServiceImpl implements ClientBusines
                     + "fmb.updated_on as updated_on," + " fmb.is_active as isActive, fmb.image_id as imageId "
                     + " FROM m_business_owners fmb" + " left join m_code_value cv on fmb.state_province_id=cv.id"
                     + " left join m_code_value cc on fmb.city_id=cc.id" + " left join  m_code_value type_code on fmb.type_id=type_code.id"
-                    + " left join m_code_value tc on fmb.title_id=tc.id" + " left join  m_code_value c on fmb.country_id=c.id";
+                    + " left join  m_code_value c on fmb.country_id=c.id";
         }
 
         @Override
