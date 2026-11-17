@@ -1335,7 +1335,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
                 period.setInterestEarned(interestEarned);
             }
         }
-        this.updateSummaries(allPostingPeriods);
+        this.updateSummaries(allPostingPeriods, backdatedTxnsAllowedTill);
         return allPostingPeriods;
     }
 
@@ -4796,7 +4796,7 @@ public class SavingsAccount extends AbstractPersistableCustom {
         this.savingsHelper.calculateInterestForAllPostingPeriods(this.currency, allPostingPeriods, getLockedInUntilLocalDate(),
                 isTransferInterestToOtherAccount(), true);
 
-        this.updateSummaries(allPostingPeriods);
+        this.updateSummaries(allPostingPeriods, false);
 
         Money interestPostedToDate = Money.zero(this.currency);
 
@@ -4973,9 +4973,19 @@ public class SavingsAccount extends AbstractPersistableCustom {
         return postingTransaction;
     }
 
-    protected void updateSummaries(List<PostingPeriod> allPostingPeriods) {
+    protected void updateSummaries(final List<PostingPeriod> allPostingPeriods, final boolean backdatedTxnsAllowedTill) {
         this.summary.updateFromInterestPeriodSummaries(this.currency, allPostingPeriods);
-        updateSummary();
+        // Pick the transaction collection the same way every other site in this class does
+        // (see postInterest, calculateInterestUsing, deposit and withdraw). Without this guard the
+        // pivot path's correct incremental summary was recomputed from this.transactions, which does
+        // not yet contain the transaction being processed - its id is only assigned by the flush that
+        // follows - so the stored balance trailed the ledger by exactly one transaction (FSO-516).
+        if (backdatedTxnsAllowedTill) {
+            this.summary.updateSummaryWithPivotConfig(this.currency, this.savingsAccountTransactionSummaryWrapper, null,
+                    this.savingsAccountTransactions);
+        } else {
+            updateSummary();
+        }
         // Update total interest earned
         if (this.summary.getTotalInterestEarned() != null && this.summary.getTotalInterestPosted() != null) {
             this.summary.setTotalInterestEarned(this.summary.getTotalInterestEarned().add(this.summary.getTotalInterestPosted()));
