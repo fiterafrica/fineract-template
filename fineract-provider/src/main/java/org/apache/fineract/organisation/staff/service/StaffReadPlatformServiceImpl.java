@@ -21,10 +21,7 @@ package org.apache.fineract.organisation.staff.service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
 import org.apache.fineract.infrastructure.core.exception.UnrecognizedQueryParamException;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
@@ -32,9 +29,7 @@ import org.apache.fineract.infrastructure.security.utils.ColumnValidator;
 import org.apache.fineract.infrastructure.security.utils.SQLBuilder;
 import org.apache.fineract.organisation.staff.data.StaffData;
 import org.apache.fineract.organisation.staff.exception.StaffNotFoundException;
-import org.apache.fineract.portfolio.client.domain.ClientStatus;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanStatus;
-import org.apache.fineract.portfolio.savings.domain.SavingsAccountStatusType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -275,34 +270,15 @@ public class StaffReadPlatformServiceImpl implements StaffReadPlatformService {
 
     @Override
     public Object[] hasAssociatedItems(final Long staffId) {
-        ArrayList<String> params = new ArrayList<String>();
+        // Reassigning the officer's active loans is the prerequisite for deactivating them. This check also used to
+        // block on clients, groups and savings accounts, which carry staff ownership of their own but which no bulk
+        // handover clears, so an officer holding any of them could never be deactivated at all (FSO-515).
+        final String sql = "select count(*) from m_loan l where l.loan_officer_id = ? and l.loan_status_id < ?";
 
-        String sql = "select c.display_name as client, g.display_name as grp,l.loan_officer_id as loan, s.field_officer_id as sav"
-                + " from m_staff staff " + " left outer join m_client c on staff.id = c.staff_id  AND c.status_enum < ? "
-                + " left outer join m_group g on staff.id = g.staff_id "
-                + " left outer join m_loan l on staff.id = l.loan_officer_id and l.loan_status_id < ? "
-                + " left outer join m_savings_account s on c.staff_id = s.field_officer_id and s.status_enum < ? "
-                + " where  staff.id  = ? " + " group by staff.id, client, grp, loan, sav";
+        final Long activeLoans = this.jdbcTemplate.queryForObject(sql, Long.class, staffId, LoanStatus.WITHDRAWN_BY_CLIENT.getValue());
 
-        List<Map<String, Object>> result = this.jdbcTemplate.queryForList(sql, new Object[] { ClientStatus.CLOSED.getValue(),
-                LoanStatus.WITHDRAWN_BY_CLIENT.getValue(), SavingsAccountStatusType.WITHDRAWN_BY_APPLICANT.getValue(), staffId });
-        if (result != null) {
-            for (Map<String, Object> map : result) {
-                if (map.get("client") != null) {
-                    params.add("client");
-                }
-                if (map.get("grp") != null) {
-                    params.add("group");
-                }
-                if (map.get("loan") != null) {
-                    params.add("loan");
-                }
-                if (map.get("sav") != null) {
-                    params.add("savings account");
-                }
-            }
-        }
-        return params.toArray();
-
+        // One entry for the kind, not one per row: the result is rendered into a message for the user, and an officer
+        // holding fifty loans used to produce the word "loan" fifty times over.
+        return activeLoans != null && activeLoans > 0 ? new Object[] { "loan" } : new Object[0];
     }
 }

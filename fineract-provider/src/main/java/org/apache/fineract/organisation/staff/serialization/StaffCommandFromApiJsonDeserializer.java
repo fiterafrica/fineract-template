@@ -170,11 +170,12 @@ public final class StaffCommandFromApiJsonDeserializer {
 
             final Boolean activeFlag = this.fromApiJsonHelper.extractBooleanNamed("isActive", element);
 
-            // Need to add here check to see if any clients, group, account and
-            // loans are assigned to this staff if staff is being set to
-            // inactive --LJB
+            // Deactivating a staff member requires their active loans to have been reassigned first. "forceStatus"
+            // waives that requirement: the condition below used to run the check unless forceStatus was explicitly
+            // false, which is the opposite of what the name says, so passing true enforced the guard and false
+            // skipped it.
             final Boolean forceStatus = this.fromApiJsonHelper.extractBooleanNamed("forceStatus", element);
-            if ((!activeFlag && forceStatus == null) || (!activeFlag && forceStatus)) {
+            if (!activeFlag && !Boolean.TRUE.equals(forceStatus)) {
                 Object[] result = staffReadPlatformService.hasAssociatedItems(staffId);
 
                 if (result != null && result.length > 0) {
